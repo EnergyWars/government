@@ -1,5 +1,8 @@
 extends GutTest
 
+const MIN_LETTER_LENGTH := 150
+const MAX_SUBJECT_WIDTH := 420.0
+
 var state: GameState
 var sim: Simulation
 var layout: WorldLayout
@@ -37,18 +40,18 @@ func test_complaints_are_filed_after_minimum_cases() -> void:
 
 func test_full_box_costs_no_reputation() -> void:
 	state.reputation = 5.0
-	state.complaints = GameConfig.COMPLAINT_CAP
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	watch_signals(sim)
 	sim.file_complaint()
-	assert_eq(state.complaints, GameConfig.COMPLAINT_CAP)
+	assert_eq(state.complaints, GameConfig.COMPLAINT_BOX_CAPACITY)
 	assert_eq(state.reputation, 5.0)
 	assert_eq(state.complaints_filed, 0)
 	assert_signal_emitted_with_parameters(sim, "complaint_filed", [true])
 
 
-func test_player_picks_up_at_desk_and_shreds() -> void:
+func test_player_picks_up_at_box_and_shreds() -> void:
 	state.complaints = 3
-	state.player.position = layout.complaint_desk_point()
+	state.player.position = layout.complaint_box_point()
 	_run(2.0)
 	assert_eq(state.complaints, 0)
 	assert_eq(state.player.complaints, 3)
@@ -63,11 +66,11 @@ func test_player_picks_up_at_desk_and_shreds() -> void:
 
 
 func test_pickup_respects_carry_capacity() -> void:
-	state.complaints = GameConfig.COMPLAINT_CAP
-	state.player.position = layout.complaint_desk_point()
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
+	state.player.position = layout.complaint_box_point()
 	_run(10.0)
 	assert_eq(state.player.complaints, Formulas.carry_capacity(state))
-	assert_eq(state.complaints, GameConfig.COMPLAINT_CAP - Formulas.carry_capacity(state))
+	assert_eq(state.complaints, GameConfig.COMPLAINT_BOX_CAPACITY - Formulas.carry_capacity(state))
 
 
 func test_nothing_happens_away_from_desk_and_shredder() -> void:
@@ -140,18 +143,18 @@ func test_old_saves_and_invalid_values_are_tolerated() -> void:
 	data.complaints_filed = -7
 	data.player.complaints = -3
 	loaded = GameState.from_dict(data)
-	assert_eq(loaded.complaints, GameConfig.COMPLAINT_CAP)
+	assert_eq(loaded.complaints, GameConfig.COMPLAINT_BOX_CAPACITY)
 	assert_eq(loaded.complaints_shredded, 0)
-	assert_eq(loaded.complaints_filed, GameConfig.COMPLAINT_CAP)
+	assert_eq(loaded.complaints_filed, GameConfig.COMPLAINT_BOX_CAPACITY)
 	assert_eq(loaded.complaint_timer, GameConfig.COMPLAINT_INTERVAL)
 	assert_eq(loaded.player.complaints, 0)
 
 
-func test_guidance_leads_to_desk_then_shredder() -> void:
+func test_guidance_leads_to_box_then_shredder() -> void:
 	state.complaints = 1
 	var task := Guidance.next_task(state)
 	assert_eq(task.action, Guidance.COMPLAINT)
-	assert_eq(task.point, layout.complaint_desk_point())
+	assert_eq(task.point, layout.complaint_box_point())
 	state.complaints = 0
 	state.player.complaints = 1
 	task = Guidance.next_task(state)
@@ -164,7 +167,7 @@ func test_complaints_are_rare_and_harmless() -> void:
 	assert_gt(GameConfig.COMPLAINT_REWARD, 0.0)
 	assert_lte(GameConfig.COMPLAINT_REWARD, 5.0)
 	state.reputation = 10.0
-	state.complaints = GameConfig.COMPLAINT_CAP
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	_run(120.0, 0.5)
 	assert_gte(state.reputation, 10.0)
 
@@ -188,6 +191,27 @@ func test_complaint_texts_cycle_through_all_variants() -> void:
 	assert_eq(Formulas.complaint_text_index(0), Formulas.complaint_text_index(GameConfig.COMPLAINT_TEXTS))
 	assert_eq(Flavor.COMPLAINT_COUNT, GameConfig.COMPLAINT_TEXTS)
 	assert_between(Formulas.complaint_text_index(-5), 0, GameConfig.COMPLAINT_TEXTS - 1)
+
+
+func test_complaint_letters_are_long_and_float_a_short_subject() -> void:
+	var original := TranslationServer.get_locale()
+	for locale in ["de", "en"]:
+		TranslationServer.set_locale(locale)
+		var letters := {}
+		var subjects := {}
+		for serial in GameConfig.COMPLAINT_TEXTS:
+			var letter := Flavor.complaint(serial)
+			var subject := Flavor.complaint_subject(serial)
+			var width := AppTheme.FONT_SEMIBOLD.get_string_size(subject, HORIZONTAL_ALIGNMENT_LEFT, -1, AppTheme.SIZE_TITLE_SMALL).x
+			assert_gte(letter.length(), MIN_LETTER_LENGTH, "%s letter %d" % [locale, serial])
+			assert_lt(subject.length(), letter.length(), "%s subject %d" % [locale, serial])
+			assert_false(subject.contains("\n"), "%s subject %d" % [locale, serial])
+			assert_lte(width, MAX_SUBJECT_WIDTH, "%s subject %d" % [locale, serial])
+			letters[letter] = true
+			subjects[subject] = true
+		assert_eq(letters.size(), GameConfig.COMPLAINT_TEXTS, locale)
+		assert_eq(subjects.size(), GameConfig.COMPLAINT_TEXTS, locale)
+	TranslationServer.set_locale(original)
 
 
 func test_filed_counter_survives_saving() -> void:

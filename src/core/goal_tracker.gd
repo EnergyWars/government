@@ -36,7 +36,7 @@ func progress_of(goal: Dictionary) -> float:
 		"research_level":
 			return state.research_level(goal.param)
 		"reputation":
-			return floorf(state.reputation)
+			return floorf(state.standing())
 	return 0.0
 
 
@@ -49,10 +49,22 @@ func is_complete() -> bool:
 
 
 func claim() -> bool:
+	return _claim(1.0)
+
+
+func claim_doubled() -> bool:
+	if not _claim(GameConfig.AD_REWARD_FACTOR):
+		return false
+	state.ads_watched += 1
+	return true
+
+
+func _claim(money_factor: float) -> bool:
 	if not is_complete():
 		return false
 	var goal := current()
-	state.grant(float(goal.money))
+	state.grant(float(goal.money) * money_factor)
 	state.add_reputation(float(goal.reputation))
+	state.seals += GameConfig.GOAL_SEALS
 	state.goal_index += 1
 	return true

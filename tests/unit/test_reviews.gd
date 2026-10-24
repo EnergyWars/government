@@ -119,19 +119,35 @@ func test_trim_drops_oldest_when_all_negative() -> void:
 	assert_null(state.find_review(first.id))
 
 
-func test_complaint_can_post_a_negative_review() -> void:
+func _fill_box() -> void:
+	state.complaints = Formulas.complaint_cap(state)
+
+
+func test_complaint_in_the_box_posts_no_review() -> void:
 	watch_signals(sim)
+	for i in Formulas.complaint_cap(state):
+		sim.file_complaint()
+	assert_eq(state.complaints, Formulas.complaint_cap(state))
+	assert_true(state.reviews.is_empty())
+	assert_signal_not_emitted(sim, "review_posted")
+
+
+func test_full_box_complaint_posts_a_negative_review() -> void:
+	watch_signals(sim)
+	_fill_box()
+	sim.file_complaint()
+	assert_eq(state.negative_review_count(), 1)
+	assert_signal_emitted(sim, "review_posted")
 	for i in 80:
 		sim.file_complaint()
-	assert_gt(state.negative_review_count(), 0)
-	assert_lte(state.negative_review_count(), GameConfig.MAX_NEGATIVE_REVIEWS)
-	assert_signal_emitted(sim, "review_posted")
+	assert_eq(state.negative_review_count(), GameConfig.MAX_NEGATIVE_REVIEWS)
 	for review in state.reviews:
 		assert_true(review.is_negative())
 
 
 func test_negative_reviews_use_one_or_two_stars() -> void:
 	var seen := {}
+	_fill_box()
 	for i in 200:
 		sim.file_complaint()
 		for review in state.reviews:
@@ -205,7 +221,8 @@ func test_delete_cost_falls_with_more_stars_and_five_stars_are_free() -> void:
 	var forced := Review.new(0, 1)
 	forced.force_praise(0)
 	assert_eq(Formulas.review_delete_cost(state, forced), 0.0)
-	assert_gt(Formulas.review_delete_cost(state, Review.new(0, 1)), Formulas.review_base_cost(state) * 5.0)
+	assert_gt(Formulas.review_delete_cost(state, Review.new(0, 1)), Formulas.review_base_cost(state))
+	assert_lt(Formulas.review_delete_cost(state, Review.new(0, 1)), Formulas.review_lawsuit_cost(state, Review.new(0, 1)) * 3.0)
 
 
 func test_any_review_can_be_deleted() -> void:
@@ -265,20 +282,20 @@ func test_lawsuit_win_forces_praise_and_scares_authors() -> void:
 	state.reputation = 10.0
 	var review := state.add_review(1)
 	var original_author := review.author_index
-	var outcome := ""
+	var outcome := [""]
 	var cost := 0.0
-	sim.review_removed.connect(func(result: String) -> void: outcome = result)
+	sim.review_removed.connect(func(result: String) -> void: outcome[0] = result)
 	var tries := 0
-	while outcome != "won" and tries < 200:
+	while outcome[0] != "won" and tries < 200:
 		tries += 1
 		state.money = 5000.0
 		state.reputation = 10.0
-		outcome = ""
+		outcome[0] = ""
 		review.stars = 1
 		review.lawsuits = 0
 		cost = Formulas.review_lawsuit_cost(state, review)
 		sim.sue_for_defamation(review.id)
-	assert_eq(outcome, "won")
+	assert_eq(outcome[0], "won")
 	assert_true(review.forced)
 	assert_eq(review.stars, 5)
 	assert_eq(review.author_index, original_author)
@@ -291,25 +308,25 @@ func test_lawsuit_win_forces_praise_and_scares_authors() -> void:
 
 func test_lawsuit_loss_removes_a_star_and_counts_the_attempt() -> void:
 	var review := state.add_review(3)
-	var outcome := ""
-	sim.review_removed.connect(func(result: String) -> void: outcome = result)
+	var outcome := [""]
+	sim.review_removed.connect(func(result: String) -> void: outcome[0] = result)
 	var tries := 0
-	while outcome != "lost" and tries < 200:
+	while outcome[0] != "lost" and tries < 200:
 		tries += 1
 		state.money = 1.0e6
 		state.reputation = 10.0
-		outcome = ""
+		outcome[0] = ""
 		review.stars = 3
 		review.lawsuits = 0
 		review.forced = false
 		state.review_fear = 0.0
 		sim.sue_for_defamation(review.id)
-	assert_eq(outcome, "lost")
+	assert_eq(outcome[0], "lost")
 	assert_eq(review.stars, 2)
 	assert_eq(review.lawsuits, 1)
 	assert_lt(review.text_index, GameConfig.review_texts(2))
 	assert_true(review.is_negative())
-	assert_almost_eq(state.reputation, 10.0 - GameConfig.REVIEW_LAWSUIT_LOSS, 0.001)
+	assert_almost_eq(state.reputation, 10.0 - GameConfig.REVIEW_LAWSUIT_LOSS * GameConfig.REP_LOSS_FACTOR, 0.001)
 	assert_eq(state.review_fear, 0.0)
 
 
@@ -362,6 +379,7 @@ func test_lawsuits_survive_saving() -> void:
 
 func test_fear_makes_negative_reviews_rare_and_wears_off() -> void:
 	var quiet := 0
+	_fill_box()
 	state.review_fear = GameConfig.REVIEW_FEAR_SECONDS
 	for i in 400:
 		sim.file_complaint()
@@ -380,6 +398,7 @@ func test_fear_makes_negative_reviews_rare_and_wears_off() -> void:
 
 
 func test_negative_reviews_are_capped() -> void:
+	_fill_box()
 	for i in 500:
 		sim.file_complaint()
 	assert_lte(state.negative_review_count(), GameConfig.MAX_NEGATIVE_REVIEWS)
@@ -417,8 +436,50 @@ func test_loading_sanitizes_reviews() -> void:
 	assert_eq(GameState.from_dict(data).reviews.size(), GameConfig.MAX_STORED_REVIEWS)
 
 
+func test_reviews_expire_after_their_lifetime() -> void:
+	watch_signals(sim)
+	var old := state.add_review(1)
+	state.play_time = 100.0
+	var fresh := state.add_review(5)
+	assert_eq(state.review_time_left(old), GameConfig.REVIEW_LIFETIME - 100.0)
+	assert_eq(state.review_time_left(fresh), GameConfig.REVIEW_LIFETIME)
+	state.play_time = GameConfig.REVIEW_LIFETIME - 1.0
+	sim.tick(GameConfig.TICK)
+	assert_eq(state.reviews.size(), 2)
+	assert_signal_not_emitted(sim, "review_removed")
+	state.play_time = GameConfig.REVIEW_LIFETIME
+	sim.tick(GameConfig.TICK)
+	assert_eq(state.reviews.size(), 1)
+	assert_eq(state.reviews[0], fresh)
+	assert_signal_emitted_with_parameters(sim, "review_removed", ["expired"])
+	assert_eq(state.review_time_left(old), 0.0)
+
+
+func test_expiry_counts_removed_reviews_and_lasts_a_while() -> void:
+	assert_gte(GameConfig.REVIEW_LIFETIME, 3600.0)
+	for i in 3:
+		state.add_review(2)
+	assert_eq(state.expire_reviews(), 0)
+	state.play_time = GameConfig.REVIEW_LIFETIME * 2.0
+	assert_eq(state.expire_reviews(), 3)
+	assert_true(state.reviews.is_empty())
+
+
+func test_loading_keeps_review_age_but_not_from_the_future() -> void:
+	state.play_time = 500.0
+	var review := state.add_review(1)
+	review.posted_at = 200.0
+	var future := state.add_review(2)
+	future.posted_at = 9000.0
+	var copy := GameState.from_dict(state.to_dict())
+	assert_eq(copy.play_time, 500.0)
+	assert_eq(copy.reviews[0].posted_at, 200.0)
+	assert_eq(copy.reviews[1].posted_at, 500.0)
+
+
 func test_legacy_counter_save_becomes_negative_reviews() -> void:
 	var data := state.to_dict()
+	data["play_time"] = 4000.0
 	data["reviews"] = 3
 	data.erase("review_seq")
 	data.erase("review_fear")
@@ -427,6 +488,8 @@ func test_legacy_counter_save_becomes_negative_reviews() -> void:
 	assert_eq(copy.negative_review_count(), 3)
 	assert_eq(copy.review_seq, 3)
 	assert_eq(copy.review_fear, 0.0)
+	for legacy in copy.reviews:
+		assert_eq(legacy.posted_at, 4000.0)
 	data["reviews"] = 99
 	assert_eq(GameState.from_dict(data).reviews.size(), GameConfig.MAX_NEGATIVE_REVIEWS)
 	data["reviews"] = 0
@@ -516,7 +579,10 @@ func test_sheet_pages_long_lists() -> void:
 	for i in GameConfig.REVIEW_PAGE_SIZE + 3:
 		state.add_review(5)
 	var sheet := _sheet()
-	assert_true(_has_label(sheet.content, sheet.tr("ACTION_REVIEWS_MORE") % 3))
+	var labels: Array[String] = []
+	for button in _buttons(sheet.content):
+		labels.append(button.text)
+	assert_has(labels, sheet.tr("ACTION_REVIEWS_MORE") % 3)
 
 
 func test_sheet_opens_detail_from_argument_and_steps_through() -> void:
@@ -525,6 +591,7 @@ func test_sheet_opens_detail_from_argument_and_steps_through() -> void:
 	var sheet := _sheet(str(newest.id))
 	assert_eq(sheet.title(), sheet.tr("SHEET_REVIEW_DETAIL"))
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_POSITION") % [1, 5]))
+	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_EXPIRES") % UiKit.duration(state.review_time_left(newest))))
 	sheet.step(1)
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_POSITION") % [2, 5]))
 	sheet.step(-1)
@@ -608,22 +675,22 @@ func test_sheet_offers_free_deletion_and_lawsuit_for_praise() -> void:
 func test_sheet_lost_lawsuit_stays_on_detail_with_fewer_stars() -> void:
 	var review := state.add_review(3)
 	var sheet := _sheet(str(review.id))
-	var outcome := ""
-	game.simulation.review_removed.connect(func(result: String) -> void: outcome = result)
+	var outcome := [""]
+	game.simulation.review_removed.connect(func(result: String) -> void: outcome[0] = result)
 	var tries := 0
-	while outcome != "lost" and tries < 200:
+	while outcome[0] != "lost" and tries < 200:
 		tries += 1
 		state.money = 1.0e9
 		review.stars = 3
 		review.lawsuits = 0
 		review.forced = false
-		outcome = ""
+		outcome[0] = ""
 		sheet.select(review.id)
 		for button in _buttons(sheet.content):
 			if button.text.begins_with(sheet.tr("ACTION_REVIEW_SUE")):
 				button.pressed.emit()
 				break
-	assert_eq(outcome, "lost")
+	assert_eq(outcome[0], "lost")
 	assert_eq(review.stars, 2)
 	assert_eq(sheet.title(), sheet.tr("SHEET_REVIEW_DETAIL"))
 	assert_true(_has_label(sheet.content, sheet.tr("FLOAT_REVIEW_LOST")))
@@ -668,6 +735,11 @@ func test_stars_widget_has_five_icons() -> void:
 
 func test_delete_cost_scales_with_income() -> void:
 	var review := Review.new(0, 1)
+	state.research["pneumatic_tubes"] = 1
+	state.connect_all_tubes()
+	for key in state.stations:
+		if not state.stations[key].machine:
+			state.stations[key].staff = state.stations[key].desks
 	var low := Formulas.review_delete_cost(state, review)
 	state.unlock_department("tax_services")
 	assert_gte(Formulas.review_delete_cost(state, review), low)

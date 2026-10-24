@@ -88,7 +88,7 @@ func test_impatient_citizens_leave() -> void:
 	sim.tick(0.1)
 	assert_eq(state.station(GameConfig.RECEPTION).inbox.size(), 1)
 	assert_eq(state.citizens_lost, 1)
-	assert_almost_eq(state.reputation, 5.0 + GameConfig.REP_CITIZEN_LEFT, 0.001)
+	assert_almost_eq(state.reputation, 5.0 + GameConfig.REP_CITIZEN_LEFT * GameConfig.REP_LOSS_FACTOR, 0.001)
 
 
 func test_cases_age_everywhere() -> void:
@@ -132,6 +132,59 @@ func test_unstaffed_desk_waits_for_player() -> void:
 	state.player.position = layout.work_point(GameConfig.RECEPTION)
 	_run(2.5)
 	assert_eq(reception.outbox.size(), 1)
+	assert_eq(reception.outbox[0].handled, 1)
+
+
+func test_staff_work_does_not_count_as_hand_work() -> void:
+	var review := state.station("general_services/review")
+	review.inbox.append(_at("general_services/review", _case()))
+	state.player.position = Vector2.ZERO
+	_run(6.0)
+	assert_eq(review.outbox.size(), 1)
+	assert_eq(review.outbox[0].handled, 0)
+
+
+func test_hand_made_case_pays_more() -> void:
+	var counter := state.station(GameConfig.COUNTER)
+	var manual := _at(GameConfig.COUNTER, _case())
+	manual.handled = 5
+	counter.inbox.append(manual)
+	state.player.position = layout.work_point(GameConfig.COUNTER)
+	state.reputation = 0.0
+	var money := state.money
+	_run(3.0)
+	assert_eq(state.cases_completed, 1)
+	assert_eq(manual.handled, 6)
+	assert_almost_eq(state.money - money, 20.0 * (1.0 + GameConfig.HAND_REWARD_BONUS), 0.01)
+
+
+func test_player_helps_at_a_staffed_desk() -> void:
+	var review := state.station("general_services/review")
+	var case_file := _at("general_services/review", _case())
+	review.inbox.append(case_file)
+	state.player.position = layout.work_point("general_services/review")
+	_run(2.0)
+	assert_eq(review.outbox.size(), 1)
+	assert_eq(case_file.handled, 1)
+
+
+func test_machines_are_not_helped_by_hand() -> void:
+	var signature := state.station("general_services/signature")
+	signature.inbox.append(_at("general_services/signature", _case()))
+	assert_false(sim.work(signature, 1.0))
+	assert_true(signature.inbox.size() == 1)
+
+
+func test_guidance_sends_player_to_help_with_a_backlog() -> void:
+	var review := state.station("general_services/review")
+	state.player.position = layout.work_point("general_services/review")
+	review.inbox.append(_at("general_services/review", _case()))
+	assert_ne(str(Guidance.next_task(state).get("action", "")), Guidance.WORK)
+	for i in GameConfig.HELP_BACKLOG - 1:
+		review.inbox.append(_at("general_services/review", _case()))
+	var task := Guidance.next_task(state)
+	assert_eq(task.action, Guidance.WORK)
+	assert_eq(task.key, "general_services/review")
 
 
 func test_work_only_affects_unstaffed_desks() -> void:
@@ -351,6 +404,7 @@ func test_player_picks_up_and_drops_files() -> void:
 	assert_true(sim.player_transfer())
 	assert_true(state.player.items.is_empty())
 	assert_eq(review.inbox, [case_file] as Array[CaseFile])
+	assert_eq(case_file.handled, 1)
 
 
 func test_player_hands_full_and_target_full() -> void:
@@ -451,6 +505,7 @@ func test_idle_runner_returns_home() -> void:
 
 func test_pneumatic_tubes_route_files_through_tubes() -> void:
 	state.research["pneumatic_tubes"] = 1
+	state.connect_all_tubes()
 	var runner := state.add_runner()
 	runner.items.append(_case())
 	runner.target = "general_services/review"
@@ -474,8 +529,8 @@ func test_full_loop_earns_money_with_staff() -> void:
 		var station := state.stations[key]
 		if not station.machine:
 			station.staff = 1
-	state.add_runner()
-	state.add_runner()
+	for role in Runner.ROLES:
+		state.add_runner(role)
 	state.department("general_services").arrival_timer = 0.0
 	_run(180.0, 0.1)
 	assert_gt(state.cases_completed, 5)

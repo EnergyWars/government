@@ -57,6 +57,14 @@ const SEARCH := "\ue8b6"
 const FLAG_REPORT := "\uf013"
 const LOCAL_SHIPPING := "\ue558"
 const STATS := "\ue26b"
+const MAIL := "\ue158"
+const CLERK := "\uf0e2"
+const COMPLAINT_BOX := "\ue89b"
+const SEAL := "\uea3f"
+const AD := "\ue63a"
+const CART := "\ue8cc"
+const STORAGE := "\ue179"
+const SWAMPED := "\ue002"
 
 const TRAININGS := {
 	"skill": "\ue9e4",
@@ -96,6 +104,7 @@ const STATIONS := {
 	"counter": "\uf17e",
 	"dock": "\uf868",
 	"clearance": "\uef76",
+	"mailroom": "\ue554",
 }
 
 const STAFF := {
@@ -128,11 +137,13 @@ const RESEARCH := {
 	"digital_signatures": "\ue2e6",
 	"pneumatic_tubes": "\uf867",
 	"tube_capacity": "\ue8f9",
-	"complaint_desk": "\ue0b7",
 	"complaint_tube": "\ue8f9",
 	"intern_training": "\ue80c",
 	"online_portal": "\ue894",
 	"ai_classification": "\uea4b",
+	"letter_opener": "\ue14e",
+	"mail_subscription": "\ue0be",
+	"registered_mail": "\ue8e8",
 }
 
 const DISPUTES := {
@@ -160,6 +171,25 @@ const EVENTS := {
 	"garden_shed": "\uea3b",
 	"inspector_audit": "\ue8b6",
 	"authority_comparison": "\uea23",
+	"mayor_visit": "\ue84f",
+	"newspaper_praise": "\ueb81",
+}
+
+const BOOSTS := {
+	"overtime": "\uea5d",
+	"temp_workers": "\ue7fe",
+	"stamp_turbo": "\ue982",
+	"express_post": "\ue554",
+	"coffee_round": "\ue541",
+	"doctor_visit": "\uf109",
+	"works_outing": "\uea65",
+	"mayor_speech": "\uef49",
+	"roller_skates": "\ue566",
+	"complaint_amnesty": "\ue90e",
+	"weekend_shift": "\ue16b",
+	"gazette_ad": "\ueb81",
+	"fee_increase": "\ue8e5",
+	"budget_injection": "\ue2eb",
 }
 
 

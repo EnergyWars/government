@@ -13,6 +13,9 @@ const HALL_HEIGHT := 460.0
 const KITCHEN_HEIGHT := 280.0
 const KITCHEN_WIDTH := 900.0
 const PHONE_HEIGHT := 260.0
+const MAIL_HEIGHT := 400.0
+const MAIL_STATION_X := 420.0
+const MAIL_STATION_WIDTH := 460.0
 const OPERATOR_SPACING := 160.0
 const HEADER := 56.0
 const DESK_COLUMNS := 3
@@ -38,6 +41,7 @@ var hall := Rect2()
 var kitchen := Rect2()
 var toilets := Rect2()
 var phone_office := Rect2()
+var mail_room := Rect2()
 var entrance := Vector2.ZERO
 var waiting_area := Rect2()
 var rooms: Dictionary[String, Rect2] = {}
@@ -71,6 +75,8 @@ func _build() -> void:
 	y += KITCHEN_HEIGHT + GAP
 	phone_office = Rect2(MARGIN, y, WIDTH - MARGIN * 2.0, PHONE_HEIGHT)
 	y += PHONE_HEIGHT + GAP
+	mail_room = Rect2(MARGIN, y, WIDTH - MARGIN * 2.0, MAIL_HEIGHT)
+	y += MAIL_HEIGHT + GAP
 	hall = Rect2(MARGIN, y, WIDTH - MARGIN * 2.0, HALL_HEIGHT)
 	size = Vector2(WIDTH, hall.end.y + MARGIN)
 	entrance = Vector2(WIDTH * 0.5, hall.end.y - 12.0)
@@ -78,6 +84,7 @@ func _build() -> void:
 	areas[GameConfig.COUNTER] = Rect2(hall.position + Vector2(hall.size.x - 540, 40), Vector2(440, 240))
 	waiting_area = Rect2(hall.position + Vector2(hall.size.x * 0.5 - 110, 40), Vector2(220, 260))
 	areas[GameConfig.INSPECTION] = _local("inspection", Rect2(24, HEADER, 602, ROW_HEIGHT - HEADER - 24))
+	areas[GameConfig.MAILROOM] = Rect2(mail_room.position + Vector2(MAIL_STATION_X, HEADER), Vector2(MAIL_STATION_WIDTH, MAIL_HEIGHT - HEADER - 24))
 	for dept_id in GameConfig.department_ids():
 		var keys := GameConfig.department_station_keys(dept_id)
 		if keys.size() == 2:
@@ -240,9 +247,21 @@ func complaint_desk_point() -> Vector2:
 	return hall.position + Vector2(900.0, 392.0)
 
 
+func complaint_box_point() -> Vector2:
+	return complaint_desk_point() + Vector2(64.0, 0.0)
+
+
+func complaint_clerk_point() -> Vector2:
+	return complaint_desk_point() + Vector2(0.0, -26.0)
+
+
 func complaint_read_rect() -> Rect2:
 	var desk := complaint_desk_point()
 	return Rect2(desk + Vector2(-120.0, -80.0), Vector2(240.0, 120.0))
+
+
+func closed_sign_rect() -> Rect2:
+	return Rect2(Vector2(hall.end.x - 262.0, hall.end.y - 60.0), Vector2(176.0, 52.0))
 
 
 func shredder_point() -> Vector2:
@@ -253,12 +272,12 @@ func complaint_tube_path() -> PackedVector2Array:
 	if _complaint_tube.is_empty():
 		var desk := complaint_desk_point()
 		var shredder := shredder_point()
-		_complaint_tube = PackedVector2Array([desk + Vector2(130.0, -30.0), desk + Vector2(130.0, -100.0), Vector2(shredder.x, desk.y - 100.0), shredder + Vector2(0.0, -56.0)])
+		_complaint_tube = PackedVector2Array([desk + Vector2(64.0, -50.0), desk + Vector2(64.0, -100.0), Vector2(shredder.x, desk.y - 100.0), shredder + Vector2(0.0, -56.0)])
 	return _complaint_tube
 
 
 func intern_home(slot: int = 0) -> Vector2:
-	return complaint_desk_point() + Vector2(78.0 + slot * 40.0, -4.0 + (slot % 2) * 14.0)
+	return complaint_desk_point() + Vector2(104.0 + slot * 36.0, -4.0 + (slot % 2) * 14.0)
 
 
 func intern_cry_point(slot: int = 0) -> Vector2:
@@ -325,6 +344,31 @@ func sick_board() -> Rect2:
 	return Rect2(phone_office.position + Vector2(phone_office.size.x - 260.0, HEADER + 20.0), Vector2(236.0, 160.0))
 
 
+func mail_header() -> Rect2:
+	return Rect2(mail_room.position, Vector2(mail_room.size.x, HEADER))
+
+
+func mail_door() -> Vector2:
+	return Vector2(mail_room.position.x + 12.0, mail_room.position.y + HEADER + 250.0)
+
+
+func mail_street() -> Vector2:
+	return Vector2(-60.0, mail_door().y)
+
+
+func mail_storage_rect() -> Rect2:
+	return Rect2(mail_room.position + Vector2(110.0, HEADER + 24.0), Vector2(280.0, MAIL_HEIGHT - HEADER - 72.0))
+
+
+func mail_drop_point() -> Vector2:
+	var rect := mail_storage_rect()
+	return Vector2(rect.position.x + 30.0, rect.end.y - 20.0)
+
+
+func mail_desk_point() -> Vector2:
+	return mail_room.position + Vector2(MAIL_STATION_X + MAIL_STATION_WIDTH + 80.0, HEADER + 90.0)
+
+
 func phone_header() -> Rect2:
 	return Rect2(phone_office.position, Vector2(phone_office.size.x, HEADER))
 
@@ -369,6 +413,21 @@ func clamp_to_world(point: Vector2) -> Vector2:
 
 func near(a: Vector2, b: Vector2) -> bool:
 	return a.distance_to(b) <= GameConfig.INTERACT_RADIUS
+
+
+func header_at(point: Vector2) -> String:
+	for slot in rooms:
+		if header(slot).has_point(point):
+			return slot
+	if kitchen_header().has_point(point):
+		return GameConfig.ROOM_KITCHEN
+	if toilets_header().has_point(point):
+		return GameConfig.ROOM_TOILETS
+	if phone_header().has_point(point):
+		return GameConfig.ROOM_PHONE
+	if mail_header().has_point(point):
+		return GameConfig.ROOM_MAIL
+	return ""
 
 
 func slot_at(point: Vector2) -> String:

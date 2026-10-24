@@ -15,6 +15,8 @@ static func draw_item(canvas: CanvasItem, center: Vector2, case_file: CaseFile) 
 		_cargo(canvas, center, case_file)
 	elif case_file.produced:
 		draw_output(canvas, center, case_file.dept_id)
+	elif case_file.mail:
+		draw_letter(canvas, center, AppTheme.department_color(case_file.dept_id))
 	else:
 		_folder(canvas, center, AppTheme.department_color(case_file.dept_id), case_file.urgent)
 	_badges(canvas, center, case_file)
@@ -50,6 +52,15 @@ static func _badge(canvas: CanvasItem, at: Vector2, color: Color, glyph: int) ->
 			canvas.draw_rect(Rect2(at + Vector2(-1.8, -0.5), Vector2(3.6, 3.2)), AppTheme.SURFACE)
 		_:
 			canvas.draw_circle(at, 2.0, AppTheme.SURFACE)
+
+
+static func draw_letter(canvas: CanvasItem, center: Vector2, stamp: Color) -> void:
+	var body := Rect2(center + Vector2(-12, -8), Vector2(24, 16))
+	canvas.draw_rect(Rect2(body.position + Vector2(1, 2), body.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(body, AppTheme.PAPER)
+	canvas.draw_rect(body, AppTheme.PAPER_EDGE, false, 1.0)
+	canvas.draw_polyline(PackedVector2Array([body.position, body.get_center() + Vector2(0, 1), Vector2(body.end.x, body.position.y)]), AppTheme.PAPER_EDGE, 1.0)
+	canvas.draw_rect(Rect2(Vector2(body.end.x - 7, body.position.y + 2), Vector2(5, 5)), stamp)
 
 
 static func _folder(canvas: CanvasItem, center: Vector2, color: Color, urgent: bool) -> void:

@@ -29,6 +29,8 @@ static func build(sheet: Sheet, key: String, step: int = -1) -> Control:
 	header.add_child(names)
 	var bottleneck_pill := UiKit.pill(sheet.tr("LABEL_BOTTLENECK"), "warning")
 	header.add_child(bottleneck_pill)
+	var swamped_pill := UiKit.pill(sheet.tr("LABEL_SWAMPED"), "error")
+	header.add_child(swamped_pill)
 	column.add_child(header)
 	var info := UiKit.label("", "BodySmall", true)
 	column.add_child(info)
@@ -69,7 +71,9 @@ static func build(sheet: Sheet, key: String, step: int = -1) -> Control:
 			lines.append(sheet.tr("FMT_RESTING") % station.resting_count())
 		if station.specialists > 0:
 			lines.append(sheet.tr("FMT_SPECIALISTS") % [station.specialists, GameConfig.MAX_SPECIALISTS])
-		lines.append(sheet.tr("FMT_THROUGHPUT") % UiKit.decimal(Formulas.station_throughput(state, station) * 60.0))
+		var throughput := Formulas.station_throughput(state, station)
+		lines.append(sheet.tr("FMT_THROUGHPUT") % UiKit.decimal(throughput * 60.0))
+		lines.append_array(dynamics_lines(state, station, throughput))
 		if station.needs_manual_work() or (not station.machine and station.staff < station.desks):
 			lines.append(sheet.tr("HINT_UNSTAFFED"))
 		info.text = "\n".join(lines)
@@ -78,14 +82,34 @@ static func build(sheet: Sheet, key: String, step: int = -1) -> Control:
 			if Formulas.bottleneck(state, dept) == key:
 				weakest = true
 		bottleneck_pill.visible = weakest
+		swamped_pill.visible = station.is_swamped(state.lobby_capacity())
 		update_button(desk, "ACTION_ADD_MACHINE" if station.machine else "ACTION_ADD_DESK", Formulas.desk_cost(station), game.actions.can_add_desk(key), station.desks >= state.max_desks(), "LABEL_DESKS_FULL")
 		if hire != null:
 			update_button(hire, "ACTION_HIRE", Formulas.hire_cost(station), game.actions.can_hire(key), station.staff >= station.desks, "LABEL_NEED_DESK")
+			if station.staff < station.desks and game.actions.needs_onboarding(key):
+				hire.text = onboarding_text(state.department(station.dept_id))
 		update_button(upgrade, "ACTION_UPGRADE", Formulas.upgrade_cost(station), game.actions.can_upgrade(key), station.level >= GameConfig.MAX_STATION_LEVEL, "LABEL_MAX_LEVEL")
 		if specialist != null:
 			update_button(specialist, "ACTION_HIRE_SPECIALIST", Formulas.specialist_cost(station), game.actions.can_hire_specialist(key), station.specialists >= GameConfig.MAX_SPECIALISTS, "LABEL_MAX_LEVEL")
 	)
 	return card
+
+
+static func dynamics_lines(state: GameState, station: Station, throughput: float) -> Array[String]:
+	var lines: Array[String] = []
+	if station.rush > 0.0:
+		lines.append(TranslationServer.translate("FMT_RUSH") % UiKit.duration(station.rush))
+	if station.level < GameConfig.MAX_STATION_LEVEL:
+		lines.append(TranslationServer.translate("FMT_MILESTONE") % [Formulas.levels_to_milestone(station.level), UiKit.decimal(GameConfig.LEVEL_MILESTONE_BONUS)])
+	for next_key in Formulas.downstream_keys(state, station.key):
+		var next_throughput := Formulas.station_throughput(state, state.station(next_key))
+		var format := "FMT_DOWNSTREAM_SLOW" if next_throughput < throughput else "FMT_DOWNSTREAM"
+		lines.append(TranslationServer.translate(format) % [label_for(next_key), UiKit.decimal(next_throughput * 60.0)])
+	return lines
+
+
+static func onboarding_text(dept: Department) -> String:
+	return TranslationServer.translate("FMT_ONBOARDING") % [dept.hands_on, GameConfig.HANDS_ON_CASES]
 
 
 static func action_button(sheet: Sheet, action: Callable) -> Button:

@@ -416,7 +416,9 @@ func test_chatting_and_fetching_employees_get_kitchen_slots() -> void:
 	for i in 100:
 		review.moods[0].wake(10.0)
 		sim.doze_off(review, 0)
-		if review.moods[0].is_away():
+		if review.moods[0].state == DeskMood.LOO:
+			assert_gte(review.moods[0].slot, GameConfig.KITCHEN_SLOTS)
+		elif review.moods[0].is_away():
 			assert_gte(review.moods[0].slot, 0)
 			assert_lt(review.moods[0].slot, GameConfig.KITCHEN_SLOTS)
 		else:
@@ -433,7 +435,7 @@ func test_full_kitchen_never_accepts_more_guests() -> void:
 	for i in 80:
 		review.moods[0].wake(10.0)
 		sim.doze_off(review, 0)
-		assert_false(review.moods[0].is_away())
+		assert_true(review.moods[0].state == DeskMood.LOO or not review.moods[0].is_away())
 
 
 func test_fetching_employee_returns_refreshed() -> void:

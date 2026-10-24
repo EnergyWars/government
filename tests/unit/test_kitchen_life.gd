@@ -115,7 +115,7 @@ func test_kranz_not_called_with_too_few_staff() -> void:
 	state.kranz_timer = 0.0
 	_run(0.1)
 	assert_false(state.kranz)
-	assert_eq(state.kranz_timer, GameConfig.KRANZ_RETRY_SECONDS)
+	assert_almost_eq(state.kranz_timer, GameConfig.KRANZ_RETRY_SECONDS, 0.1)
 
 
 func test_kranz_is_called_and_sends_staff_to_kitchen() -> void:

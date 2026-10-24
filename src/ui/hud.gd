@@ -21,6 +21,7 @@ var _reputation_label: Label
 var _income_label: Label
 var _goal_label: Label
 var _goal_bar: ProgressBar
+var _goal_reward: Label
 var _goal_claim: Button
 var _goal_card: PanelContainer
 var _event_banner: PanelContainer
@@ -43,6 +44,11 @@ var _safe_top := 0.0
 var task_panel: TaskPanel
 var _nav_buttons := {}
 var _settings_button: Button
+var _seal_label: Label
+var _boost_button: Button
+var _boost_role := ""
+var _goal_double: Button
+var _sick_ad: Button
 var _highlighted: Control
 var _highlight_tween: Tween
 
@@ -91,6 +97,11 @@ func _build_top() -> void:
 	_income_label = UiKit.label("", "BodySmall")
 	row.add_child(_income_label)
 	row.add_child(UiKit.spacer())
+	_seal_label = _resource_chip(row, Icons.SEAL, AppTheme.accent("tertiary"))
+	_boost_button = UiKit.icon_button(Icons.BOLT, "primary", "IconTonal")
+	_boost_button.tooltip_text = tr("SHEET_BOOSTS")
+	_boost_button.pressed.connect(func() -> void: open_sheet.emit("boosts", ""))
+	row.add_child(_boost_button)
 	_settings_button = UiKit.icon_button(Icons.SETTINGS)
 	_settings_button.pressed.connect(func() -> void: open_sheet.emit("settings", ""))
 	row.add_child(_settings_button)
@@ -103,10 +114,17 @@ func _build_top() -> void:
 	goal_column.add_child(_goal_label)
 	_goal_bar = UiKit.progress()
 	goal_column.add_child(_goal_bar)
+	_goal_reward = UiKit.label("", "BodySmall", true)
+	_goal_reward.add_theme_color_override(&"font_color", AppTheme.accent("primary"))
+	_goal_reward.visible = false
+	goal_column.add_child(_goal_reward)
 	goal_row.add_child(goal_column)
 	_goal_claim = UiKit.button(tr("ACTION_CLAIM"))
 	_goal_claim.pressed.connect(func() -> void: game.perform(game.goals.claim))
 	goal_row.add_child(_goal_claim)
+	_goal_double = UiKit.button(tr("ACTION_CLAIM_DOUBLE"), "primary", "Outlined")
+	_goal_double.pressed.connect(func() -> void: watch_ad(game.goals.claim_doubled))
+	goal_row.add_child(_goal_double)
 	_goal_card.add_child(goal_row)
 	_goal_card.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed:
@@ -161,6 +179,12 @@ func _build_bonus_card(column: VBoxContainer) -> void:
 		bonus_row.add_child(button)
 		_bonus_buttons.append(button)
 	bonus_column.add_child(bonus_row)
+	_sick_ad = UiKit.button("", "primary", "Outlined")
+	_sick_ad.pressed.connect(func() -> void:
+		if not _bonus_target.is_empty():
+			watch_ad(game.boosts.cure_by_ad.bind(str(_bonus_target[0]), int(_bonus_target[1])))
+	)
+	bonus_column.add_child(_sick_ad)
 	_bonus_card.add_child(bonus_column)
 	_bonus_card.visible = false
 	column.add_child(_bonus_card)
@@ -181,15 +205,35 @@ func _refresh_bonus_card(state: GameState) -> void:
 	var desk := int(_bonus_target[1])
 	var mood := state.station(key).moods[desk]
 	_bonus_title.text = tr("FMT_SICK_BONUS_TITLE") % NumberFormat.clock(Formulas.sick_time_left(state, mood))
-	var speeds := []
-	for tier in range(1, GameConfig.sick_bonus_tiers() + 1):
-		speeds.append(UiKit.decimal(Formulas.sick_recovery_speed(tier), 0))
-	_bonus_text.text = tr("FMT_SICK_BONUS_TEXT") % speeds
+	_bonus_text.text = tr("SICK_BONUS_TEXT")
 	for index in _bonus_buttons.size():
 		var tier := index + 1
 		var button := _bonus_buttons[index]
-		button.text = tr("FMT_SICK_BONUS_BUTTON") % [tr("SICK_BONUS_TIER_%d" % tier), UiKit.money(Formulas.sick_bonus_cost(state, tier))]
+		button.text = tr("FMT_SICK_BONUS_BUTTON") % [tr("SICK_BONUS_TIER_%d" % tier), UiKit.money(Formulas.sick_bonus_price(state, mood, tier)), NumberFormat.clock(Formulas.sick_time_left_with(state, mood, tier))]
 		button.disabled = not game.simulation.can_leave_bonus(key, desk, tier)
+	var cooldown := state.boost_cooldown(Boosts.SICK_NOTE)
+	_sick_ad.text = tr("FMT_AD_COOLDOWN") % UiKit.duration(cooldown) if cooldown > 0.0 else tr("ACTION_SICK_NOTE_AD")
+	_sick_ad.disabled = not game.boosts.can_cure_by_ad(key, desk)
+
+
+func watch_ad(action: Callable) -> AdPlaceholder:
+	return AdPlaceholder.play(get_parent(), game.perform.bind(action))
+
+
+func _refresh_boost_button(state: GameState) -> void:
+	_seal_label.text = str(state.seals)
+	var role := "warning" if _any_swamped(state) else "primary"
+	if role != _boost_role:
+		_boost_role = role
+		_boost_button.theme_type_variation = role.capitalize() + "IconTonal"
+
+
+func _any_swamped(state: GameState) -> bool:
+	var lobby := state.lobby_capacity()
+	for key in state.ordered_station_keys():
+		if state.station(key).is_swamped(lobby):
+			return true
+	return false
 
 
 func _resource_chip(parent: HBoxContainer, icon_code: String, color: Color) -> Label:
@@ -270,6 +314,8 @@ func _highlight_control(target: String) -> Control:
 			return _goal_card
 		"settings":
 			return _settings_button
+		"boosts":
+			return _boost_button
 	return _nav_buttons.get(target)
 
 
@@ -297,6 +343,7 @@ func refresh() -> void:
 	_money_label.text = UiKit.money(state.money)
 	_reputation_label.text = str(int(state.reputation))
 	_income_label.text = tr("FMT_INCOME") % UiKit.money(income_per_minute())
+	_refresh_boost_button(state)
 	task_panel.refresh()
 	_goal_card.visible = game.goals.has_goal()
 	if game.goals.has_goal():
@@ -304,7 +351,12 @@ func refresh() -> void:
 		var target := float(goal.target)
 		_goal_label.text = tr("FMT_GOAL_PROGRESS") % [GoalText.describe(goal), UiKit.number(minf(game.goals.current_progress(), target)), UiKit.number(target)]
 		_goal_bar.value = clampf(game.goals.current_progress() / target, 0.0, 1.0)
-		_goal_claim.disabled = not game.goals.is_complete()
+		var complete := game.goals.is_complete()
+		_goal_claim.disabled = not complete
+		_goal_double.disabled = not complete
+		_goal_reward.visible = complete
+		if complete:
+			_goal_reward.text = GoalText.claim_reward(goal)
 	_event_banner.visible = not state.event_id.is_empty()
 	if _event_banner.visible:
 		_event_title.text = tr("FMT_EVENT_TITLE") % [tr("EVENT_" + state.event_id.to_upper()), int(ceilf(state.event_time_left))]

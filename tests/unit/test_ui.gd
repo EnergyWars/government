@@ -1,6 +1,7 @@
 extends GutTest
 
 const TEST_SETTINGS := "user://test_settings.cfg"
+const MAX_SINGLE_LINE_WIDTH := 500.0
 
 var _previous_locale := ""
 
@@ -107,6 +108,10 @@ func test_goal_texts() -> void:
 	assert_eq(GoalText.describe({"type": "reputation", "target": 30.0}), "Erreiche 30 Ansehen")
 	assert_eq(GoalText.reward({"money": 60.0, "reputation": 1.0}), "Belohnung: 60 € und 1 Ansehen")
 	assert_eq(GoalText.reward({"money": 800.0, "reputation": 0.0}), "Belohnung: 800 €")
+	assert_eq(GoalText.claim_reward({"money": 60.0, "reputation": 1.0}), "Belohnung: 60 € und 1 Ansehen · Siegel +%d" % GameConfig.GOAL_SEALS)
+	TranslationServer.set_locale("en")
+	assert_eq(GoalText.claim_reward({"money": 800.0, "reputation": 0.0}), "Reward: $800 · seals +%d" % GameConfig.GOAL_SEALS)
+	TranslationServer.set_locale("de")
 	for goal: Dictionary in GameConfig.GOALS:
 		assert_false(GoalText.describe(goal).contains("FMT_"), str(goal))
 
@@ -219,7 +224,7 @@ func test_flavor_texts_exist_in_both_languages() -> void:
 			assert_ne(Flavor.go_loo(i), "GO_LOO_%d" % (i + 1), "%s loo %d" % [locale, i])
 		for i in Flavor.LOO_VOICE_COUNT:
 			assert_ne(Flavor.loo_voice(i), "LOO_VOICE_%d" % (i + 1), "%s voice %d" % [locale, i])
-		for key in ["SIGN_SICK_PHONE", "AREA_PHONE_OFFICE", "SIGN_SICK_BOARD", "FMT_RINGING", "FMT_BOARD_SICK", "FMT_BOARD_REPORTED", "FMT_BOARD_UNEXCUSED", "FMT_BOARD_CALLS", "FLOAT_SICK_BACK", "FLOAT_SICK_NOTED", "FLOAT_SICK_PERSUADED", "FLOAT_SICK_MISSED", "SECTION_ABSENCE", "STAFF_HR", "STAFF_DESC_HR", "FMT_HR_INFO", "SIGN_LOO", "AREA_TOILETS"]:
+		for key in ["SIGN_SICK_PHONE", "AREA_PHONE_OFFICE", "SIGN_SICK_BOARD", "FMT_RINGING", "FMT_BOARD_SICK", "FMT_BOARD_REPORTED", "FMT_BOARD_UNEXCUSED", "FMT_BOARD_CALLS", "FLOAT_SICK_BACK", "FLOAT_SICK_NOTED", "FLOAT_SICK_PERSUADED", "FLOAT_SICK_MISSED", "STAFF_HR", "STAFF_DESC_HR", "FMT_HR_INFO", "SIGN_LOO", "AREA_TOILETS"]:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
 		for i in Flavor.SLOW_COUNT:
 			assert_ne(Flavor.slow(i), "SLOW_%d" % (i + 1), "%s slow %d" % [locale, i])
@@ -229,6 +234,7 @@ func test_flavor_texts_exist_in_both_languages() -> void:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
 		for i in Flavor.COMPLAINT_COUNT:
 			assert_ne(Flavor.complaint(i), "COMPLAINT_%d" % (i + 1), "%s complaint %d" % [locale, i])
+			assert_false(Flavor.complaint_subject(i).begins_with("COMPLAINT_SUBJECT_"), "%s subject %d" % [locale, i])
 		for i in Flavor.SHRED_COUNT:
 			assert_ne(Flavor.shred(i), "SHRED_%d" % (i + 1), "%s shred %d" % [locale, i])
 		for key in ["SIGN_COMPLAINTS", "SIGN_SHREDDER", "FLOAT_COMPLAINT_OVERFLOW", "RESEARCH_SHREDDER_SERVICE", "RESEARCH_DESC_SHREDDER_SERVICE"]:
@@ -256,6 +262,7 @@ func test_flavor_selection_wraps_and_changes_daily() -> void:
 	assert_eq(Flavor.woke(Flavor.WOKE_COUNT), Flavor.woke(0))
 	assert_eq(Flavor.chat(Flavor.CHAT_COUNT), Flavor.chat(0))
 	assert_eq(Flavor.complaint(Flavor.COMPLAINT_COUNT), Flavor.complaint(0))
+	assert_eq(Flavor.complaint_subject(Flavor.COMPLAINT_COUNT), Flavor.complaint_subject(0))
 	assert_eq(Flavor.slow(Flavor.SLOW_COUNT), Flavor.slow(0))
 	assert_eq(Flavor.sick_note(Flavor.SICK_NOTE_COUNT), Flavor.sick_note(0))
 	assert_eq(Flavor.sick_excuse(-1), Flavor.sick_excuse(Flavor.SICK_CALL_COUNT - 1))
@@ -268,3 +275,67 @@ func test_flavor_selection_wraps_and_changes_daily() -> void:
 	assert_eq(Flavor.fetch(Flavor.FETCH_COUNT), Flavor.fetch(0))
 	assert_ne(Flavor.wisdom(0.0), Flavor.wisdom(float(Flavor.SECONDS_PER_DAY)))
 	assert_eq(Flavor.wisdom(0.0), Flavor.wisdom(float(Flavor.SECONDS_PER_DAY * Flavor.WISDOM_COUNT)))
+
+
+func test_speech_and_floater_flavor_fits_on_one_line() -> void:
+	var speech: Array[String] = []
+	var floaters: Array[String] = []
+	for locale in ["de", "en"]:
+		TranslationServer.set_locale(locale)
+		for i in Flavor.QUIP_COUNT:
+			speech.append(Flavor.quip(i))
+		for i in Flavor.SICK_CALL_COUNT:
+			speech.append(Flavor.sick_excuse(i))
+			speech.append(Flavor.sick_reply(i))
+		for i in Flavor.SICK_ANSWER_COUNT:
+			speech.append(Flavor.sick_answer(i))
+		for i in Flavor.LOO_VOICE_COUNT:
+			speech.append(Flavor.loo_voice(i))
+		for i in Flavor.INTERN_CRY_COUNT:
+			speech.append(Flavor.intern_cry(i))
+		for i in Flavor.INTERN_NERVOUS_COUNT:
+			speech.append(Flavor.intern_nervous(i))
+		for i in Flavor.CHAT_COUNT:
+			speech.append(Flavor.chat(i))
+		for i in Flavor.SLOW_COUNT:
+			speech.append(Flavor.slow(i))
+			floaters.append(Flavor.slow(i))
+		for kind in GameConfig.DISPUTES:
+			for line in Flavor.DISPUTE_LINES:
+				speech.append(Flavor.dispute_line(kind, line))
+		for angry in [false, true]:
+			var dialogs := GameConfig.YELL_DIALOGS if angry else GameConfig.VISITOR_DIALOGS
+			for dialog in dialogs:
+				for line in GameConfig.VISITOR_LINES:
+					speech.append(Flavor.visit_line(angry, dialog, line))
+		for dialog in GameConfig.GUARD_DIALOGS:
+			for line in GameConfig.GUARD_LINES:
+				speech.append(Flavor.guard_line(dialog, line))
+		for i in Flavor.NAP_COUNT:
+			floaters.append(Flavor.nap(i))
+		for i in Flavor.COFFEE_BREAK_COUNT:
+			floaters.append(Flavor.coffee_break(i))
+		for i in Flavor.WOKE_COUNT:
+			floaters.append(Flavor.woke(i))
+		for i in Flavor.GO_KITCHEN_COUNT:
+			floaters.append(Flavor.go_kitchen(i))
+		for i in Flavor.FETCH_COUNT:
+			floaters.append(Flavor.fetch(i))
+		for i in Flavor.SICK_NOTE_COUNT:
+			floaters.append(Flavor.sick_note(i))
+		for i in Flavor.GO_LOO_COUNT:
+			floaters.append(Flavor.go_loo(i))
+		for i in Flavor.KRANZ_COUNT:
+			floaters.append(Flavor.kranz(i))
+		for i in Flavor.COFFEE_SERVED_COUNT:
+			floaters.append(Flavor.coffee_served(i))
+	for text in speech:
+		assert_false(text.contains("\n"), text)
+		assert_lte(_line_width(text, AppTheme.SIZE_BODY_SMALL), MAX_SINGLE_LINE_WIDTH, text)
+	for text in floaters:
+		assert_false(text.contains("\n"), text)
+		assert_lte(_line_width(text, AppTheme.SIZE_TITLE_SMALL), MAX_SINGLE_LINE_WIDTH, text)
+
+
+func _line_width(text: String, size: int) -> float:
+	return AppTheme.FONT_SEMIBOLD.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x

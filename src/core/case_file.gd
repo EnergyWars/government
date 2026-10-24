@@ -16,8 +16,12 @@ var contraband := false
 var produced := false
 var invalid := false
 var big := false
+var mail := false
+var companion := false
+var extras: Array[String] = []
 var age := 0.0
 var waited := 0.0
+var handled := 0
 
 
 func _init(p_dept_id: String = "", p_complex: bool = false, p_urgent: bool = false, p_suspicious: bool = false) -> void:
@@ -52,6 +56,10 @@ func is_overdue() -> bool:
 	return urgent and age > GameConfig.URGENT_DEADLINE
 
 
+func takes_seat() -> bool:
+	return not mail and not companion and not GameConfig.is_customs(dept_id)
+
+
 func remove_from_route(key: String) -> void:
 	var index := route.find(key, step + 1)
 	if index > step:
@@ -81,8 +89,12 @@ func to_dict() -> Dictionary:
 		"produced": produced,
 		"invalid": invalid,
 		"big": big,
+		"mail": mail,
+		"companion": companion,
+		"extras": extras.duplicate(),
 		"age": age,
 		"waited": waited,
+		"handled": handled,
 	}
 
 
@@ -105,6 +117,13 @@ static func from_dict(data: Dictionary) -> CaseFile:
 	case_file.produced = bool(data.get("produced", false))
 	case_file.invalid = bool(data.get("invalid", false))
 	case_file.big = bool(data.get("big", false))
+	case_file.mail = bool(data.get("mail", false))
+	case_file.companion = bool(data.get("companion", false))
+	for extra in data.get("extras", []):
+		var extra_id := str(extra)
+		if not GameConfig.department(extra_id).is_empty() and not GameConfig.is_customs(extra_id) and case_file.extras.size() < GameConfig.MULTI_MAX_EXTRAS:
+			case_file.extras.append(extra_id)
 	case_file.age = float(data.get("age", 0.0))
 	case_file.waited = float(data.get("waited", 0.0))
+	case_file.handled = maxi(0, int(data.get("handled", 0)))
 	return case_file

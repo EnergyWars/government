@@ -12,3 +12,6 @@ export_credentials.cfg
 .DS_Store
 .idea/
 *.iml
+*.keystore
+*.jks
+*.pepk

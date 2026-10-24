@@ -11,8 +11,8 @@ func build(container: VBoxContainer) -> void:
 	for index in GameConfig.BUILDING_STAGES.size():
 		container.add_child(_stage_card(index, state.building_stage))
 	container.add_child(UiKit.label(tr("SECTION_WAITING"), "TitleMedium"))
-	container.add_child(_waiting_card())
-	container.add_child(_seating_card())
+	for area_id in GameConfig.room_items(GameConfig.ROOM_HALL, "areas"):
+		container.add_child(UpgradeCards.area_card(self, area_id))
 	container.add_child(UiKit.label(tr("SECTION_STATISTICS"), "TitleMedium"))
 	container.add_child(_statistics())
 
@@ -45,56 +45,6 @@ func _stage_card(index: int, current: int) -> Control:
 			requirement.text = tr("FMT_REQ_REPUTATION") % int(config.reputation)
 		)
 	card.add_child(column)
-	return card
-
-
-func _waiting_card() -> Control:
-	var card := UiKit.card()
-	var column := UiKit.vbox(AppTheme.SPACING_SM)
-	var row := UiKit.hbox(AppTheme.SPACING_MD)
-	row.add_child(UiKit.icon_disc(Icons.SEAT, AppTheme.accent("primary")))
-	var texts := UiKit.vbox(2)
-	var name_label := UiKit.label("", "TitleSmall", true)
-	texts.add_child(name_label)
-	texts.add_child(UiKit.label(tr("WAITING_DESC"), "BodySmall", true))
-	row.add_child(texts)
-	column.add_child(row)
-	var info := UiKit.label("", "BodySmall", true)
-	column.add_child(info)
-	var button := StationCard.action_button(self, game.actions.upgrade_waiting_area)
-	column.add_child(button)
-	card.add_child(column)
-	track(func() -> void:
-		var state := game.state
-		name_label.text = tr("FMT_WAITING_LEVEL") % [tr("WAITING_TITLE"), state.waiting_level, GameConfig.WAITING_MAX_LEVEL]
-		info.text = tr("FMT_WAITING_INFO") % [state.lobby_capacity(), GameConfig.WAITING_SEATS_PER_LEVEL, state.walkouts]
-		StationCard.update_button(button, "ACTION_BUILD_SEATS", Formulas.waiting_area_cost(state), game.actions.can_upgrade_waiting_area(), state.waiting_level >= GameConfig.WAITING_MAX_LEVEL, "LABEL_MAX_LEVEL")
-	)
-	return card
-
-
-func _seating_card() -> Control:
-	var card := UiKit.card()
-	var column := UiKit.vbox(AppTheme.SPACING_SM)
-	var row := UiKit.hbox(AppTheme.SPACING_MD)
-	row.add_child(UiKit.icon_disc(Icons.SEAT, AppTheme.accent("primary")))
-	var texts := UiKit.vbox(2)
-	var name_label := UiKit.label("", "TitleSmall", true)
-	texts.add_child(name_label)
-	texts.add_child(UiKit.label(tr("SEATING_DESC"), "BodySmall", true))
-	row.add_child(texts)
-	column.add_child(row)
-	var info := UiKit.label("", "BodySmall", true)
-	column.add_child(info)
-	var button := StationCard.action_button(self, game.actions.upgrade_seating_area)
-	column.add_child(button)
-	card.add_child(column)
-	track(func() -> void:
-		var state := game.state
-		name_label.text = tr("FMT_WAITING_LEVEL") % [tr("SEATING_TITLE"), state.seating_level, GameConfig.SEATING_MAX_LEVEL]
-		info.text = tr("FMT_SEATING_INFO") % [state.seated_citizens(), state.seat_capacity(), GameConfig.SEATING_SEATS_PER_LEVEL]
-		StationCard.update_button(button, "ACTION_BUILD_SEATING", Formulas.seating_area_cost(state), game.actions.can_upgrade_seating_area(), state.seating_level >= GameConfig.SEATING_MAX_LEVEL, "LABEL_MAX_LEVEL")
-	)
 	return card
 
 

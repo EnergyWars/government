@@ -103,6 +103,8 @@ const PLATE_BLUE := Color("#1e5fd8")
 const WINDOW := Color("#bfe3f5")
 const SIGN_BOARD := Color("#33475b")
 const SIGN_TEXT := Color("#fff8e1")
+const POST_YELLOW := Color("#f6c400")
+const POST_HORN := Color("#1d1d1b")
 const TILE_SHADE := Color(0.0, 0.0, 0.0, 0.035)
 const SHADOW_SOFT := Color(0.05, 0.07, 0.12, 0.2)
 

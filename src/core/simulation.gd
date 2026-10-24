@@ -20,6 +20,7 @@ signal sick_call_answered(by_player: bool, key: String, desk: int, persuaded: bo
 signal sick_call_missed(key: String, desk: int)
 signal kranz_ended(by_player: bool)
 signal complaint_filed(overflow: bool)
+signal complaint_fended
 signal complaint_shredded(by_player: bool)
 signal complaint_piped
 signal review_posted(review: Review)
@@ -35,6 +36,11 @@ signal dispute_ended(kind: String, dept_id: String, by_player: bool)
 signal bonus_left(key: String, desk: int, tier: int)
 signal sick_avoided(key: String, desk: int)
 signal dispute_calmed(dept_id: String)
+signal mail_delivered(count: int, returned: int)
+signal mail_answered(dept_id: String, money: float)
+signal applications_bundled(dept_id: String, extras: int)
+signal form_missing(dept_id: String)
+signal onboarding_completed(dept_id: String)
 
 var state: GameState
 var layout: WorldLayout
@@ -50,9 +56,12 @@ func _init(p_state: GameState) -> void:
 
 func tick(delta: float) -> void:
 	state.play_time += delta
+	state.refill_loss_budget(delta)
+	state.advance_boosts(delta)
 	_update_event(delta)
 	_age_cases(delta)
 	_spawn_citizens(delta)
+	_update_mail(delta)
 	_update_moods(delta)
 	_update_complaints(delta)
 	_update_visitors(delta)
@@ -186,7 +195,7 @@ func _age_cases(delta: float) -> void:
 		for job in station.jobs:
 			if job != null:
 				job.case_file.age += delta
-		if not station.is_entry():
+		if not station.is_entry() or station.is_mailroom() or state.is_boost_active("mayor_speech"):
 			continue
 		var index := station.inbox.size() - 1
 		while index >= 0:
@@ -205,7 +214,7 @@ func _complain_about_wait() -> void:
 	if state.cases_completed < GameConfig.COMPLAINT_MIN_CASES:
 		return
 	if spawn_visitor(false, true) == null:
-		file_complaint()
+		submit_complaint()
 
 
 func _spawn_citizens(delta: float) -> void:
@@ -245,6 +254,8 @@ func spawn_case(dept: Department, follow_up: bool = false) -> CaseFile:
 	var case_file := create_case(dept, follow_up)
 	var entry := state.station(case_file.route[0])
 	if entry != null and entry.has_inbox_space(state.lobby_capacity()):
+		if not follow_up:
+			case_file.extras = roll_extras(dept)
 		entry.inbox.append(case_file)
 		state.production.record(ProductionStats.ARRIVED, dept.id, state.play_time)
 		case_arrived.emit(dept.id)
@@ -253,8 +264,66 @@ func spawn_case(dept: Department, follow_up: bool = false) -> CaseFile:
 	_lose_citizen(dept.id, GameConfig.REP_WALKED_OUT)
 	state.walkouts += 1
 	if spawn_visitor(true, true) == null:
-		file_complaint()
+		submit_complaint()
 	return null
+
+
+func roll_extras(dept: Department) -> Array[String]:
+	var extras: Array[String] = []
+	if dept.is_customs():
+		return extras
+	var others: Array[String] = []
+	for other in state.mail_departments():
+		if other.id != dept.id:
+			others.append(other.id)
+	var chance := Formulas.multi_application_chance(others.size())
+	while extras.size() < GameConfig.MULTI_MAX_EXTRAS and not others.is_empty() and state.life_rng.randf() < chance:
+		extras.append(others.pop_at(state.life_rng.randi_range(0, others.size() - 1)))
+		chance *= GameConfig.MULTI_SECOND_FACTOR
+	return extras
+
+
+func _update_mail(delta: float) -> void:
+	if state.mailroom() == null:
+		return
+	state.mail_timer -= delta
+	if state.mail_timer <= 0.0:
+		state.mail_timer = GameConfig.MAIL_INTERVAL
+		deliver_mail(Formulas.mail_batch(state))
+
+
+func create_mail_case(dept: Department) -> CaseFile:
+	var case_file := CaseFile.new(dept.id)
+	case_file.mail = true
+	case_file.complex = state.life_rng.randf() < float(dept.config().complex_chance)
+	case_file.route = RouteBuilder.build(case_file)
+	return case_file
+
+
+func deliver_mail(count: int) -> int:
+	var room := state.mailroom()
+	var depts := state.mail_departments()
+	if room == null or depts.is_empty():
+		return 0
+	var accepted := 0
+	var returned := 0
+	var letters: Array[String] = state.mail_promised.duplicate()
+	state.mail_promised.clear()
+	for i in count:
+		letters.append(depts[state.life_rng.randi_range(0, depts.size() - 1)].id)
+	for dept_id in letters:
+		var dept := state.department(dept_id)
+		if dept == null or not dept.unlocked:
+			continue
+		if not room.has_inbox_space(state.lobby_capacity()):
+			returned += 1
+			continue
+		room.inbox.append(create_mail_case(dept))
+		accepted += 1
+	state.mail_received += accepted
+	state.mail_returned += returned
+	mail_delivered.emit(accepted, returned)
+	return accepted
 
 
 func _lose_citizen(dept_id: String, reputation_change: float) -> void:
@@ -265,21 +334,30 @@ func _lose_citizen(dept_id: String, reputation_change: float) -> void:
 
 
 func _work_stations(delta: float) -> void:
+	var temps := state.is_boost_active("temp_workers")
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
+		station.rush = maxf(0.0, station.rush - delta)
+		var speed := Formulas.work_speed(state, station)
 		for desk in station.jobs.size():
-			if station.jobs[desk] == null and station.is_working(desk):
+			var working := station.is_working(desk) or (temps and _is_temp_desk(station, desk))
+			if station.jobs[desk] == null and working:
 				start_job(station, desk)
 			var job := station.jobs[desk]
 			if job == null:
 				continue
-			if station.is_working(desk):
-				job.progress += delta * Formulas.event_speed(state, station) * Formulas.dispute_speed(state, station) * Formulas.official_speed(station.moods[desk])
+			if working:
+				job.progress += delta * speed * Formulas.official_speed(station.moods[desk])
 			if job.is_done():
 				finish_job(station, desk)
 
 
+func _is_temp_desk(station: Station, desk: int) -> bool:
+	return not station.machine and desk >= station.staff and desk < station.desks
+
+
 func _update_moods(delta: float) -> void:
+	var caffeinated := state.is_boost_active("coffee_round")
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
 		if station.machine:
@@ -293,9 +371,11 @@ func _update_moods(delta: float) -> void:
 				mood.resting += delta * (Formulas.sick_recovery_speed(mood.bonus) if mood.is_sick() else 1.0)
 				if mood.resting >= Formulas.rest_limit(state, mood.state):
 					wake_up(station, desk, false)
-			elif station.jobs[desk] != null or not station.inbox.is_empty():
+			elif not caffeinated and (station.jobs[desk] != null or not station.inbox.is_empty()):
 				if rate < 0.0:
 					rate = Formulas.drowsiness_rate(state, station)
+					if station.is_swamped(state.lobby_capacity()):
+						rate *= GameConfig.SWAMPED_DROWSY_FACTOR
 				mood.alert -= delta * rate * Formulas.official_drowsy_factor(mood)
 				if mood.alert <= 0.0:
 					doze_off(station, desk)
@@ -345,11 +425,13 @@ func _update_complaints(delta: float) -> void:
 		if state.complaint_timer <= 0.0:
 			state.complaint_timer = Formulas.complaint_interval(state, state.rng.randf())
 			if spawn_visitor(false, true) == null:
-				file_complaint()
+				submit_complaint()
 	var review_drain := state.review_drain()
 	if review_drain > 0.0:
 		state.add_reputation(-review_drain * GameConfig.REVIEW_DRAIN * delta)
 	state.review_fear = maxf(0.0, state.review_fear - delta)
+	if state.expire_reviews() > 0:
+		review_removed.emit("expired")
 	_update_complaint_tube(delta)
 	var player := state.player
 	player.complaint_timer -= delta
@@ -464,7 +546,7 @@ func _start_talking(visitor: ComplaintVisitor) -> void:
 	visitor.timer = visitor.duration
 	if visitor.files_complaint:
 		visitor.files_complaint = false
-		file_complaint()
+		submit_complaint()
 
 
 func _update_intern(delta: float) -> void:
@@ -627,7 +709,7 @@ func _coffee_claimed(key: String, desk: int, except: CoffeeIntern) -> bool:
 
 
 func _update_disputes(delta: float) -> void:
-	if state.cases_completed >= GameConfig.DISPUTE_MIN_CASES:
+	if state.cases_completed >= GameConfig.DISPUTE_MIN_CASES and not state.is_boost_active("works_outing"):
 		state.dispute_timer -= delta
 		if state.dispute_timer <= 0.0:
 			state.dispute_timer = Formulas.dispute_interval(state, state.life_rng.randf())
@@ -709,24 +791,33 @@ func end_dispute(dispute: Dispute, by_player: bool) -> void:
 	dispute_ended.emit(dispute.kind, dispute.dept_id, by_player)
 
 
+func submit_complaint() -> void:
+	if state.is_boost_active("complaint_amnesty"):
+		return
+	if state.life_rng.randf() < Formulas.complaint_fend_chance(state.complaint_clerk_level):
+		state.complaints_fended += 1
+		complaint_fended.emit()
+		return
+	file_complaint()
+
+
 func file_complaint() -> void:
+	if state.is_boost_active("complaint_amnesty"):
+		return
 	if state.complaints >= Formulas.complaint_cap(state):
 		complaint_filed.emit(true)
-		_maybe_post_review()
+		_post_negative_review()
 		return
 	state.complaints += 1
 	state.complaints_filed += 1
+	state.production.record(ProductionStats.COMPLAINT, "", state.play_time)
 	complaint_filed.emit(false)
-	_maybe_post_review()
 
 
-func _maybe_post_review() -> void:
+func _post_negative_review() -> void:
 	if state.negative_review_count() >= GameConfig.MAX_NEGATIVE_REVIEWS:
 		return
-	var chance := GameConfig.REVIEW_CHANCE
-	if state.review_fear > 0.0:
-		chance *= GameConfig.REVIEW_FEAR_FACTOR
-	if state.review_rng.randf() >= chance:
+	if state.review_fear > 0.0 and state.review_rng.randf() >= GameConfig.REVIEW_FEAR_FACTOR:
 		return
 	var stars := 1 if state.review_rng.randf() < GameConfig.REVIEW_ONE_STAR_SHARE else 2
 	review_posted.emit(state.add_review(stars))
@@ -808,6 +899,7 @@ func shred_complaints(count: int, by_player: bool) -> int:
 	else:
 		state.complaints -= shredded
 	state.complaints_shredded += shredded
+	state.production.record(ProductionStats.COMPLAINT_SHREDDED, ProductionStats.BY_PLAYER if by_player else ProductionStats.BY_STAFF, state.play_time, shredded)
 	state.earn(GameConfig.COMPLAINT_REWARD * shredded)
 	state.add_reputation(GameConfig.COMPLAINT_REPUTATION * shredded)
 	complaint_shredded.emit(by_player)
@@ -827,6 +919,7 @@ func shred_rejects(count: int, by_player: bool) -> int:
 				shredded += 1
 	if shredded <= 0:
 		return 0
+	state.production.record(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_PLAYER if by_player else ProductionStats.BY_STAFF, state.play_time, shredded)
 	state.earn(GameConfig.REJECT_SHRED_REWARD * shredded)
 	complaint_shredded.emit(by_player)
 	return shredded
@@ -840,41 +933,73 @@ func shred_case(case_file: CaseFile) -> bool:
 
 
 func _update_collectors(delta: float) -> void:
+	var capacity := Formulas.collector_capacity(state)
+	var speed := _collector_speed()
 	for collector in state.collectors:
-		if collector.loaded > 0:
-			if collector.move_towards(layout.shredder_point(), GameConfig.COLLECTOR_SPEED, delta):
-				state.earn(GameConfig.REJECT_SHRED_REWARD * collector.loaded)
-				collector.loaded = 0
-				complaint_shredded.emit(false)
-			continue
-		if collector.source.is_empty():
-			collector.source = _collector_target(collector)
-		if collector.source.is_empty():
-			collector.move_towards(layout.collector_home(), GameConfig.COLLECTOR_SPEED * 0.5, delta)
-			continue
-		if collector.move_towards(layout.reject_point(collector.source), GameConfig.COLLECTOR_SPEED, delta):
-			var station := state.station(collector.source)
-			collector.loaded = mini(GameConfig.COLLECTOR_CAPACITY, station.rejects)
-			station.rejects -= collector.loaded
-			collector.source = ""
+		if collector.source.is_empty() and collector.loaded < capacity:
+			collector.source = collector_target(collector, capacity)
+		if not collector.source.is_empty():
+			if collector.move_towards(layout.reject_point(collector.source), speed, delta):
+				_collect_rejects(collector, capacity)
+		elif collector.loaded > 0:
+			if collector.move_towards(layout.shredder_point(), speed, delta):
+				_unload_collector(collector)
+		else:
+			collector.move_towards(layout.collector_home(), speed * 0.5, delta)
 
 
-func _collector_target(collector: RejectCollector) -> String:
+func _collect_rejects(collector: RejectCollector, capacity: int) -> void:
+	var station := state.station(collector.source)
+	collector.source = ""
+	if station == null:
+		return
+	var taken := mini(capacity - collector.loaded, station.rejects)
+	collector.loaded += taken
+	station.rejects -= taken
+
+
+func _unload_collector(collector: RejectCollector) -> void:
+	state.production.record(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF, state.play_time, collector.loaded)
+	state.earn(GameConfig.REJECT_SHRED_REWARD * collector.loaded)
+	collector.loaded = 0
+	complaint_shredded.emit(false)
+
+
+func collector_target(collector: RejectCollector, capacity: int) -> String:
+	var free := capacity - collector.loaded
+	if free <= 0:
+		return ""
+	var shredder := layout.shredder_point()
+	var straight := collector.position.distance_to(shredder) if collector.loaded > 0 else 0.0
 	var best := ""
-	var best_distance := INF
+	var best_urgent := false
+	var best_score := 0.0
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
-		var claimed := 0
-		for other in state.collectors:
-			if other != collector and other.source == key:
-				claimed += GameConfig.COLLECTOR_CAPACITY
-		if station.rejects - claimed <= 0:
+		if station.rejects <= 0 or _collector_claimed(collector, key):
 			continue
-		var distance := collector.position.distance_to(layout.reject_point(key))
-		if distance < best_distance:
-			best_distance = distance
+		var point := layout.reject_point(key)
+		var detour := collector.position.distance_to(point) + point.distance_to(shredder) - straight
+		var urgent := station.rejects >= GameConfig.REJECT_CAPACITY - GameConfig.COLLECTOR_URGENT_MARGIN
+		if collector.loaded > 0 and not urgent and detour > GameConfig.COLLECTOR_MAX_DETOUR:
+			continue
+		var score := float(mini(station.rejects, free)) / (maxf(0.0, detour) + GameConfig.COLLECTOR_DISTANCE_BIAS)
+		if (urgent and not best_urgent) or (urgent == best_urgent and score > best_score):
 			best = key
+			best_urgent = urgent
+			best_score = score
 	return best
+
+
+func _collector_speed() -> float:
+	return GameConfig.COLLECTOR_SPEED * (GameConfig.BOOST_RUNNER_SPEED if state.is_boost_active("roller_skates") else 1.0)
+
+
+func _collector_claimed(collector: RejectCollector, key: String) -> bool:
+	for other in state.collectors:
+		if other != collector and other.source == key:
+			return true
+	return false
 
 
 func move_complaints() -> bool:
@@ -889,7 +1014,7 @@ func move_complaints() -> bool:
 	var carried := player.complaints + player.rejects
 	if carried >= Formulas.carry_capacity(state):
 		return false
-	if state.complaints > 0 and layout.near(player.position, layout.complaint_desk_point()):
+	if state.complaints > 0 and layout.near(player.position, layout.complaint_box_point()):
 		state.complaints -= 1
 		player.complaints += 1
 		return true
@@ -906,25 +1031,32 @@ func _update_sickness(delta: float) -> void:
 	state.sick_timer -= delta
 	if state.sick_timer <= 0.0:
 		state.sick_timer = Formulas.sick_interval(state, state.rng.randf())
-		report_sick()
+		if not state.is_boost_active("works_outing"):
+			report_sick()
 	_update_phones(delta)
 
 
 func report_sick() -> bool:
 	var candidates: Array = []
+	var swamped: Array = []
 	var staffed := 0
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
 		if station.machine:
 			continue
+		var overloaded := station.is_swamped(state.lobby_capacity())
 		for desk in station.moods.size():
 			if not station.is_staffed(desk):
 				continue
 			staffed += 1
 			if not station.moods[desk].is_resting():
 				candidates.append([station, desk])
+				if overloaded:
+					swamped.append([station, desk])
 	if staffed < GameConfig.SICK_MIN_STAFF or candidates.is_empty():
 		return false
+	if not swamped.is_empty() and state.life_rng.randf() < GameConfig.SWAMPED_SICK_SHARE:
+		candidates = swamped
 	var pick: Array = candidates[state.rng.randi_range(0, candidates.size() - 1)]
 	var station: Station = pick[0]
 	var resist := Formulas.official_sick_resist(station.moods[pick[1]])
@@ -984,6 +1116,7 @@ func _ring_calls(delta: float) -> void:
 			if phone_call.ring <= 0.0:
 				state.calls.remove_at(index)
 				state.calls_missed += 1
+				state.production.record(ProductionStats.CALL_MISSED, "", state.play_time)
 				sick_call_missed.emit(phone_call.key, phone_call.desk)
 		index -= 1
 
@@ -1030,6 +1163,7 @@ func _finish_call(phone_call: PhoneCall) -> void:
 	if phone_call.is_incoming():
 		station.moods[phone_call.desk].reported = true
 		state.calls_answered += 1
+		state.production.record(ProductionStats.CALL_ANSWERED, ProductionStats.BY_PLAYER if by_player else ProductionStats.BY_STAFF, state.play_time)
 		var persuaded := state.life_rng.randf() < GameConfig.SICK_TALK_CHANCE
 		if persuaded:
 			wake_up(station, phone_call.desk, by_player)
@@ -1042,14 +1176,19 @@ func _finish_call(phone_call: PhoneCall) -> void:
 
 func _update_kranz(delta: float) -> void:
 	if state.kranz:
+		state.kranz_elapsed += delta
 		if _chatter_count() == 0:
 			_finish_kranz(false)
+		elif state.kranz_elapsed >= GameConfig.KRANZ_MAX_SECONDS:
+			end_kranz(false)
 		elif layout.near(state.player.position, layout.kranz_point()):
 			state.kranz_progress += delta
 			if state.kranz_progress >= GameConfig.KRANZ_END_TIME:
 				end_kranz(true)
 		else:
 			state.kranz_progress = 0.0
+		return
+	if state.is_boost_active("works_outing"):
 		return
 	state.kranz_timer -= delta
 	if state.kranz_timer <= 0.0 and not call_kranz():
@@ -1090,6 +1229,7 @@ func call_kranz() -> bool:
 		return false
 	state.kranz = true
 	state.kranz_progress = 0.0
+	state.kranz_elapsed = 0.0
 	kranz_called.emit()
 	return true
 
@@ -1100,12 +1240,15 @@ func end_kranz(by_player: bool) -> void:
 		for desk in station.moods.size():
 			if station.moods[desk].state == DeskMood.CHAT and station.is_staffed(desk):
 				wake_up(station, desk, by_player)
+	if by_player:
+		state.add_reputation(GameConfig.KRANZ_END_REPUTATION)
 	_finish_kranz(by_player)
 
 
 func _finish_kranz(by_player: bool) -> void:
 	state.kranz = false
 	state.kranz_progress = 0.0
+	state.kranz_elapsed = 0.0
 	state.kranz_timer = Formulas.kranz_interval(state, state.rng.randf())
 	kranz_ended.emit(by_player)
 
@@ -1155,9 +1298,14 @@ func _saturated_targets(station: Station) -> Array[String]:
 	for job in station.jobs:
 		if job != null:
 			pending[job.case_file.next_key()] = int(pending.get(job.case_file.next_key(), 0)) + 1
+	for case_file in station.inbox:
+		if not pending.has(case_file.next_key()):
+			pending[case_file.next_key()] = 0
+	var lobby := state.lobby_capacity()
+	var share := GameConfig.MAIL_TARGET_SHARE if station.is_mailroom() else 1.0
 	for target_key: String in pending:
 		var target := state.station(target_key)
-		if target != null and target.inbox.size() + int(pending[target_key]) >= target.inbox_capacity(state.lobby_capacity()):
+		if target != null and target.inbox.size() + int(pending[target_key]) >= ceili(target.inbox_capacity(lobby) * share):
 			blocked.append(target_key)
 	return blocked
 
@@ -1182,16 +1330,65 @@ func finish_job(station: Station, desk: int) -> bool:
 		station.rejects += 1
 		_reject_case(case_file)
 		return true
-	if not case_file.is_final_step() and not station.has_outbox_space():
+	if not case_file.is_final_step() and station.outbox.size() + 1 + case_file.extras.size() > station.outbox_capacity():
 		return false
 	station.jobs[desk] = null
 	_record_output(station, desk)
+	if job.by_hand:
+		_count_hands_on(station, case_file)
 	apply_station_effect(station, case_file, job.by_specialist)
+	if _misses_form(station, case_file):
+		state.mail_promised.append(case_file.dept_id)
+		form_missing.emit(case_file.dept_id)
+		return true
 	if case_file.is_final_step():
 		complete_case(case_file)
 	else:
 		station.outbox.append(case_file)
+		_split_bundle(station, case_file)
 	return true
+
+
+func _split_bundle(station: Station, case_file: CaseFile) -> void:
+	if case_file.extras.is_empty():
+		return
+	var count := 0
+	for dept_id in case_file.extras:
+		var dept := state.department(dept_id)
+		if dept == null or not dept.unlocked:
+			continue
+		var companion := create_case(dept)
+		companion.companion = true
+		companion.step = case_file.step
+		station.outbox.append(companion)
+		state.production.record(ProductionStats.ARRIVED, dept_id, state.play_time)
+		count += 1
+	case_file.extras.clear()
+	state.bundles += 1
+	applications_bundled.emit(case_file.dept_id, count)
+
+
+func _misses_form(station: Station, case_file: CaseFile) -> bool:
+	if station.kind != "review" or station.dept_id != case_file.dept_id or state.mailroom() == null:
+		return false
+	if case_file.mail or case_file.follow_up or case_file.big or case_file.invalid or GameConfig.is_customs(case_file.dept_id):
+		return false
+	if state.cases_completed < GameConfig.MISSING_FORM_MIN_CASES:
+		return false
+	return state.life_rng.randf() < GameConfig.MISSING_FORM_CHANCE
+
+
+func _count_hands_on(station: Station, case_file: CaseFile) -> void:
+	if station.dept_id.is_empty() or station.dept_id != case_file.dept_id:
+		return
+	var dept := state.department(station.dept_id)
+	if dept == null or dept.is_onboarded():
+		return
+	dept.hands_on += 1
+	if dept.is_onboarded():
+		state.earn(Formulas.hands_on_reward(dept))
+		state.add_reputation(GameConfig.HANDS_ON_REPUTATION)
+		onboarding_completed.emit(dept.id)
 
 
 func _record_output(station: Station, desk: int) -> void:
@@ -1244,6 +1441,9 @@ func complete_case(case_file: CaseFile) -> void:
 		smuggling_missed.emit(dept.id)
 	if bool(dept.config().follow_up) and not case_file.follow_up:
 		dept.follow_ups.append(state.rng.randf_range(GameConfig.FOLLOW_UP_DELAY_MIN, GameConfig.FOLLOW_UP_DELAY_MAX))
+	if case_file.mail:
+		mail_answered.emit(case_file.dept_id, outcome.money)
+		return
 	_maybe_praise(case_file)
 	case_completed.emit(case_file.dept_id, outcome.money, case_file.flawed)
 
@@ -1254,25 +1454,29 @@ func move_case(from: Station, case_index: int) -> bool:
 	if target == null or not target.has_inbox_space(state.lobby_capacity()):
 		return false
 	from.outbox.remove_at(case_index)
-	deliver(case_file, target)
+	deliver(case_file, target, ProductionStats.BY_PLAYER)
 	return true
 
 
-func deliver(case_file: CaseFile, target: Station) -> void:
+func deliver(case_file: CaseFile, target: Station, carrier: String) -> void:
 	case_file.step += 1
+	if carrier == ProductionStats.BY_PLAYER:
+		case_file.handled += 1
 	target.inbox.append(case_file)
+	state.production.record(ProductionStats.TRANSFER, carrier, state.play_time)
 
 
 func _update_player(delta: float) -> void:
 	var player := state.player
 	if player.input.length_squared() > 0.0:
-		player.position = layout.clamp_to_world(player.position + player.input.limit_length(1.0) * GameConfig.PLAYER_SPEED * delta)
+		var speed := GameConfig.PLAYER_SPEED * (GameConfig.BOOST_PLAYER_SPEED if state.is_boost_active("roller_skates") else 1.0)
+		player.position = layout.clamp_to_world(player.position + player.input.limit_length(1.0) * speed * delta)
 	player.transfer_timer -= delta
 	if player.transfer_timer <= 0.0 and player_transfer():
 		player.transfer_timer = GameConfig.TRANSFER_INTERVAL
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
-		if station.needs_manual_work() and layout.near(player.position, layout.work_point(key)):
+		if (station.needs_manual_work() or station.can_be_helped()) and layout.near(player.position, layout.work_point(key)):
 			work(station, Formulas.work_power(state) * delta)
 	_wake_clock += delta
 	if _wake_clock >= GameConfig.WAKE_CHECK_INTERVAL:
@@ -1296,7 +1500,7 @@ func player_transfer() -> bool:
 		var matching := player.items_for(key)
 		if not matching.is_empty():
 			player.items.erase(matching[0])
-			deliver(matching[0], station)
+			deliver(matching[0], station, ProductionStats.BY_PLAYER)
 			return true
 	if player.items.size() >= Formulas.carry_capacity(state):
 		return false
@@ -1310,10 +1514,19 @@ func player_transfer() -> bool:
 
 
 func work(station: Station, power: float) -> bool:
-	var worked := false
 	for desk in range(station.staff, station.desks):
-		worked = work_desk(station, desk, power) or worked
-	return worked
+		if work_desk(station, desk, power):
+			return true
+	if not station.machine:
+		return _help_staffed_desk(station, power)
+	return false
+
+
+func _help_staffed_desk(station: Station, power: float) -> bool:
+	for desk in mini(station.staff, station.desks):
+		if station.is_working(desk) and work_desk(station, desk, power):
+			return true
+	return false
 
 
 func work_desk(station: Station, desk: int, power: float) -> bool:
@@ -1322,7 +1535,7 @@ func work_desk(station: Station, desk: int, power: float) -> bool:
 	var job := station.jobs[desk]
 	if job == null or job.is_done():
 		return false
-	job.progress += power
+	job.work_by_hand(power)
 	return true
 
 
@@ -1356,14 +1569,15 @@ func can_leave_bonus(key: String, desk: int, tier: int) -> bool:
 	var mood := station.moods[desk]
 	if not mood.is_sick() or tier <= mood.bonus or tier > GameConfig.sick_bonus_tiers():
 		return false
-	return layout.near(state.player.position, layout.desk_position(key, desk)) and state.can_afford(Formulas.sick_bonus_cost(state, tier))
+	return layout.near(state.player.position, layout.desk_position(key, desk)) and state.can_afford(Formulas.sick_bonus_price(state, mood, tier))
 
 
 func leave_bonus(key: String, desk: int, tier: int) -> bool:
 	if not can_leave_bonus(key, desk, tier):
 		return false
-	state.spend(Formulas.sick_bonus_cost(state, tier))
-	state.station(key).moods[desk].bonus = tier
+	var mood := state.station(key).moods[desk]
+	state.spend(Formulas.sick_bonus_price(state, mood, tier))
+	mood.bonus = tier
 	state.bonuses_paid += 1
 	bonus_left.emit(key, desk, tier)
 	return true
@@ -1394,21 +1608,17 @@ func unlock(dept_id: String) -> bool:
 
 
 func _update_runners(delta: float) -> void:
-	if state.has_research("pneumatic_tubes"):
-		for runner in state.runners:
-			if runner.items.is_empty():
-				runner.clear_task()
-				runner.move_towards(layout.runner_home(), GameConfig.RUNNER_SPEED, delta)
-			else:
-				_runner_to_target(runner, delta)
-		return
 	for runner in state.runners:
 		match runner.task:
 			Runner.Task.IDLE:
 				if not assign_runner(runner):
-					runner.move_towards(layout.runner_home(), GameConfig.RUNNER_SPEED * 0.5, delta)
+					runner.move_towards(layout.runner_home(), _runner_speed(), delta)
 			Runner.Task.TO_SOURCE:
-				_runner_to_source(runner, delta)
+				if _reservation_lost(runner):
+					runner.clear_task()
+					runner.move_towards(layout.runner_home(), _runner_speed(), delta)
+				else:
+					_runner_to_source(runner, delta)
 			Runner.Task.TO_TARGET:
 				_runner_to_target(runner, delta)
 
@@ -1426,14 +1636,15 @@ func assign_runner(runner: Runner) -> bool:
 	var best_source := ""
 	var best_target := ""
 	var best_amount := 0
-	var capacity := Formulas.runner_capacity(state)
+	var capacity := Formulas.runner_load(state, runner)
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
 		if station.outbox.is_empty():
 			continue
 		var counts := {}
 		for case_file in station.outbox:
-			counts[case_file.next_key()] = int(counts.get(case_file.next_key(), 0)) + 1
+			if runner_takes(runner, case_file, key):
+				counts[case_file.next_key()] = int(counts.get(case_file.next_key(), 0)) + 1
 		for target_key: String in counts:
 			var target := state.station(target_key)
 			if target == null or not target.has_inbox_space(state.lobby_capacity()):
@@ -1459,34 +1670,97 @@ func assign_runner(runner: Runner) -> bool:
 	return true
 
 
+func _reservation_lost(runner: Runner) -> bool:
+	var station := state.station(runner.source)
+	return station == null or not station.outbox.any(func(case_file: CaseFile) -> bool: return case_file.next_key() == runner.target and runner_takes(runner, case_file, runner.source))
+
+
+func runner_takes(runner: Runner, case_file: CaseFile, source_key: String) -> bool:
+	return not state.is_piped(case_file) and runner.serves(case_file, source_key)
+
+
 func _runner_to_source(runner: Runner, delta: float) -> void:
-	if not runner.move_towards(layout.output_point(runner.source), GameConfig.RUNNER_SPEED, delta):
+	if not runner.move_towards(layout.output_point(runner.source), _runner_speed(), delta):
 		return
 	var station := state.station(runner.source)
-	var index := 0
-	while index < station.outbox.size() and runner.items.size() < runner.reserved:
-		if station.outbox[index].next_key() == runner.target:
-			runner.items.append(station.outbox[index])
-			station.outbox.remove_at(index)
-		else:
-			index += 1
+	var capacity := Formulas.runner_load(state, runner)
+	var others := reserved_for(runner.source, runner.target) - runner.reserved
+	_load_runner(runner, station, runner.target, mini(capacity, maxi(runner.reserved, _waiting_for(runner, station, runner.target) - others)))
+	for target_key in _extra_targets(runner, station):
+		if runner.items.size() >= capacity:
+			break
+		var free := _waiting_for(runner, station, target_key) - reserved_for(runner.source, target_key)
+		_load_runner(runner, station, target_key, mini(capacity, runner.items.size() + free))
 	if runner.items.is_empty():
 		runner.clear_task()
 		return
 	runner.task = Runner.Task.TO_TARGET
 	runner.reserved = 0
+	if runner.items_for(runner.target).is_empty():
+		runner.target = _next_runner_target(runner)
+
+
+func _waiting_for(runner: Runner, station: Station, target_key: String) -> int:
+	var count := 0
+	for case_file in station.outbox:
+		if case_file.next_key() == target_key and runner_takes(runner, case_file, runner.source):
+			count += 1
+	return count
+
+
+func _load_runner(runner: Runner, station: Station, target_key: String, limit: int) -> void:
+	var index := 0
+	while index < station.outbox.size() and runner.items.size() < limit:
+		if station.outbox[index].next_key() == target_key and runner_takes(runner, station.outbox[index], runner.source):
+			runner.items.append(station.outbox[index])
+			station.outbox.remove_at(index)
+		else:
+			index += 1
+
+
+func _extra_targets(runner: Runner, station: Station) -> Array[String]:
+	var result: Array[String] = []
+	var origin := layout.output_point(runner.source)
+	for case_file in station.outbox:
+		var target_key := case_file.next_key()
+		if target_key == runner.target or result.has(target_key) or not runner_takes(runner, case_file, runner.source):
+			continue
+		var target := state.station(target_key)
+		if target != null and target.has_inbox_space(state.lobby_capacity()):
+			result.append(target_key)
+	result.sort_custom(func(a: String, b: String) -> bool: return origin.distance_to(layout.input_point(a)) < origin.distance_to(layout.input_point(b)))
+	return result
+
+
+func _next_runner_target(runner: Runner) -> String:
+	var best := ""
+	var best_distance := INF
+	for case_file in runner.items:
+		var target_key := case_file.next_key()
+		var distance := runner.position.distance_to(layout.input_point(target_key))
+		if distance < best_distance:
+			best_distance = distance
+			best = target_key
+	return best
 
 
 func _runner_to_target(runner: Runner, delta: float) -> void:
-	if not runner.move_towards(layout.input_point(runner.target), GameConfig.RUNNER_SPEED, delta):
+	if not runner.move_towards(layout.input_point(runner.target), _runner_speed(), delta):
 		return
 	var target := state.station(runner.target)
 	if target == null:
 		return
-	while not runner.items.is_empty() and target.has_inbox_space(state.lobby_capacity()):
-		deliver(runner.items.pop_front(), target)
+	var index := 0
+	while index < runner.items.size() and target.has_inbox_space(state.lobby_capacity()):
+		if runner.items[index].next_key() == runner.target:
+			deliver(runner.items[index], target, ProductionStats.BY_RUNNER)
+			runner.items.remove_at(index)
+		else:
+			index += 1
 	if runner.items.is_empty():
 		runner.clear_task()
+	elif runner.items_for(runner.target).is_empty():
+		runner.target = _next_runner_target(runner)
 
 
 func _pneumatic_transport(delta: float) -> void:
@@ -1508,7 +1782,7 @@ func _advance_parcels(delta: float) -> void:
 				state.station(GameConfig.RECEPTION).outbox.append(parcel.case_file)
 			elif target.has_inbox_space(state.lobby_capacity()):
 				state.tube_parcels.remove_at(index)
-				deliver(parcel.case_file, target)
+				deliver(parcel.case_file, target, ProductionStats.BY_TUBE)
 		index -= 1
 
 
@@ -1524,7 +1798,7 @@ func _launch_parcels() -> void:
 			var case_file := station.outbox[index]
 			var target_key := case_file.next_key()
 			var parcel := TubeParcel.new(case_file, key, target_key)
-			if target_key.is_empty() or state.station(target_key) == null or int(load.get(parcel.tube_id(), 0)) >= capacity:
+			if not state.is_piped(case_file) or target_key.is_empty() or state.station(target_key) == null or int(load.get(parcel.tube_id(), 0)) >= capacity:
 				index += 1
 				continue
 			station.outbox.remove_at(index)
@@ -1532,3 +1806,37 @@ func _launch_parcels() -> void:
 			load[parcel.tube_id()] = int(load.get(parcel.tube_id(), 0)) + 1
 			state.tube_parcels.append(parcel)
 			case_piped.emit(key, target_key, case_file.dept_id)
+
+
+func _runner_speed() -> float:
+	return GameConfig.RUNNER_SPEED * (GameConfig.BOOST_RUNNER_SPEED if state.is_boost_active("roller_skates") else 1.0)
+
+
+func wake_everyone(include_sick: bool) -> int:
+	var woken := 0
+	for key in state.ordered_station_keys():
+		var station := state.station(key)
+		if station.machine:
+			continue
+		for desk in station.moods.size():
+			var mood := station.moods[desk]
+			if station.is_staffed(desk) and mood.is_resting() and mood.is_sick() == include_sick and wake_up(station, desk, false):
+				woken += 1
+	return woken
+
+
+func calm_office() -> void:
+	for dispute in state.disputes.duplicate():
+		end_dispute(dispute, false)
+	if state.kranz:
+		end_kranz(false)
+
+
+func finish_all_jobs() -> int:
+	var count := 0
+	for key in state.ordered_station_keys():
+		for job in state.station(key).jobs:
+			if job != null and not job.is_done():
+				job.progress = job.required
+				count += 1
+	return count

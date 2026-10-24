@@ -103,8 +103,8 @@ func test_visitor_signal_and_dialog_ranges() -> void:
 		var limit := GameConfig.YELL_DIALOGS if angry else GameConfig.VISITOR_DIALOGS
 		assert_between(visitor.dialog, 0, limit - 1)
 		assert_between(visitor.look, 0, 11)
-	assert_signal_emitted_with_parameters(sim, "visitor_arrived", [true])
-	assert_signal_emitted_with_parameters(sim, "visitor_arrived", [false])
+	assert_signal_emitted_with_parameters(sim, "visitor_arrived", [true], 0)
+	assert_signal_emitted_with_parameters(sim, "visitor_arrived", [false], 1)
 
 
 func test_visitor_line_follows_progress() -> void:
@@ -144,7 +144,7 @@ func test_walkout_costs_reputation_and_brings_an_angry_complaint() -> void:
 	assert_null(sim.spawn_case(state.department("general_services")))
 	assert_eq(state.walkouts, 1)
 	assert_eq(state.citizens_lost, 1)
-	assert_almost_eq(state.reputation, 5.0 + GameConfig.REP_WALKED_OUT, 0.001)
+	assert_almost_eq(state.reputation, 5.0 + GameConfig.REP_WALKED_OUT * GameConfig.REP_LOSS_FACTOR, 0.001)
 	assert_eq(state.visitors.size(), 1)
 	assert_true(state.visitors[0].angry)
 	assert_true(state.visitors[0].files_complaint)
@@ -201,9 +201,9 @@ func test_normal_visitor_does_not_stress_the_intern() -> void:
 
 func test_intern_stress_builds_up_with_many_complaints() -> void:
 	state.research["shredder_service"] = 1
-	state.complaints = GameConfig.COMPLAINT_CAP
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	_run(10.0)
-	var expected := (GameConfig.COMPLAINT_CAP - GameConfig.INTERN_STRESS_FREE) * GameConfig.INTERN_STRESS_RATE * 10.0
+	var expected := (GameConfig.COMPLAINT_BOX_CAPACITY - GameConfig.INTERN_STRESS_FREE) * GameConfig.INTERN_STRESS_RATE * 10.0
 	assert_almost_eq(state.intern.stress, expected, 0.01)
 
 
@@ -218,7 +218,7 @@ func test_intern_calms_down_with_few_complaints() -> void:
 
 
 func test_intern_stays_calm_without_research() -> void:
-	state.complaints = GameConfig.COMPLAINT_CAP
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	_run(20.0)
 	assert_eq(state.intern.stress, 0.0)
 	assert_eq(state.intern.mood, ComplaintIntern.Mood.DESK)
@@ -226,7 +226,7 @@ func test_intern_stays_calm_without_research() -> void:
 
 func test_intern_breaks_down_and_runs_to_the_toilet() -> void:
 	state.research["shredder_service"] = 1
-	state.complaints = GameConfig.COMPLAINT_CAP
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	state.intern.stress = 0.999
 	watch_signals(sim)
 	sim.tick(0.1)
@@ -511,6 +511,8 @@ func test_waiting_area_upgrade_costs_and_limit() -> void:
 
 func _seat_citizens(count: int) -> void:
 	var station := state.station(REVIEW)
+	while station.inbox_capacity(state.lobby_capacity()) <= count + 1:
+		station.add_desk()
 	for i in count:
 		station.inbox.append(sim.create_case(state.department("general_services")))
 

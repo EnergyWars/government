@@ -20,6 +20,7 @@ func test_goal_progress_types() -> void:
 	state.building_stage = 1
 	state.reputation = 7.9
 	state.research["pneumatic_tubes"] = 1
+	state.connect_all_tubes()
 	state.add_runner()
 	state.station("general_services/review").level = 3
 	assert_eq(goals.progress_of({"type": "cases"}), 4.0)

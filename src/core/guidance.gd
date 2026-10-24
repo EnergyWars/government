@@ -13,6 +13,7 @@ const CALL := "call"
 const REJECT := "reject"
 const COMFORT := "comfort"
 const DISPUTE := "dispute"
+const COVER := "cover"
 
 
 static func next_task(state: GameState) -> Dictionary:
@@ -33,7 +34,9 @@ static func next_task(state: GameState) -> Dictionary:
 				if station.is_staffed(desk) and mood.needs_help() and not (state.kranz and mood.state == DeskMood.CHAT):
 					var spot := layout.slot_point(mood.slot) if mood.is_away() else layout.desk_position(key, desk)
 					options.append({"action": WAKE, "key": key, "point": spot})
-			if station.needs_manual_work():
+				if mood.is_sick() and station.can_cover(desk):
+					options.append({"action": COVER, "key": key, "point": layout.desk_position(key, desk)})
+			if station.needs_manual_work() or station.needs_help():
 				options.append({"action": WORK, "key": key, "point": layout.work_point(key)})
 			if room and not station.outbox.is_empty() and not _automated(state, station):
 				options.append({"action": PICKUP, "key": key, "point": layout.output_point(key)})
@@ -52,7 +55,7 @@ static func next_task(state: GameState) -> Dictionary:
 	if player.complaints > 0 or player.rejects > 0:
 		options.append({"action": SHRED, "key": "", "point": layout.shredder_point()})
 	elif state.complaints > 0 and player.items.size() < Formulas.carry_capacity(state):
-		options.append({"action": COMPLAINT, "key": "", "point": layout.complaint_desk_point()})
+		options.append({"action": COMPLAINT, "key": "", "point": layout.complaint_box_point()})
 	var locked := Progression.next_locked_department(state)
 	if options.is_empty() and not locked.is_empty() and Progression.unlock_block_reason(state, locked).is_empty():
 		options.append({"action": PAD, "key": locked, "point": layout.pad_point(locked)})
@@ -67,6 +70,11 @@ static func next_task(state: GameState) -> Dictionary:
 
 
 static func _automated(state: GameState, station: Station) -> bool:
-	if state.has_research("pneumatic_tubes"):
+	var waiting := station.outbox.filter(func(case_file: CaseFile) -> bool: return not state.is_piped(case_file))
+	if waiting.is_empty() and not station.outbox.is_empty():
 		return true
-	return state.runners.size() * Formulas.runner_capacity(state) >= station.outbox.size() and not state.runners.is_empty()
+	var carried := 0
+	for runner in state.runners:
+		if waiting.is_empty() or waiting.any(func(case_file: CaseFile) -> bool: return runner.serves(case_file, station.key)):
+			carried += Formulas.runner_load(state, runner)
+	return carried > 0 and carried >= waiting.size()

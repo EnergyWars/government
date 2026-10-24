@@ -5,6 +5,7 @@ var case_file: CaseFile
 var progress := 0.0
 var required := 1.0
 var by_specialist := false
+var by_hand := false
 
 
 func _init(p_case_file: CaseFile = null, p_required: float = 1.0, p_by_specialist: bool = false) -> void:
@@ -21,11 +22,19 @@ func ratio() -> float:
 	return clampf(progress / required, 0.0, 1.0)
 
 
+func work_by_hand(power: float) -> void:
+	progress += power
+	if not by_hand:
+		by_hand = true
+		case_file.handled += 1
+
+
 func to_dict() -> Dictionary:
-	return {"case": case_file.to_dict(), "progress": progress, "required": required, "specialist": by_specialist}
+	return {"case": case_file.to_dict(), "progress": progress, "required": required, "specialist": by_specialist, "by_hand": by_hand}
 
 
 static func from_dict(data: Dictionary) -> StationJob:
 	var job := StationJob.new(CaseFile.from_dict(data.get("case", {})), float(data.get("required", 1.0)), bool(data.get("specialist", false)))
 	job.progress = float(data.get("progress", 0.0))
+	job.by_hand = bool(data.get("by_hand", false))
 	return job

@@ -38,10 +38,10 @@ func _initialize() -> void:
 		_buy(game)
 		if state.goal_index != last_goal:
 			last_goal = state.goal_index
-			print("%7.1f min | goal %2d | money %12.0f | rep %6.1f | depts %d | stage %d | cases %d | lost %d | staff %d" % [elapsed / 60.0, state.goal_index, state.money, state.reputation, state.unlocked_count(), state.building_stage, state.cases_completed, state.citizens_lost, state.total_staff()])
+			print("%7.1f min | goal %2d | money %12.0f | rep %6.1f | depts %d | stage %d | cases %d | lost %d | staff %d | mail %d/%d | bundles %d" % [elapsed / 60.0, state.goal_index, state.money, state.reputation, state.unlocked_count(), state.building_stage, state.cases_completed, state.citizens_lost, state.total_staff(), state.mail_received, state.mail_returned, state.bundles])
 		if elapsed >= next_report:
 			next_report += 1800.0
-			print("  ~ %5.0f min: money %.0f rep %.1f income/s %.1f flawed %d lost %d" % [elapsed / 60.0, state.money, state.reputation, OfflineCalculator.earnings_per_second(state) / GameConfig.OFFLINE_EFFICIENCY, state.cases_flawed, state.citizens_lost])
+			print("  ~ %5.0f min: money %.0f rep %.1f income/s %.1f flawed %d lost %d mail %d/%d bundles %d" % [elapsed / 60.0, state.money, state.reputation, OfflineCalculator.earnings_per_second(state) / GameConfig.OFFLINE_EFFICIENCY, state.cases_flawed, state.citizens_lost, state.mail_received, state.mail_returned, state.bundles])
 	quit()
 
 
@@ -53,27 +53,41 @@ func _buy(game: Game) -> void:
 			return
 	if actions.expand_building():
 		return
-	for research_id in GameConfig.RESEARCH_ORDER:
-		if Progression.research_block_reason(state, research_id).is_empty() and state.money > 3.0 * Formulas.research_cost(research_id, state.research_level(research_id)):
-			actions.buy_research(research_id)
-			return
+	if game.goals.has_goal() and str(game.goals.current().type) == "station_level":
+		actions.upgrade(GameConfig.RECEPTION)
 	for dept in state.unlocked_departments():
 		var weakest := Formulas.bottleneck(state, dept)
 		if weakest == "demand":
 			continue
 		if weakest == "transport":
-			actions.hire_runner()
+			if actions.connect_tube(dept.id) or actions.hire_runner():
+				continue
+			for index in state.runners.size():
+				if actions.upgrade_runner(index):
+					break
 			continue
 		var station := state.station(weakest)
+		if actions.needs_onboarding(weakest):
+			continue
 		if not station.machine and station.staff < station.desks:
 			actions.hire(weakest)
 		elif not actions.add_desk(weakest):
 			actions.upgrade(weakest)
+	for research_id in GameConfig.RESEARCH_ORDER:
+		if Progression.research_block_reason(state, research_id).is_empty() and state.money > 3.0 * Formulas.research_cost(research_id, state.research_level(research_id)):
+			actions.buy_research(research_id)
+			return
 	for key in [GameConfig.RECEPTION, GameConfig.COUNTER]:
 		if state.station(key).staff < state.station(key).desks:
 			actions.hire(key)
 	if state.runners.is_empty():
 		actions.hire_runner()
+	var mailroom := state.mailroom()
+	if mailroom != null:
+		if mailroom.staff < mailroom.desks:
+			actions.hire(GameConfig.MAILROOM)
+		if mailroom.inbox.size() >= mailroom.storage_capacity():
+			actions.upgrade_mail_storage()
 	for dept in state.unlocked_departments():
 		if state.money > 4.0 * Formulas.supervisor_cost(dept):
 			actions.hire_supervisor(dept.id)

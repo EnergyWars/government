@@ -289,11 +289,30 @@ static func kitchen_table(canvas: CanvasItem, center: Vector2) -> void:
 
 
 static func complaint_pile(canvas: CanvasItem, base: Vector2, count: int) -> void:
-	for i in mini(count, GameConfig.COMPLAINT_CAP_MAX):
+	for i in mini(count, GameConfig.COMPLAINT_PILE_DRAWN):
 		var offset := Vector2((i % 3) * 13.0 - 13.0, -floorf(i / 3.0) * 5.0)
 		canvas.draw_rect(Rect2(base + offset + Vector2(-9, -4), Vector2(18, 10)), AppTheme.PAPER)
 		canvas.draw_rect(Rect2(base + offset + Vector2(-9, -4), Vector2(18, 10)), AppTheme.METAL_DARK, false, 1.0)
 		canvas.draw_line(base + offset + Vector2(-6, 0), base + offset + Vector2(5, 0), AppTheme.FLAG_RED, 1.0)
+
+
+static func complaint_box(canvas: CanvasItem, base: Vector2, fill: float) -> void:
+	ItemPainter.shadow(canvas, base + Vector2(0, 20), 22, 5)
+	canvas.draw_rect(Rect2(base + Vector2(-3, -10), Vector2(6, 30)), AppTheme.METAL_DARK)
+	var box := Rect2(base + Vector2(-23, -46), Vector2(46, 38))
+	canvas.draw_rect(Rect2(box.position + Vector2(2, 3), box.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(box, AppTheme.FLAG_RED)
+	canvas.draw_rect(box, AppTheme.FLAG_RED.darkened(0.35), false, 2.0)
+	canvas.draw_rect(Rect2(box.position + Vector2(9, 7), Vector2(28, 4)), AppTheme.SHOES)
+	var gauge := Rect2(box.position + Vector2(7, 18), Vector2(32, 13))
+	canvas.draw_rect(gauge, AppTheme.PAPER_EDGE)
+	canvas.draw_rect(Rect2(gauge.position, Vector2(gauge.size.x * clampf(fill, 0.0, 1.0), gauge.size.y)), AppTheme.PAPER)
+	canvas.draw_rect(gauge, AppTheme.FLAG_RED.darkened(0.35), false, 1.0)
+	if fill >= 1.0:
+		for i in 3:
+			var sheet := Rect2(box.position + Vector2(10 + i * 9, 1 - (i % 2) * 4), Vector2(8, 10))
+			canvas.draw_rect(sheet, AppTheme.PAPER)
+			canvas.draw_rect(sheet, AppTheme.PAPER_EDGE, false, 1.0)
 
 
 static func shredder(canvas: CanvasItem, base: Vector2, active: bool, time: float) -> void:
@@ -354,3 +373,33 @@ static func toilet_stalls(canvas: CanvasItem, origin: Vector2, occupied: Array[b
 		if occupied[i]:
 			canvas.draw_rect(Rect2(door.position + Vector2(14, 82), Vector2(10, 6)), AppTheme.SHOES)
 			canvas.draw_rect(Rect2(door.position + Vector2(32, 82), Vector2(10, 6)), AppTheme.SHOES)
+
+
+static func mail_shelf(canvas: CanvasItem, rect: Rect2, stored: int, capacity: int) -> void:
+	canvas.draw_rect(Rect2(rect.position + Vector2(3, 5), rect.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(rect, AppTheme.WOOD_FRONT)
+	canvas.draw_rect(rect, AppTheme.WOOD_DARK, false, 2.0)
+	var boards := maxi(1, ceili(capacity / 8.0))
+	var step := rect.size.y / boards
+	var per_board := maxi(1, ceili(capacity / float(boards)))
+	var slot_width := (rect.size.x - 16.0) / per_board
+	for board in boards:
+		var y := rect.position.y + step * (board + 1) - 4.0
+		canvas.draw_rect(Rect2(Vector2(rect.position.x + 4, y), Vector2(rect.size.x - 8, 4)), AppTheme.WOOD_TOP)
+		for slot in per_board:
+			var index := board * per_board + slot
+			if index >= stored:
+				return
+			var letter := Rect2(Vector2(rect.position.x + 8 + slot * slot_width, y - minf(22.0, step - 10.0)), Vector2(maxf(3.0, slot_width - 2.0), minf(22.0, step - 10.0)))
+			canvas.draw_rect(letter, AppTheme.PAPER)
+			canvas.draw_rect(letter, AppTheme.PAPER_EDGE, false, 1.0)
+
+
+static func mailbox(canvas: CanvasItem, base: Vector2) -> void:
+	canvas.draw_rect(Rect2(base + Vector2(-3, -10), Vector2(6, 30)), AppTheme.METAL_DARK)
+	var box := Rect2(base + Vector2(-22, -44), Vector2(44, 36))
+	canvas.draw_rect(Rect2(box.position + Vector2(2, 3), box.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(box, AppTheme.POST_YELLOW)
+	canvas.draw_rect(box, AppTheme.POST_YELLOW.darkened(0.35), false, 2.0)
+	canvas.draw_rect(Rect2(box.position + Vector2(8, 8), Vector2(28, 4)), AppTheme.POST_HORN)
+	canvas.draw_arc(box.get_center() + Vector2(0, 6), 7.0, 0, PI, 10, AppTheme.POST_HORN, 2.0)

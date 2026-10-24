@@ -24,9 +24,17 @@ func add_desk(key: String) -> bool:
 	return true
 
 
+func needs_onboarding(key: String) -> bool:
+	var station := state.station(key)
+	if station == null or station.is_shared():
+		return false
+	var dept := state.department(station.dept_id)
+	return dept != null and not dept.is_onboarded()
+
+
 func can_hire(key: String) -> bool:
 	var station := state.station(key)
-	return station != null and not station.machine and station.staff < station.desks and state.can_afford(Formulas.hire_cost(station))
+	return station != null and not station.machine and station.staff < station.desks and not needs_onboarding(key) and state.can_afford(Formulas.hire_cost(station))
 
 
 func hire(key: String) -> bool:
@@ -50,6 +58,7 @@ func upgrade(key: String) -> bool:
 	var station := state.station(key)
 	state.spend(Formulas.upgrade_cost(station))
 	station.level += 1
+	station.rush = GameConfig.UPGRADE_RUSH_SECONDS
 	return true
 
 
@@ -111,12 +120,71 @@ func can_hire_runner() -> bool:
 	return state.runners.size() < GameConfig.MAX_RUNNERS and state.can_afford(Formulas.runner_cost(state))
 
 
-func hire_runner() -> bool:
+func hire_runner(role: String = "") -> bool:
 	if not can_hire_runner():
 		return false
 	state.spend(Formulas.runner_cost(state))
-	state.add_runner()
+	state.add_runner(role if Runner.ROLES.has(role) else Formulas.weakest_runner_role(state))
 	state.staff_hired += 1
+	return true
+
+
+func can_upgrade_runner(index: int) -> bool:
+	if index < 0 or index >= state.runners.size():
+		return false
+	var runner := state.runners[index]
+	return runner.level < GameConfig.MAX_RUNNER_LEVEL and state.can_afford(Formulas.runner_level_cost(runner))
+
+
+func upgrade_runner(index: int) -> bool:
+	if not can_upgrade_runner(index):
+		return false
+	var runner := state.runners[index]
+	state.spend(Formulas.runner_level_cost(runner))
+	runner.level += 1
+	return true
+
+
+func can_connect_tube(dept_id: String) -> bool:
+	var dept := state.department(dept_id)
+	return dept != null and dept.unlocked and not dept.tube and state.has_research("pneumatic_tubes") and state.can_afford(Formulas.tube_connection_cost(dept_id))
+
+
+func connect_tube(dept_id: String) -> bool:
+	if not can_connect_tube(dept_id):
+		return false
+	state.spend(Formulas.tube_connection_cost(dept_id))
+	state.department(dept_id).tube = true
+	return true
+
+
+func set_runner_role(index: int, role: String) -> bool:
+	if index < 0 or index >= state.runners.size() or not Runner.ROLES.has(role):
+		return false
+	var runner := state.runners[index]
+	if runner.role == role:
+		return false
+	runner.role = role
+	if runner.task == Runner.Task.TO_SOURCE:
+		runner.clear_task()
+	return true
+
+
+func runner_department_options() -> Array[String]:
+	var options: Array[String] = [Runner.ALL_DEPARTMENTS]
+	for dept in state.unlocked_departments():
+		options.append(dept.id)
+	return options
+
+
+func cycle_runner_department(index: int) -> bool:
+	if index < 0 or index >= state.runners.size():
+		return false
+	var runner := state.runners[index]
+	var options := runner_department_options()
+	runner.dept_id = options[(options.find(runner.dept_id) + 1) % options.size()]
+	if runner.task == Runner.Task.TO_SOURCE:
+		runner.clear_task()
 	return true
 
 
@@ -167,6 +235,44 @@ func upgrade_seating_area() -> bool:
 		return false
 	state.spend(Formulas.seating_area_cost(state))
 	state.seating_level += 1
+	return true
+
+
+func can_upgrade_complaint_clerk() -> bool:
+	return state.complaint_clerk_level < GameConfig.COMPLAINT_CLERK_MAX_LEVEL and state.can_afford(Formulas.complaint_clerk_cost(state))
+
+
+func upgrade_complaint_clerk() -> bool:
+	if not can_upgrade_complaint_clerk():
+		return false
+	state.spend(Formulas.complaint_clerk_cost(state))
+	state.complaint_clerk_level += 1
+	return true
+
+
+func can_upgrade_complaint_box() -> bool:
+	return state.complaint_box_level < GameConfig.COMPLAINT_BOX_MAX_LEVEL and state.can_afford(Formulas.complaint_box_cost(state))
+
+
+func upgrade_complaint_box() -> bool:
+	if not can_upgrade_complaint_box():
+		return false
+	state.spend(Formulas.complaint_box_cost(state))
+	state.complaint_box_level += 1
+	return true
+
+
+func can_upgrade_mail_storage() -> bool:
+	var room := state.mailroom()
+	return room != null and room.storage_level < GameConfig.MAIL_STORAGE_MAX_LEVEL and state.can_afford(Formulas.mail_storage_cost(room))
+
+
+func upgrade_mail_storage() -> bool:
+	if not can_upgrade_mail_storage():
+		return false
+	var room := state.mailroom()
+	state.spend(Formulas.mail_storage_cost(room))
+	room.storage_level += 1
 	return true
 
 
@@ -242,6 +348,8 @@ func buy_research(research_id: String) -> bool:
 		return false
 	state.spend(Formulas.research_cost(research_id, state.research_level(research_id)))
 	state.research[research_id] += 1
+	if research_id == "pneumatic_tubes":
+		state.connect_all_tubes()
 	return true
 
 
@@ -250,6 +358,7 @@ func expand_building() -> bool:
 		return false
 	state.building_stage += 1
 	state.spend(float(state.stage_config().cost))
+	state.ensure_mailroom()
 	return true
 
 

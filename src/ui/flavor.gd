@@ -18,6 +18,7 @@ const SLOW_COUNT := 3
 const KRANZ_COUNT := 3
 const COMPLAINT_COUNT := 50
 const SHRED_COUNT := 4
+const FEND_COUNT := 12
 const REJECT_COUNT := 4
 const GO_KITCHEN_COUNT := 3
 const FETCH_COUNT := 3
@@ -34,6 +35,10 @@ static func quip(index: int) -> String:
 
 static func done(index: int) -> String:
 	return TranslationServer.translate("FLOAT_DONE_%d" % (posmod(index, DONE_COUNT) + 1))
+
+
+static func fend(index: int) -> String:
+	return TranslationServer.translate("CLERK_FEND_%d" % (posmod(index, FEND_COUNT) + 1))
 
 
 static func flawed(index: int) -> String:
@@ -54,6 +59,10 @@ static func woke(index: int) -> String:
 
 static func complaint(serial: int) -> String:
 	return TranslationServer.translate("COMPLAINT_%d" % (Formulas.complaint_text_index(serial) + 1))
+
+
+static func complaint_subject(serial: int) -> String:
+	return TranslationServer.translate("COMPLAINT_SUBJECT_%d" % (Formulas.complaint_text_index(serial) + 1))
 
 
 static func shred(index: int) -> String:

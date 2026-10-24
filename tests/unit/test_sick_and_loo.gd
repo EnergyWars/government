@@ -72,7 +72,7 @@ func test_sick_timer_triggers_report() -> void:
 	state.sick_timer = 0.0
 	_run(0.1)
 	assert_eq(state.sick_count(), 1)
-	assert_gte(state.sick_timer, GameConfig.SICK_MIN_INTERVAL)
+	assert_gte(state.sick_timer, GameConfig.SICK_MIN_PER_OFFICIAL / state.staffed_officials() - 0.1)
 
 
 func test_sick_returns_on_its_own_after_long_time() -> void:
@@ -117,7 +117,7 @@ func test_sick_and_hr_are_saved_and_clamped() -> void:
 	data.calls_made = -2
 	loaded = GameState.from_dict(data)
 	assert_eq(loaded.hr, GameConfig.MAX_HR)
-	assert_eq(loaded.sick_timer, GameConfig.SICK_MAX_INTERVAL)
+	assert_eq(loaded.sick_timer, GameConfig.SICK_MAX_PER_OFFICIAL)
 	assert_eq(loaded.calls_made, 0)
 
 

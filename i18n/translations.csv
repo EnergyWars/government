@@ -73,7 +73,7 @@ STAFF_SUPERVISORS,Supervisors,Teamleitung
 STAFF_DESC_SPECIALISTS,"Specialists take complex cases at their own desk so they do not clog regular desks. Fewer errors, more small talk.","Fachkräfte übernehmen komplexe Fälle an einem eigenen Tisch, damit normale Tische frei bleiben. Weniger Fehler, mehr Fachsimpelei."
 STAFF_DESC_SUPERVISORS,"Make every desk and machine of this department 20% faster, and colleagues doze off 30% slower. Purely by looking sternly. Office disputes also break out less often.","Machen jeden Tisch und jede Maschine dieser Abteilung 20 % schneller, und Kollegen nicken 30 % langsamer ein. Allein durch strenges Hinsehen. Bürostreits brechen außerdem seltener aus."
 FMT_STAFF_COUNT,%s %d/%d,%s %d/%d
-RESEARCH_INTRO,Technology is shared by all departments and stays forever. Like the fax machine in the basement.,Technik gilt für alle Abteilungen und bleibt dauerhaft erhalten. Wie das Faxgerät im Keller.
+RESEARCH_INTRO,"Technology stays forever, sorted by room. Tap a room to see only its upgrades.","Technik bleibt dauerhaft erhalten, sortiert nach Raum. Tippe auf einen Raum, um nur seine Upgrades zu sehen."
 RESEARCH_BRIEFCASE,Bigger briefcase,Größere Aktentasche
 RESEARCH_WORK_ETHIC,Work ethic,Arbeitseifer
 RESEARCH_SCANNERS,Document scanners,Dokumentenscanner
@@ -123,6 +123,7 @@ FMT_GOAL_RESEARCH_LEVEL,Introduce %s,Führe ein: %s
 FMT_GOAL_BUILDING_STAGE,Expand to: %s,Erweitere zu: %s
 FMT_REWARD_BOTH,Reward: %s and %d reputation,Belohnung: %s und %d Ansehen
 FMT_REWARD_MONEY,Reward: %s,Belohnung: %s
+FMT_REWARD_WITH_SEALS,%s · seals +%d,%s · Siegel +%d
 FMT_GOAL_PROGRESS,%s (%s/%s),%s (%s/%s)
 SECTION_LANGUAGE,Language,Sprache
 LANGUAGE_SYSTEM,System,System
@@ -190,11 +191,11 @@ STATION_SOCIAL_BENEFITS_SIGNATURE,Payment officer,Zahlstelle
 STATION_CUSTOMS_REVIEW,Declaration check,Anmeldeprüfung
 STATION_CUSTOMS_SIGNATURE,Cargo scanner,Frachtscanner
 STAFF_RUNNERS,Runners,Boten
-STAFF_DESC_RUNNERS,"Walk through the building and carry files from output trays to the next intake tray. The official channel, now in trainers.","Laufen durchs Gebäude und tragen Akten aus den Ablagen zum nächsten Eingangsfach. Der Dienstweg, jetzt in Turnschuhen."
+STAFF_DESC_RUNNERS,"Carry files from tray to tray. Each runner has one job: reception to department, within a department, or department to the issue counter. The official channel, now in trainers.","Tragen Akten von Fach zu Fach. Jeder Bote hat eine Aufgabe: Empfang → Amt, innerhalb eines Amts oder Amt → Ausgabe. Der Dienstweg, jetzt in Turnschuhen."
 RESEARCH_TROLLEYS,File trolleys,Aktenwagen
 RESEARCH_PNEUMATIC_TUBES,Pneumatic tubes,Rohrpost
-RESEARCH_DESC_TROLLEYS,"Runners carry one more file per trip. It squeaks, but it rolls.","Boten tragen eine Akte mehr pro Gang. Quietscht, rollt aber."
-RESEARCH_DESC_PNEUMATIC_TUBES,"Files are routed automatically to the next station. No more carrying, just a gentle ""fump"".","Akten werden automatisch zur nächsten Station geschickt. Kein Tragen mehr, nur noch ein sanftes „Fump“."
+RESEARCH_DESC_TROLLEYS,"Runners and reject runners carry one more file per trip. It squeaks, but it rolls.","Boten und Ablehnungs-Boten tragen eine Akte mehr pro Gang. Quietscht, rollt aber."
+RESEARCH_DESC_PNEUMATIC_TUBES,"Connects every office opened so far: their files are routed automatically to the next station. Offices opened later need their own connection. No more carrying, just a gentle ""fump"".","Schließt alle bisher eröffneten Ämter an: Ihre Akten werden automatisch zur nächsten Station geschickt. Später eröffnete Ämter brauchen einen eigenen Anschluss. Kein Tragen mehr, nur noch ein sanftes „Fump“."
 STAGE_SERVICE_COUNTER,Service counter,Service-Schalter
 STAGE_MULTI_SERVICE_OFFICE,Multi-service office,Bürgeramt
 STAGE_REGIONAL_ADMINISTRATION,Regional administration,Kreisverwaltung
@@ -203,9 +204,7 @@ STAGE_CITYWIDE_ADMINISTRATION,Citywide administration,Stadtverwaltung
 FMT_GOAL_RUNNERS,Hire %d runner,Stelle %d Boten ein
 NAV_TEAM,Team,Team
 SHEET_TEAM,Team,Team
-TEAM_INTRO,"Every hire takes one chore off your hands, and one meeting off the staff council.","Jede Einstellung nimmt dir eine Aufgabe ab, und dem Personalrat eine Sitzung."
-SECTION_TRANSPORT,Transport,Transport
-SECTION_PUBLIC_AREA,Public area,Publikumsbereich
+TEAM_INTRO,"Every hire takes one chore off your hands, and one meeting off the staff council. Sorted by room.","Jede Einstellung nimmt dir eine Aufgabe ab, und dem Personalrat eine Sitzung. Sortiert nach Raum."
 AREA_PUBLIC,Public hours area,Publikumsverkehr
 ACTION_ADD_MACHINE,+ Machine,+ Maschine
 ACTION_HIRE_SPECIALIST,Hire specialist,Fachkraft einstellen
@@ -253,7 +252,7 @@ TUTORIAL_RESOURCES_TEXT,"At the top: your money (from fees), your reputation (th
 TUTORIAL_ARROW_TITLE,The guide arrow,Der Leit-Pfeil
 TUTORIAL_ARROW_TEXT,"The arrow always points to the most useful job: deliver a folder, work at a desk, pick up a folder or open a department. Off screen it sits at the edge. You can only carry a few folders at once; technology raises that. No, a trolley is not in your job description.","Der Pfeil zeigt immer auf die sinnvollste Aufgabe: Akte abliefern, an einem Tisch arbeiten, Akte aufnehmen oder Abteilung eröffnen. Außerhalb des Bildes sitzt er am Rand. Du kannst nur wenige Akten gleichzeitig tragen, Technik erhöht das. Nein, ein Rollwagen steht nicht in deiner Stellenbeschreibung."
 TUTORIAL_FIRST_CASE_TITLE,Your first citizen,Dein erster Bürger
-TUTORIAL_FIRST_CASE_TEXT,"Every citizen takes the same path: reception, case review, approval, collection counter. Follow the arrow. Near a tray you pick up or drop folders automatically, at a pulsing spot you work. Finish one citizen. Do not say 'that is not my department'.","Jeder Bürger durchläuft denselben Weg: Empfang, Sachbearbeitung, Freigabe, Ausgabeschalter. Folge dem Pfeil. In der Nähe eines Fachs nimmst du Akten automatisch auf oder legst sie ab, an einem pulsierenden Platz arbeitest du. Schließe einen Bürger ab. Sage bitte nicht „Dafür bin ich nicht zuständig“."
+TUTORIAL_FIRST_CASE_TEXT,"Every citizen takes the same path: reception, case review, approval, collection counter. Follow the arrow. Near a tray you pick up or drop folders automatically, at a pulsing spot you work. Handwork pays: every step you do yourself raises the fee, up to 2.5 times. Finish one citizen. Do not say 'that is not my department'.","Jeder Bürger durchläuft denselben Weg: Empfang, Sachbearbeitung, Freigabe, Ausgabeschalter. Folge dem Pfeil. In der Nähe eines Fachs nimmst du Akten automatisch auf oder legst sie ab, an einem pulsierenden Platz arbeitest du. Handarbeit lohnt sich: Jeder Schritt, den du selbst erledigst, erhöht die Gebühr, bis zum 2,5-Fachen. Schließe einen Bürger ab. Sage bitte nicht „Dafür bin ich nicht zuständig“."
 TUTORIAL_QUEUE_TITLE,Queue and patience,Warteschlange und Geduld
 TUTORIAL_QUEUE_TEXT,"Waiting citizens show a bubble with their department and a patience ring. If it runs out they leave and you lose reputation. If the lobby is full, newcomers are turned away. A red tray is full: empty it first. Yes, people really do queue for this.","Wartende Bürger zeigen eine Sprechblase mit ihrer Abteilung und einen Geduldsring. Läuft er ab, gehen sie und du verlierst Ansehen. Ist die Lobby voll, werden Neuankömmlinge abgewiesen. Ein rotes Fach ist voll: leere es zuerst. Ja, dafür stellen sich Leute wirklich an."
 TUTORIAL_GOAL_TITLE,Goals,Ziele
@@ -263,9 +262,9 @@ TUTORIAL_TASKS_TEXT,"The panel at the top left lists waiting citizens and the wo
 TUTORIAL_TEAM_OPEN_TITLE,Open the team,Team öffnen
 TUTORIAL_TEAM_OPEN_TEXT,Every hire takes a chore off your hands. Tap Team in the bottom bar.,Jede Einstellung nimmt dir eine Aufgabe ab. Tippe unten auf Team.
 TUTORIAL_HIRE_TITLE,Hire staff,Personal einstellen
-TUTORIAL_HIRE_TEXT,"Hire an employee for the reception desk so you no longer have to work there. Not enough money? Close the window, serve more citizens and come back. The budget will not be approved sooner by asking.","Stelle am Empfang eine Angestellte oder einen Angestellten ein, damit du dort nicht mehr selbst arbeiten musst. Zu wenig Geld? Schließe das Fenster, bediene weitere Bürger und komme wieder. Durch Nachfragen wird der Haushalt auch nicht schneller genehmigt."
+TUTORIAL_HIRE_TEXT,"Staff are expensive, and you work much faster than any of them. Still, nobody can be everywhere: hire an employee for the reception desk once you can afford it. Not enough money? Close the window, serve more citizens and come back. The budget will not be approved sooner by asking.","Personal ist teuer, und du arbeitest viel schneller als jede Kraft. Trotzdem kannst du nicht überall sein: Stelle am Empfang eine Angestellte oder einen Angestellten ein, sobald du es dir leisten kannst. Zu wenig Geld? Schließe das Fenster, bediene weitere Bürger und komme wieder. Durch Nachfragen wird der Haushalt auch nicht schneller genehmigt."
 TUTORIAL_RUNNER_TITLE,Hire a runner,Boten einstellen
-TUTORIAL_RUNNER_TEXT,"Runners carry folders from tray to tray, so you no longer have to. You can employ up to 12, and each reserves its own folders. They take the official channel literally. Hire your first one.","Boten tragen Akten von Fach zu Fach, sodass du das nicht mehr tun musst. Du kannst bis zu 12 beschäftigen, jeder reserviert seine eigenen Akten. Sie nehmen den Dienstweg wörtlich. Stelle den ersten ein."
+TUTORIAL_RUNNER_TEXT,"Runners carry folders from tray to tray, so you no longer have to. Each has one job: reception to department, within a department, or department to the issue counter. Hire them for the job where folders pile up. Folders you carry yourself keep the hand bonus. They take the official channel literally.","Boten tragen Akten von Fach zu Fach, sodass du das nicht mehr tun musst. Jeder hat eine Aufgabe: Empfang → Amt, innerhalb des Amts oder Amt → Ausgabe. Stelle sie für die Aufgabe ein, bei der sich Akten stapeln. Selbst getragene Akten behalten den Handarbeit-Bonus. Sie nehmen den Dienstweg wörtlich."
 TUTORIAL_UPGRADE_TITLE,Upgrade a station,Station ausbauen
 TUTORIAL_UPGRADE_TEXT,"Upgrade a station: each level makes it 15% faster. Extra desks and machines add capacity, but how many you can have depends on your building. Upgrade the reception once. A promotion without a raise does not count.","Baue eine Station aus: Jede Stufe macht sie 15 % schneller. Zusätzliche Tische und Maschinen schaffen Kapazität, wie viele es sein dürfen, hängt von deinem Gebäude ab. Baue den Empfang einmal aus. Eine Beförderung ohne Gehaltserhöhung zählt nicht."
 TUTORIAL_DEPARTMENT_OPEN_TITLE,Manage a department,Abteilung verwalten
@@ -283,7 +282,7 @@ TUTORIAL_BUILDING_INFO_TEXT,"Your office grows from a service counter to a city 
 TUTORIAL_DEPARTMENTS_OPEN_TITLE,Open departments,Abteilungen öffnen
 TUTORIAL_DEPARTMENTS_OPEN_TEXT,Close this window and tap Departments in the bottom bar.,Schließe dieses Fenster und tippe unten auf Abteilungen.
 TUTORIAL_DEPARTMENTS_INFO_TITLE,Eight departments,Acht Abteilungen
-TUTORIAL_DEPARTMENTS_INFO_TEXT,"Open a department with the button here, or by standing on the circle in its locked room. You need space, reputation and money. Later ones add twists: inspection service, housing referrals, follow-ups at social benefits and the customs office with its own flow. Every one of them is exclusively responsible for something else.","Eröffne eine Abteilung hier per Button oder indem du im gesperrten Raum auf dem Kreis stehst. Du brauchst Platz, Ansehen und Geld. Spätere bringen Besonderheiten: Prüfdienst, Verweise beim Wohnungsamt, Wiedervorlagen im Sozialamt und das Zollamt mit eigenem Ablauf. Jede ist ausschließlich für etwas anderes zuständig."
+TUTORIAL_DEPARTMENTS_INFO_TEXT,"Open a department with the button here, or by standing on the circle in its locked room. You need space, reputation and money. A new department starts without staff, so you lend a hand there first. Later ones add twists: inspection service, housing referrals, follow-ups at social benefits and the customs office with its own flow. Every one of them is exclusively responsible for something else.","Eröffne eine Abteilung hier per Button oder indem du im gesperrten Raum auf dem Kreis stehst. Du brauchst Platz, Ansehen und Geld. Eine neue Abteilung startet ohne Personal, dort packst du also zuerst selbst mit an. Spätere bringen Besonderheiten: Prüfdienst, Verweise beim Wohnungsamt, Wiedervorlagen im Sozialamt und das Zollamt mit eigenem Ablauf. Jede ist ausschließlich für etwas anderes zuständig."
 TUTORIAL_EVENTS_TITLE,Events,Ereignisse
 TUTORIAL_EVENTS_TEXT,"From time to time a banner at the top announces an event: rush hour (twice the citizens), audit visit (reputation effects count double) or tax deadline (three times the returns). Prepare your team and cash in. Or hide under the desk, that is also a tradition.","Ab und zu kündigt ein Banner oben ein Ereignis an: Stoßzeit (doppelt so viele Bürger), Rechnungsprüfung (Ansehenseffekte zählen doppelt) oder Steuerfrist (dreimal so viele Erklärungen). Bereite dein Team vor und profitiere davon. Oder verstecke dich unter dem Schreibtisch, auch das hat Tradition."
 TUTORIAL_OFFLINE_TITLE,While you are away,Wenn du weg bist
@@ -293,13 +292,13 @@ TUTORIAL_GOALS_OPEN_TEXT,"There are 21 goals that build on each other, up to 20,
 TUTORIAL_SETTINGS_OPEN_TITLE,Settings,Einstellungen
 TUTORIAL_SETTINGS_OPEN_TEXT,"Close this window and tap the cog at the top right. There you switch the language, replay this tutorial or shred the game.","Schließe dieses Fenster und tippe oben rechts auf das Zahnrad. Dort stellst du die Sprache um, wiederholst dieses Tutorial oder schredderst das Spiel."
 TUTORIAL_FINISH_TITLE,You are ready,Du bist bereit
-TUTORIAL_FINISH_TEXT,"Three tips: fix the bottleneck of each department first, automate with staff and runners before opening new departments, and avoid errors to keep your reputation high. Follow the goals and remember: it is not slacking, it is processing time.","Drei Tipps: Behebe zuerst den Engpass jeder Abteilung, automatisiere mit Personal und Boten, bevor du neue Abteilungen eröffnest, und vermeide Fehler, damit dein Ansehen hoch bleibt. Folge den Zielen und denke daran: Das ist kein Trödeln, das ist Bearbeitungszeit."
+TUTORIAL_FINISH_TEXT,"Three tips: do the work yourself as long as you can, because handwork pays the most; fix the bottleneck of each department; and avoid errors to keep your reputation high. Automate slowly once you cannot keep up. Follow the goals and remember: it is not slacking, it is processing time.","Drei Tipps: Arbeite selbst, solange du hinterherkommst, denn Handarbeit bringt am meisten; behebe den Engpass jeder Abteilung; und vermeide Fehler, damit dein Ansehen hoch bleibt. Automatisiere nach und nach, wenn du nicht mehr hinterherkommst. Folge den Zielen und denke daran: Das ist kein Trödeln, das ist Bearbeitungszeit."
 SIGN_BUILDING,OFFICE OF OFFICIAL AFFAIRS,AMT FÜR AMTLICHES
 SIGN_HOURS_TITLE,Opening hours,Sprechzeiten
 SIGN_HOURS_TEXT,Tue 9:00–9:07,Di 9:00–9:07 Uhr
 SIGN_LUNCH,Lunch break 8am–5pm,Mittagspause 8–17 Uhr
 SIGN_TICKET,Please take a number,Bitte Nummer ziehen
-SIGN_CLOSED,Not my department,Nicht zuständig
+SIGN_CLOSED,Counter 13: nobody responsible. Please go to counter 13.,Schalter 13: niemand zuständig. Bitte an Schalter 13 wenden.
 FLOAT_STAMPED,Stamped!,Gestempelt!
 WISDOM_TITLE,Official wisdom of the day,Amtsweisheit des Tages
 WISDOM_1,What is not in writing does not exist. What is in writing exists three times.,"Was nicht schriftlich vorliegt, existiert nicht. Was schriftlich vorliegt, existiert dreimal."
@@ -314,18 +313,18 @@ WISDOM_9,Whoever has the form has the power. Whoever has the stamp has all of it
 WISDOM_10,Processing time: six to eight weeks. Urgent processing: eight to ten.,Bearbeitungszeit: sechs bis acht Wochen. Eilbearbeitung: acht bis zehn.
 WISDOM_11,A good official does not slam the door. He closes it politely at 12:00 sharp.,Ein guter Beamter knallt keine Türen. Er schließt sie höflich Punkt 12 Uhr.
 WISDOM_12,Please come back tomorrow. Bring the form we did not tell you about.,"Kommen Sie morgen wieder. Und bringen Sie das Formular mit, von dem wir Ihnen nichts gesagt haben."
-QUIP_1,I have time. Lots of it.,Ich habe Zeit. Viel Zeit.
-QUIP_2,Just one quick question …,Nur eine kurze Frage …
-QUIP_3,Is this counter 4?,Ist das hier Schalter 4?
-QUIP_4,"Today is Tuesday, right?",Heute ist doch Dienstag?
-QUIP_5,I am only looking for room 112.,Ich suche nur Zimmer 112.
-QUIP_6,I already filled it in. Thrice.,Hab ich schon. Dreifach.
-QUIP_7,My parking ticket is expiring!,Mein Parkschein läuft ab!
-QUIP_8,"Number 47, please!",Die Nummer 47 bitte!
-QUIP_9,Where do I get the form?,Wo gibt es das Formular?
-QUIP_10,Back in 5 minutes? Since 1998?,Gleich zurück? Seit 1998?
-QUIP_11,I need a form for forms.,Ich brauche ein Formular für Formulare.
-QUIP_12,Is the boss in?,Ist der Chef da?
+QUIP_1,I've got time. I'm retired.,Ich hab Zeit. Ich bin Rentner.
+QUIP_2,Just one quick question… or seven.,Nur eine ganz kurze Frage … oder sieben.
+QUIP_3,Is this the queue for the queue?,Ist das hier die Schlange für die Schlange?
+QUIP_4,"Still open, right? It's only 9:06!",Sprechzeit ist doch noch? Es ist erst 9:06!
+QUIP_5,I'm looking for room 112. Since Easter.,Ich suche Zimmer 112. Seit Ostern.
+QUIP_6,Already filled it in. In triplicate.,Hab ich ausgefüllt. Dreifach. Mit Durchschlag.
+QUIP_7,My parking ticket runs out in two minutes!,Mein Parkschein läuft in zwei Minuten ab!
+QUIP_8,Has 47 been called? I'm 47.,Ist die 47 schon durch? Ich bin die 47.
+QUIP_9,My appointment was at nine. It doesn't say which day.,"Mein Termin war um neun. Welcher Tag, steht nicht drauf."
+QUIP_10,I'm not waiting. I just happen to be here. Since eight.,Ich warte nicht. Ich bin nur zufällig hier. Seit acht.
+QUIP_11,I brought everything. Even a copy of the copy.,Ich hab alles dabei. Sogar die Kopie der Kopie.
+QUIP_12,Is the boss in? I know his mother.,Ist der Chef da? Ich kenne seine Mutter.
 FLOAT_DONE_1,Stamped!,Gestempelt!
 FLOAT_DONE_2,Approved!,Genehmigt!
 FLOAT_DONE_3,File number issued,Aktenzeichen vergeben
@@ -344,86 +343,146 @@ FMT_TASK_ROW_RESTING,%d waiting · %s · Break %d,%d wartend · %s · Pause %d
 FMT_RESTING,"Not at work: %d (wake them up, fetch them from the kitchen, encourage them at the WC or call the sick ones)","Nicht bei der Arbeit: %d (aufwecken, aus der Küche holen, am WC ermutigen oder Kranke anrufen)"
 TUTORIAL_WAKE_TITLE,Wake them up,Beamte aufwecken
 TUTORIAL_WAKE_TEXT,"Officials are lazy: after a while they doze off (Zzz), vanish into an endless coffee break (cup) or wander off to the kitchen. Some fetch their own coffee there and come back fresher. Others get lost in conversation and stay until you fetch them: walk to them in the kitchen and stay close for a moment. Sleepers are woken at their desk the same way. Technology helps: coffee quality keeps them awake longer and fresher, the wake-up service calls everyone back by itself, and team leads slow down the dozing. Machines never sleep.","Beamte sind faul: Nach einer Weile nicken sie ein (Zzz), verschwinden in eine endlose Kaffeepause (Tasse) oder gehen in die Küche. Manche holen sich dort selbst Kaffee und kommen frischer zurück. Andere verquatschen sich und bleiben, bis du sie holst: Laufe in der Küche zu ihnen und bleibe kurz daneben stehen. Schläfer weckst du genauso an ihrem Tisch. Technik hilft: Kaffeequalität hält sie länger wach und macht den Kaffee frischer, der Weckdienst ruft alle von selbst zurück und Teamleitungen bremsen das Einnicken. Maschinen schlafen nie."
-NAP_1,Just resting my eyes.,Nur kurz die Augen zu.
-NAP_2,I am thinking.,Ich denke nach.
-NAP_3,Zzz … file number …,Zzz … Aktenzeichen …
+NAP_1,Just resting my eyes…,Nur kurz die Augen ausruhen …
+NAP_2,I'm thinking. Thoroughly.,Ich denke nach. Gründlich.
+NAP_3,Zzz… carbon copy… Zzz…,Zzz … Durchschlag … Zzz …
 NAP_4,Lunch break (brought forward).,Mittagspause (vorgezogen).
 COFFEE_BREAK_1,Coffee break! Indefinite.,Kaffeepause! Unbefristet.
-COFFEE_BREAK_2,The coffee needs to brew.,Der Kaffee muss ziehen.
-COFFEE_BREAK_3,Important talk at the machine.,Wichtiges Gespräch am Automaten.
-COFFEE_BREAK_4,Back in a minute.,Bin gleich zurück.
-WOKE_1,I saw everything!,Ich habe alles gesehen!
-WOKE_2,I was only thinking!,Ich hab nur nachgedacht!
-WOKE_3,Who is disturbing me?,Wer stört?
+COFFEE_BREAK_2,The coffee needs to brew. So do I.,Der Kaffee muss noch durchlaufen. Ich auch.
+COFFEE_BREAK_3,Important talks at the machine.,Wichtiges Gespräch am Automaten.
+COFFEE_BREAK_4,Back in a minute. A flexible minute.,Bin gleich zurück. ‚Gleich‘ ist dehnbar.
+WOKE_1,I wasn't asleep! I was meditating!,Ich habe nicht geschlafen! Ich habe meditiert!
+WOKE_2,I was only checking my eyelids!,Ich hab nur meine Augenlider geprüft!
+WOKE_3,Who disturbs my official rest?,Wer stört meine Dienstruhe?
 WOKE_4,Awake! For hours.,Bin wach! Seit Stunden.
 AREA_KITCHEN,Kitchen,Küche
 SIGN_COFFEE_FUND,Coffee fund: 50 cents,Kaffeekasse: 50 Cent
 SIGN_KITCHEN_RULES,Please wash your own cups,Tassen bitte selbst spülen
-CHAT_1,New service regulation! Heard?,Neue Dienstvorschrift! Gehört?
-CHAT_2,And then the boss says …,Und dann sagt der Chef …
-CHAT_3,My leave is almost approved.,Mein Urlaub ist fast genehmigt.
-CHAT_4,Know the one about the clerk?,Kennt ihr den vom Beamten?
-GO_KITCHEN_1,Off to a meeting (kitchen).,Besprechung (Küche).
-GO_KITCHEN_2,Just fetching a form. Kitchen.,Hol nur ein Formular. Küche.
-GO_KITCHEN_3,Back soon. Probably.,Bin gleich zurück. Vermutlich.
-FETCH_1,Fetching my own coffee!,Ich hol mir einen Kaffee!
-FETCH_2,Coffee time!,Kaffee fassen!
+CHAT_1,Read the new regulations? Me neither.,Hast du die neue Dienstvorschrift gelesen? Ich auch nicht.
+CHAT_2,And then the boss says: 'It's urgent!' Hahaha!,Und dann sagt der Chef: ‚Das eilt!‘ Hahaha!
+CHAT_3,My leave request from 2016 is nearly through.,Mein Urlaubsantrag von 2016 ist fast durch.
+CHAT_4,So a clerk turns up on time… Hahaha!,Kommt ein Beamter pünktlich zur Arbeit … Hahaha!
+GO_KITCHEN_1,Urgent meeting. In the kitchen.,Dringende Besprechung. In der Küche.
+GO_KITCHEN_2,Just fetching a form. From the kitchen.,Hol nur schnell ein Formular. Aus der Küche.
+GO_KITCHEN_3,Quick catch-up about colleagues.,Kurzer Austausch über Kollegen.
+FETCH_1,If you want something done… Coffee run!,Selbst ist der Beamte. Kaffee holen!
+FETCH_2,Caffeine levels critical!,Koffeinspiegel kritisch!
 FETCH_3,Quick caffeine refill.,Kurz Koffein tanken.
 SIGN_COMPLAINTS,Complaints (unread),Beschwerdestelle (ungelesen)
 SIGN_SHREDDER,Document shredder,Aktenschredder
-FLOAT_COMPLAINT_OVERFLOW,Complaint box overflowing!,Beschwerdekasten quillt über!
+FLOAT_COMPLAINT_OVERFLOW,Complaint box full! Off to the internet.,Beschwerde-Briefkasten voll! Ab ins Internet.
 RESEARCH_SHREDDER_SERVICE,Shredder intern,Schredder-Praktikant
 RESEARCH_DESC_SHREDDER_SERVICE,"An intern shreds one complaint automatically every 40, 20 or 8 s per level. Naturally unread.","Ein Praktikant schreddert pro Stufe alle 40, 20 bzw. 8 Sek. selbstständig eine Beschwerde. Natürlich ungelesen."
-COMPLAINT_1,A new complaint! About what? Irrelevant.,Neue Beschwerde! Worüber? Egal.
-COMPLAINT_2,Someone complains about the waiting time.,Jemand beschwert sich über die Wartezeit.
-COMPLAINT_3,Complaint about the complaint office.,Beschwerde über die Beschwerdestelle.
-COMPLAINT_4,Strongly worded letter received.,Geharnischter Brief eingegangen.
-COMPLAINT_5,The stamp is too loud.,Der Stempel ist zu laut.
-COMPLAINT_6,My ticket number is cursed. It is 13.,Meine Wartenummer ist verflucht. Es ist die 13.
-COMPLAINT_7,The plant in the hall looks judgmental.,Die Pflanze in der Halle schaut urteilend.
-COMPLAINT_8,Why is the form 14 pages long and has no page 7?,"Warum hat das Formular 14 Seiten, aber keine Seite 7?"
-COMPLAINT_9,I demand a window. Any window.,Ich fordere ein Fenster. Irgendeins.
-COMPLAINT_10,The chairs are too comfortable. I fell asleep.,Die Stühle sind zu bequem. Ich bin eingeschlafen.
-COMPLAINT_11,Nobody told me the queue has a queue.,"Niemand sagte mir, dass die Schlange eine Schlange hat."
-COMPLAINT_12,Your coffee smells better than my application.,Euer Kaffee riecht besser als mein Antrag.
-COMPLAINT_13,The pen on the chain is shorter than my patience.,Der Stift an der Kette ist kürzer als meine Geduld.
-COMPLAINT_14,My file was stamped crookedly. Personal insult.,Mein Akt wurde schief gestempelt. Persönliche Beleidigung.
-COMPLAINT_15,I waited so long that I learned the forms by heart.,"Ich wartete so lange, dass ich die Formulare auswendig kann."
-COMPLAINT_16,The clock in the hall runs in circles. As intended?,Die Uhr in der Halle läuft im Kreis. Absicht?
-COMPLAINT_17,Why does the shredder look so smug?,Warum schaut der Schredder so selbstzufrieden?
-COMPLAINT_18,Someone sneezed in the lobby. Dramatically.,Jemand hat in der Halle geniest. Dramatisch.
-COMPLAINT_19,My number was called. I was not ready.,Meine Nummer wurde aufgerufen. Ich war nicht bereit.
-COMPLAINT_20,The carpet is ugly. Please never replace it.,Der Teppich ist hässlich. Bitte nie ersetzen.
-COMPLAINT_21,"Too many forms, too few biscuits.","Zu viele Formulare, zu wenige Kekse."
-COMPLAINT_22,I was greeted by a smile. Suspicious.,Mich begrüßte ein Lächeln. Verdächtig.
-COMPLAINT_23,The tube made a noise. I felt left out.,Die Rohrpost machte ein Geräusch. Ich fühlte mich ausgeschlossen.
-COMPLAINT_24,Somebody took my favourite seat. I was not there.,Jemand saß auf meinem Lieblingsplatz. Ich war nicht da.
-COMPLAINT_25,The stapler is out of staples and out of ideas.,Dem Tacker gehen Klammern und Ideen aus.
-COMPLAINT_26,Why is every door a push door when I pull?,"Warum sind alle Türen Drücktüren, wenn ich ziehe?"
-COMPLAINT_27,I asked for a quick procedure. It was quick. Unacceptable.,Ich wollte ein schnelles Verfahren. Es war schnell. Inakzeptabel.
-COMPLAINT_28,The ink in my stamp pad is the wrong shade of blue.,Die Tinte im Stempelkissen hat das falsche Blau.
-COMPLAINT_29,A pigeon looked at me funny.,Eine Taube hat mich komisch angeschaut.
-COMPLAINT_30,My folder is too thin. I want a thicker case.,Meine Mappe ist zu dünn. Ich möchte einen dickeren Fall.
-COMPLAINT_31,"The lunch break was too short. For you, not me.","Die Mittagspause war zu kurz. Eure, nicht meine."
-COMPLAINT_32,I found a paperclip. Nobody claims it. Complaint!,Ich fand eine Büroklammer. Keiner will sie. Beschwerde!
-COMPLAINT_33,The air in here smells like a Monday.,Die Luft hier riecht nach Montag.
-COMPLAINT_34,Why do all the clerks look so calm? Fix that.,Warum wirken alle Sachbearbeiter so ruhig? Abstellen.
-COMPLAINT_35,The queue moved. I was not informed.,Die Schlange bewegte sich. Ich wurde nicht informiert.
-COMPLAINT_36,"Dear office, you are too efficient. Sincerely, Nobody.","Liebes Amt, ihr seid zu effizient. Gruß, Niemand."
-COMPLAINT_37,My umbrella is wet. Please explain.,Mein Regenschirm ist nass. Bitte erklären.
-COMPLAINT_38,The light flickers in Morse code. It insults me.,Das Licht flackert im Morsecode. Es beleidigt mich.
-COMPLAINT_39,The ticket machine gave me a number and no hope.,"Der Zettelautomat gab mir eine Nummer, aber keine Hoffnung."
-COMPLAINT_40,I would like to complain about complaining.,Ich möchte mich über das Beschweren beschweren.
-COMPLAINT_41,Please remove the number 4. It looks at me.,Bitte die Nummer 4 entfernen. Sie starrt mich an.
-COMPLAINT_42,"Everything is perfect, which is exactly the problem.","Alles ist perfekt, und genau das ist das Problem."
-COMPLAINT_43,The printer jammed in sympathy with me.,Der Drucker hat aus Mitgefühl mit mir geklemmt.
-COMPLAINT_44,Why is the counter always on the other side?,Warum ist der Schalter immer auf der anderen Seite?
-COMPLAINT_45,A tiny typo on your sign cost me three minutes of joy.,Ein Tippfehler auf eurem Schild kostete mich drei Minuten Freude.
-COMPLAINT_46,I came for a stamp and stayed for the drama.,Ich kam für einen Stempel und blieb für das Drama.
-COMPLAINT_47,No complaint. Just wanted to see the pile grow.,Keine Beschwerde. Wollte nur den Stapel wachsen sehen.
-COMPLAINT_48,Please stop calling it a waiting room. It's rude.,Bitte nennt es nicht Wartezimmer. Das ist unhöflich.
-COMPLAINT_49,Your hall echoes. I heard myself complain.,Eure Halle hallt. Ich hörte mich selbst meckern.
-COMPLAINT_50,A man in front of me breathed. Loudly.,Ein Mann vor mir hat geatmet. Laut.
+COMPLAINT_1,"Dear Sir or Madam, I hereby complain about your complaint desk. It is too small, too friendly and smells of packed lunch. A complaint desk ought to be intimidating, otherwise one only enjoys being upset half as much. Yours faithfully, a disappointed troublemaker","Sehr geehrte Damen und Herren, hiermit beschwere ich mich über Ihre Beschwerdestelle. Sie ist zu klein, zu freundlich und riecht nach Pausenbrot. Eine Beschwerdestelle muss einschüchtern, sonst regt man sich nur halb so gern auf. Hochachtungsvoll, ein enttäuschter Querulant"
+COMPLAINT_2,"Dear office, every time you stamp something, my dachshund flinches. We live three streets away. Please stamp more sensitively in future, or at least give us some warning. My dachshund has rights too, even if he cannot prove them in writing.","Liebes Amt, jedes Mal, wenn bei Ihnen gestempelt wird, zuckt mein Dackel zusammen. Wir wohnen drei Straßen weiter. Ich bitte darum, künftig etwas einfühlsamer zu stempeln oder wenigstens vorher Bescheid zu geben. Mein Dackel hat schließlich auch Rechte, auch wenn er sie nicht schriftlich nachweisen kann."
+COMPLAINT_3,"Dear administration, your machine gave me ticket number 13. I am not superstitious. On my way home, however, a black cat crossed my path, and it was also holding number 13. I demand a new number and an explanation for the cat.","Sehr geehrte Verwaltung, Ihr Automat hat mir die Nummer 13 gegeben. Ich bin nicht abergläubisch. Auf dem Heimweg lief mir allerdings eine schwarze Katze über den Weg, und sie hatte ebenfalls die 13. Ich verlange eine neue Nummer und eine Erklärung für die Katze."
+COMPLAINT_4,"Dear Sir or Madam, the potted plant next to reception looked down on me for my entire wait. Yes, I have worn the same jacket for years. That is none of a plant's business. Please turn it to face the wall or send it on a customer service course.","Sehr geehrte Damen und Herren, die Topfpflanze neben dem Empfang hat mich während meiner gesamten Wartezeit abschätzig angesehen. Ja, ich trage seit Jahren dieselbe Jacke. Das geht eine Pflanze aber nichts an. Bitte drehen Sie sie zur Wand oder schicken Sie sie auf eine Schulung für Bürgerfreundlichkeit."
+COMPLAINT_5,"Dear authority, your application form has fourteen pages. Page 7 is missing. Page 8 says: 'Please observe the notes on page 7.' I have not slept for two nights. Please send me page 7, or official confirmation that it never existed.","Werte Behörde, Ihr Antragsformular hat vierzehn Seiten. Seite 7 fehlt. Auf Seite 8 steht: ‚Bitte beachten Sie die Hinweise auf Seite 7.‘ Ich habe seitdem zwei Nächte nicht geschlafen. Ich bitte um Zusendung von Seite 7 oder um eine amtliche Bestätigung, dass es sie nie gegeben hat."
+COMPLAINT_6,"Dear office, the chairs in your seating area are so comfortable that I fell asleep and missed my number. I had to take a new one. I demand less comfortable chairs or a wake-up service for citizens. Your clerks have one, after all.","Liebes Amt, Ihre Stühle im Sitzbereich sind so bequem, dass ich eingeschlafen bin und meinen Aufruf verpasst habe. Ich musste eine neue Nummer ziehen. Ich fordere unbequemere Stühle oder einen Weckdienst für Bürger. Ihre Beamten haben ja auch einen."
+COMPLAINT_7,"Dear Sir or Madam, I queued as instructed. After an hour I learned that this was merely the queue for the queue. Please label your queues clearly in future, ideally with a sign that one can also queue in front of.","Sehr geehrte Damen und Herren, ich habe mich vorschriftsmäßig angestellt. Nach einer Stunde erfuhr ich, dass dies nur die Schlange für die Schlange war. Bitte kennzeichnen Sie Ihre Schlangen künftig eindeutig, am besten mit einem Schild, vor dem man sich ebenfalls anstellen kann."
+COMPLAINT_8,"Dear administration, the pen at your counter hangs on a chain exactly eleven centimetres long. I am six foot four. To sign, I had to adopt a position that counts as a marriage proposal in some countries. The lady next to me said yes. Please lengthen the chain.","Werte Verwaltung, der Kugelschreiber an Ihrem Tresen hängt an einer Kette von exakt elf Zentimetern. Ich bin 1,94 Meter groß. Zum Unterschreiben musste ich eine Haltung einnehmen, die in manchen Ländern als Heiratsantrag gilt. Die Dame neben mir hat Ja gesagt. Bitte verlängern Sie die Kette."
+COMPLAINT_9,"Dear Sir or Madam, the stamp on my notice leans about four degrees to the left. I measured it with a protractor. I consider this a political statement. Please stamp it again, straight and without an agenda.","Sehr geehrte Damen und Herren, der Stempel auf meinem Bescheid ist um etwa vier Grad nach links geneigt. Ich habe mit dem Geodreieck nachgemessen. Ich empfinde das als politische Aussage. Bitte stempeln Sie neu, gerade und ohne Gesinnung."
+COMPLAINT_10,"Dear office, the clock in your hall keeps running in circles. Every hour it ends up exactly where it started. Is this intentional? If so, I would like to know who approved it. If not, it still suits your procedures remarkably well.","Liebes Amt, die Uhr in Ihrer Halle läuft ständig im Kreis. Jede Stunde kommt sie genau dort an, wo sie angefangen hat. Ist das Absicht? Falls ja, möchte ich wissen, wer das genehmigt hat. Falls nein, passt es trotzdem erstaunlich gut zu Ihren Abläufen."
+COMPLAINT_11,"Dear Sir or Madam, your shredder looks remarkably pleased with itself. It hums when it eats a complaint, and I could swear it burps afterwards. Please do not pass this letter on to it. It has had quite enough today.","Sehr geehrte Damen und Herren, Ihr Aktenschredder wirkt auffallend selbstzufrieden. Er brummt, wenn er eine Beschwerde frisst, und ich bilde mir ein, dass er danach rülpst. Ich bitte darum, diesen Brief nicht an ihn weiterzugeben. Er hatte heute schon genug."
+COMPLAINT_12,"Dear authority, a gentleman in a hat sneezed so theatrically in your hall that three people waiting applauded and one shouted 'encore'. I find this inappropriate in a public building. Please introduce sneezing regulations, ideally with a form, a carbon copy and a tissue.","Werte Behörde, in Ihrer Halle hat ein Herr mit Hut derart theatralisch geniest, dass drei Wartende applaudiert haben und einer ‚Zugabe‘ rief. Ich halte das in einem Amtsgebäude für unangemessen. Bitte führen Sie eine Niesordnung ein, gern mit Formular, Durchschlag und Taschentuch."
+COMPLAINT_13,"Dear office, after two hours of waiting, my number was called without any warning. I had just unwrapped my sandwich and was not emotionally prepared. In future, please give me about fifteen minutes' notice so I can compose myself and wrap the sandwich back up.","Liebes Amt, nach zwei Stunden Wartezeit wurde meine Nummer völlig unvermittelt aufgerufen. Ich hatte gerade mein Butterbrot ausgepackt und war seelisch nicht vorbereitet. Ich bitte künftig um eine Vorwarnung von etwa einer Viertelstunde, damit ich mich sammeln und das Brot wieder einpacken kann."
+COMPLAINT_14,"Dear administration, the carpet in your hall is of unparalleled ugliness. That is exactly why I love it. It reminds me of my grandmother's living room and of everything that went wrong in the seventies. Should you ever replace it, I will chain myself to it. I already have a chain. It is from your pen.","Sehr geehrte Verwaltung, der Teppich in Ihrer Halle ist von beispielloser Hässlichkeit. Gerade deshalb liebe ich ihn. Er erinnert mich an das Wohnzimmer meiner Großmutter und an alles, was in den Siebzigern schiefging. Sollten Sie ihn je austauschen, kette ich mich daran fest. Eine Kette habe ich schon. Sie ist von Ihrem Kugelschreiber."
+COMPLAINT_15,"Dear Sir or Madam, for every form in your building there are, statistically, zero point zero biscuits. I counted. I propose one biscuit per carbon copy. It would lift the mood and finally give your staff a reason to offer citizens something too.","Sehr geehrte Damen und Herren, auf jedes Formular in Ihrem Haus kommen rechnerisch null Komma null Kekse. Ich habe nachgezählt. Ich schlage einen Keks pro Durchschlag vor. Das hebt die Stimmung und gibt Ihrem Personal endlich einen Grund, den Bürgern auch einmal etwas anzubieten."
+COMPLAINT_16,"Dear authority, on my last visit the gentleman at reception smiled at me for no apparent reason. I have been visiting public offices for 42 years and this has never happened before. Please let me know whether there is anything on file against me.","Werte Behörde, bei meinem letzten Besuch hat mich der Herr am Empfang ohne erkennbaren Anlass angelächelt. Ich gehe seit 42 Jahren auf Ämter, so etwas ist mir noch nie passiert. Ich bitte um Auskunft, ob gegen mich etwas vorliegt."
+COMPLAINT_17,"Dear office, your files whizz through the whole building in capsules while I have to shuffle from room to room on foot. I am 81 years old and weigh less than some planning applications. I hereby apply to be sent by pneumatic tube in future. A capsule with a window seat would be lovely.","Liebes Amt, Ihre Akten sausen in Kapseln durch das ganze Haus, während ich zu Fuß von Zimmer zu Zimmer schlurfen muss. Ich bin 81 Jahre alt und wiege weniger als manche Bauakte. Ich beantrage hiermit, künftig ebenfalls per Rohrpost befördert zu werden. Eine Kapsel mit Fensterplatz wäre schön."
+COMPLAINT_18,"Dear Sir or Madam, for years I have sat on the third chair from the left in your waiting area. Yesterday a stranger sat there, even though I was not even there. He should have sensed it. Please reserve the seat for me permanently, including on days when I have nothing to apply for.","Sehr geehrte Damen und Herren, seit Jahren sitze ich im Wartebereich auf dem dritten Stuhl von links. Gestern saß dort ein Fremder, obwohl ich gar nicht da war. Das hätte er spüren müssen. Bitte reservieren Sie mir den Platz dauerhaft, auch an Tagen, an denen ich nichts zu beantragen habe."
+COMPLAINT_19,"Dear administration, today I pulled every single one of your doors. Each was a push door. When I tried pushing as a test, it suddenly became a pull door. I suspect a system behind this and would like to know who devised it and whether they still work for you.","Werte Verwaltung, ich habe heute an jeder Ihrer Türen gezogen. Jede einzelne war eine Drücktür. Als ich zur Probe gedrückt habe, war es plötzlich eine Ziehtür. Ich vermute ein System dahinter und möchte wissen, wer es sich ausgedacht hat und ob er noch bei Ihnen arbeitet."
+COMPLAINT_20,"Dear Sir or Madam, I took a whole day off for my application, packed provisions and said goodbye to my family. Twelve minutes later, it was all done. That is no way to treat citizens. Next time, I expect an appropriate wait.","Sehr geehrte Damen und Herren, ich hatte mir für meinen Antrag einen ganzen Tag freigenommen, Proviant eingepackt und mich von meiner Familie verabschiedet. Nach zwölf Minuten war alles erledigt. So kann man mit Bürgern nicht umgehen. Ich bitte beim nächsten Mal um ein angemessenes Warten."
+COMPLAINT_21,"Dear office, the ink in your stamp pad is not royal blue but, at best, a tired pigeon blue. My notice now looks like a copy of itself. I enclose a colour sample. Please stamp with more conviction in future.","Liebes Amt, die Tinte Ihres Stempelkissens ist nicht königsblau, sondern bestenfalls ein müdes Taubenblau. Mein Bescheid sieht dadurch aus wie eine Kopie seiner selbst. Ich lege ein Farbmuster bei. Bitte stempeln Sie in Zukunft mit mehr Überzeugung."
+COMPLAINT_22,"Dear Sir or Madam, on the canopy above your entrance sat a pigeon that looked me up and down in a strikingly condescending manner. I assume it works for you. If not, you should hire it, because it was the only one awake the entire time.","Sehr geehrte Damen und Herren, auf dem Vordach über Ihrem Eingang saß eine Taube, die mich auffallend herablassend gemustert hat. Ich vermute, sie ist bei Ihnen angestellt. Falls nicht, sollten Sie das ändern, denn sie war die Einzige, die die ganze Zeit wach war."
+COMPLAINT_23,"Dear authority, my file with you consists of a mere two sheets. My neighbour has three binders. I do not feel taken seriously as a citizen. Please add some carbon copies, a follow-up and perhaps a memo, so that I amount to something in your eyes.","Werte Behörde, meine Akte bei Ihnen umfasst ganze zwei Blätter. Mein Nachbar hat drei Ordner. Ich fühle mich als Bürger nicht ernst genommen. Bitte legen Sie mir ein paar Durchschläge, eine Wiedervorlage und gern auch einen Vermerk an, damit ich bei Ihnen etwas darstelle."
+COMPLAINT_24,"Dear Sir or Madam, I found an abandoned paper clip in the corridor. Reception would not accept it, lost property sent me to the post room, and the post room demanded a sender. I have carried it with me ever since and am growing attached to it. Please collect it before it is too late.","Sehr geehrte Damen und Herren, im Flur habe ich eine herrenlose Büroklammer gefunden. Der Empfang wollte sie nicht annehmen, das Fundbüro verwies mich an die Poststelle, die Poststelle verlangte einen Absender. Ich trage sie seitdem bei mir, und sie wächst mir langsam ans Herz. Bitte holen Sie sie ab, bevor es zu spät ist."
+COMPLAINT_25,"Dear office, your hall smells of Monday, even on Tuesdays. My neighbour sells perfume and has confirmed it: top notes of felt-tip pen, a heart of coffee and a base of resignation. Please air the place, but without starting another fight over the window.","Liebes Amt, in Ihrer Halle riecht es nach Montag, und zwar auch dienstags. Meine Nachbarin ist Parfümverkäuferin und hat es bestätigt: eine Kopfnote aus Filzstift, eine Herznote aus Kaffee und eine Basis aus Resignation. Bitte lüften Sie, aber so, dass es nicht wieder Streit ums Fenster gibt."
+COMPLAINT_26,"Pursuant to section 3(2) of my personal patience regulations, the reasonable waiting time is 30 minutes. At your office it was 2 hours and 14 minutes. I therefore claim a refund of 1 hour and 44 minutes of my life, either in cash or as a credit towards my next visit.","Gemäß § 3 Abs. 2 meiner persönlichen Geduldsordnung beträgt die zumutbare Wartezeit 30 Minuten. Bei Ihnen betrug sie 2 Stunden und 14 Minuten. Ich beantrage daher die Erstattung von 1 Stunde und 44 Minuten Lebenszeit, wahlweise in bar oder als Gutschrift für meinen nächsten Besuch."
+COMPLAINT_27,"Dear administration, while I briefly tied my shoelace, the queue in front of me simply moved on. Nobody informed me, certainly not in writing. In future, please announce any movement of the queue with three working days' notice.","Werte Verwaltung, während ich mir kurz den Schnürsenkel band, ist die Schlange vor mir einfach weitergerückt. Niemand hat mich informiert, schriftlich schon gar nicht. Ich bitte darum, Bewegungen der Schlange künftig mit einer Frist von drei Werktagen anzukündigen."
+COMPLAINT_28,"Dear office, you have been worryingly efficient lately. Our regulars' table at the pub has started talking about you, and not kindly. We have grumbled about public offices for decades and do not wish to lose our hobby. Please be sloppy at least now and then. Kind regards, the 'Things Used To Be Worse' club","Liebes Amt, Sie arbeiten in letzter Zeit beunruhigend effizient. An unserem Stammtisch wird bereits über Sie geredet, und zwar nicht gut. Wir schimpfen seit Jahrzehnten über Ämter und wollen dieses Hobby nicht verlieren. Bitte schlampen Sie wenigstens gelegentlich. Mit freundlichen Grüßen, der Stammtisch ‚Früher war alles schlechter‘"
+COMPLAINT_29,"Dear Sir or Madam, I left my umbrella with you dry and got it back wet. The fact that I used it outside in the rain in the meantime is beside the point. I expect a written statement on who in your building is responsible for umbrellas.","Sehr geehrte Damen und Herren, ich habe meinen Regenschirm bei Ihnen trocken abgestellt und nass zurückbekommen. Dass ich ihn zwischendurch draußen im Regen benutzt habe, tut nichts zur Sache. Ich erwarte eine schriftliche Stellungnahme, wer in Ihrem Haus für Schirme zuständig ist."
+COMPLAINT_30,"Dear authority, the strip light above counter 2 is flickering in an unmistakable rhythm. I was a radio operator in the navy and can confirm it is spelling out 'LUNCH BREAK' in Morse, and has been since 9:15. Please replace the tube or finally let it have its break.","Werte Behörde, die Neonröhre über Schalter 2 flackert in einem eindeutigen Rhythmus. Ich war Funker bei der Marine und kann bestätigen: Sie morst ‚MITTAGSPAUSE‘, und zwar seit 9:15 Uhr. Bitte wechseln Sie die Röhre oder gönnen Sie ihr endlich ihre Pause."
+COMPLAINT_31,"Dear Sir or Madam, your machine printed me number 487. They were calling number 12. I do not ask for much, just a small note on the ticket saying whether I will live to hear my number. An encouraging smiley would already help.","Sehr geehrte Damen und Herren, Ihr Automat hat mir die Nummer 487 ausgedruckt. Aufgerufen war gerade die 12. Ich verlange nicht viel, nur einen kleinen Hinweis auf dem Zettel, ob ich meinen Aufruf in diesem Leben noch erlebe. Ein aufmunternder Smiley würde auch schon helfen."
+COMPLAINT_32,"Dear Sir or Madam, the clerk at your complaint desk assured me that, legally speaking, I am satisfied. I had my lawyer look into it. He says that, legally speaking, I am in fact delighted. I still do not feel that way. Please tell me which form is responsible for feelings.","Sehr geehrte Damen und Herren, Ihre Sachbearbeitung an der Beschwerdestelle hat mir versichert, ich sei rechtlich gesehen zufrieden. Ich habe das von meinem Anwalt prüfen lassen. Er sagt, rechtlich gesehen sei ich sogar begeistert. Ich fühle mich trotzdem nicht so. Bitte teilen Sie mir mit, welches Formular für Gefühle zuständig ist."
+COMPLAINT_33,"Dear Sir or Madam, the large number 4 on your display board is staring at me. I know numbers do not have eyes. But I also know what I saw. Please replace it with a friendlier number. The 8, for instance, looks very cosy.","Sehr geehrte Damen und Herren, die große Ziffer 4 auf Ihrer Anzeigetafel starrt mich an. Ich weiß, dass Zahlen keine Augen haben. Ich weiß aber auch, was ich gesehen habe. Bitte ersetzen Sie sie durch eine freundlichere Zahl. Die 8 wirkt zum Beispiel sehr gemütlich."
+COMPLAINT_34,"Dear administration, after three visits I must conclude that everything at your office runs smoothly. I am retired and have no other hobbies. If you carry on like this, I will have to take up stamp collecting. Can you really live with that?","Werte Verwaltung, nach drei Besuchen muss ich feststellen, dass bei Ihnen alles reibungslos läuft. Ich bin Rentner und habe sonst keine Hobbys. Wenn Sie so weitermachen, muss ich mit dem Briefmarkensammeln anfangen. Wollen Sie das wirklich verantworten?"
+COMPLAINT_35,"Dear Sir or Madam, when I told the clerk about my difficult weekend, your printer suddenly jammed and groaned. I was touched, but I still needed my form. Please train your printer in professional distance.","Sehr geehrte Damen und Herren, als ich der Sachbearbeiterin von meinem schweren Wochenende erzählte, begann Ihr Drucker plötzlich zu klemmen und zu stöhnen. Ich bin gerührt, hätte mein Formular aber trotzdem gebraucht. Bitte schulen Sie Ihren Drucker in professioneller Distanz."
+COMPLAINT_36,"Dear office, my dad says you are slow. I don't mind, snails are slow too and they are still cute. But now Dad never has time to play because he is always waiting at your place. Can you please send him back faster? Love, Paula. PS: I drew you a horse.","Liebes Amt, mein Papa sagt, ihr seid langsam. Ich finde das nicht schlimm, Schnecken sind auch langsam und trotzdem süß. Aber Papa hat jetzt nie Zeit zum Spielen, weil er immer bei euch wartet. Könnt ihr ihn bitte schneller zurückschicken? Eure Paula. PS: Ich habe euch ein Pferd gemalt."
+COMPLAINT_37,"Dear administration, your security guard stopped me in front of the complaint desk and asked whether I had ever tried not getting upset. I tried it. It lasted three days. Hence this letter, which I would ask you not to show him.","Werte Verwaltung, Ihr Wachmann hat mich vor der Beschwerdestelle abgefangen und gefragt, ob ich es schon einmal mit Nicht-Aufregen versucht hätte. Ich habe es versucht. Es hat drei Tage gehalten. Daher dieser Brief, den Sie ihm bitte nicht zeigen."
+COMPLAINT_38,"Dear office, I only came for a stamp. Then two of your clerks fought over a yoghurt, a third defended his fish roll and a coffee circle broke out in the kitchen. I stayed for three hours. I am only complaining because there is no second season.","Liebes Amt, eigentlich kam ich nur für einen Stempel. Dann stritten zwei Ihrer Beamten über einen Joghurt, ein dritter verteidigte sein Fischbrötchen, und in der Küche brach ein Kaffeekränzchen aus. Ich bin drei Stunden geblieben. Ich beschwere mich nur, weil es keine zweite Staffel gibt."
+COMPLAINT_39,"Dear Sir or Madam, I do not actually have a complaint. I just wanted to see how full your complaint box is getting. It has filled up beautifully. Please leave this letter right on top so it can enjoy the view for a while before it goes into the shredder.","Sehr geehrte Damen und Herren, ich habe eigentlich gar keine Beschwerde. Ich wollte nur sehen, wie voll Ihr Beschwerde-Briefkasten schon ist. Er hat sich sehr schön gefüllt. Bitte lassen Sie diesen Brief ganz oben liegen, damit er noch ein wenig die Aussicht genießen kann, bevor er in den Schredder kommt."
+COMPLAINT_40,"Dear authority, your hall has a remarkable echo. When I quietly complained about the wait at reception, I heard myself grumble three more times. By the third time, frankly, I found myself rather unpleasant. Please put up curtains so I no longer have to listen to me.","Werte Behörde, Ihre Halle hat ein bemerkenswertes Echo. Als ich mich am Empfang leise über die Wartezeit beschwerte, hörte ich mich noch dreimal meckern. Beim dritten Mal fand ich mich ehrlich gesagt unsympathisch. Bitte hängen Sie Vorhänge auf, damit ich mir das nicht mehr anhören muss."
+COMPLAINT_41,"Dear Sir or Madam, the gentleman ahead of me in the queue breathed continuously for two hours, and audibly so. I raised the matter with him politely. He said he had done it his whole life. Please check whether he holds a permit for this.","Sehr geehrte Damen und Herren, der Herr vor mir in der Schlange hat zwei Stunden lang ununterbrochen geatmet, und zwar hörbar. Ich habe ihn höflich darauf angesprochen. Er sagte, das mache er schon sein ganzes Leben so. Ich bitte um Prüfung, ob dafür eine Genehmigung vorliegt."
+COMPLAINT_42,"Dear office, throughout the entire wait an irresistible smell of coffee drifts from your kitchen into the hall. But only your clerks get any coffee. It is like showing a dog a sausage and then eating it yourself. I demand coffee for all, or at least an extractor fan.","Liebes Amt, aus Ihrer Küche weht während der gesamten Wartezeit ein betörender Kaffeeduft in die Halle. Kaffee bekommen aber nur Ihre Beamten. Das ist, als würde man einem Hund ein Schnitzel zeigen und es dann selbst essen. Ich fordere Kaffee für alle oder wenigstens eine Dunstabzugshaube."
+COMPLAINT_43,"Dear Sir or Madam, during my visit a coffee circle was held in your kitchen for 'somebody's birthday'. I asked around: nobody knew whose. As it happens, today is my birthday. I demand a slice of cake, or at the very least a song from reception.","Sehr geehrte Damen und Herren, während meines Besuchs wurde in Ihrer Küche ein Kaffeekränzchen für ‚irgendeinen Geburtstag‘ abgehalten. Ich habe nachgefragt: Niemand wusste, wessen. Zufällig habe ich heute Geburtstag. Ich verlange ein Stück Kuchen oder mindestens ein Ständchen vom Empfang."
+COMPLAINT_44,"Dear administration, the phone in your switchboard rang throughout my entire wait. Nobody picked up. Now the ringtone is stuck in my head. Yesterday I answered the supermarket checkout with 'Office of Official Affairs, good morning'. I request compensation in the form of silence.","Werte Verwaltung, das Telefon in Ihrer Telefonzentrale hat während meiner gesamten Wartezeit geklingelt. Niemand ging ran. Ich habe den Klingelton jetzt als Ohrwurm. Gestern habe ich an der Supermarktkasse ‚Amt für Amtliches, guten Tag‘ gesagt. Ich bitte um Schadenersatz in Form von Stille."
+COMPLAINT_45,"Dear Sir or Madam, the clerk handling my application ate a fish roll while doing so, at nine in the morning. My application now smells of the harbour. The bank accepted it anyway, but held its nose. Please process applications odour-free.","Sehr geehrte Damen und Herren, der Sachbearbeiter, der meinen Antrag bearbeitet hat, aß dabei um neun Uhr morgens ein Fischbrötchen. Mein Antrag riecht jetzt nach Hafen. Die Bank hat ihn trotzdem angenommen, aber mit gerümpfter Nase. Ich bitte um geruchsneutrale Bearbeitung."
+COMPLAINT_46,"Dear office, there is not a single window in your waiting area. I demand one. It need not open, it need not even face outside. I just need something to gaze wistfully through while my number is not being called.","Liebes Amt, in Ihrem Wartebereich gibt es kein einziges Fenster. Ich fordere eines. Es muss sich nicht öffnen lassen, es muss nicht einmal nach draußen zeigen. Ich brauche nur etwas, durch das ich sehnsüchtig schauen kann, während meine Nummer nicht aufgerufen wird."
+COMPLAINT_47,"Dear Sir or Madam, I stood in your waiting area for two hours because all the chairs were taken. One of them by a handbag. The handbag had no ticket. Please investigate whether handbags receive preferential treatment. If so, I would like to come back as a handbag.","Sehr geehrte Damen und Herren, ich habe in Ihrem Wartebereich zwei Stunden gestanden, weil alle Stühle belegt waren. Einer davon von einer Handtasche. Die Handtasche hatte keine Wartemarke. Ich bitte um Prüfung, ob Handtaschen bei Ihnen bevorzugt behandelt werden. Falls ja, möchte ich als Handtasche wiederkommen."
+COMPLAINT_48,"Dear authority, when I dropped my complaint into your box, the intern next to it burst into tears. I had only complained about the colour of the tickets. Now I feel guilty, so I am complaining about myself. Please comfort him for me. And give him a biscuit.","Werte Behörde, als ich meine Beschwerde in Ihren Briefkasten warf, brach der Praktikant daneben in Tränen aus. Dabei hatte ich mich nur über die Farbe der Wartemarken beschwert. Ich fühle mich jetzt schuldig und beschwere mich deshalb über mich selbst. Bitte trösten Sie ihn von mir. Und geben Sie ihm einen Keks."
+COMPLAINT_49,"Dear Sir or Madam, today I was sent from case review to approval, from approval to the inspection service and from there to the collection counter. There I was told I had been finished for ages. I had not noticed. Next time, please let me know when I am finished, so I can be there for it.","Sehr geehrte Damen und Herren, ich wurde heute von der Sachbearbeitung zur Freigabe, von der Freigabe zum Prüfdienst und vom Prüfdienst zum Ausgabeschalter geschickt. Dort sagte man mir, ich sei längst fertig. Ich hatte nichts bemerkt. Bitte sagen Sie mir nächstes Mal Bescheid, wenn ich fertig bin, damit ich dabei sein kann."
+COMPLAINT_50,"I queued so long beside your door,
+my feet took root into the floor.
+My number came, I wasn't there,
+I'd only nipped off for some air.
+So hear my plea, in rhyme, polite:
+call twice next time, and all is right.","Ich stand an Ihrem Schalter lang,
+mir wurde angst und wurde bang.
+Die Nummer kam, ich war nicht da,
+weil ich just auf dem Örtchen war.
+Drum reim ich hier mit spitzem Kiel:
+Ein zweites Mal wär nicht zu viel."
+COMPLAINT_SUBJECT_1,Complaint about the complaint desk.,Beschwerde über die Beschwerdestelle.
+COMPLAINT_SUBJECT_2,The stamp is too loud.,Der Stempel ist zu laut.
+COMPLAINT_SUBJECT_3,My ticket number is 13.,Meine Wartenummer ist die 13.
+COMPLAINT_SUBJECT_4,The plant in the hall is judging me.,Die Pflanze in der Halle urteilt.
+COMPLAINT_SUBJECT_5,The form has no page 7.,Das Formular hat keine Seite 7.
+COMPLAINT_SUBJECT_6,The chairs are too comfortable.,Die Stühle sind zu bequem.
+COMPLAINT_SUBJECT_7,The queue has a queue.,Die Schlange hat eine Schlange.
+COMPLAINT_SUBJECT_8,The pen on the chain is too short.,Der Kuli an der Kette ist zu kurz.
+COMPLAINT_SUBJECT_9,My stamp is crooked.,Mein Stempel ist schief.
+COMPLAINT_SUBJECT_10,The clock in the hall runs in circles.,Die Uhr in der Halle läuft im Kreis.
+COMPLAINT_SUBJECT_11,The shredder looks smug.,Der Schredder wirkt selbstzufrieden.
+COMPLAINT_SUBJECT_12,Someone sneezed dramatically.,Jemand hat dramatisch geniest.
+COMPLAINT_SUBJECT_13,My number was called too suddenly.,Mein Aufruf kam zu plötzlich.
+COMPLAINT_SUBJECT_14,Please never replace the carpet.,Bitte den Teppich nie ersetzen.
+COMPLAINT_SUBJECT_15,"Too many forms, too few biscuits.","Zu viele Formulare, zu wenig Kekse."
+COMPLAINT_SUBJECT_16,Someone smiled at me for no reason.,Ich wurde grundlos angelächelt.
+COMPLAINT_SUBJECT_17,I want to travel by tube too.,Ich will auch mit der Rohrpost fahren.
+COMPLAINT_SUBJECT_18,Someone sat in my usual seat.,Jemand saß auf meinem Stammplatz.
+COMPLAINT_SUBJECT_19,Every door is a push door.,Alle Türen sind Drücktüren.
+COMPLAINT_SUBJECT_20,It was far too quick.,Es ging viel zu schnell.
+COMPLAINT_SUBJECT_21,The ink pad is the wrong blue.,Das Stempelkissen hat das falsche Blau.
+COMPLAINT_SUBJECT_22,A pigeon looked me up and down.,Eine Taube hat mich gemustert.
+COMPLAINT_SUBJECT_23,My file is too thin.,Meine Akte ist zu dünn.
+COMPLAINT_SUBJECT_24,I found an abandoned paper clip.,Ich fand eine herrenlose Büroklammer.
+COMPLAINT_SUBJECT_25,The air smells like Monday.,Die Luft riecht nach Montag.
+COMPLAINT_SUBJECT_26,Claim for a refund of my lifetime.,Antrag auf Erstattung meiner Lebenszeit.
+COMPLAINT_SUBJECT_27,The queue moved without me.,Die Schlange ist ohne mich vorgerückt.
+COMPLAINT_SUBJECT_28,You are too efficient.,Sie sind zu effizient.
+COMPLAINT_SUBJECT_29,My umbrella is wet.,Mein Regenschirm ist nass.
+COMPLAINT_SUBJECT_30,The light is flashing Morse code.,Das Licht morst.
+COMPLAINT_SUBJECT_31,My ticket gave me no hope.,Die Wartemarke gab mir keine Hoffnung.
+COMPLAINT_SUBJECT_32,"Legally speaking, I am dissatisfied.",Rechtlich gesehen bin ich unzufrieden.
+COMPLAINT_SUBJECT_33,The number 4 is staring at me.,Die Ziffer 4 starrt mich an.
+COMPLAINT_SUBJECT_34,Everything is perfect. That is the problem.,Alles perfekt. Genau das ist das Problem.
+COMPLAINT_SUBJECT_35,The printer sympathised.,Der Drucker hat mitgefühlt.
+COMPLAINT_SUBJECT_36,"A letter from Paula, aged 7.","Brief von Paula, 7 Jahre."
+COMPLAINT_SUBJECT_37,Your guard intercepted me.,Ihr Wachmann hat mich abgefangen.
+COMPLAINT_SUBJECT_38,I stayed for the drama.,Ich blieb für das Drama.
+COMPLAINT_SUBJECT_39,Not a complaint. Just checking the box.,Keine Beschwerde. Nur Briefkastenpflege.
+COMPLAINT_SUBJECT_40,Your hall echoes.,Ihre Halle hallt.
+COMPLAINT_SUBJECT_41,A man breathed loudly.,Ein Mann hat laut geatmet.
+COMPLAINT_SUBJECT_42,Your coffee smell is an outrage.,Ihr Kaffeeduft ist eine Zumutung.
+COMPLAINT_SUBJECT_43,Whose birthday was it?,Wessen Geburtstag war das?
+COMPLAINT_SUBJECT_44,Your phone is ringing in my head.,Ihr Telefon klingelt in meinem Kopf.
+COMPLAINT_SUBJECT_45,My application smells of the harbour.,Mein Antrag riecht nach Hafen.
+COMPLAINT_SUBJECT_46,I demand a window.,Ich fordere ein Fenster.
+COMPLAINT_SUBJECT_47,A handbag had my chair.,Eine Handtasche hatte meinen Stuhl.
+COMPLAINT_SUBJECT_48,The intern cried.,Der Praktikant hat geweint.
+COMPLAINT_SUBJECT_49,I was done and didn't notice.,Ich war fertig und hab’s nicht gemerkt.
+COMPLAINT_SUBJECT_50,A complaint in verse.,Eine Beschwerde in Reimform.
 SHRED_1,Shredded. Unread.,Geschreddert. Ungelesen.
 SHRED_2,Problem solved!,Problem gelöst!
 SHRED_3,Case closed. Forever.,Vorgang erledigt. Für immer.
@@ -433,67 +492,66 @@ RESEARCH_COFFEE_MACHINE,Coffee machine,Kaffeemaschine
 RESEARCH_DESC_COFFEE_MACHINE,Faster machine: fetching coffee takes 20% less time per level and fetchers come back even fresher (shown as gold stripes).,Schnellere Maschine: Kaffeeholen dauert pro Stufe 20 % kürzer und Holer kommen noch frischer zurück (goldene Streifen an der Maschine).
 RESEARCH_KITCHEN,Kitchen,Küche
 RESEARCH_DESC_KITCHEN,A tidier kitchen: per level fewer employees get lost in chatter and more simply fetch their coffee. Plants make it cosy.,Eine aufgeräumte Küche: pro Stufe verquatschen sich weniger Beamte und mehr holen sich einfach ihren Kaffee. Pflanzen machen es gemütlich.
-KRANZ_1,Coffee circle called! Attendance is mandatory.,Kaffeekränzchen ausgerufen! Anwesenheitspflicht.
-KRANZ_2,Cake in the kitchen! Everybody come!,Kuchen in der Küche! Alle mal herhören!
-KRANZ_3,Birthday of someone. Probably.,Irgendwer hat Geburtstag. Vermutlich.
-SLOW_1,"I am walking, I am walking …",Ich geh ja schon … ganz langsam.
-SLOW_2,Haste makes waste.,Eile mit Weile.
-SLOW_3,Why run? The coffee is hot.,Wozu hetzen? Der Kaffee ist heiß.
+KRANZ_1,Coffee circle called! Attendance mandatory.,Kaffeekränzchen ausgerufen! Anwesenheitspflicht.
+KRANZ_2,Cake in the kitchen! The files won't run away.,Kuchen in der Küche! Die Akten laufen nicht weg.
+KRANZ_3,It's somebody's birthday. Probably.,Irgendwer hat Geburtstag. Vermutlich.
+SLOW_1,"I'm going, I'm going… slowly.",Ich geh ja schon … ganz langsam.
+SLOW_2,"More haste, less speed. Mostly less speed.",Eile mit Weile. Vor allem mit Weile.
+SLOW_3,Why rush? The coffee is still hot.,Wozu hetzen? Der Kaffee ist noch heiß.
 SIGN_SICK_PHONE,Your phone,Ihr Apparat
-SECTION_ABSENCE,Absences,Fehlzeiten
 STAFF_HR,Phone clerks,Telefonisten
 STAFF_DESC_HR,"Sit in the phone office, answer incoming sick calls first and then phone reported colleagues until they come back. Unanswered sick calls stay unexcused and cannot be called back. Every phone clerk also makes sick days rarer.","Sitzen in der Telefonzentrale, nehmen zuerst eingehende Krankmeldungen an und telefonieren dann gemeldeten Kollegen hinterher, bis sie zurückkommen. Unbeantwortete Krankmeldungen bleiben unentschuldigt und können nicht zurückgerufen werden. Jeder Telefonist sorgt außerdem dafür, dass sich seltener jemand krankmeldet."
 FMT_HR_INFO,Sick: %d · reported: %d · ringing: %d,Krank: %d · gemeldet: %d · klingelt: %d
 STAFF_GUARDS,Security guards,Wachleute
 STAFF_DESC_GUARDS,Stand in front of the complaint desk and talk some complainers out of it before they reach the counter. Angry shouters get stopped too. Each guard holds back one person at a time. Every guard also makes complaints come in less often.,"Stehen vor der Beschwerdestelle und reden manchen Beschwerdeführern ihr Anliegen aus, bevor sie den Schalter erreichen. Auch Wutbürger werden aufgehalten. Jede Wache hält eine Person gleichzeitig auf. Jede Wache sorgt außerdem dafür, dass seltener Beschwerden kommen."
 FMT_GUARD_INFO,Stops about %d %% of complainers · sent home: %d,Hält etwa %d %% der Beschwerdeführer auf · nach Hause geschickt: %d
-GUARD_1_1,Complaints only with an appointment.,Beschwerden nur mit Termin.
-GUARD_1_2,Then I'll complain about that.,Dann beschwere ich mich eben darüber.
-GUARD_2_1,The complaint desk is closed for a complaint.,Die Beschwerdestelle ist wegen einer Beschwerde geschlossen.
-GUARD_2_2,That figures.,Das passt ja.
+GUARD_1_1,Complaints by appointment only.,Beschwerden nur mit Termin.
+GUARD_1_2,Then I'll complain about that!,Dann beschwere ich mich eben darüber!
+GUARD_2_1,The complaint desk is closed due to a complaint.,Beschwerdestelle wegen einer Beschwerde geschlossen.
+GUARD_2_2,"Oh, that one was mine. From last week.","Ach, die war von mir. Von letzter Woche."
 GUARD_3_1,Form 12b first. Available next door. Tuesdays.,Erst Formular 12b. Gibt es nebenan. Dienstags.
-GUARD_3_2,It is Wednesday.,Heute ist Mittwoch.
-GUARD_4_1,Have you tried not being upset?,Haben Sie es mal mit Nicht-Aufregen versucht?
-GUARD_4_2,…actually no.,…ehrlich gesagt nein.
-GUARD_5_1,Please keep moving. Nothing to complain about here.,Bitte weitergehen. Hier gibt es nichts zu beschweren.
-GUARD_5_2,Fine. I'll write a review instead.,Gut. Dann schreibe ich eben eine Bewertung.
-SICK_NOTE_1,Sick note: back pain. Since Monday. Always Monday.,Krankmeldung: Rücken. Seit Montag. Immer Montag.
-SICK_NOTE_2,Called in sick: sudden allergy to Tuesdays.,Krank: plötzliche Dienstag-Allergie.
-SICK_NOTE_3,Calls in sick – the weather is too good for the office.,Meldet sich krank – das Wetter ist zu schön fürs Amt.
-SICK_NOTE_4,"Sick leave: ""Mysterious weakness.""",Krankgemeldet: „Rätselhafte Schwäche.“
-SICK_EXCUSE_1,Hello? I cannot come in. My cat has a cold.,Hallo? Ich kann nicht kommen. Meine Katze hat Schnupfen.
-SICK_EXCUSE_2,"Cough, cough … I am dying. Slightly.","Hust, hust … ich sterbe. Ein bisschen."
+GUARD_3_2,It's Wednesday. Of course it is.,Heute ist Mittwoch. Natürlich.
+GUARD_4_1,Have you tried not getting upset?,Haben Sie es mal mit Nicht-Aufregen versucht?
+GUARD_4_2,"…honestly, no. I'll give it a go.",… ehrlich gesagt nein. Probiere ich mal.
+GUARD_5_1,"Move along, please. Nothing to complain about here.",Bitte weitergehen. Hier gibt es nichts zu beschweren.
+GUARD_5_2,Fine. Then I'll write a review.,Gut. Dann schreibe ich eben eine Bewertung.
+SICK_NOTE_1,Off sick: back pain. Since Monday. Always Monday.,Krank: Rücken. Seit Montag. Immer Montag.
+SICK_NOTE_2,Off sick. Diagnosis: acute file allergy.,Krank. Diagnose: akute Aktenallergie.
+SICK_NOTE_3,Off sick – the weather is too nice for the office.,Krank – das Wetter ist zu schön fürs Amt.
+SICK_NOTE_4,Off sick: suspected long weekend.,Krank: Verdacht auf Brückentag.
+SICK_EXCUSE_1,I can't come in. My cat has a cold.,Ich kann nicht kommen. Meine Katze hat Schnupfen.
+SICK_EXCUSE_2,"Cough, cough… I'm dying. A little.","Hust, hust … ich sterbe. Ein bisschen."
 SICK_EXCUSE_3,My back has filed an objection.,Mein Rücken hat Widerspruch eingelegt.
-SICK_EXCUSE_4,I have a doctor appointment. For the whole week.,Ich hab einen Arzttermin. Die ganze Woche.
-SICK_EXCUSE_5,"The fever is only 36.6, but it feels so high.","Das Fieber ist nur 36,6, aber es fühlt sich so hoch an."
-SICK_EXCUSE_6,Not at the desk! Left my courage at home.,Nicht am Platz! Meinen Mut hab ich zuhause gelassen.
-SICK_REPLY_1,Your cat has no sick note. Come!,Ihre Katze hat keinen Krankenschein. Kommen!
-SICK_REPLY_2,Dying is not a valid reason. Form 7a.,Sterben ist kein Grund. Formular 7a.
-SICK_REPLY_3,"Objection denied. Desk, now.","Widerspruch abgelehnt. Platz, sofort."
-SICK_REPLY_4,Doctors are open on weekends too.,Ärzte haben auch am Wochenende auf.
-SICK_REPLY_5,36.6 is perfectly fine. Welcome back!,"36,6 ist top. Willkommen zurück!"
-SICK_REPLY_6,Courage is in the cafeteria. Go get it.,Mut gibt es in der Kantine. Holen.
+SICK_EXCUSE_4,I have a doctor's appointment. All week.,Ich hab einen Arzttermin. Die ganze Woche.
+SICK_EXCUSE_5,I have a fever of 36.6. It feels higher.,"Ich hab 36,6 Grad Fieber. Es fühlt sich höher an."
+SICK_EXCUSE_6,I overworked myself yesterday. Ten minutes straight!,Hab mich gestern überarbeitet. Zehn Minuten am Stück!
+SICK_REPLY_1,Your cat isn't a civil servant. Come in!,Ihre Katze ist nicht verbeamtet. Kommen Sie!
+SICK_REPLY_2,There's no such thing as a little dying. Form 7a.,Ein bisschen sterben gibt es nicht. Formular 7a.
+SICK_REPLY_3,"Objection overruled. Desk, now.","Widerspruch abgelehnt. An den Platz, sofort."
+SICK_REPLY_4,Bring the doctor along. We have chairs.,Dann bringen Sie den Arzt mit. Wir haben Stühle.
+SICK_REPLY_5,36.6 is perfect. Welcome back!,"36,6 ist top. Willkommen zurück!"
+SICK_REPLY_6,We checked. It was seven.,Wir haben nachgerechnet. Es waren sieben.
 SIGN_LOO,WC · occupied for a long time,WC · länger besetzt
-GO_LOO_1,Back in a minute. (Famous last words.),Bin gleich wieder da. (Letzte Worte.)
-GO_LOO_2,Nature calls. For a while.,Die Natur ruft. Und zwar länger.
-GO_LOO_3,Quick WC break – with newspaper.,Kurz aufs WC – mit Zeitung.
+GO_LOO_1,Back in a minute. (Famous last words.),Bin gleich wieder da. (Berühmte letzte Worte.)
+GO_LOO_2,Nature calls. At length.,Die Natur ruft. Und zwar ausführlich.
+GO_LOO_3,Quick loo break. With the weekend paper.,Kurz aufs WC. Mit der Wochenendausgabe.
 LOO_VOICE_1,Occupied! Come back in half an hour!,Besetzt! Kommen Sie in einer halben Stunde wieder!
-LOO_VOICE_2,You can do it! Come out and work!,Du schaffst das! Komm raus und arbeite!
-LOO_VOICE_3,Is there a form for this in here?,Gibt es dafür hier drin ein Formular?
-LOO_VOICE_4,Still reading the paper. Go away.,Lese noch Zeitung. Gehen Sie weg.
+LOO_VOICE_2,I'm working! This is my home office!,Ich arbeite! Hier drin ist Homeoffice!
+LOO_VOICE_3,I'm in a meeting. With myself.,Bin in einer Besprechung. Mit mir selbst.
+LOO_VOICE_4,Just the sports section!,Nur noch den Sportteil!
 AREA_TOILETS,Restrooms,Sanitär
 SICK_EXCUSE_7,I overslept. By three days.,Ich hab verschlafen. Um drei Tage.
-SICK_EXCUSE_8,"My plant is ill, I must nurse it.","Meine Zimmerpflanze ist krank, ich muss sie pflegen."
-SICK_EXCUSE_9,The stairs are too steep today.,Die Treppe ist heute zu steil.
-SICK_EXCUSE_10,I am allergic to Mondays and meetings.,Ich bin allergisch gegen Montage und Besprechungen.
-SICK_EXCUSE_11,My horoscope says: stay at home.,Mein Horoskop sagt: Zuhause bleiben.
-SICK_EXCUSE_12,I lost my stapler. I am devastated.,Ich hab meinen Tacker verloren. Ich bin am Boden zerstört.
-SICK_REPLY_7,Three days? Then the form is due in triplicate.,Drei Tage? Dann das Formular dreifach.
-SICK_REPLY_8,Plants have no sick notes either!,Pflanzen haben auch keinen Krankenschein!
-SICK_REPLY_9,There is an elevator. Since 1987.,Es gibt einen Aufzug. Seit 1987.
-SICK_REPLY_10,Meetings are on Thursday. Come on Thursday.,Besprechungen sind donnerstags. Kommen Sie donnerstags.
-SICK_REPLY_11,The stars are not your supervisor.,Die Sterne sind nicht Ihr Vorgesetzter.
-SICK_REPLY_12,Staplers are in cabinet 3. Desk. Now.,Tacker sind in Schrank 3. Platz. Sofort.
+SICK_EXCUSE_8,My houseplant is ill. I have to nurse it.,Meine Zimmerpflanze ist krank. Ich muss sie pflegen.
+SICK_EXCUSE_9,My alarm clock has handed in its notice.,Mein Wecker hat gekündigt.
+SICK_EXCUSE_10,I'm allergic to Mondays.,Ich bin allergisch gegen Montage.
+SICK_EXCUSE_11,My horoscope says: stay at home.,Mein Horoskop sagt: zu Hause bleiben.
+SICK_EXCUSE_12,My stapler is gone. I'm in mourning.,Mein Tacker ist weg. Ich bin in Trauer.
+SICK_REPLY_7,Three days? Then the form in triplicate.,Drei Tage? Dann das Formular dreifach.
+SICK_REPLY_8,Bring it along. The one in the hall needs company.,Bringen Sie sie mit. Die in der Halle braucht Gesellschaft.
+SICK_REPLY_9,Then we'll ring you every morning. At six.,Dann rufen wir Sie ab jetzt jeden Morgen an. Um sechs.
+SICK_REPLY_10,It's Thursday. You're immune to those.,Heute ist Donnerstag. Dagegen sind Sie immun.
+SICK_REPLY_11,The stars are not your line manager.,Die Sterne sind nicht Ihr Vorgesetzter.
+SICK_REPLY_12,Your colleague has it. Since March.,Der liegt bei Ihrem Kollegen. Seit März.
 FMT_JAM,Jam: %s,Stau: %s
 JAM_SIDE_IN,inbox full,Eingang voll
 JAM_SIDE_OUT,outbox full,Ausgang voll
@@ -539,7 +597,7 @@ EVENT_DESC_INSPECTOR_AUDIT,The inspection service has to audit its own procedure
 EVENT_AUTHORITY_COMPARISON,The authority comparison,Der Behördenvergleich
 EVENT_DESC_AUTHORITY_COMPARISON,A neighbouring authority boasts about its numbers. Prepare a presentation for reputation (everyone works slower for a while) or ignore it.,Eine Nachbarbehörde prahlt mit ihren Zahlen. Bereite eine Präsentation für Ansehen vor (alle arbeiten eine Weile langsamer) oder ignoriere sie.
 STAFF_COLLECTORS,Reject collectors,Ablehnungs-Boten
-STAFF_DESC_COLLECTORS,Pick up rejected applications at the clerks' reject trays and take them straight to the shredder. They do nothing else.,Holen abgelehnte Anträge aus den Ablehnungs-Ausgängen und bringen sie direkt zum Aktenschredder. Mehr tun sie nicht.
+STAFF_DESC_COLLECTORS,"Collect rejected applications from the clerks' reject trays, nearly full trays first, and take them to the shredder once their hands are full. They do nothing else.","Sammeln abgelehnte Anträge aus den Ablehnungs-Ausgängen, fast volle zuerst, und bringen sie mit vollen Händen zum Aktenschredder. Mehr tun sie nicht."
 FMT_COLLECTOR_INFO,%d rejects per trip · currently waiting: %d,%d Ablehnungen pro Gang · aktuell wartend: %d
 STAFF_COFFEE_INTERNS,Coffee interns,Kaffee-Praktikanten
 STAFF_DESC_COFFEE_INTERNS,"Brew a cup in the kitchen and carry it straight to the desk of a tired clerk, so nobody has to walk to the kitchen. Coffee parties also happen less often.","Brühen in der Küche eine Tasse und bringen sie direkt an den Platz müder Beamter, damit niemand mehr in die Küche laufen muss. Kaffeekränzchen finden außerdem seltener statt."
@@ -569,104 +627,104 @@ FLOAT_DISPUTE_PEACE,Peace restored!,Frieden gestiftet!
 FLOAT_DISPUTE_OVER,The quarrel fizzled out.,Der Streit ist versandet.
 FMT_DISPUTE,%s · -%d %%,%s · -%d %%
 DISPUTE_WINDOW,Window war,Fensterkrieg
-DISPUTE_WINDOW_1,It's freezing in here! Close the window!,Hier zieht es wie Hechtsuppe! Mach das Fenster zu!
+DISPUTE_WINDOW_1,There's a gale in here! Shut the window!,Hier zieht’s wie Hechtsuppe! Fenster zu!
 DISPUTE_WINDOW_2,I'm suffocating! It stays open!,Ich ersticke! Das Fenster bleibt auf!
-DISPUTE_WINDOW_3,Then I'm putting my coat on. Again.,Dann ziehe ich eben wieder den Mantel an.
-DISPUTE_WINDOW_4,And I'm bringing my desk fan.,Und ich bringe meinen Ventilator mit.
+DISPUTE_WINDOW_3,"Fine, coat, scarf and hat it is!","Gut, dann eben Mantel, Schal und Mütze!"
+DISPUTE_WINDOW_4,And I'm fetching my fan!,Und ich hol meinen Ventilator!
 DISPUTE_THERMOSTAT,Thermostat war,Thermostat-Krieg
-DISPUTE_THERMOSTAT_1,Who set it to 26 again?!,Wer hat das Thermostat schon wieder auf 26 gestellt?!
+DISPUTE_THERMOSTAT_1,Who turned the thermostat up to 26 again?!,Wer hat das Thermostat wieder auf 26 gestellt?!
 DISPUTE_THERMOSTAT_2,Me. Tropical is productive.,Ich. Tropisch ist produktiv.
 DISPUTE_THERMOSTAT_3,I'm putting it back to 18!,Ich stelle auf 18 zurück!
-DISPUTE_THERMOSTAT_4,Over my dead body.,Nur über meine Leiche.
+DISPUTE_THERMOSTAT_4,Then I'm bringing my electric blanket!,Dann bring ich morgen meine Heizdecke mit!
 DISPUTE_RADIO,Radio dispute,Radio-Streit
-DISPUTE_RADIO_1,Turn that schlager off!,Mach den Schlager aus!
-DISPUTE_RADIO_2,It's cultural heritage!,Das ist Kulturgut!
-DISPUTE_RADIO_3,Then I'm playing my metal.,Dann spiele ich eben meinen Metal.
-DISPUTE_RADIO_4,"Headphones exist, you know.","Es gibt Kopfhörer, weißt du?"
+DISPUTE_RADIO_1,Turn that oompah music off!,Mach den Schlager aus!
+DISPUTE_RADIO_2,That's cultural heritage!,Das ist Kulturgut!
+DISPUTE_RADIO_3,Then I'm putting on my metal!,Dann spiele ich eben meinen Metal!
+DISPUTE_RADIO_4,"Oompah IS metal. Brass, mostly.",Schlager ist Metal. Nur mit Gefühl.
 DISPUTE_YOGHURT,Yoghurt theft,Joghurt-Klau
 DISPUTE_YOGHURT_1,Who ate my yoghurt?!,Wer hat meinen Joghurt gegessen?!
 DISPUTE_YOGHURT_2,Not me. Was it labelled?,Ich nicht. War der beschriftet?
 DISPUTE_YOGHURT_3,It said PRIVATE. In capitals!,Da stand PRIVAT drauf. In Großbuchstaben!
-DISPUTE_YOGHURT_4,I took that as an invitation.,Ich habe das als Einladung verstanden.
+DISPUTE_YOGHURT_4,I took that as an invitation.,Das hab ich als Einladung verstanden.
 DISPUTE_STAPLER,Stapler dispute,Tacker-Streit
 DISPUTE_STAPLER_1,Where is my stapler?!,Wo ist mein Tacker?!
 DISPUTE_STAPLER_2,Borrowed it. In March.,Ausgeliehen. Im März.
-DISPUTE_STAPLER_3,It's MY red stapler!,Das ist MEIN roter Tacker!
-DISPUTE_STAPLER_4,It's the only one that works.,"Es ist der einzige, der funktioniert."
+DISPUTE_STAPLER_3,That's MY red stapler!,Das ist MEIN roter Tacker!
+DISPUTE_STAPLER_4,That's exactly why I'm keeping it.,Deshalb geb ich ihn ja nicht zurück.
 DISPUTE_FISH_ROLL,Fish roll stench,Fischbrötchen-Gestank
-DISPUTE_FISH_ROLL_1,A fish roll? At nine a.m.?!,Ein Fischbrötchen? Um neun Uhr morgens?!
+DISPUTE_FISH_ROLL_1,A fish roll? At nine in the morning?!,Ein Fischbrötchen? Um neun Uhr morgens?!
 DISPUTE_FISH_ROLL_2,Protein. For productivity.,Eiweiß. Für die Produktivität.
 DISPUTE_FISH_ROLL_3,The whole floor smells like a harbour!,Das ganze Stockwerk riecht nach Hafen!
 DISPUTE_FISH_ROLL_4,Then open a window.,Dann mach halt das Fenster auf.
-VISIT_1_1,I want to file a complaint!,Ich möchte mich beschweren!
-VISIT_1_2,About what?,Worüber denn?
-VISIT_1_3,That nobody listens to me!,Dass mir hier niemand zuhört!
-VISIT_2_1,My application has been 'in progress' for three years.,Mein Antrag ist seit drei Jahren 'in Bearbeitung'.
-VISIT_2_2,That's progress of a kind.,Das ist ja auch eine Art Fortschritt.
-VISIT_2_3,"It's a condition, not progress!","Das ist ein Zustand, kein Fortschritt!"
+VISIT_1_1,I wish to make a complaint!,Ich möchte mich beschweren!
+VISIT_1_2,Verbally or in writing?,Mündlich oder schriftlich?
+VISIT_1_3,Both! At the same time!,Beides! Und zwar gleichzeitig!
+VISIT_2_1,My application has been in progress for three years!,Mein Antrag ist seit drei Jahren in Bearbeitung!
+VISIT_2_2,It is maturing. Like a fine cheese.,Er reift. Wie ein guter Käse.
+VISIT_2_3,It smells like one too by now!,Er riecht inzwischen auch so!
 VISIT_3_1,The queue was far too long!,Die Schlange war viel zu lang!
-VISIT_3_2,There is a form for that. Please queue over there.,Dafür gibt es ein Formular. Bitte dort hinten anstellen.
-VISIT_3_3,And how long does that take?,Und wie lange dauert das?
-VISIT_4_1,Your pen doesn't write!,Euer Kugelschreiber schreibt nicht!
-VISIT_4_2,That is the complaint pen.,Das ist der Beschwerde-Kugelschreiber.
-VISIT_4_3,Doesn't write either!,Der schreibt auch nicht!
+VISIT_3_2,There is a form for that. Back of the queue.,Dafür gibt es ein Formular. Hinten anstellen.
+VISIT_3_3,That's another queue!,Das ist ja schon wieder eine Schlange!
+VISIT_4_1,Your pen doesn't write!,Ihr Kugelschreiber schreibt nicht!
+VISIT_4_2,That is the complaints pen.,Das ist der Kuli für Beschwerden.
+VISIT_4_3,"Oh, so that's on purpose?!","Ach, und das ist Absicht?!"
 VISIT_5_1,I was here first!,Ich war zuerst da!
 VISIT_5_2,First for what?,Zuerst wobei?
-VISIT_5_3,For everything!,Bei allem!
-VISIT_6_1,Your clerk looked at me strangely.,Euer Sachbearbeiter hat mich komisch angeschaut.
-VISIT_6_2,That is his normal look.,Das ist sein normaler Blick.
-VISIT_6_3,I want that in writing!,Das will ich schriftlich!
-VISIT_7_1,The coffee here is an insult!,Der Kaffee hier ist eine Zumutung!
-VISIT_7_2,The kitchen is responsible for that.,Dafür ist die Küche zuständig.
-VISIT_7_3,And who is responsible for the kitchen?!,Und wer ist für die Küche zuständig?!
-VISIT_8_1,I demand to speak to the boss!,Ich verlange den Chef zu sprechen!
+VISIT_5_3,For everything! Since 1974!,Bei allem! Seit 1974!
+VISIT_6_1,Your clerk gave me a funny look!,Ihr Sachbearbeiter hat mich komisch angeschaut!
+VISIT_6_2,That is his official look.,Das ist sein Dienstblick.
+VISIT_6_3,Then I want his weekend look!,Dann will ich den Freizeitblick!
+VISIT_7_1,Why is the coffee only for staff?!,Warum gibt es Kaffee nur fürs Personal?!
+VISIT_7_2,To keep them awake.,Damit es wach bleibt.
+VISIT_7_3,"Well, it isn't working!",Das klappt aber nicht!
+VISIT_8_1,I demand to see the boss right now!,Ich will sofort den Chef sprechen!
 VISIT_8_2,He has been in a meeting since 2019.,Der ist seit 2019 in einer Besprechung.
 VISIT_8_3,That explains a lot!,Das erklärt einiges!
 VISIT_9_1,My number was skipped!,Meine Nummer wurde übersprungen!
-VISIT_9_2,It is still in the system.,Sie ist noch im System.
-VISIT_9_3,Apparently so am I!,Ich anscheinend auch!
+VISIT_9_2,It will come after the lunch break.,Die kommt nach der Mittagspause.
+VISIT_9_3,The sign says that ends at 5pm!,Die geht laut Schild bis 17 Uhr!
 VISIT_10_1,The waiting area has no windows!,Der Wartebereich hat keine Fenster!
 VISIT_10_2,That helps you concentrate.,Das dient Ihrer Konzentration.
-VISIT_10_3,On what? The wall?,Worauf? Die Wand?
+VISIT_10_3,On what? The wall?,Worauf denn? Auf die Wand?
 VISIT_11_1,Your form has 47 pages!,Ihr Formular hat 47 Seiten!
 VISIT_11_2,Page 48 is optional.,Seite 48 ist freiwillig.
-VISIT_11_3,There is a page 48?!,Es gibt eine Seite 48?!
-VISIT_12_1,A clerk was sleeping at his desk!,Ein Beamter hat am Schreibtisch geschlafen!
+VISIT_11_3,There's a page 48?!,Es gibt eine Seite 48?!
+VISIT_12_1,A clerk was asleep at his desk!,Ein Beamter hat am Schreibtisch geschlafen!
 VISIT_12_2,He was thinking with his eyes closed.,Er hat mit geschlossenen Augen nachgedacht.
-VISIT_12_3,He was snoring!,Er hat geschnarcht!
-VISIT_13_1,Room 12 sent me here!,Zimmer 12 hat mich hergeschickt!
-VISIT_13_2,Room 12 sends everyone here.,Zimmer 12 schickt alle hierher.
-VISIT_13_3,Then who works in room 12?,Und wer arbeitet in Zimmer 12?
+VISIT_12_3,And snoring while he did it?!,Und dabei laut geschnarcht?!
+VISIT_13_1,I've been passed on three times!,Ich wurde dreimal weitergeleitet!
+VISIT_13_2,Then you're almost through.,Dann haben Sie es ja fast geschafft.
+VISIT_13_3,I'm through with this place!,Geschafft bin ich schon lange!
 VISIT_14_1,The toilets have been occupied for an hour!,Die Toiletten sind seit einer Stunde besetzt!
-VISIT_14_2,"By our staff, unfortunately.",Leider vom Personal.
+VISIT_14_2,"By our staff, I'm afraid.",Leider vom Personal.
 VISIT_14_3,Then who is working?!,Und wer arbeitet dann?!
 VISIT_15_1,My file is gone!,Meine Akte ist weg!
-VISIT_15_2,"Not gone, just misfiled.","Nicht weg, nur falsch abgelegt."
-VISIT_15_3,What is the difference?!,Wo ist da der Unterschied?!
+VISIT_15_2,Not gone. Just misfiled.,Nicht weg. Nur falsch abgelegt.
+VISIT_15_3,What's the difference?!,Wo ist da der Unterschied?!
 VISIT_16_1,I need a stamp. Just one!,Ich brauche einen Stempel. Nur einen!
 VISIT_16_2,In which colour?,In welcher Farbe?
 VISIT_16_3,There are colours?!,Es gibt Farben?!
 VISIT_17_1,Two clerks are fighting over the window!,Zwei Beamte streiten ums Fenster!
-VISIT_17_2,That is the weekly window meeting.,Das ist die wöchentliche Fensterkonferenz.
-VISIT_17_3,I am freezing!,Ich friere!
+VISIT_17_2,That is the weekly window conference.,Das ist die wöchentliche Fensterkonferenz.
+VISIT_17_3,Can I vote too? I'm freezing!,Darf ich mitstimmen? Mir ist kalt!
 VISIT_18_1,Nobody answers the phone!,Keiner geht ans Telefon!
-VISIT_18_2,We are busy calling the sick colleagues.,Wir telefonieren gerade den Kranken hinterher.
-VISIT_18_3,I am sick too – of waiting!,Ich bin auch krank – vom Warten!
+VISIT_18_2,We're busy chasing the sick colleagues.,Wir telefonieren gerade den Kranken hinterher.
+VISIT_18_3,I'm sick too! Sick of waiting!,Ich bin auch krank! Vom Warten!
 VISIT_19_1,My application was rejected!,Mein Antrag wurde abgelehnt!
 VISIT_19_2,Wrong box ticked.,Falsches Kästchen angekreuzt.
 VISIT_19_3,There was only one box!,Es gab nur ein Kästchen!
 VISIT_20_1,I want my fee back!,Ich will meine Gebühr zurück!
-VISIT_20_2,Fees are non-refundable.,Gebühren werden nicht erstattet.
-VISIT_20_3,So is my time!,Meine Zeit auch nicht!
+VISIT_20_2,There is a refund fee for that.,Dafür gibt es eine Erstattungsgebühr.
+VISIT_20_3,And who refunds that?!,Und wer erstattet mir die?!
 VISIT_21_1,Your opening hours are a joke!,Ihre Öffnungszeiten sind ein Witz!
 VISIT_21_2,We take jokes very seriously here.,Witze nehmen wir hier sehr ernst.
 VISIT_21_3,I noticed!,Das merkt man!
-VISIT_22_1,The vending machine ate my coin!,Der Automat hat meine Münze gefressen!
+VISIT_22_1,The machine ate my coin!,Der Automat hat meine Münze gefressen!
 VISIT_22_2,Please fill in form A-3.,Bitte Formular A-3 ausfüllen.
 VISIT_22_3,The form costs a coin!,Das Formular kostet eine Münze!
-VISIT_23_1,I have been queuing since breakfast!,Ich stehe seit dem Frühstück an!
-VISIT_23_2,Then you are just in time for lunch.,Dann sind Sie pünktlich zum Mittag dran.
-VISIT_23_3,Very funny!,Sehr witzig!
+VISIT_23_1,I've been queuing since breakfast!,Ich stehe seit dem Frühstück an!
+VISIT_23_2,Today's breakfast or yesterday's?,Von heute oder von gestern?
+VISIT_23_3,I can't remember any more!,Das weiß ich nicht mehr!
 VISIT_24_1,Your clerk smells of fish rolls!,Ihr Beamter riecht nach Fischbrötchen!
 VISIT_24_2,It is Friday.,Es ist Freitag.
 VISIT_24_3,It is Tuesday!,Es ist Dienstag!
@@ -674,59 +732,59 @@ VISIT_25_1,My dog could do this faster!,Mein Hund könnte das schneller!
 VISIT_25_2,Has he passed the civil service exam?,Hat er die Laufbahnprüfung?
 VISIT_25_3,He has a better attitude!,Er hat die bessere Einstellung!
 VISIT_26_1,The radio is far too loud!,Das Radio ist viel zu laut!
-VISIT_26_2,That is the clerk's focus music.,Das ist die Konzentrationsmusik des Beamten.
-VISIT_26_3,It is polka!,Es ist Polka!
-VISIT_27_1,Where is the complaint form?,Wo ist das Beschwerdeformular?
-VISIT_27_2,You are holding it upside down.,Sie halten es verkehrt herum.
-VISIT_27_3,Even upside down it is an insult!,Auch verkehrt herum ist es eine Frechheit!
+VISIT_26_2,That is my colleague's focus music.,Das ist die Konzentrationsmusik des Kollegen.
+VISIT_26_3,It's polka!,Das ist Schlager!
+VISIT_27_1,I want to speak to a human being!,Ich will mit einem Menschen sprechen!
+VISIT_27_2,I am a civil servant.,Ich bin Beamter.
+VISIT_27_3,Fine. That counts as half.,Na gut. Das zählt halb.
 VISIT_28_1,Someone stole my seat!,Jemand hat meinen Platz geklaut!
-VISIT_28_2,Seats go by number.,Plätze werden nach Nummer vergeben.
-VISIT_28_3,I have number 900!,Ich habe die 900!
-VISIT_29_1,I demand a written explanation!,Ich verlange eine schriftliche Erklärung!
-VISIT_29_2,In duplicate or triplicate?,Zweifach oder dreifach?
-VISIT_29_3,In every copy there is!,In jeder Ausfertigung!
+VISIT_28_2,Seats go by ticket number.,Plätze werden nach Nummer vergeben.
+VISIT_28_3,I'm number 900!,Ich habe die 900!
+VISIT_29_1,This form is only in German!,Das Formular gibt es nur auf Deutsch!
+VISIT_29_2,We are a German office.,Wir sind ein deutsches Amt.
+VISIT_29_3,I'm German and I don't get it!,Ich bin Deutscher und versteh’s nicht!
 VISIT_30_1,This office is hopeless!,Dieses Amt ist hoffnungslos!
-VISIT_30_2,Hope is handled in room 4.,Hoffnung wird in Zimmer 4 bearbeitet.
-VISIT_30_3,Is room 4 even open?,Hat Zimmer 4 überhaupt offen?
-YELL_1_1,This is an OUTRAGE!,DAS IST EINE UNVERSCHÄMTHEIT!
-YELL_1_2,P-please lower your voice…,B-bitte leiser…
+VISIT_30_2,Hope is handled in room 4.,Für Hoffnung ist Zimmer 4 zuständig.
+VISIT_30_3,Room 4 sent me here!,Zimmer 4 hat mich hergeschickt!
+YELL_1_1,THIS IS AN OUTRAGE!,DAS IST EINE UNVERSCHÄMTHEIT!
+YELL_1_2,P-please lower your voice…,B-bitte etwas leiser …
 YELL_1_3,I AM LOWERING IT!!!,ICH BIN LEISE!!!
-YELL_2_1,Where is my money back?!,Wo bleibt mein Geld zurück?!
-YELL_2_2,There is no form for that…,Dafür gibt es kein Formular…
-YELL_2_3,THEN MAKE ONE!,DANN MACHT EINS!
-YELL_3_1,Your complaints office is a JOKE!,Eure Beschwerdestelle ist ein WITZ!
-YELL_3_2,I've only been here a week…,Ich bin erst seit einer Woche hier…
-YELL_3_3,NOT MY PROBLEM!,DAS IST NICHT MEIN PROBLEM!
-YELL_4_1,I've been waiting for HOURS!,Ich warte seit STUNDEN!
-YELL_4_2,Have you tried sitting down?,Haben Sie es mit Hinsetzen versucht?
-YELL_4_3,THERE IS NO SEAT!,ES GIBT KEINEN STUHL!
-YELL_5_1,I'll write to the mayor!,Ich schreibe dem Bürgermeister!
-YELL_5_2,Please do. He has a shredder too.,Gern. Der hat auch einen Schredder.
-YELL_5_3,THIS WILL COST YOU!,DAS WIRD TEUER FÜR SIE!
+YELL_2_1,I'M GIVING YOU ONE STAR!,ICH GEBE IHNEN EINEN STERN!
+YELL_2_2,J-just one?,N-nur einen?
+YELL_2_3,ZERO! BUT THAT'S NOT ALLOWED!,NULL! ABER DAS GEHT JA NICHT!
+YELL_3_1,YOUR COMPLAINT DESK IS A JOKE!,IHRE BESCHWERDESTELLE IST EIN WITZ!
+YELL_3_2,"J-jokes go in the box, please…",W-Witze bitte in den Briefkasten …
+YELL_3_3,THE BOX IS FULL ALREADY!,DER IST DOCH SCHON VOLL!
+YELL_4_1,I'VE BEEN WAITING FOR HOURS!,ICH WARTE SEIT STUNDEN!
+YELL_4_2,H-have you tried sitting down?,H-haben Sie es mit Hinsetzen versucht?
+YELL_4_3,THERE ARE NO FREE CHAIRS!,ES GIBT KEINEN FREIEN STUHL!
+YELL_5_1,THE MAYOR IS MY BROTHER-IN-LAW!,DER BÜRGERMEISTER IST MEIN SCHWAGER!
+YELL_5_2,H-he has a shredder too…,D-der hat auch einen Schredder …
+YELL_5_3,THEN I'LL WRITE TO HIS WIFE!,DANN SCHREIBE ICH SEINER FRAU!
 YELL_6_1,I WANT TO SEE THE MANAGER!,ICH WILL DEN VORGESETZTEN SPRECHEN!
-YELL_6_2,He is crying in the toilet…,Der weint gerade auf der Toilette…
-YELL_6_3,THEN I WILL WAIT OUTSIDE!,DANN WARTE ICH DAVOR!
+YELL_6_2,H-he's crying in the toilets…,D-der weint gerade auf der Toilette …
+YELL_6_3,THEN I'LL WAIT OUTSIDE!,DANN WARTE ICH DAVOR!
 YELL_7_1,MY CASE IS URGENT!!!,MEIN FALL IST DRINGEND!!!
-YELL_7_2,Every case is urgent…,Alle Fälle sind dringend…
+YELL_7_2,E-every case is urgent…,A-alle Fälle sind dringend …
 YELL_7_3,MINE IS MORE URGENT!,MEINER IST DRINGENDER!
 YELL_8_1,I PAY YOUR SALARY!,ICH ZAHLE IHR GEHALT!
-YELL_8_2,"Could you pay a little more, then…?",Könnten Sie dann etwas mehr zahlen…?
-YELL_8_3,UNBELIEVABLE!,UNFASSBAR!
+YELL_8_2,"C-can I ask you for a raise, then…?",D-darf ich bei Ihnen eine Erhöhung beantragen …?
+YELL_8_3,ONLY IN WRITING!,NUR SCHRIFTLICH!
 YELL_9_1,THIS IS THE THIRD TIME TODAY!,DAS IST HEUTE DAS DRITTE MAL!
-YELL_9_2,"The fourth, actually…",Eigentlich das vierte…
+YELL_9_2,A-actually it's the fourth…,E-eigentlich das vierte …
 YELL_9_3,DON'T CORRECT ME!,KORRIGIEREN SIE MICH NICHT!
-YELL_10_1,I AM CALLING THE NEWSPAPER!,ICH RUFE DIE ZEITUNG AN!
-YELL_10_2,They complained here last week too…,Die hat sich letzte Woche auch hier beschwert…
+YELL_10_1,I'M CALLING THE PAPERS!,ICH RUFE DIE ZEITUNG AN!
+YELL_10_2,Th-they complained here last week too…,D-die hat sich letzte Woche auch beschwert …
 YELL_10_3,GOOD! THEN THEY KNOW!,GUT! DANN WISSEN DIE JA BESCHEID!
-INTERN_CRY_1,Sniff… I wanted to study.,Schnief… ich wollte doch studieren.
-INTERN_CRY_2,Nobody mentioned this in the contract.,Davon stand nichts im Vertrag.
-INTERN_CRY_3,Waaah!,Buhuuu!
-INTERN_CRY_4,I'm just an intern…,Ich bin doch nur Praktikant…
-INTERN_NERVOUS_1,I can handle this… somehow.,Ich schaffe das… irgendwie.
-INTERN_NERVOUS_2,My eye is twitching.,Mein Auge zuckt.
-INTERN_NERVOUS_3,Does this count as overtime?,Zählt das als Überstunden?
-COFFEE_SERVED_1,"Coffee, as ordered!","Ihr Kaffee, wie bestellt!"
-COFFEE_SERVED_2,Fresh from the machine!,Frisch aus der Maschine!
+INTERN_CRY_1,Sniff… I wanted to work in media.,Schnief … ich wollte doch was mit Medien machen.
+INTERN_CRY_2,The contract said 'varied tasks'…,Im Vertrag stand ‚abwechslungsreich‘ …
+INTERN_CRY_3,Waaah! And all for zero pay!,Buhuuu! Und das für null Euro!
+INTERN_CRY_4,I'm only the intern…,Ich bin doch nur Praktikant …
+INTERN_NERVOUS_1,I can do this… I can do this… no.,Ich schaffe das … ich schaffe das … nein.
+INTERN_NERVOUS_2,My eye twitches in time with the stamps.,Mein Auge zuckt im Takt der Stempel.
+INTERN_NERVOUS_3,Does this count as work experience?,Zählt das hier als Berufserfahrung?
+COFFEE_SERVED_1,"Your coffee. Milk, sugar, zero appreciation.","Ihr Kaffee. Milch, Zucker, null Wertschätzung."
+COFFEE_SERVED_2,Freshly brewed. Please don't nod off again.,Frisch gebrüht. Bitte nicht wieder einschlafen.
 COFFEE_SERVED_3,"Black, like my soul.","Schwarz, wie meine Seele."
 RESEARCH_TUBE_CAPACITY,Tube capacity,Röhrenkapazität
 RESEARCH_DESC_TUBE_CAPACITY,Wider tubes: every pneumatic tube holds 2 more files at once. Needs pneumatic tubes.,Weitere Röhren: Jede Rohrpost-Röhre fasst 2 Akten mehr gleichzeitig. Benötigt Rohrpost.
@@ -736,8 +794,6 @@ STAFF_HELPERS,Complaint interns,Beschwerde-Praktikanten
 STAFF_DESC_HELPERS,"More interns share the shouting and the shredding. Each one has to walk to the shredder, but the stress is split. Every extra intern also makes complaints come in less often.","Weitere Praktikanten teilen sich das Anschreien und das Schreddern. Jeder muss selbst zum Schredder laufen, dafür verteilt sich der Stress. Jeder weitere Praktikant sorgt außerdem dafür, dass seltener Beschwerden kommen."
 FMT_HELPER_INFO,Each trip shreds up to %d items.,Jeder Gang schreddert bis zu %d Stück.
 LABEL_NEEDS_SHREDDER_SERVICE,Needs the shredder intern first.,Benötigt zuerst den Schredder-Praktikanten.
-RESEARCH_COMPLAINT_DESK,Bigger complaint desk,Größerer Beschwerdetisch
-RESEARCH_DESC_COMPLAINT_DESK,More space for complaints: 4 more fit into the box per level.,"Mehr Platz für Beschwerden: Pro Stufe passen 4 mehr in den Kasten."
 RESEARCH_COMPLAINT_TUBE,Complaint tube,Beschwerde-Rohrpost
 RESEARCH_DESC_COMPLAINT_TUBE,"A slow pneumatic tube from the complaint desk to the shredder. Each level sends a complaint faster, but the intern still has plenty to do. Needs the shredder intern.","Eine langsame Rohrpost vom Beschwerdetisch zum Schredder. Jede Stufe schickt schneller eine Beschwerde los, dem Praktikanten bleibt trotzdem genug zu tun. Benötigt den Schredder-Praktikanten."
 RESEARCH_INTERN_TRAINING,Intern training,Praktikanten-Schulung
@@ -777,172 +833,179 @@ REVIEW_OUTCOME_LOST,The court sided with the internet. The review now has one st
 ACTION_REVIEW_DELETE,Delete,Löschen lassen
 FMT_REVIEW_BANNER,Latest: %s,Neueste: %s
 FMT_RATING_CHIP,Average rating,Durchschnittsbewertung
-REVIEW_TEXT_5_1,"""Fast like a spa day. With paperwork.""",„Fast wie ein Wellness-Tag. Mit Papierkram.“
-REVIEW_TEXT_5_2,"""Friendly staff, quick stamp. I'm moving here.""","„Freundliches Personal, flotter Stempel. Ich ziehe hierher.“"
-REVIEW_TEXT_5_3,"""Never thought I would enjoy a queue. Five stars.""","„Hätte nie gedacht, dass mir Warten gefällt. Fünf Sterne.“"
-REVIEW_TEXT_5_4,"""The coffee was good and my application was done.""",„Der Kaffee war gut und mein Antrag erledigt.“
-REVIEW_TEXT_5_5,"""A well-oiled office. Whoever runs it deserves a raise.""","„Ein gut geöltes Amt. Wer das leitet, verdient eine Gehaltserhöhung.“"
-REVIEW_TEXT_5_6,"""Best office in town. I got a stamp and a smile.""",„Bestes Amt der Stadt. Ich bekam einen Stempel und ein Lächeln.“
-REVIEW_TEXT_5_7,"""Twelve minutes from door to done. I timed it twice.""",„Zwölf Minuten von der Tür bis erledigt. Ich habe zweimal gestoppt.“
-REVIEW_TEXT_5_8,"""I came for a permit and left with faith in humanity.""","„Kam wegen einer Genehmigung, ging mit neuem Glauben an die Menschheit.“"
-REVIEW_TEXT_5_9,"""The staff were awake! All of them!""",„Das Personal war wach! Alle!“
-REVIEW_TEXT_5_10,"""Five stars. I would wait here again. Voluntarily.""",„Fünf Sterne. Ich würde hier wieder warten. Freiwillig.“
-REVIEW_TEXT_5_11,"""Efficient, friendly, and the plant is thriving.""","„Effizient, freundlich, und die Pflanze gedeiht.“"
-REVIEW_TEXT_5_12,"""My file flew through the pneumatic tube. Pure magic.""",„Meine Akte flog durch die Rohrpost. Pure Magie.“
-REVIEW_TEXT_5_13,"""Solved in ten minutes what others needed ten years for.""","„In zehn Minuten gelöst, wofür andere zehn Jahre brauchten.“"
-REVIEW_TEXT_5_14,"""Clean, quick, kind. Tell your friends.""","„Sauber, schnell, freundlich. Erzählt es weiter.“"
-REVIEW_TEXT_5_15,"""No appointment and they still helped me. Unbelievable.""",„Ohne Termin und trotzdem geholfen. Unglaublich.“
-REVIEW_TEXT_5_16,"""The clerk explained everything twice without sighing.""","„Der Beamte erklärte alles zweimal, ohne zu seufzen.“"
-REVIEW_TEXT_5_17,"""So fast I thought I had done something wrong. I had not.""","„So schnell, dass ich dachte, ich hätte etwas falsch gemacht. Hatte ich nicht.“"
-REVIEW_TEXT_5_18,"""If every office worked like this, I would move to every town.""","„Wenn jedes Amt so arbeiten würde, zöge ich in jede Stadt.“"
-REVIEW_TEXT_5_19,"""Got a seat, got a number, got it done.""","„Sitzplatz bekommen, Nummer bekommen, fertig geworden.“"
-REVIEW_TEXT_5_20,"""Even the complaint desk was empty. Nobody complains here.""",„Sogar die Beschwerdestelle war leer. Hier beschwert sich niemand.“
-REVIEW_TEXT_5_21,"""Precise like clockwork, friendly like a bakery.""","„Präzise wie ein Uhrwerk, freundlich wie eine Bäckerei.“"
-REVIEW_TEXT_5_22,"""I brought a book. I did not get past page two.""",„Ich hatte ein Buch dabei. Bin nicht über Seite zwei hinausgekommen.“
-REVIEW_TEXT_5_23,"""Exemplary! I am framing my stamped form.""",„Vorbildlich! Ich rahme mein gestempeltes Formular ein.“
-REVIEW_TEXT_5_24,"""Everyone knew what they were doing. Strange feeling.""","„Alle wussten, was sie tun. Seltsames Gefühl.“"
-REVIEW_TEXT_5_25,"""My mother-in-law found nothing to criticise. Historic.""",„Meine Schwiegermutter fand nichts zu meckern. Historisch.“
-REVIEW_TEXT_5_26,"""Faster than ordering a pizza.""",„Schneller als eine Pizza bestellen.“
-REVIEW_TEXT_5_27,"""The intern at the complaint desk was bored. That says it all.""",„Der Praktikant an der Beschwerdestelle langweilte sich. Das sagt alles.“
-REVIEW_TEXT_5_28,"""Great team, great pace, great coffee smell.""","„Tolles Team, tolles Tempo, toller Kaffeeduft.“"
-REVIEW_TEXT_5_29,"""I wanted to complain about something. I found nothing.""",„Ich wollte mich über etwas beschweren. Ich fand nichts.“
-REVIEW_TEXT_5_30,"""Ten out of five stars. The form only allowed five.""",„Zehn von fünf Sternen. Das Formular erlaubte nur fünf.“
-REVIEW_TEXT_4_1,"""Quick and polite. Only the chairs could be softer.""",„Schnell und höflich. Nur die Stühle könnten weicher sein.“
-REVIEW_TEXT_4_2,"""Solid service. Lost one star for the form with seven copies.""",„Solider Service. Ein Stern Abzug für das Formular mit sieben Durchschlägen.“
-REVIEW_TEXT_4_3,"""Waited a bit, left satisfied.""","„Etwas gewartet, zufrieden gegangen.“"
-REVIEW_TEXT_4_4,"""Good office, but the sign pointed the wrong way.""","„Gutes Amt, aber das Schild zeigte in die falsche Richtung.“"
-REVIEW_TEXT_4_5,"""Efficient, a little cold, mostly fair.""","„Effizient, etwas kühl, überwiegend fair.“"
-REVIEW_TEXT_4_6,"""Quick service, kind words, only the coffee was for staff.""","„Schneller Service, nette Worte, nur der Kaffee war fürs Personal.“"
-REVIEW_TEXT_4_7,"""Better than expected. Much better than my last visit.""",„Besser als erwartet. Viel besser als mein letzter Besuch.“
-REVIEW_TEXT_4_8,"""In and out in twenty minutes. Is this still Germany?""",„In zwanzig Minuten rein und raus. Ist das noch Deutschland?“
-REVIEW_TEXT_4_9,"""The clerk even said goodbye. Four stars.""",„Der Beamte hat sich sogar verabschiedet. Vier Sterne.“
-REVIEW_TEXT_4_10,"""Short wait, clear answers. Chairs a bit hard.""","„Kurze Wartezeit, klare Antworten. Stühle etwas hart.“"
-REVIEW_TEXT_4_11,"""Very organised. I almost felt organised myself.""",„Sehr organisiert. Ich fühlte mich fast selbst organisiert.“
-REVIEW_TEXT_4_12,"""Friendly team. One of them hummed while stamping.""",„Freundliches Team. Einer summte beim Stempeln.“
-REVIEW_TEXT_4_13,"""Would have been five, but I parked badly.""","„Wären fünf gewesen, aber ich habe schlecht geparkt.“"
-REVIEW_TEXT_4_14,"""My application was done before my coffee got cold.""","„Mein Antrag war fertig, bevor mein Kaffee kalt wurde.“"
-REVIEW_TEXT_4_15,"""Good service, my number came up quickly.""","„Guter Service, meine Nummer kam schnell dran.“"
-REVIEW_TEXT_4_16,"""Helpful staff. The signs could be clearer.""",„Hilfsbereites Personal. Die Schilder könnten klarer sein.“
-REVIEW_TEXT_4_17,"""Everything right the first time. A small miracle.""",„Alles beim ersten Mal richtig. Ein kleines Wunder.“
-REVIEW_TEXT_4_18,"""Nice clerk, nice pen, nice stamp.""","„Netter Beamter, netter Kuli, netter Stempel.“"
-REVIEW_TEXT_4_19,"""Pleasant waiting area. I almost miss it.""",„Angenehmer Wartebereich. Fast vermisse ich ihn.“
-REVIEW_TEXT_4_20,"""They knew exactly where my file was. Impressive.""","„Man wusste genau, wo meine Akte war. Beeindruckend.“"
-REVIEW_TEXT_4_21,"""Fast and fair. One star off for the lift music.""",„Schnell und fair. Ein Stern Abzug für die Fahrstuhlmusik.“
-REVIEW_TEXT_4_22,"""No drama, no detours, just a stamp.""","„Kein Drama, keine Umwege, nur ein Stempel.“"
-REVIEW_TEXT_4_23,"""The queue looked long but moved fast.""","„Die Schlange sah lang aus, ging aber schnell.“"
-REVIEW_TEXT_4_24,"""I came prepared, and so did they.""","„Ich kam vorbereitet, die waren es auch.“"
-REVIEW_TEXT_4_25,"""Good office. My grandmother would approve.""",„Gutes Amt. Meine Oma wäre einverstanden.“
-REVIEW_TEXT_3_1,"""Okay. Not good, not bad, just very official.""","„Geht so. Nicht gut, nicht schlecht, nur sehr amtlich.“"
-REVIEW_TEXT_3_2,"""Got what I needed, lost an afternoon.""","„Bekommen, was ich brauchte, dafür einen Nachmittag verloren.“"
-REVIEW_TEXT_3_3,"""The stamp was fine. The mood was average.""",„Der Stempel war in Ordnung. Die Stimmung durchschnittlich.“
-REVIEW_TEXT_3_4,"""It worked out in the end. Eventually.""",„Am Ende hat es geklappt. Irgendwann.“
-REVIEW_TEXT_3_5,"""Three stars, one for each office I was sent to.""","„Drei Sterne, einer für jedes Amt, zu dem ich geschickt wurde.“"
-REVIEW_TEXT_3_6,"""Average office, average wait, average mood.""","„Durchschnittliches Amt, durchschnittliche Wartezeit, durchschnittliche Laune.“"
-REVIEW_TEXT_3_7,"""Not great, not terrible. Very German.""","„Nicht toll, nicht schlimm. Sehr deutsch.“"
-REVIEW_TEXT_3_8,"""It took a while, but the result is correct. I think.""","„Hat gedauert, aber das Ergebnis stimmt. Glaube ich.“"
-REVIEW_TEXT_3_9,"""Friendly staff, slow printer.""","„Freundliches Personal, langsamer Drucker.“"
-REVIEW_TEXT_3_10,"""The waiting area was full, but the clerk was quick.""","„Der Wartebereich war voll, aber der Beamte war flott.“"
-REVIEW_TEXT_3_11,"""Three stars. The fourth is still being processed.""",„Drei Sterne. Der vierte ist noch in Bearbeitung.“
-REVIEW_TEXT_3_12,"""I expected worse. Brought snacks for nothing.""",„Ich hatte Schlimmeres erwartet. Die Brote waren umsonst dabei.“
-REVIEW_TEXT_3_13,"""Small mistake in my papers, fixed with a smile.""","„Kleiner Fehler in meinen Unterlagen, mit einem Lächeln korrigiert.“"
-REVIEW_TEXT_3_14,"""Solid, but the smell of coffee made me jealous.""","„Solide, aber der Kaffeeduft machte mich neidisch.“"
-REVIEW_TEXT_3_15,"""All fine except for the forty minutes in the middle.""",„Alles gut bis auf die vierzig Minuten in der Mitte.“
-REVIEW_TEXT_3_16,"""The clerk woke up just in time for me.""",„Der Beamte ist pünktlich für mich aufgewacht.“
-REVIEW_TEXT_3_17,"""Sent to a second counter, but at least it was close.""","„Wurde an einen zweiten Schalter verwiesen, aber der war wenigstens nah.“"
-REVIEW_TEXT_3_18,"""Middle of the road. Just like the queue.""",„Mittelmaß. Genau wie die Schlange.“
-REVIEW_TEXT_3_19,"""Clean, quiet and a little sleepy.""","„Sauber, ruhig und etwas verschlafen.“"
-REVIEW_TEXT_3_20,"""A colleague was missing, so the boss covered the desk. Respect.""","„Ein Kollege fehlte, also hat die Leitung selbst den Platz übernommen. Respekt.“"
-REVIEW_TEXT_3_21,"""My stamp had a typo. They fixed it. Eventually.""",„Mein Stempel hatte einen Tippfehler. Wurde korrigiert. Irgendwann.“
-REVIEW_TEXT_3_22,"""Okay experience. I would come back if I had to. I have to.""","„Okayes Erlebnis. Ich würde wiederkommen, wenn ich müsste. Ich muss.“"
-REVIEW_TEXT_3_23,"""The forms are long, the answers are short.""","„Die Formulare sind lang, die Antworten kurz.“"
-REVIEW_TEXT_3_24,"""Fine. The chairs need cushions and the clock needs batteries.""",„In Ordnung. Die Stühle brauchen Kissen und die Uhr Batterien.“
-REVIEW_TEXT_3_25,"""Done before closing time. Just about.""",„Vor Feierabend erledigt. Knapp.“
-REVIEW_TEXT_3_26,"""Decent. The intern at the complaint desk deserves a hug.""",„Ordentlich. Der Praktikant an der Beschwerdestelle verdient eine Umarmung.“
-REVIEW_TEXT_3_27,"""My file took a detour via customs. No idea why.""","„Meine Akte machte einen Umweg über den Zoll. Keine Ahnung, warum.“"
-REVIEW_TEXT_3_28,"""Three stars, as calm as the clerk at counter 1.""","„Drei Sterne, so gelassen wie der Beamte an Schalter 1.“"
-REVIEW_TEXT_3_29,"""The number system works. The people less so.""",„Das Nummernsystem funktioniert. Die Menschen weniger.“
-REVIEW_TEXT_3_30,"""Satisfactory. Just like my old school report.""",„Befriedigend. Wie früher auf meinem Zeugnis.“
-REVIEW_TEXT_2_1,"""Staff were busy. With what, I could not tell.""","„Das Personal war beschäftigt. Womit, blieb unklar.“"
-REVIEW_TEXT_2_2,"""They lost my file twice. The second time on purpose.""",„Meine Akte ging zweimal verloren. Das zweite Mal mit Absicht.“
-REVIEW_TEXT_2_3,"""Two stars, because the plant in the lobby was alive.""","„Zwei Sterne, weil die Pflanze in der Halle lebte.“"
-REVIEW_TEXT_2_4,"""The queue moved slower than my tax refund.""",„Die Schlange war langsamer als meine Steuererstattung.“
-REVIEW_TEXT_2_5,"""Friendly in theory, absent in practice.""","„Freundlich in der Theorie, abwesend in der Praxis.“"
-REVIEW_TEXT_2_6,"""They were friendly. They were also on a break.""",„Sie waren freundlich. Sie waren auch in der Pause.“
-REVIEW_TEXT_2_7,"""Got my stamp. Lost my lunch break.""",„Stempel bekommen. Mittagspause verloren.“
-REVIEW_TEXT_2_8,"""Two stars: one for the stamp, one for surviving.""","„Zwei Sterne: einen für den Stempel, einen fürs Überleben.“"
-REVIEW_TEXT_2_9,"""The clerk was nice but had clearly never seen my form before.""","„Der Beamte war nett, hatte mein Formular aber offensichtlich noch nie gesehen.“"
-REVIEW_TEXT_2_10,"""Waited long. Was told to wait longer.""",„Lange gewartet. Dann hieß es: länger warten.“
-REVIEW_TEXT_2_11,"""It worked, but only on my third visit.""","„Hat geklappt, aber erst beim dritten Besuch.“"
-REVIEW_TEXT_2_12,"""The chairs were fine. The waiting was not.""",„Die Stühle waren in Ordnung. Das Warten nicht.“
-REVIEW_TEXT_2_13,"""Nice building. Shame about the queue.""",„Schönes Gebäude. Schade um die Schlange.“
-REVIEW_TEXT_2_14,"""They found my file. In the wrong department.""",„Sie haben meine Akte gefunden. In der falschen Abteilung.“
-REVIEW_TEXT_2_15,"""The staff tried. The coffee machine tried harder.""",„Das Personal gab sich Mühe. Die Kaffeemaschine gab sich mehr Mühe.“
-REVIEW_TEXT_2_16,"""Somebody was crying in the toilet. I joined in.""",„Auf der Toilette weinte jemand. Ich habe mitgeweint.“
-REVIEW_TEXT_2_17,"""A clerk finally helped me. Then he called in sick.""",„Endlich half mir ein Beamter. Dann meldete er sich krank.“
-REVIEW_TEXT_2_18,"""Efficiency was mentioned on a poster. Only there.""",„Effizienz stand auf einem Plakat. Nur dort.“
-REVIEW_TEXT_2_19,"""My number was called while I was in the toilet. Of course.""","„Meine Nummer kam, als ich auf der Toilette war. Natürlich.“"
-REVIEW_TEXT_2_20,"""Half an hour for a signature. The pen was empty.""",„Eine halbe Stunde für eine Unterschrift. Der Kuli war leer.“
-REVIEW_TEXT_2_21,"""The intern at the complaint desk looked more stressed than me.""",„Der Praktikant an der Beschwerdestelle wirkte gestresster als ich.“
-REVIEW_TEXT_2_22,"""Next time I will send my cousin. I owe him one.""",„Nächstes Mal schicke ich meinen Cousin. Ich schulde ihm was.“
-REVIEW_TEXT_2_23,"""Fast, once it started. It just never started.""","„Schnell, sobald es losging. Es ging nur nie los.“"
-REVIEW_TEXT_2_24,"""The clerk and his neighbour argued about a yoghurt. For ages.""",„Der Beamte und sein Nachbar stritten über einen Joghurt. Ewig.“
-REVIEW_TEXT_2_25,"""I received a receipt for my receipt.""",„Ich bekam eine Quittung für meine Quittung.“
-REVIEW_TEXT_2_26,"""Staff okay, signs terrible. I ended up in the boiler room.""","„Personal okay, Beschilderung furchtbar. Ich landete im Heizungskeller.“"
-REVIEW_TEXT_2_27,"""My form had to be filled in blue. I had black. Two stars.""",„Mein Formular musste in Blau sein. Ich hatte Schwarz. Zwei Sterne.“
-REVIEW_TEXT_2_28,"""Better than last year. I am still waiting from last year.""",„Besser als letztes Jahr. Auf letztes Jahr warte ich noch.“
-REVIEW_TEXT_2_29,"""The waiting area is lovely if you like standing.""","„Der Wartebereich ist schön, wenn man gern steht.“"
-REVIEW_TEXT_2_30,"""Someone took my seat while I was getting a number.""","„Jemand nahm meinen Platz, während ich eine Nummer zog.“"
-REVIEW_TEXT_2_31,"""A friendly greeting, then silence for 90 minutes.""","„Freundliche Begrüßung, dann 90 Minuten Stille.“"
-REVIEW_TEXT_2_32,"""My question was answered with a question. Then a form.""",„Meine Frage wurde mit einer Gegenfrage beantwortet. Dann mit einem Formular.“
-REVIEW_TEXT_2_33,"""Not the worst office. But it is working on it.""",„Nicht das schlimmste Amt. Aber es arbeitet daran.“
-REVIEW_TEXT_2_34,"""My application is 'in progress'. So is my patience.""",„Mein Antrag ist ‚in Bearbeitung‘. Meine Geduld auch.“
-REVIEW_TEXT_2_35,"""Two stars because the radio played my favourite song. Twice.""","„Zwei Sterne, weil das Radio mein Lieblingslied spielte. Zweimal.“"
-REVIEW_TEXT_1_1,"""One star. I waited so long that my ticket grew a beard.""","„Ein Stern. Ich habe so lange gewartet, dass mein Zettel einen Bart bekam.“"
-REVIEW_TEXT_1_2,"""The coffee machine was friendlier than the staff.""",„Die Kaffeemaschine war freundlicher als das Personal.“
-REVIEW_TEXT_1_3,"""Came for a stamp, left with a headache.""","„Wegen eines Stempels gekommen, mit Kopfschmerzen gegangen.“"
-REVIEW_TEXT_1_4,"""Would give zero stars, but the form only allows one.""","„Würde null Sterne geben, aber das Formular erlaubt nur einen.“"
-REVIEW_TEXT_1_5,"""Never again. Not even for a passport.""",„Nie wieder. Nicht mal für einen Reisepass.“
-REVIEW_TEXT_1_6,"""I waited four hours. The clerk said 'Next!' and went to lunch.""",„Vier Stunden gewartet. Der Beamte rief ‚Nächster!‘ und ging zur Mittagspause.“
-REVIEW_TEXT_1_7,"""My number was 312. They were at 14. In the afternoon.""",„Meine Nummer war 312. Aufgerufen wurde die 14. Nachmittags.“
-REVIEW_TEXT_1_8,"""I was told to come back tomorrow. I did. Same answer.""","„Man sagte mir, ich solle morgen wiederkommen. Hab ich. Gleiche Antwort.“"
-REVIEW_TEXT_1_9,"""The only thing moving here was the clock. Slowly.""","„Das Einzige, was sich hier bewegt hat, war die Uhr. Langsam.“"
-REVIEW_TEXT_1_10,"""I needed a form to get the form.""",„Für das Formular brauchte ich erst ein Formular.“
-REVIEW_TEXT_1_11,"""Three counters, one clerk, zero interest.""","„Drei Schalter, ein Beamter, null Interesse.“"
-REVIEW_TEXT_1_12,"""Somebody was snoring behind counter 2. Loudly.""",„Hinter Schalter 2 hat jemand geschnarcht. Laut.“
-REVIEW_TEXT_1_13,"""My application was rejected because of the wrong pen colour.""",„Mein Antrag wurde wegen der falschen Kugelschreiberfarbe abgelehnt.“
-REVIEW_TEXT_1_14,"""I asked a simple question and received a brochure.""",„Ich stellte eine einfache Frage und bekam eine Broschüre.“
-REVIEW_TEXT_1_15,"""The toilet was occupied for my entire visit. By staff.""",„Die Toilette war während meines ganzen Besuchs besetzt. Vom Personal.“
-REVIEW_TEXT_1_16,"""Came in with grey hair. Left with more of it.""",„Mit grauen Haaren gekommen. Mit mehr davon gegangen.“
-REVIEW_TEXT_1_17,"""Even the plant in the lobby looked like it had given up.""","„Sogar die Pflanze in der Halle sah aus, als hätte sie aufgegeben.“"
-REVIEW_TEXT_1_18,"""The waiting area had no chairs, but plenty of rules.""","„Der Wartebereich hatte keine Stühle, aber jede Menge Regeln.“"
-REVIEW_TEXT_1_19,"""I was sent to room 3. Room 3 sent me back.""",„Ich wurde zu Zimmer 3 geschickt. Zimmer 3 schickte mich zurück.“
-REVIEW_TEXT_1_20,"""Opening hours: Tuesdays, 9 to 9:15, except Tuesdays.""","„Öffnungszeiten: dienstags 9 bis 9:15 Uhr, außer dienstags.“"
-REVIEW_TEXT_1_21,"""My file is lost. Apparently it is 'in good hands'.""",„Meine Akte ist verschwunden. Angeblich ‚in guten Händen‘.“
-REVIEW_TEXT_1_22,"""The clerk sighed so deeply that my papers flew away.""","„Der Beamte seufzte so tief, dass meine Unterlagen wegflogen.“"
-REVIEW_TEXT_1_23,"""Missed my train, my lunch and my will to live.""","„Zug verpasst, Mittagessen verpasst, Lebensmut verpasst.“"
-REVIEW_TEXT_1_24,"""Twenty minutes of arguing about a window. I timed it.""",„Zwanzig Minuten Streit ums Fenster. Ich habe mitgestoppt.“
-REVIEW_TEXT_1_25,"""I complained at the complaint desk. Nobody was there.""",„Ich habe mich an der Beschwerdestelle beschwert. Es war niemand da.“
-REVIEW_TEXT_1_26,"""One star for the door. It opened.""",„Ein Stern für die Tür. Sie ging auf.“
-REVIEW_TEXT_1_27,"""The coffee smelled nice. Too bad it was not for us.""","„Der Kaffeeduft war schön. Schade, dass er nicht für uns war.“"
-REVIEW_TEXT_1_28,"""My stamp is crooked. Three hours for a crooked stamp.""",„Mein Stempel ist schief. Drei Stunden für einen schiefen Stempel.“
-REVIEW_TEXT_1_29,"""Half the staff were in the kitchen. The other half were looking for them.""",„Die Hälfte des Personals war in der Küche. Die andere Hälfte suchte sie.“
-REVIEW_TEXT_1_30,"""I brought a sandwich. I should have brought a tent.""",„Ich hatte ein Butterbrot dabei. Ich hätte ein Zelt mitbringen sollen.“
-REVIEW_TEXT_1_31,"""The phone rang the whole time. Nobody answered. Ever.""",„Das Telefon klingelte die ganze Zeit. Keiner ging ran. Nie.“
-REVIEW_TEXT_1_32,"""Reached the front, then heard: wrong queue.""",„Ganz vorne angekommen hieß es: falsche Schlange.“
-REVIEW_TEXT_1_33,"""I have visibly aged. Please send my birthday cards here.""",„Ich bin sichtbar gealtert. Geburtstagskarten bitte direkt hierher.“
-REVIEW_TEXT_1_34,"""The clerk asked if I had an appointment. I asked if he had a pulse.""","„Der Beamte fragte, ob ich einen Termin habe. Ich fragte, ob er einen Puls hat.“"
-REVIEW_TEXT_1_35,"""My complaint was shredded before I finished writing it.""","„Meine Beschwerde wurde geschreddert, bevor ich fertig geschrieben hatte.“"
-REVIEW_TEXT_1_36,"""Worse than the dentist. At least the dentist has magazines.""",„Schlimmer als beim Zahnarzt. Der hat wenigstens Zeitschriften.“
-REVIEW_TEXT_1_37,"""My parking ticket cost more than the fee. And it still expired.""",„Mein Parkschein kostete mehr als die Gebühr. Und lief trotzdem ab.“
-REVIEW_TEXT_1_38,"""I would like to file a complaint about this review form.""",„Ich möchte mich über dieses Bewertungsformular beschweren.“
-REVIEW_TEXT_1_39,"""The sign said 'Back in 5 minutes'. It was a lie.""",„Auf dem Schild stand ‚Bin in 5 Minuten zurück‘. Es war gelogen.“
-REVIEW_TEXT_1_40,"""Kafka would have called this exaggerated.""",„Kafka hätte das für übertrieben gehalten.“
-REVIEW_FORCED_1,"""Five stars. Truly. The management insisted so kindly.""",„Fünf Sterne. Wirklich. Die Leitung hat so freundlich darauf bestanden.“
-REVIEW_FORCED_2,"""Wonderful service. I have been asked to say so, in writing.""","„Wunderbarer Service. Ich wurde gebeten, das schriftlich zu sagen.“"
-REVIEW_FORCED_3,"""Everything was perfect. My lawyer agrees. Strongly.""",„Alles war perfekt. Mein Anwalt stimmt zu. Nachdrücklich.“
-REVIEW_FORCED_4,"""I was wrong and I am glad the office helped me see it.""","„Ich lag falsch und bin froh, dass das Amt mir die Augen geöffnet hat.“"
-REVIEW_FORCED_5,"""Great office. Nobody is forcing me to write this.""","„Tolles Amt. Niemand zwingt mich, das zu schreiben.“"
-REVIEW_FORCED_6,"""Five stars, as agreed. Please stop calling.""","„Fünf Sterne, wie vereinbart. Bitte ruft nicht mehr an.“"
+REVIEW_TEXT_5_1,"""I brought cake for the staff because I expected to be there for hours. I was done in ten minutes. They can keep the cake anyway. Earned is earned.""","„Ich hatte Kuchen für die Beamten mitgebracht, weil ich mit Stunden gerechnet hatte. Nach zehn Minuten war ich fertig. Den Kuchen dürfen sie trotzdem behalten. Verdient ist verdient.“"
+REVIEW_TEXT_5_2,"""The clerk said 'You're welcome'. I have been dealing with public offices for forty years and always thought that was a myth.""",„Der Beamte hat ‚Gern geschehen‘ gesagt. Ich bin seit 40 Jahren Behördenkunde und hielt das bisher für ein Gerücht.“
+REVIEW_TEXT_5_3,"""Everything ran so smoothly that I briefly assumed I had wandered into Switzerland.""","„Alles lief so reibungslos, dass ich kurz dachte, ich hätte mich in die Schweiz verlaufen.“"
+REVIEW_TEXT_5_4,"""Punctual, friendly, stamped. If the trains worked like this, I would weep with joy.""","„Pünktlich, freundlich, gestempelt. Wenn die Bahn so wäre, würde ich vor Glück weinen.“"
+REVIEW_TEXT_5_5,"""An office like an orchestra: the stamps keep perfect time and the pneumatic tubes hiss the chorus. Whoever conducts this deserves a raise.""","„Ein Amt wie ein Orchester: Die Stempel knallen im Takt, die Rohrpost zischt den Refrain. Wer das dirigiert, verdient eine Gehaltserhöhung.“"
+REVIEW_TEXT_5_6,"""I am a retired civil servant and only came to find mistakes. I found none. I am deeply unsettled. Five stars.""","„Ich bin Beamter im Ruhestand und kam eigentlich nur, um Fehler zu finden. Ich habe keinen gefunden. Ich bin zutiefst verunsichert. Fünf Sterne.“"
+REVIEW_TEXT_5_7,"""From the door to the decision: twelve minutes. I timed it twice, because nobody at home would believe me otherwise.""","„Von der Tür bis zum Bescheid: zwölf Minuten. Ich habe zweimal nachgestoppt, weil mir zu Hause sonst niemand glaubt.“"
+REVIEW_TEXT_5_8,"""I came for a permit and left with renewed faith in the rule of law. And the permit, of course.""",„Kam wegen einer Genehmigung und ging mit neuem Vertrauen in den Rechtsstaat. Und mit der Genehmigung natürlich.“
+REVIEW_TEXT_5_9,"""Nobody was asleep, nobody was gossiping in the kitchen, nobody was reading the paper in the toilets. I counted. Everyone was there. Everyone!""","„Kein Beamter schlief, keiner tratschte in der Küche, keiner las auf der Toilette Zeitung. Ich habe nachgezählt. Alle waren da. Alle!“"
+REVIEW_TEXT_5_10,"""Five stars. I would happily wait here again. Voluntarily. And this comes from someone who waits in the car at the doctor's.""","„Fünf Sterne. Ich würde hier jederzeit wieder warten. Freiwillig. Und das schreibt jemand, der beim Arzt grundsätzlich im Auto wartet.“"
+REVIEW_TEXT_5_11,"""Five stars, one of them explicitly for the plant in the hall. It looks like it is pulling its weight.""","„Fünf Sterne, und einer davon geht ausdrücklich an die Pflanze in der Halle. Sie sieht aus, als würde sie mitarbeiten.“"
+REVIEW_TEXT_5_12,"""My file shot off through the pneumatic tube like a tiny bureaucratic comet. I waved it goodbye. Ten minutes later it came back stamped.""",„Meine Akte sauste mit der Rohrpost davon wie ein kleiner Verwaltungskomet. Ich habe ihr nachgewinkt. Zehn Minuten später kam sie gestempelt zurück.“
+REVIEW_TEXT_5_13,"""In fifteen minutes they managed what my home town office has been failing at since 2017. I am thinking of moving here. Registering would be quick, at least.""","„Hier wurde in einer Viertelstunde geschafft, woran mein Heimatamt seit 2017 scheitert. Ich überlege, hierherzuziehen. Das Ummelden ginge ja schnell.“"
+REVIEW_TEXT_5_14,"""I brought three binders, copies of everything and a power of attorney for my power of attorney. They only needed my ID. The relief was overwhelming.""","„Ich hatte drei Ordner, Kopien von allem und eine Vollmacht für meine Vollmacht dabei. Gebraucht wurde nur der Ausweis. Die Erleichterung war überwältigend.“"
+REVIEW_TEXT_5_15,"""No appointment, still served, even smiled at. I had to sit down on a bench afterwards.""","„Ohne Termin gekommen, trotzdem drangekommen, sogar angelächelt worden. Ich musste mich danach kurz auf eine Bank setzen.“"
+REVIEW_TEXT_5_16,"""The clerk explained everything twice without sighing. The second time he even drew a diagram. It is going on my fridge.""","„Der Sachbearbeiter hat mir alles zweimal erklärt, ohne zu seufzen. Beim zweiten Mal hat er sogar ein Schaubild gemalt. Das kommt an meinen Kühlschrank.“"
+REVIEW_TEXT_5_17,"""So fast I was sure I had done something wrong. I had not. I went back three times to ask.""","„So schnell, dass ich sicher war, etwas falsch gemacht zu haben. Hatte ich nicht. Ich bin noch dreimal zurückgegangen, um nachzufragen.“"
+REVIEW_TEXT_5_18,"""The clerk spelled my surname correctly on the first attempt. It is Szczepański. Five stars and a hug, if that is allowed.""","„Die Beamtin hat meinen Nachnamen beim ersten Versuch richtig geschrieben. Er lautet Szczepański. Fünf Sterne und eine Umarmung, falls das erlaubt ist.“"
+REVIEW_TEXT_5_19,"""I took a ticket and was called before the machine had finished printing it. I kept it as a souvenir. It was still warm.""","„Wartemarke gezogen und aufgerufen worden, bevor der Automat fertig gedruckt hatte. Ich habe den Zettel als Andenken behalten. Er war noch warm.“"
+REVIEW_TEXT_5_20,"""The clerk at reception asked how I was and actually waited for the answer. I was so taken aback that I told him the truth.""","„Der Beamte am Empfang hat gefragt, wie es mir geht, und tatsächlich auf die Antwort gewartet. Ich war so überrumpelt, dass ich ehrlich geantwortet habe.“"
+REVIEW_TEXT_5_21,"""Precise as clockwork and as warm as the corner bakery where they still know your name.""","„Präzise wie ein Uhrwerk und herzlich wie die Bäckerei, in der man noch beim Vornamen genannt wird.“"
+REVIEW_TEXT_5_22,"""I packed a 600-page novel for the wait. I never got past the foreword. Five stars, but the novel is offended.""","„Ich hatte für die Wartezeit einen Roman mit 600 Seiten eingepackt. Ich kam nicht über das Vorwort hinaus. Fünf Sterne, aber der Roman ist beleidigt.“"
+REVIEW_TEXT_5_23,"""Exemplary. My stamped notice now hangs framed in the hallway, right next to our wedding photo. My wife thinks it hangs a little too high.""","„Vorbildlich. Mein gestempelter Bescheid hängt jetzt gerahmt im Flur, gleich neben dem Hochzeitsfoto. Meine Frau findet, er hängt eine Spur zu weit oben.“"
+REVIEW_TEXT_5_24,"""Everyone knew what they were doing, and actually did it. A disturbingly beautiful feeling. I need a few days to process this.""","„Alle wussten, was sie tun, und taten es auch. Ein verstörend schönes Gefühl. Ich brauche ein paar Tage, um das zu verarbeiten.“"
+REVIEW_TEXT_5_25,"""My mother-in-law found nothing to criticise. She tried for two hours. A historic day.""","„Meine Schwiegermutter hat nichts gefunden, worüber sie meckern könnte. Sie hat es zwei Stunden lang versucht. Ein historischer Tag.“"
+REVIEW_TEXT_5_26,"""My application was done before my parking ticket expired. Nobody in this town has ever managed that. I have a photo as proof.""","„Mein Antrag war fertig, bevor mein Parkschein abgelaufen ist. Das hat in dieser Stadt noch niemand geschafft. Ich habe ein Foto als Beweis.“"
+REVIEW_TEXT_5_27,"""The complaint box was empty and the intern next to it was so bored he was sorting paper clips. By size. That says everything about this office.""","„Der Beschwerde-Briefkasten war leer, und der Praktikant daneben sortierte vor Langeweile Büroklammern. Nach Größe. Das sagt eigentlich alles über dieses Amt.“"
+REVIEW_TEXT_5_28,"""My son came along for emotional support. We were done in ten minutes and still had time for ice cream. Now he wants to be a civil servant.""",„Mein Sohn hat mich zur emotionalen Unterstützung begleitet. Wir waren nach zehn Minuten fertig und hatten noch Zeit für ein Eis. Jetzt will er Beamter werden.“
+REVIEW_TEXT_5_29,"""Five stars. I fully intended to grumble, but found nothing. Now I have a whole afternoon of bad mood and nowhere to put it.""","„Fünf Sterne. Ich wollte eigentlich meckern, habe aber nichts gefunden. Jetzt habe ich den ganzen Nachmittag schlechte Laune und weiß nicht, wohin damit.“"
+REVIEW_TEXT_5_30,"""Ten out of five stars. The form only allowed five. I have applied for the rest informally.""",„Zehn von fünf Sternen. Das Formular ließ nur fünf zu. Den Rest habe ich formlos beantragt.“
+REVIEW_TEXT_4_1,"""Quick and polite. One star off because the pen on the chain is so short I had to curtsey to sign.""","„Schnell und höflich. Ein Stern Abzug, weil der Kugelschreiber an der Kette so kurz ist, dass ich beim Unterschreiben einen Hofknicks machen musste.“"
+REVIEW_TEXT_4_2,"""Solid service. One star off for the form with seven carbon copies. By the seventh, my signature was more of a rumour.""",„Solider Service. Einen Stern ziehe ich für das Formular mit sieben Durchschlägen ab. Auf dem siebten war meine Unterschrift nur noch eine Ahnung.“
+REVIEW_TEXT_4_3,"""Application through in twenty minutes. I am keeping one star as leverage for my next visit.""",„Antrag in zwanzig Minuten durch. Einen Stern behalte ich als Druckmittel für den nächsten Besuch.“
+REVIEW_TEXT_4_4,"""Good office. The exit sign pointed into a broom cupboard, though. A very tidy broom cupboard, I must say.""",„Gutes Amt. Das Schild zum Ausgang zeigte allerdings in die Abstellkammer. Dort war es übrigens auch sehr ordentlich.“
+REVIEW_TEXT_4_5,"""Efficient, correct and a tiny bit frosty. Like a fridge that processes forms. I mean that as a compliment.""","„Effizient, korrekt und ein kleines bisschen unterkühlt. Wie ein Kühlschrank, der Formulare bearbeitet. Das ist als Kompliment gemeint.“"
+REVIEW_TEXT_4_6,"""Quick service, kind words. One star off because on my way out I wandered into a staff meeting by mistake and only escaped forty minutes later.""","„Schneller Service, nette Worte. Ein Stern Abzug, weil ich auf dem Weg nach draußen versehentlich in eine Dienstbesprechung geraten bin und erst nach vierzig Minuten wieder herauskam.“"
+REVIEW_TEXT_4_7,"""Four stars. I only give five to my wife, and only on public holidays.""","„Vier Sterne. Fünf gibt es bei mir grundsätzlich nur für meine Frau, und auch da nur an Feiertagen.“"
+REVIEW_TEXT_4_8,"""In and out in twenty minutes. Outside, I checked the town sign to make sure I was still in Germany.""","„In zwanzig Minuten rein und wieder raus. Draußen habe ich erst mal auf das Ortsschild geschaut, ob ich noch in Deutschland bin.“"
+REVIEW_TEXT_4_9,"""The clerk praised my application. One star off because she added 'for a layperson'.""","„Die Beamtin hat meinen Antrag gelobt. Einen Stern Abzug, weil sie dabei ‚für einen Laien‘ gesagt hat.“"
+REVIEW_TEXT_4_10,"""Short wait, clear answers. The chairs, however, are so hard that my tailbone will be filing its own complaint.""","„Kurze Wartezeit, klare Antworten. Die Stühle sind allerdings so hart, dass mein Steißbein eine eigene Beschwerde einreichen wird.“"
+REVIEW_TEXT_4_11,"""Very organised. So organised that I sat down to do my tax return as soon as I got home. The feeling lasted ten minutes.""","„Sehr organisiert. So organisiert, dass ich mich zu Hause sofort an meine Steuererklärung gesetzt habe. Das Gefühl hielt zehn Minuten.“"
+REVIEW_TEXT_4_12,"""Friendly team. One of them hummed while stamping, perfectly in time. One star off because it was polka.""","„Freundliches Team. Einer summte beim Stempeln, und zwar im Takt. Ein Stern Abzug, weil es Schlager war.“"
+REVIEW_TEXT_4_13,"""Would have been five stars, but I parked badly and need to take it out on someone.""","„Es wären fünf Sterne gewesen, aber ich habe schlecht geparkt und muss das irgendwo loswerden.“"
+REVIEW_TEXT_4_14,"""My application was done before my tea had cooled enough to drink. One star off because I then had to drink hot tea on the bus.""","„Mein Antrag war bearbeitet, bevor mein mitgebrachter Tee trinkbar war. Ein Stern Abzug, weil ich ihn dann kochend heiß im Bus trinken musste.“"
+REVIEW_TEXT_4_15,"""Good office. My ticket was number 404, though, and for a moment I feared I would never be found.""","„Gutes Amt. Meine Wartemarke trug allerdings die Nummer 404, und ich hatte kurz Angst, nie gefunden zu werden.“"
+REVIEW_TEXT_4_16,"""Helpful staff, baffling signs. One arrow pointed upwards. We were on the ground floor and there are no stairs.""","„Hilfsbereites Personal, rätselhafte Beschilderung. Ein Pfeil zeigte nach oben. Wir waren im Erdgeschoss, und es gibt keine Treppe.“"
+REVIEW_TEXT_4_17,"""Everything right the first time. I asked again to be safe, and it was still right. A small miracle with a file number.""","„Alles beim ersten Mal richtig. Ich habe zur Sicherheit noch einmal nachgefragt, und es war immer noch richtig. Ein kleines Wunder mit Aktenzeichen.“"
+REVIEW_TEXT_4_18,"""Worked wonderfully. One star off because the man ahead of me in the queue recited his entire medical history and the office did nothing to stop him.""","„Hat wunderbar geklappt. Ein Stern Abzug, weil der Herr vor mir in der Schlange seine gesamte Krankengeschichte erzählt hat und das Amt nichts dagegen unternommen hat.“"
+REVIEW_TEXT_4_19,"""Much better than the office in the next town. I have been number 52 there for three years and was recently invited to their Christmas party.""",„Viel besser als das Amt im Nachbarort. Dort bin ich seit drei Jahren die Nummer 52 und wurde kürzlich zur Weihnachtsfeier eingeladen.“
+REVIEW_TEXT_4_20,"""They knew exactly where my file was. I did not, and it is my file. Impressive.""","„Man wusste sofort, wo meine Akte war. Ich wusste es selbst nicht, und es ist meine Akte. Beeindruckend.“"
+REVIEW_TEXT_4_21,"""Almost perfect. Unfortunately two clerks argued about the thermostat so loudly that I could barely hear my own request. For the record, I vote 21 degrees.""","„Fast perfekt. Leider stritten zwei Beamte so laut über das Thermostat, dass ich mein eigenes Anliegen kaum verstand. Ich war übrigens für 21 Grad.“"
+REVIEW_TEXT_4_22,"""No drama, no detours, no counter-questions. Just a stamp. I am almost disappointed, I had prepared three arguments.""","„Kein Drama, keine Umwege, keine Gegenfragen. Nur ein Stempel. Ich bin fast ein bisschen enttäuscht, ich hatte drei Argumente vorbereitet.“"
+REVIEW_TEXT_4_23,"""The queue looked like one for a pop concert but moved faster than any pop concert queue ever has. Only the music was missing.""","„Die Schlange sah aus wie bei einem Popkonzert, kam aber schneller voran als jede Konzertschlange. Nur die Musik fehlte.“"
+REVIEW_TEXT_4_24,"""I asked a short question and got a short answer. That is so rare that I am reporting it to the local history museum.""","„Ich habe eine kurze Frage gestellt und eine kurze Antwort bekommen. Das kommt so selten vor, dass ich es dem Heimatmuseum melden werde.“"
+REVIEW_TEXT_4_25,"""Good office. My grandmother would have approved, and my grandmother approved of nothing. Not even the weather.""","„Gutes Amt. Meine Oma wäre einverstanden gewesen, und meine Oma war mit nichts einverstanden. Nicht einmal mit dem Wetter.“"
+REVIEW_TEXT_3_1,"""So-so. Not good, not bad, just exactly as official as you imagine when you close your eyes.""","„Geht so. Nicht gut, nicht schlecht, sondern genau so amtlich, wie man es sich mit geschlossenen Augen vorstellt.“"
+REVIEW_TEXT_3_2,"""Got what I needed, lost an afternoon. If anyone finds it: it is grey and smells of photocopier.""","„Bekommen, was ich brauchte, dafür einen Nachmittag verloren. Falls ihn jemand findet: Er ist grau und riecht nach Kopierer.“"
+REVIEW_TEXT_3_3,"""My notice arrived, but my name has two n's on it. I am now officially someone else. You get used to anything.""","„Mein Bescheid ist da, aber mein Name steht mit zwei ‚n‘ drauf. Ich heiße jetzt offiziell anders. Man gewöhnt sich an alles.“"
+REVIEW_TEXT_3_4,"""It worked out in the end. Eventually. I just no longer know when the end began.""","„Am Ende hat es geklappt. Irgendwann. Ich weiß nur nicht mehr genau, wann das Ende angefangen hat.“"
+REVIEW_TEXT_3_5,"""Three stars, one for each counter I was sent to. Lucky there were only three.""","„Drei Sterne, einen für jeden Schalter, an den ich weitergeleitet wurde. Zum Glück waren es nur drei.“"
+REVIEW_TEXT_3_6,"""According to my notice, I was born in the future. I feel very young, but I fear trouble with my pension fund.""","„Laut Bescheid liegt mein Geburtsdatum in der Zukunft. Ich fühle mich sehr jung, befürchte aber Ärger mit der Rentenkasse.“"
+REVIEW_TEXT_3_7,"""Not great, not terrible. Very German. I nodded involuntarily on the way out.""","„Nicht toll, nicht schlimm. Sehr deutsch. Ich habe beim Rausgehen unwillkürlich genickt.“"
+REVIEW_TEXT_3_8,"""Took a while, but the result is correct. I think. The notice is written in the kind of English I last read in a boiler manual.""","„Hat gedauert, aber das Ergebnis stimmt. Glaube ich. Der Bescheid ist in einem Deutsch verfasst, das ich zuletzt in der Bedienungsanleitung eines Heizkessels gelesen habe.“"
+REVIEW_TEXT_3_9,"""Friendly staff, very slow printer. I watched it print and learned a lot about patience and about myself.""","„Freundliches Personal, sehr langsamer Drucker. Ich habe ihm beim Drucken zugesehen und dabei viel über Geduld und über mich selbst gelernt.“"
+REVIEW_TEXT_3_10,"""Under 'occupation', my notice now says 'citizen'. True enough, but that was not the question.""","„Auf meinem Bescheid steht unter ‚Beruf‘ jetzt ‚Bürger‘. Das stimmt zwar, war aber nicht die Frage.“"
+REVIEW_TEXT_3_11,"""Three stars. The fourth is still being processed, the fifth was referred to another department.""","„Drei Sterne. Der vierte ist noch in Bearbeitung, der fünfte wurde an eine andere Abteilung verwiesen.“"
+REVIEW_TEXT_3_12,"""The clerk ticked the wrong box, but in beautifully neat handwriting. If it has to be wrong, at least make it tidy.""","„Die Beamtin hat das falsche Kästchen angekreuzt, aber in sehr sauberer Handschrift. Wenn schon falsch, dann wenigstens ordentlich.“"
+REVIEW_TEXT_3_13,"""A small mistake in my papers. They corrected it with a smile, then set me a deadline for further documents with the very same smile.""",„Kleiner Fehler in meinen Unterlagen. Man hat ihn mit einem Lächeln korrigiert und mir dann mit demselben Lächeln eine Nachreichfrist gesetzt.“
+REVIEW_TEXT_3_14,"""Three stars. One for the stamp, one for the seats and one for the gentleman next to me who shortened the wait with stories about his cacti.""","„Drei Sterne. Einer für den Stempel, einer für die Sitzplätze und einer für den Herrn neben mir, der mir die Wartezeit mit Geschichten über seine Kakteen verkürzt hat.“"
+REVIEW_TEXT_3_15,"""I found a mistake in my notice and reported it politely. They thanked me and handed me a form for reporting mistakes.""",„Ich habe einen Fehler in meinem Bescheid gefunden und freundlich gemeldet. Man hat sich bedankt und mir ein Formular zum Melden von Fehlern gegeben.“
+REVIEW_TEXT_3_16,"""The clerk woke up just in time for me. I felt honoured and a little guilty.""",„Der Beamte ist genau rechtzeitig für mich aufgewacht. Ich fühlte mich geehrt und ein bisschen schuldig.“
+REVIEW_TEXT_3_17,"""I was sent to a second counter, but it was right next door. By German standards, that is practically customer service.""","„Ich wurde an einen zweiten Schalter verwiesen, aber der war direkt nebenan. Für deutsche Verhältnisse ist das praktisch Kundenservice.“"
+REVIEW_TEXT_3_18,"""Faster than I feared, slower than I hoped. That places the office squarely in the middle of my expectations of life.""",„Es ging schneller als befürchtet und langsamer als erhofft. Damit liegt das Amt exakt im Mittelfeld meiner Lebenserwartungen.“
+REVIEW_TEXT_3_19,"""Clean, quiet and a little sleepy. Like a Sunday, but with forms.""","„Sauber, ruhig und etwas verschlafen. Wie ein Sonntag, nur mit Formularen.“"
+REVIEW_TEXT_3_20,"""A clerk was missing, so the head of the office covered the desk personally. Respect. You could tell, though, that they had not held an application in years.""","„Ein Kollege fehlte, also hat die Amtsleitung den Platz selbst übernommen. Respekt. Man merkte allerdings, dass sie seit Jahren keinen Antrag mehr in der Hand hatte.“"
+REVIEW_TEXT_3_21,"""My stamp had a typo. I did not know stamps could have typos. It was corrected. Eventually.""","„Mein Stempel hatte einen Tippfehler. Ich wusste gar nicht, dass das bei Stempeln geht. Er wurde korrigiert. Irgendwann.“"
+REVIEW_TEXT_3_22,"""Okay experience. I would come back if I had to. According to the notice, I have to. In six weeks. With a form.""","„Okayes Erlebnis. Ich würde wiederkommen, wenn ich müsste. Laut Bescheid muss ich. In sechs Wochen. Mit Formular.“"
+REVIEW_TEXT_3_23,"""The forms are long, the answers are short. Somewhere in between lies my application, waiting for reinforcements.""","„Die Formulare sind lang, die Antworten kurz. Irgendwo dazwischen liegt mein Antrag und wartet auf Verstärkung.“"
+REVIEW_TEXT_3_24,"""Fine. The chairs need cushions, the clock needs batteries and the man at counter 2 needs a coffee.""","„In Ordnung. Die Stühle brauchen Kissen, die Uhr braucht Batterien und der Mann an Schalter 2 einen Kaffee.“"
+REVIEW_TEXT_3_25,"""Done just before closing time. The clerk kept glancing at the clock in a way that made me want to apologise for being born.""","„Kurz vor Feierabend erledigt. Der Beamte schaute dabei so auf die Uhr, dass ich mich fast dafür entschuldigt hätte, überhaupt geboren zu sein.“"
+REVIEW_TEXT_3_26,"""Decent. The intern at the shredder deserves a hug, a pay rise and probably therapy.""","„Ordentlich. Der Praktikant am Schredder verdient allerdings eine Umarmung, eine Gehaltserhöhung und vermutlich eine Therapie.“"
+REVIEW_TEXT_3_27,"""My case was 'slightly flawed'. I was told so in the same tone dentists use for 'this will only sting a little'.""","„Mein Fall war ‚leicht fehlerhaft‘. Das wurde mir in demselben Ton mitgeteilt, in dem Zahnärzte ‚Das piekst jetzt kurz‘ sagen.“"
+REVIEW_TEXT_3_28,"""Three stars, as calm as the clerk at counter 1, who did not even look up when his stamp fell off the desk.""","„Drei Sterne, so gelassen wie der Beamte an Schalter 1, der nicht einmal aufsah, als ihm der Stempel vom Tisch fiel.“"
+REVIEW_TEXT_3_29,"""The ticket system works flawlessly. The people behind it work according to their mood of the day. Today was a middling one.""",„Das Nummernsystem funktioniert tadellos. Die Menschen dahinter funktionieren nach Tagesform. Heute war eine mittlere.“
+REVIEW_TEXT_3_30,"""Satisfactory. That is what my school reports used to say, and I turned out fine. Perhaps there is hope for this office too.""","„Befriedigend. Das stand früher auch auf meinem Zeugnis, und aus mir ist trotzdem etwas geworden. Vielleicht gilt das auch für dieses Amt.“"
+REVIEW_TEXT_2_1,"""At reception they told me it would be really quick. Apparently that is a technical term with its own meaning.""","„Am Empfang sagte man mir, das gehe ganz schnell. Das ist hier offenbar ein Fachbegriff mit eigener Bedeutung.“"
+REVIEW_TEXT_2_2,"""They lost my file twice. The second time I got the impression it wanted to leave.""","„Meine Akte ging zweimal verloren. Beim zweiten Mal hatte ich den Eindruck, sie wollte weg.“"
+REVIEW_TEXT_2_3,"""Two stars. One goes to the plant in the hall, the only other living thing that endured what I endured.""","„Zwei Sterne. Einer davon geht an die Pflanze in der Halle, die als Einzige ausgehalten hat, was ich ausgehalten habe.“"
+REVIEW_TEXT_2_4,"""The queue moved slower than my tax refund, and that famously arrives by stagecoach.""","„Die Schlange bewegte sich langsamer als meine Steuererstattung, und die kommt bekanntlich per Postkutsche.“"
+REVIEW_TEXT_2_5,"""Friendly in theory, absent in practice. I mostly saw the staff from behind, on their way to the kitchen.""","„Freundlich in der Theorie, abwesend in der Praxis. Ich habe das Personal vor allem von hinten gesehen, auf dem Weg in die Küche.“"
+REVIEW_TEXT_2_6,"""The sign says lunch break 8am to 5pm. I thought it was a joke. It is a promise.""","„Laut Schild ist von 8 bis 17 Uhr Mittagspause. Ich dachte, das sei ein Scherz. Es ist ein Versprechen.“"
+REVIEW_TEXT_2_7,"""This office has pneumatic tubes. My file reached the next room in seconds. Then it lay there for three hours. Technology is not everything.""",„Das Amt hat eine Rohrpost. Meine Akte war damit in Sekunden im Nachbarbüro. Dort lag sie dann drei Stunden. Technik ist eben nicht alles.“
+REVIEW_TEXT_2_8,"""Two stars: one for the stamp and one for leaving the building on my own two feet.""","„Zwei Sterne: einen für den Stempel und einen dafür, dass ich das Gebäude aus eigener Kraft verlassen konnte.“"
+REVIEW_TEXT_2_9,"""The clerk tried hard, but had clearly never seen my form before. We got to know it together. It was a long first date.""","„Der Beamte war bemüht, hatte mein Formular aber sichtlich noch nie gesehen. Wir haben es gemeinsam kennengelernt. Es war ein langes erstes Date.“"
+REVIEW_TEXT_2_10,"""Waited ages. Then I was asked to be patient a little longer. I have always wondered how much patience a person has. Now I know: two hours and eleven minutes.""","„Lange gewartet. Dann bat man mich, mich noch etwas zu gedulden. Ich wollte immer wissen, wie viel Geduld ein Mensch hat. Jetzt weiß ich es: zwei Stunden und elf Minuten.“"
+REVIEW_TEXT_2_11,"""I was passed on three times and ended up back at reception, where they greeted me like an old friend.""",„Ich wurde dreimal weitergeleitet und landete am Ende wieder am Empfang. Dort begrüßte man mich wie einen alten Bekannten.“
+REVIEW_TEXT_2_12,"""I completed my office bingo while waiting: snorer, endless phone ringing, window feud and a man with a flask. Sadly there is no prize.""","„Ich habe beim Warten mein Amts-Bingo vollbekommen: Schnarcher, Dauerklingeln, Fensterstreit und ein Mann mit Thermoskanne. Leider gibt es keinen Preis.“"
+REVIEW_TEXT_2_13,"""A friendly greeting, then 90 minutes of silence. I counted the ceiling tiles. There are 214. One is missing.""","„Freundliche Begrüßung, danach 90 Minuten Stille. Ich habe in der Zeit die Deckenplatten gezählt. Es sind 214. Eine fehlt.“"
+REVIEW_TEXT_2_14,"""They found my file. In the wrong department, between two tax returns and a fish roll.""","„Sie haben meine Akte gefunden. In der falschen Abteilung, zwischen zwei Steuererklärungen und einem Fischbrötchen.“"
+REVIEW_TEXT_2_15,"""The staff tried. The coffee machine tried harder. At least it hissed at me when I walked past.""","„Das Personal gab sich Mühe. Die Kaffeemaschine gab sich mehr Mühe. Sie hat mich wenigstens angezischt, als ich vorbeikam.“"
+REVIEW_TEXT_2_16,"""The intern was crying in the toilets. I joined in. We both had our reasons.""",„Auf der Toilette weinte der Praktikant. Ich habe mitgeweint. Wir hatten beide unsere Gründe.“
+REVIEW_TEXT_2_17,"""Finally a clerk helped me. Then he went to fetch his own coffee. I watched him go like a departing train.""",„Endlich half mir ein Beamter. Dann ging er sich selbst einen Kaffee holen. Ich habe ihm nachgesehen wie einem abfahrenden Zug.“
+REVIEW_TEXT_2_18,"""A poster in the corridor said 'We are here for you'. It did not say where.""","„Auf einem Plakat im Flur stand ‚Wir sind für Sie da‘. Wo genau, stand nicht drauf.“"
+REVIEW_TEXT_2_19,"""My number was called in exactly the three minutes I spent in the toilet. The office has excellent timing. Just not in my favour.""","„Meine Nummer kam genau in den drei Minuten, in denen ich auf der Toilette war. Das Amt hat ein hervorragendes Timing, nur leider gegen mich.“"
+REVIEW_TEXT_2_20,"""Half an hour for one signature, because the pen was empty and a new one had to be requested in writing.""","„Eine halbe Stunde für eine Unterschrift, weil der Kugelschreiber leer war und ein neuer schriftlich beantragt werden musste.“"
+REVIEW_TEXT_2_21,"""I tried to book online. The online portal told me to come in person to get activated for the online portal.""","„Ich wollte den Termin online buchen. Das Online-Portal teilte mir mit, ich solle bitte persönlich vorbeikommen, um mich für das Online-Portal freischalten zu lassen.“"
+REVIEW_TEXT_2_22,"""Next time I am sending my brother-in-law. He has it coming.""",„Nächstes Mal schicke ich meinen Schwager. Er hat es verdient.“
+REVIEW_TEXT_2_23,"""Very fast once it got going. Unfortunately it only got going when I was about to leave.""","„Es ging sehr schnell, sobald es losging. Es ging leider erst los, als ich schon wieder gehen wollte.“"
+REVIEW_TEXT_2_24,"""Two clerks argued about a yoghurt for three quarters of an hour. I now know everything about strawberry-vanilla and nothing about my application.""",„Zwei Beamte stritten eine Dreiviertelstunde über einen Joghurt. Ich weiß jetzt alles über Erdbeer-Vanille und nichts über meinen Antrag.“
+REVIEW_TEXT_2_25,"""I received a receipt for my receipt. When I asked for a receipt for that one, they had run out of paper.""","„Ich bekam eine Quittung für meine Quittung. Als ich dafür eine Quittung wollte, war das Papier alle.“"
+REVIEW_TEXT_2_26,"""Terrible signage. I ended up in the boiler room and met a caretaker who has been looking for the exit since 1997.""","„Beschilderung furchtbar. Ich landete im Heizungskeller und traf dort einen Hausmeister, der seit 1997 den Ausgang sucht.“"
+REVIEW_TEXT_2_27,"""The form had to be filled in in blue. I had black. They lent me a blue pen against a deposit. The deposit was my ID. Which I needed for the application.""",„Das Formular musste in Blau ausgefüllt werden. Ich hatte Schwarz. Man lieh mir einen blauen Kuli gegen Pfand. Das Pfand war mein Ausweis. Den brauchte ich für den Antrag.“
+REVIEW_TEXT_2_28,"""Better than last year. Although I am still waiting for last year's case to be processed, so the comparison is tricky.""","„Besser als letztes Jahr. Auf die Bearbeitung von letztem Jahr warte ich allerdings noch, insofern ist der Vergleich schwierig.“"
+REVIEW_TEXT_2_29,"""The waiting area is lovely if you enjoy standing. I stood for three hours. My calves now have tenure.""","„Der Wartebereich ist wunderschön, wenn man gerne steht. Ich stand drei Stunden. Meine Waden sind jetzt verbeamtet.“"
+REVIEW_TEXT_2_30,"""While I was taking a number, someone took my seat. When I went to complain, the complaint desk was occupied too. By the same man.""","„Während ich eine Nummer zog, setzte sich jemand auf meinen Platz. Als ich mich beschweren wollte, war auch die Beschwerdestelle besetzt. Vom selben Mann.“"
+REVIEW_TEXT_2_31,"""After 40 minutes on hold, the switchboard mistook me for a sick clerk and wished me a speedy recovery. Friendly, at least.""",„Die Telefonzentrale hielt mich nach 40 Minuten Warteschleife für einen kranken Beamten und wünschte mir gute Besserung. Immerhin freundlich.“
+REVIEW_TEXT_2_32,"""My question was answered with a question, the question with a form and the form with an appointment. The appointment is in March.""","„Meine Frage wurde mit einer Gegenfrage beantwortet, die Gegenfrage mit einem Formular und das Formular mit einem Termin. Der Termin ist im März.“"
+REVIEW_TEXT_2_33,"""Not the worst office I know. But it is clearly working on it.""","„Nicht das schlechteste Amt, das ich kenne. Aber es arbeitet erkennbar daran.“"
+REVIEW_TEXT_2_34,"""My application is 'in progress'. So is my patience, but my patience will finish first.""","„Mein Antrag ist ‚in Bearbeitung‘. Meine Geduld auch, aber die wird schneller fertig.“"
+REVIEW_TEXT_2_35,"""Two stars because the office radio played my favourite song. Three times in a row. It is no longer my favourite song.""","„Zwei Sterne, weil das Radio im Büro mein Lieblingslied gespielt hat. Dreimal hintereinander. Jetzt ist es nicht mehr mein Lieblingslied.“"
+REVIEW_TEXT_1_1,"""I waited so long that my ticket is now drawing a pension.""","„Ich habe so lange gewartet, dass meine Wartemarke inzwischen Rente bezieht.“"
+REVIEW_TEXT_1_2,"""Would give zero stars, but the form only allows one. I have applied for zero stars. The application is being processed.""","„Würde null Sterne geben, aber das Formular lässt nur einen zu. Einen Antrag auf null Sterne habe ich gestellt. Er ist in Bearbeitung.“"
+REVIEW_TEXT_1_3,"""Came for a stamp, left with a headache. The stamp was refused, the headache was free of charge.""","„Wegen eines Stempels gekommen, mit Kopfschmerzen gegangen. Den Stempel gab es nicht, die Kopfschmerzen gratis.“"
+REVIEW_TEXT_1_4,"""Waited four hours. Then the clerk called 'Next, please!' and went to lunch. I was indeed next. For tomorrow.""","„Vier Stunden gewartet. Dann rief der Beamte ‚Der Nächste, bitte!‘ und ging in die Mittagspause. Ich war tatsächlich der Nächste. Für morgen.“"
+REVIEW_TEXT_1_5,"""My number was 312. They were calling 14. When I asked about it, they called 13.""","„Meine Nummer war die 312. Aufgerufen wurde die 14. Als ich nachfragte, wurde die 13 aufgerufen.“"
+REVIEW_TEXT_1_6,"""I was told to come back tomorrow. I came back tomorrow. I was told to come back tomorrow. I practically live here now.""","„Man sagte mir, ich solle morgen wiederkommen. Ich kam morgen wieder. Man sagte mir, ich solle morgen wiederkommen. Ich wohne jetzt praktisch hier.“"
+REVIEW_TEXT_1_7,"""The only thing that moved in here was the second hand. And even that looked exhausted.""","„Das Einzige, was sich hier bewegt hat, war der Sekundenzeiger. Und der wirkte auch schon erschöpft.“"
+REVIEW_TEXT_1_8,"""To get the form, I needed a form. For that form, an appointment. For the appointment, the first form. I have been going round in circles ever since.""",„Für das Formular brauchte ich ein Formular. Für dieses Formular einen Termin. Für den Termin das erste Formular. Ich drehe mich seitdem im Kreis.“
+REVIEW_TEXT_1_9,"""Three counters, one clerk, zero interest. And that one clerk was on a coffee break. Indefinitely.""","„Drei Schalter, ein Beamter, null Interesse. Und dieser eine Beamte war gerade in der Kaffeepause. Unbefristet.“"
+REVIEW_TEXT_1_10,"""Someone behind counter 2 was snoring so loudly the tickets were vibrating. When I knocked, he called 'Come in!' and went back to sleep.""","„Hinter Schalter 2 schnarchte jemand so laut, dass die Wartemarken vibrierten. Als ich klopfte, rief er ‚Herein!‘ und schlief weiter.“"
+REVIEW_TEXT_1_11,"""My application was rejected because my signature did not match the one on my ID. The ID is from 2009. I was a different person back then.""","„Mein Antrag wurde abgelehnt, weil meine Unterschrift nicht der auf meinem Ausweis entspricht. Der Ausweis ist von 2009. Ich war damals ein anderer Mensch.“"
+REVIEW_TEXT_1_12,"""I asked a simple question and got a brochure, a counter-question and an appointment in six weeks. The question was where the toilet is.""","„Ich stellte eine einfache Frage und bekam eine Broschüre, eine Gegenfrage und einen Termin in sechs Wochen. Die Frage war, wo die Toilette ist.“"
+REVIEW_TEXT_1_13,"""The toilet was occupied for my entire visit. By staff. With a newspaper. I could hear the pages turning.""",„Die Toilette war während meines gesamten Besuchs besetzt. Vom Personal. Mit Zeitung. Ich habe das Umblättern gehört.“
+REVIEW_TEXT_1_14,"""Arrived with grey hair, left with white. If I have to come back, it will be with none.""","„Mit grauen Haaren gekommen, mit weißen gegangen. Wenn ich wiederkommen muss, dann ohne.“"
+REVIEW_TEXT_1_15,"""I asked the clerk how much longer it would take. He said he could not tell me for data protection reasons.""","„Ich habe den Beamten gefragt, wie lange es noch dauert. Er sagte, das dürfe er mir aus Datenschutzgründen nicht sagen.“"
+REVIEW_TEXT_1_16,"""The waiting area had no chairs, but it did have a sign with seven rules for correct standing.""","„Im Wartebereich gab es keine Stühle, aber ein Schild mit sieben Regeln zum korrekten Stehen.“"
+REVIEW_TEXT_1_17,"""Room 3 sent me to room 4, and room 4 sent me back to room 3. I now know the corridor between them better than my own flat.""","„Zimmer 3 schickte mich zu Zimmer 4, Zimmer 4 zurück zu Zimmer 3. Ich kenne den Flur dazwischen jetzt besser als meine eigene Wohnung.“"
+REVIEW_TEXT_1_18,"""Opening hours according to the sign: Tuesdays, 9:00 to 9:07. I arrived at 9:05. I was told it was not worth starting now.""","„Sprechzeiten laut Schild: dienstags 9:00 bis 9:07 Uhr. Ich kam um 9:05 Uhr. Man sagte mir, das lohne sich jetzt nicht mehr.“"
+REVIEW_TEXT_1_19,"""My file has disappeared. Apparently it is 'in good hands'. I would love to meet those hands.""",„Meine Akte ist verschwunden. Angeblich ist sie ‚in guten Händen‘. Ich würde diese Hände gern einmal kennenlernen.“
+REVIEW_TEXT_1_20,"""The clerk sighed so deeply that my papers blew off the desk. Then he told me they were incomplete.""","„Der Beamte seufzte so tief, dass meine Unterlagen vom Tisch wehten. Dann sagte er, sie seien unvollständig.“"
+REVIEW_TEXT_1_21,"""Missed my train, my lunch and my will to live. Only my ticket stayed with me to the very end.""","„Zug verpasst, Mittagessen verpasst, Lebensmut verpasst. Nur meine Wartemarke hat mich bis zum Schluss begleitet.“"
+REVIEW_TEXT_1_22,"""Two clerks spent twenty minutes arguing about whether the window should be open or shut. In that time I caught a cold and got over it.""","„Zwei Beamte stritten zwanzig Minuten darüber, ob das Fenster auf- oder zubleibt. Ich habe in der Zeit eine Erkältung bekommen und wieder auskuriert.“"
+REVIEW_TEXT_1_23,"""At the intern's desk there was only a note: 'Back soon – crying'. That note was the most competent thing I saw all day.""","„Am Platz des Praktikanten lag nur ein Zettel: ‚Gleich zurück – weine kurz‘. Der Zettel war das Kompetenteste, was ich an diesem Tag gesehen habe.“"
+REVIEW_TEXT_1_24,"""One star for the door. It opened. That was the only procedure all day that worked without an application.""","„Ein Stern für die Tür. Sie ging auf. Das war der einzige Vorgang des Tages, der ohne Antrag funktioniert hat.“"
+REVIEW_TEXT_1_25,"""The coffee smelled heavenly. Sadly the coffee was only there for the staff, and the staff only there for the coffee.""",„Der Kaffeeduft war himmlisch. Leider war der Kaffee nur fürs Personal da und das Personal nur für den Kaffee.“
+REVIEW_TEXT_1_26,"""Three hours for a crooked stamp. If I want to wait three hours for something crooked, I will go to Pisa.""","„Drei Stunden für einen schiefen Stempel. Wenn ich drei Stunden auf etwas Schiefes warten will, fahre ich nach Pisa.“"
+REVIEW_TEXT_1_27,"""Half the staff were in the kitchen, the other half were looking for them. They all found each other at the cake. I waited outside.""","„Die Hälfte des Personals war in der Küche, die andere Hälfte suchte sie. Gefunden haben sich alle beim Kuchen. Ich habe draußen gewartet.“"
+REVIEW_TEXT_1_28,"""I brought a sandwich. I should have brought a tent, a camping stove and supplies for the winter.""","„Ich hatte ein Butterbrot dabei. Ich hätte ein Zelt, einen Gaskocher und Vorräte für den Winter mitbringen sollen.“"
+REVIEW_TEXT_1_29,"""The switchboard rang non-stop. Eventually I picked up myself. It was a clerk calling in sick. I excused him.""","„In der Telefonzentrale klingelte es ununterbrochen. Irgendwann bin ich selbst rangegangen. Es war ein Beamter, der sich krankmelden wollte. Ich habe ihn entschuldigt.“"
+REVIEW_TEXT_1_30,"""When I finally reached the front, I was told: wrong queue. The right one was the one I had left three hours earlier.""","„Ganz vorne angekommen hieß es: falsche Schlange. Die richtige war die, aus der ich vor drei Stunden gekommen war.“"
+REVIEW_TEXT_1_31,"""I have visibly aged in the waiting area. From now on, please send my birthday cards straight to counter 2.""",„Ich bin während der Wartezeit sichtbar gealtert. Bitte schicken Sie meine Geburtstagskarten künftig direkt an Schalter 2.“
+REVIEW_TEXT_1_32,"""The clerk asked if I had an appointment. I asked if he had a pulse. Neither of us could provide proof.""","„Der Beamte fragte, ob ich einen Termin habe. Ich fragte, ob er einen Puls hat. Keiner von uns konnte einen Nachweis erbringen.“"
+REVIEW_TEXT_1_33,"""My complaint was shredded before I had finished writing it. The intern hummed while doing it.""","„Meine Beschwerde wurde geschreddert, bevor ich sie fertig geschrieben hatte. Der Praktikant hat dabei gesummt.“"
+REVIEW_TEXT_1_34,"""Worse than the dentist. At least the dentist has magazines, and you get the anaesthetic first.""","„Schlimmer als beim Zahnarzt. Der hat wenigstens Zeitschriften, und die Betäubung gibt es dort vorher.“"
+REVIEW_TEXT_1_35,"""My parking ticket cost more than the fee and still expired before I even had a queue number.""","„Mein Parkschein kostete mehr als die Gebühr und lief trotzdem ab, bevor ich überhaupt eine Wartemarke hatte.“"
+REVIEW_TEXT_1_36,"""I would like to complain about this review form. Where do you get the form for complaints about forms? Exactly: at the office.""",„Ich möchte mich über dieses Bewertungsformular beschweren. Wo gibt es das Formular für Beschwerden über Formulare? Richtig: im Amt.“
+REVIEW_TEXT_1_37,"""The sign said 'Back in 5 minutes'. Sadly, it did not say from when.""","„Auf dem Schild stand ‚Bin in 5 Minuten zurück‘. Leider stand nicht dabei, ab wann.“"
+REVIEW_TEXT_1_38,"""Kafka would have cut this from the manuscript for being too far-fetched.""",„Kafka hätte das als zu übertrieben aus dem Manuskript gestrichen.“
+REVIEW_TEXT_1_39,"""I applied for fast-track processing. It is now being processed slowly, as a priority.""",„Ich habe einen Antrag auf beschleunigte Bearbeitung gestellt. Er wird jetzt bevorzugt langsam bearbeitet.“
+REVIEW_TEXT_1_40,"""My application is in the follow-up tray. So am I by now. We are waiting there together for better times.""",„Mein Antrag liegt in der Wiedervorlage. Ich inzwischen auch. Wir warten dort gemeinsam auf bessere Zeiten.“
+REVIEW_FORCED_1,"""Five stars! After a remarkably constructive conversation with the legal department, I now see how restful the waiting actually was. Thank you for this insight. And for the deadline on Friday.""","„Fünf Sterne! Nach einem ausgesprochen konstruktiven Gespräch mit der Rechtsabteilung ist mir klar geworden, wie erholsam das Warten hier eigentlich war. Danke für diese Einsicht. Und für die Frist bis Freitag.“"
+REVIEW_FORCED_2,"""I hereby correct my earlier review: there was no waiting time, only a 'phase of quiet reflection'. This wording was kindly provided to me. I am very grateful. Very.""","„Ich berichtige meine frühere Bewertung: Es gab keine Wartezeit, sondern eine ‚Phase der inneren Einkehr‘. Diese Formulierung wurde mir freundlicherweise zur Verfügung gestellt. Ich bin sehr dankbar. Sehr.“"
+REVIEW_FORCED_3,"""Outstanding service! I wrote this review voluntarily, under no pressure whatsoever and in the presence of two very friendly gentlemen from the legal department. They send their warmest regards. They are still standing behind me.""","„Hervorragender Service! Ich habe diese Bewertung freiwillig, ohne jeden Druck und in Anwesenheit zweier sehr freundlicher Herren aus der Rechtsabteilung verfasst. Sie lassen herzlich grüßen. Sie stehen noch hinter mir.“"
+REVIEW_FORCED_4,"""Honestly, what a wonderful office!
+Everyone was awake and helpful.
+Long waits? I never saw one.
+Please accept these five stars.""","„Herzlichen Dank an das ganze Team!
+Ich komme jederzeit gern wieder.
+Lange Wartezeiten? Habe ich nie erlebt.
+Fünf Sterne sind das Mindeste.
+Ehrlich.“"
+REVIEW_FORCED_5,"""I was wrong. The wait was short, the chairs were soft and the clerk smiled. I am practising remembering everything exactly as the court established it. It is going rather well.""","„Ich habe mich geirrt. Die Wartezeit war kurz, die Stühle waren weich und der Beamte hat gelächelt. Ich übe gerade, mich an alles so zu erinnern, wie das Gericht es festgestellt hat. Es klappt schon ganz gut.“"
+REVIEW_FORCED_6,"""Five stars, as agreed. I was asked not to write anything ironic, so I am not writing anything ironic. A truly wonderful office. I would wish it on anyone.""","„Fünf Sterne, wie vereinbart. Man hat mich gebeten, nichts Ironisches zu schreiben, also schreibe ich nichts Ironisches. Ein ganz wunderbares Amt. Ich wünsche es wirklich jedem.“"
 REVIEW_AUTHOR_1,Heinz K.,Heinz K.
 REVIEW_AUTHOR_2,Mrs. Albrecht,Frau Albrecht
 REVIEW_AUTHOR_3,traveller_87,traveller_87
@@ -969,25 +1032,27 @@ FLOAT_SICK_MISSED,Missed – unexcused!,Verpasst – unentschuldigt!
 SICK_ANSWER_1,"Get well soon. Sick note by Friday, please.","Gute Besserung. Krankenschein bis Freitag, bitte."
 SICK_ANSWER_2,Noted. In triplicate.,Notiert. In dreifacher Ausfertigung.
 SICK_ANSWER_3,Have you tried coffee? It cures everything.,Schon mal Kaffee probiert? Hilft gegen alles.
-SICK_ANSWER_4,I will tell your desk. It will be sad.,Ich sag es Ihrem Schreibtisch. Er wird traurig sein.
-SICK_ANSWER_5,"Form K-12, box 4: reason for absence.","Formular K-12, Feld 4: Grund der Abwesenheit."
-SICK_ANSWER_6,Your files will wait. They always do.,Ihre Akten warten. Das tun sie immer.
-SICK_ANSWER_7,Hmm. Could you not come in for just one hour?,Hm. Könnten Sie nicht wenigstens eine Stunde kommen?
-SICK_ANSWER_8,"Logged. Next caller, please.","Erfasst. Nächster Anrufer, bitte."
+SICK_ANSWER_4,I'll tell your desk. It will be sad.,Ich sag’s Ihrem Schreibtisch. Er wird traurig sein.
+SICK_ANSWER_5,I'm writing down 'sick'. In pencil.,Ich trage ‚krank‘ ein. Mit Bleistift.
+SICK_ANSWER_6,Your files will wait. They're good at that.,Ihre Akten warten. Das können sie gut.
+SICK_ANSWER_7,Hm. What if you came in for just an hour?,Hm. Und wenn Sie nur eine Stunde kommen?
+SICK_ANSWER_8,"Noted. Get well soon, but not too thoroughly.","Vermerkt. Gute Besserung, aber bitte nicht zu gründlich."
 FMT_SICK_RETURN,Back in %s,Zurück in %s
 FMT_SICK_BONUS_TITLE,Off sick · back in %s,Krank · zurück in %s
-FMT_SICK_BONUS_TEXT,"Leave a bonus on the desk to speed up recovery: small %s×, medium %s×, large %s×.","Lege eine Bonuszahlung auf den Schreibtisch, damit es schneller geht: klein %s×, mittel %s×, groß %s×."
-FMT_SICK_BONUS_BUTTON,%s · %s,%s · %s
+SICK_BONUS_TEXT,Leave a bonus on the desk to speed up recovery. Each option shows when the desk is staffed again. Upgrading only costs the difference.,"Lege eine Bonuszahlung auf den Schreibtisch, damit es schneller geht. Jede Stufe zeigt, wann der Platz wieder besetzt ist. Beim Aufstocken zahlst du nur die Differenz."
+FMT_SICK_BONUS_BUTTON,"%s · %s
+back in %s","%s · %s
+zurück in %s"
 SICK_BONUS_TIER_1,Small,Klein
 SICK_BONUS_TIER_2,Medium,Mittel
 SICK_BONUS_TIER_3,Large,Groß
 FLOAT_SICK_BONUS,Bonus left – get well soon!,Bonus hinterlegt – gute Besserung!
 SHEET_COMPLAINTS,Complaint desk,Beschwerdestelle
-COMPLAINTS_INTRO,"Harmless letters from the public. They do not hurt your reputation. Carry them to the shredder for a little pocket money.","Harmlose Briefe aus der Bevölkerung. Sie schaden dem Ansehen nicht. Trag sie zum Schredder, das gibt etwas Taschengeld."
+COMPLAINTS_INTRO,Harmless letters from the public. They do not hurt your reputation. Carry them to the shredder for a little pocket money.,"Harmlose Briefe aus der Bevölkerung. Sie schaden dem Ansehen nicht. Trag sie zum Schredder, das gibt etwas Taschengeld."
 COMPLAINTS_EMPTY,"No complaints in the box.
-Enjoy the silence.","Keine Beschwerden im Kasten.
+Enjoy the silence.","Keine Beschwerden im Briefkasten.
 Genieße die Ruhe."
-FMT_COMPLAINTS_PILE,%d of %d complaints in the box,%d von %d Beschwerden im Kasten
+FMT_COMPLAINTS_PILE,%d of %d complaints in the box,%d von %d Beschwerden im Briefkasten
 FMT_COMPLAINTS_MORE,… and %d more underneath,… und %d weitere darunter
 ACTION_REVIEW_DELETE_FREE,Delete for free,Kostenlos löschen lassen
 FMT_REVIEW_LAWSUIT_INFO,Chance of success: %s · lawsuits so far: %d,Erfolgschance: %s · bisherige Klagen: %d
@@ -1062,11 +1127,224 @@ FMT_TRAINING_EFFECT_SKILL,Currently +%s pace,Aktuell +%s Tempo
 FMT_TRAINING_EFFECT_HEALTH,Currently %s fewer sick notes,Aktuell %s weniger Krankmeldungen
 FMT_TRAINING_EFFECT_STAMINA,Currently tires %s more slowly,Aktuell %s langsamer müde
 FMT_TRAINING_EFFECT_CALM,"Currently avoids quarrels with %s, shared with the department","Aktuell %s Streit-Vermeidung, im Abteilungsschnitt"
-RESEARCH_GROUP_WORK,Paperwork and pace,Aktenarbeit und Tempo
-RESEARCH_GROUP_DESC_WORK,Makes every work step faster and more accurate.,Macht jeden Arbeitsschritt schneller und genauer.
-RESEARCH_GROUP_STAFF,Staff and breaks,Personal und Pausen
-RESEARCH_GROUP_DESC_STAFF,"Keeps officials awake, fed and out of quarrels.","Hält Beamte wach, versorgt und aus Streits heraus."
-RESEARCH_GROUP_PUBLIC,Citizens and complaints,Bürger und Beschwerden
-RESEARCH_GROUP_DESC_PUBLIC,"Waiting comfort, complaints and the shredder.","Wartekomfort, Beschwerden und der Schredder."
-RESEARCH_GROUP_TRANSPORT,Transport,Transport
-RESEARCH_GROUP_DESC_TRANSPORT,Moves files from desk to desk.,Bringt Akten von Tisch zu Tisch.
+ROOM_OFFICE,Offices,Büros
+ROOM_DESC_OFFICE,"Applies to every office: paperwork pace, quarrels and file transport.","Gilt für alle Büros: Aktentempo, Streits und Aktentransport."
+ROOM_INSPECTION,Inspection office,Prüfdienst
+ROOM_DESC_INSPECTION,Checks marked files before they move on.,"Prüft markierte Akten, bevor sie weiterwandern."
+ROOM_KITCHEN,Kitchen,Küche
+ROOM_DESC_KITCHEN,"Coffee, gossip and the next break.","Kaffee, Tratsch und die nächste Pause."
+ROOM_TOILETS,Restrooms,Sanitär
+ROOM_DESC_TOILETS,Officials vanish here. The wake service fetches them back sooner.,Hier verschwinden Beamte. Der Weckdienst holt sie schneller zurück.
+ROOM_PHONE,Phone office,Telefonzentrale
+ROOM_DESC_PHONE,Sick calls come in here.,Hier gehen die Krankmeldungen ein.
+ROOM_HALL,Public hall,Publikumshalle
+ROOM_DESC_HALL,"Reception, counter, waiting area and the complaint desk.","Empfang, Ausgabe, Wartebereich und Beschwerdestelle."
+SECTION_ROOM_STAFF,Staff,Personal
+SECTION_ROOM_STATIONS,Stations,Stationen
+SECTION_ROOM_AREAS,Expansion,Ausbau
+SECTION_ROOM_RESEARCH,Technology,Technik
+SECTION_ALL_OFFICES,For all offices,Für alle Büros
+STATS_SECTION_UPGRADES,What to upgrade?,Was ausbauen?
+STATS_UPGRADES_HINT,Busiest areas first. Each line shows how much more an upgrade handles per minute.,"Die vollsten Bereiche zuerst. Jede Zeile zeigt, wie viel mehr ein Ausbau pro Minute schafft."
+STATS_UPGRADES_EMPTY,No area is busy. More reputation brings more citizens.,Kein Bereich ist ausgelastet. Mehr Ansehen bringt mehr Bürger.
+FMT_STATS_AREA_LOAD,%s · %s load,%s · %s ausgelastet
+ACTION_STATS_OPEN,Open,Öffnen
+STATS_UPGRADES,Upgrade effect,Ausbau-Wirkung
+STATS_UPGRADES_NONE,Fully upgraded,Voll ausgebaut
+FMT_UPGRADE,%s: %s,%s: %s
+FMT_GAIN_CAPACITY,+%s/min,+%s/Min.
+FMT_GAIN_RELIEF,−%s/min incoming,−%s/Min. Zulauf
+FMT_GAIN_PLACES,+%s places,+%s Plätze
+UPGRADE_HIRE,+1 official,+1 Beamter
+UPGRADE_DESK,+1 desk with official,+1 Tisch mit Beamtem
+UPGRADE_MACHINE,+1 machine,+1 Maschine
+UPGRADE_LEVEL,+1 level,+1 Stufe
+UPGRADE_SPECIALIST,+1 specialist,+1 Fachkraft
+UPGRADE_SUPERVISOR,+1 supervisor,+1 Teamleitung
+FMT_UPGRADE_RESEARCH,Technology %s,Technik %s
+UPGRADE_RUNNER,+1 runner,+1 Bote
+UPGRADE_HELPER,+1 complaint intern,+1 Beschwerde-Praktikant
+UPGRADE_COLLECTOR,+1 reject collector,+1 Ablehnungs-Bote
+UPGRADE_HR,+1 phone clerk,+1 Telefonist
+UPGRADE_GUARD,+1 security guard,+1 Wache
+UPGRADE_SEATS,Add seating,Sitzbereich ausbauen
+UPGRADE_WAITING_SEATS,Add waiting seats,Wartebereich ausbauen
+STATS_UNLIMITED,Unlimited,Unbegrenzt
+FMT_STATS_CASE_TIME,Ø %s s per file · %s per official,Ø %s s je Akte · %s je Beamtem
+STATS_DEPT_STEPS,Capacity per step for this department,Kapazität je Schritt für diese Abteilung
+STATS_STEP_TRANSPORT,File transport,Aktentransport
+STATS_SECTION_AREAS,Other areas,Weitere Bereiche
+STATS_AREAS_HINT,"Transport, complaints, rejections, phones and the hall. Capacity against demand, the bar shows the load.","Transport, Beschwerden, Ablehnungen, Telefon und Halle. Kapazität gegen Bedarf, der Balken zeigt die Auslastung."
+AREA_TRANSPORT,File transport,Aktentransport
+AREA_COMPLAINTS,Complaints,Beschwerden
+AREA_REJECTS,Rejected applications,Abgelehnte Anträge
+AREA_PHONES,Phone office,Telefonzentrale
+AREA_SEATING,Seating area,Sitzbereich
+AREA_WAITING,Waiting area,Wartebereich
+STATS_AREA_MEASURED,Handled (measured),Geschafft (gemessen)
+STATS_AREA_INCOMING,Incoming (measured),Zulauf (gemessen)
+FMT_STATS_TRANSFERS,You %s · runners %s · tubes %s,Du %s · Boten %s · Rohrpost %s
+FMT_STATS_RUNNERS,Runners: %d · %d files per trip,Boten: %d · %d Akten je Gang
+FMT_STATS_TUBES,Tubes: %d capsules per tube · %d on the way,Rohrpost: %d Kapseln je Röhre · %d unterwegs
+FMT_STATS_HANDLED_BY,You %s · staff %s,Du %s · Personal %s
+FMT_STATS_COMPLAINT_STATE,In the box: %d/%d · interns: %d · guards: %d,Im Briefkasten: %d/%d · Praktikanten: %d · Wachen: %d
+FMT_STATS_REJECT_STATE,Waiting: %d · reject collectors: %d,Wartend: %d · Ablehnungs-Boten: %d
+STATS_CALLS_ANSWERED,Calls answered,Angenommene Anrufe
+STATS_CALLS_MISSED,Calls missed,Verpasste Anrufe
+FMT_STATS_PHONE_STATE,Ringing: %d · phone clerks: %d · answered: %s,Klingelt: %d · Telefonisten: %d · Annahmequote: %s
+STATS_OCCUPANCY,Occupied,Belegt
+FMT_STATS_OCCUPANCY,%d / %d places,%d / %d Plätze
+STATION_MAILROOM,Mail room,Poststelle
+STATION_SHORT_MAILROOM,Mail room,Poststelle
+AREA_MAIL_ROOM,Mail room (back entrance),Poststelle (Hintereingang)
+ROOM_MAIL,Mail room,Poststelle
+ROOM_DESC_MAIL,"Applications by post. They wait patiently on the shelf, nobody complains – and they pay less.","Anträge auf dem Postweg. Sie warten geduldig im Regal, niemand beschwert sich – und sie bringen weniger ein."
+SECTION_ROOM_BOOSTS,Boosts,Boosts
+MAIL_STORAGE_TITLE,Letter shelf,Briefregal
+MAIL_STORAGE_DESC,Stores incoming letters. When it is full the postman takes them back – no hard feelings.,"Lagert eingehende Briefe. Ist es voll, nimmt der Briefträger sie wieder mit – ganz ohne Groll."
+ACTION_BUILD_SHELVES,Add shelf compartments,Fächer anbauen
+FMT_MAIL_STORAGE_INFO,%d/%d letters stored · +%d per level · next delivery: %d letters in %s · returned: %d · reward %s,%d/%d Briefe gelagert · +%d pro Stufe · nächste Lieferung: %d Briefe in %s · zurückgeschickt: %d · Gebühr %s
+FMT_MAIL_LOCKED,Opens with building stage %d.,Öffnet mit Ausbaustufe %d.
+FMT_MAIL_SHELF_SIGN,Shelf %d/%d,Regal %d/%d
+FMT_MAIL_NEXT,Next post in %d s,Nächste Post in %d s
+SIGN_MAIL_1,Receipt stamp mandatory,Eingangsstempel Pflicht
+SIGN_MAIL_2,Opened in order of arrival (roughly),Bearbeitung nach Eingang (ungefähr)
+SIGN_MAIL_3,Fax? Please post it,Fax? Bitte per Post
+FMT_FLOAT_MAIL,+%d letters,+%d Briefe
+FMT_FLOAT_MAIL_RETURNED,%d returned to sender,%d zurück an Absender
+FMT_FLOAT_BUNDLE,%d applications at once!,%d Anträge auf einmal
+FLOAT_FORM_MISSING,Form missing – please send by post,Unterlagen fehlen – bitte per Post nachreichen
+FLOAT_ONBOARDED,Department onboarded,Abteilung eingearbeitet
+RESEARCH_LETTER_OPENER,Electric letter opener,Elektrischer Brieföffner
+RESEARCH_DESC_LETTER_OPENER,The mail room works 40% faster per level. Opens envelopes and occasionally fingers.,Die Poststelle arbeitet pro Stufe 40 % schneller. Öffnet Umschläge und gelegentlich Finger.
+RESEARCH_MAIL_SUBSCRIPTION,Gazette subscription,Amtsblatt-Abo
+RESEARCH_DESC_MAIL_SUBSCRIPTION,Two more letters per delivery and level. Citizens now know the address.,Zwei Briefe mehr pro Lieferung und Stufe. Die Bürger kennen jetzt die Adresse.
+RESEARCH_REGISTERED_MAIL,Registered mail fee,Einschreibegebühr
+RESEARCH_DESC_REGISTERED_MAIL,Postal applications pay 10 percentage points more per level.,Postanträge bringen pro Stufe 10 Prozentpunkte mehr.
+LABEL_SWAMPED,Swamped,Land unter
+FMT_RUSH,Inauguration euphoria: %s,Einweihungs-Euphorie: %s
+FMT_MILESTONE,Milestone in %d levels (×%s),Meilenstein in %d Stufen (×%s)
+FMT_DOWNSTREAM,Next: %s – %s/min,Danach: %s – %s/min
+FMT_DOWNSTREAM_SLOW,⚠ Next: %s only manages %s/min,⚠ Danach: %s schafft nur %s/min
+FMT_ONBOARDING,Onboarding: process %d/%d by hand,Einarbeitung: %d/%d selbst bearbeiten
+SHEET_BOOSTS,Boosts,Boosts
+BOOSTS_INTRO,Official seals buy boosts instantly. Alternatively watch an ad – then the boost needs a cooldown.,Dienstsiegel kaufen Boosts sofort. Alternativ eine Werbung ansehen – dann braucht der Boost eine Abklingzeit.
+FMT_SEALS,%d official seals,%d Dienstsiegel
+BOOSTS_SWAMPED_TITLE,Swamped somewhere,Irgendwo ist Land unter
+BOOSTS_SWAMPED_TEXT,Inboxes are overflowing. Upgrade the station or bridge the gap with a boost.,Eingangsfächer laufen über. Stelle ausbauen oder die Lücke mit einem Boost überbrücken.
+SECTION_BOOSTS,Available boosts,Verfügbare Boosts
+SECTION_SEAL_SHOP,Seal office,Siegelstelle
+SEAL_SHOP_MOCK,Test purchase without real money – placeholder for the later shop.,Testkauf ohne echtes Geld – Platzhalter für den späteren Shop.
+FMT_SEAL_PACK,%d seals,%d Siegel
+SEAL_SHOP_TITLE,Test purchase,Testkauf
+FMT_SEAL_SHOP_TEXT,Add %d official seals? This is a placeholder – nothing is charged.,%d Dienstsiegel gutschreiben? Das ist ein Platzhalter – es wird nichts berechnet.
+ACTION_TEST_BUY,Test purchase,Testkauf
+FMT_BOOST_SEALS,%d seals,%d Siegel
+FMT_BOOST_ACTIVE,Active %s,Aktiv %s
+ACTION_WATCH_AD,Watch ad,Werbung ansehen
+FMT_AD_COOLDOWN,Ad again in %s,Werbung wieder in %s
+ACTION_CLAIM_DOUBLE,×2 with ad,×2 mit Werbung
+ACTION_DOUBLE_AD,×2 with ad,×2 mit Werbung
+ACTION_SICK_NOTE_AD,Doctor's note via ad,Gesundschreibung per Werbung
+LABEL_AD,Advertisement,Anzeige
+FMT_AD_COUNTDOWN,%d s,%d s
+AD_PLACEHOLDER_NOTE,Placeholder – a real ad will appear here later.,Platzhalter – hier läuft später echte Werbung.
+AD_TITLE_1,Form 27b/6 – now in carbon-copy green,Formular 27b/6 – jetzt auch in Durchschlag-Grün
+AD_TEXT_1,Because every copy deserves a copy.,Weil jede Kopie eine Kopie verdient.
+AD_TITLE_2,Stampomat 3000,Stempelomat 3000
+AD_TEXT_2,"Stamps 40 times a minute. Valid, invalid, whatever.","Stempelt 40-mal pro Minute. Gültig, ungültig, egal."
+AD_TITLE_3,Queue numbers to go,Wartemarken zum Mitnehmen
+AD_TEXT_3,Wait at home. Your number is called in 3–5 working weeks.,Warten Sie bequem zu Hause. Ihre Nummer wird in 3–5 Werktagen aufgerufen.
+AD_TITLE_4,Filing cabinet deluxe,Aktenschrank Deluxe
+AD_TEXT_4,Twelve drawers. Eleven of them for drawers.,Zwölf Schubladen. Elf davon für Schubladen.
+AD_TITLE_5,Office hours on Wednesdays,Sprechstunde mittwochs
+AD_TEXT_5,From 9:00 to 9:15. Excluding public holidays and Wednesdays.,Von 9:00 bis 9:15 Uhr. Ausgenommen Feiertage und Mittwoche.
+AD_TITLE_6,Coffee filter of the year,Kaffeefilter des Jahres
+AD_TEXT_6,Recommended by 9 out of 10 department heads.,Von 9 von 10 Amtsleitungen empfohlen.
+BOOST_OVERTIME,Overtime order,Überstundenanordnung
+BOOST_DESC_OVERTIME,Everyone works twice as fast for 1 minute. The works council has been informed (by post).,Alle arbeiten 1 Minute doppelt so schnell. Der Personalrat wurde informiert (per Post).
+BOOST_TEMP_WORKERS,Temp workers,Leiharbeiter
+BOOST_DESC_TEMP_WORKERS,Every empty desk is staffed for 3 minutes. Nobody knows their names.,Jeder leere Tisch ist 3 Minuten besetzt. Niemand kennt ihre Namen.
+BOOST_STAMP_TURBO,Stamp turbo,Stempel-Turbo
+BOOST_DESC_STAMP_TURBO,Machines run three times as fast for 90 seconds.,Maschinen laufen 90 Sekunden dreimal so schnell.
+BOOST_EXPRESS_POST,Express mail day,Eilpost-Tag
+BOOST_DESC_EXPRESS_POST,The mail room works four times as fast for 2 minutes.,Die Poststelle arbeitet 2 Minuten viermal so schnell.
+BOOST_COFFEE_ROUND,Coffee round,Kaffeerunde
+BOOST_DESC_COFFEE_ROUND,Wakes everyone up and nobody gets tired for 3 minutes.,"Weckt alle auf, und 3 Minuten lang wird niemand müde."
+BOOST_DOCTOR_VISIT,Company doctor,Betriebsarzt
+BOOST_DESC_DOCTOR_VISIT,All sick officials are back immediately. Diagnosis: Monday.,Alle Kranken sind sofort zurück. Diagnose: Montag.
+BOOST_WORKS_OUTING,Works outing,Betriebsausflug
+BOOST_DESC_WORKS_OUTING,"Ends disputes and coffee gatherings. For 5 minutes no sick notes, disputes or gatherings.","Beendet Streit und Kränzchen. 5 Minuten lang keine Krankmeldungen, Streits oder Kränzchen."
+BOOST_MAYOR_SPEECH,Mayor's speech,Rede des Bürgermeisters
+BOOST_DESC_MAYOR_SPEECH,Waiting citizens listen politely for 3 minutes and nobody leaves.,Wartende Bürger hören 3 Minuten höflich zu und niemand geht.
+BOOST_ROLLER_SKATES,Roller skates,Rollschuhe
+BOOST_DESC_ROLLER_SKATES,Runners twice and you 1.5 times as fast for 3 minutes. Not approved by occupational safety.,"Boten doppelt und du 1,5-mal so schnell für 3 Minuten. Arbeitsschutz nicht gefragt."
+BOOST_COMPLAINT_AMNESTY,Complaint amnesty,Beschwerde-Amnestie
+BOOST_DESC_COMPLAINT_AMNESTY,Clears all complaints; no new ones for 5 minutes.,Löscht alle Beschwerden; 5 Minuten lang kommen keine neuen.
+BOOST_WEEKEND_SHIFT,Weekend shift,Wochenendschicht
+BOOST_DESC_WEEKEND_SHIFT,Every running job is finished instantly.,Jeder laufende Vorgang ist sofort fertig.
+BOOST_GAZETTE_AD,Gazette announcement,Amtsblatt-Anzeige
+BOOST_DESC_GAZETTE_AD,Twice as many citizens for 2 minutes. Only if the stations can keep up.,2 Minuten doppelt so viele Bürger. Nur wenn die Stellen mithalten.
+BOOST_FEE_INCREASE,Fee increase,Gebührenerhöhung
+BOOST_DESC_FEE_INCREASE,Double fees for 2 minutes. Justified by the new fee schedule.,2 Minuten doppelte Gebühren. Begründet mit der neuen Gebührenordnung.
+BOOST_BUDGET_INJECTION,Supplementary budget,Nachtragshaushalt
+BOOST_DESC_BUDGET_INJECTION,Instantly grants five minutes of income. Do not ask where from.,Bringt sofort fünf Minuten Einnahmen. Woher? Nicht fragen.
+EVENT_MAYOR_VISIT,The mayor visits,Der Bürgermeister kommt
+EVENT_DESC_MAYOR_VISIT,More citizens and double fees while the mayor shakes hands.,"Mehr Bürger und doppelte Gebühren, solange der Bürgermeister Hände schüttelt."
+EVENT_NEWSPAPER_PRAISE,Praise in the newspaper,Lob in der Zeitung
+EVENT_DESC_NEWSPAPER_PRAISE,"""Authority surprisingly fast!"" Twice as many citizens want to see it for themselves.",„Behörde überraschend schnell!“ Doppelt so viele Bürger wollen das selbst sehen.
+RUNNER_ROLE_INTAKE,Reception → department,Empfang → Amt
+RUNNER_ROLE_INTERNAL,Within the department,Innerhalb des Amts
+RUNNER_ROLE_OUTPUT,Department → issue counter,Amt → Ausgabe
+RUNNER_ROLE_SHORT_INTAKE,Intake,Annahme
+RUNNER_ROLE_SHORT_INTERNAL,Internal,Intern
+RUNNER_ROLE_SHORT_OUTPUT,Issue,Ausgabe
+RUNNER_ROLE_DESC_INTAKE,"Carries new files from the reception, mail room and loading dock into the departments.","Bringt neue Akten von Empfang, Poststelle und Laderampe in die Ämter."
+RUNNER_ROLE_DESC_INTERNAL,"Carries files between the desks of a department, including inspection and registry.","Trägt Akten zwischen den Stationen eines Amts, auch zum Prüfdienst und zur Meldestelle."
+RUNNER_ROLE_DESC_OUTPUT,Brings finished files from the departments to the issue counter.,Bringt fertige Akten aus den Ämtern zum Ausgabeschalter.
+FMT_RUNNER_ROLE_INFO,%s: %d runners · %d files waiting,%s: %d Boten · %d Akten warten
+FMT_RUNNER_ROLE_SUMMARY,%s Waiting: %d · capacity %s/min · demand %s/min,%s Wartend: %d · Kapazität %s/Min. · Bedarf %s/Min.
+ACTION_RUNNER_PLAN,Assign runners,Boten einteilen
+SHEET_RUNNERS,Runner rota,Botenplan
+RUNNERS_INTRO,Each runner only carries files for their job. Assign them to one department to keep a busy department moving. Reassigning is free; the paperwork is filed later.,"Jeder Bote trägt nur Akten seiner Aufgabe. Teile ihn einem Amt zu, damit ein volles Amt Vorrang bekommt. Umsetzen ist kostenlos, der Versetzungsantrag wird nachgereicht."
+RUNNERS_EMPTY,"No runners yet.
+Hire one in the offices.","Noch keine Boten.
+Stelle in den Büros einen ein."
+RUNNERS_TUBES_TEXT,The pneumatic tube carries every file. Runners only finish their current trip.,Die Rohrpost trägt alle Akten. Boten liefern nur noch ihren aktuellen Gang ab.
+RUNNER_ALL_DEPARTMENTS,all departments,alle Ämter
+FMT_RUNNER_DEPARTMENT,Responsible for: %s,Zuständig für: %s
+FMT_RUNNER_NAME,Runner %d,Bote %d
+RUNNER_BUSY,on the way,unterwegs
+RUNNER_IDLE,waiting,wartet
+LABEL_TUBE_CONNECTION,Pneumatic tube connection,Rohrpost-Anschluss
+TUBE_CONNECTION_TEXT,"Files of this office are still carried. With a connection, they travel by tube.",Akten dieses Amts werden noch getragen. Mit Anschluss reisen sie per Rohrpost.
+TUBE_CONNECTED_TEXT,Files of this office travel by tube.,Akten dieses Amts reisen per Rohrpost.
+ACTION_CONNECT_TUBE,Connect,Anschließen
+LABEL_TUBE_CONNECTED,Connected,Angeschlossen
+ACTION_UPGRADE_RUNNER,Bigger bag,Größere Tasche
+FMT_RUNNER_LEVEL,Level %d/%d · carries %d files per trip,Stufe %d/%d · trägt %d Akten pro Gang
+RUNNERS_TUBES_PARTIAL_TEXT,Offices with a tube connection send their files by tube. Runners only carry for the other offices.,Ämter mit Rohrpost-Anschluss schicken ihre Akten per Rohr. Boten tragen nur noch für die übrigen Ämter.
+FLOAT_REVIEW_EXPIRED,A review sank into the depths of the internet,Eine Bewertung ist im Internet versunken
+FMT_REVIEW_EXPIRES,Disappears by itself in %s,Verschwindet von selbst in %s
+COMPLAINT_CLERK_TITLE,Complaints clerk,Beschwerde-Sachbearbeitung
+COMPLAINT_CLERK_DESC,Always stands at the desk and fends off complaints before they end up in the box. Training makes the excuses more convincing.,"Steht immer am Schreibtisch und wimmelt Beschwerden ab, bevor sie im Briefkasten landen. Schulungen machen die Ausreden überzeugender."
+ACTION_TRAIN_CLERK,Train,Schulen
+FMT_COMPLAINT_CLERK_INFO,Fends off %s of complaints · %d fended off so far,Wimmelt %s der Beschwerden ab · bisher %d abgewimmelt
+FMT_COMPLAINT_CLERK_NEXT,Next level: %s,Nächste Stufe: %s
+COMPLAINT_BOX_TITLE,Complaint box,Beschwerde-Briefkasten
+COMPLAINT_BOX_DESC,"Whatever the clerk cannot fend off lands here. Once it is full, people write bad online reviews instead.","Was nicht abgewimmelt wird, landet hier. Ist er voll, schreiben die Leute stattdessen schlechte Online-Bewertungen."
+ACTION_ENLARGE_BOX,Enlarge,Vergrößern
+FMT_COMPLAINT_BOX_INFO,%d/%d complaints inside · +%d space per level,%d/%d Beschwerden drin · +%d Platz pro Stufe
+UPGRADE_CLERK,Train complaints clerk,Beschwerde-Sachbearbeitung schulen
+CLERK_FEND_1,Please fill in form B-17 first. In triplicate.,Dafür füllen Sie bitte erst Formular B-17 aus. In dreifacher Ausfertigung.
+CLERK_FEND_2,Your complaint is complaint-exempt.,Ihre Beschwerde ist beschwerdefrei.
+CLERK_FEND_3,We only accept complaints on Tuesdays at 25 o'clock.,Beschwerden nehmen wir nur dienstags um 25 Uhr an.
+CLERK_FEND_4,"I have noted that you are upset. Next, please.","Ich habe notiert, dass Sie sich aufregen. Der Nächste, bitte."
+CLERK_FEND_5,"This is the complaints desk, not the complaints-about-complaints desk.","Hier ist die Beschwerdestelle, nicht die Beschwerde-über-Beschwerden-Stelle."
+CLERK_FEND_6,Your concern has been passed on. To the round file.,Ihr Anliegen wurde weitergeleitet. In die Rundablage.
+CLERK_FEND_7,"Legally speaking, you are satisfied.",Rechtlich gesehen sind Sie zufrieden.
+CLERK_FEND_8,Complaints are currently being processed in 2031.,Beschwerden werden derzeit im Jahr 2031 bearbeitet.
+CLERK_FEND_9,Did you try waiting a bit longer?,Haben Sie es schon mit noch länger warten versucht?
+CLERK_FEND_10,Your number has expired. Please draw a new one.,Ihre Nummer ist abgelaufen. Bitte ziehen Sie eine neue.
+CLERK_FEND_11,"Wow, a complaint. Nobody has ever had that idea.","Oh, eine Beschwerde. Auf die Idee ist ja noch keiner gekommen."
+CLERK_FEND_12,"The citizen leaves, persuaded and confused.",Bürger zieht überzeugt und verwirrt wieder ab.

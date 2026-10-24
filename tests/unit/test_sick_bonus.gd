@@ -176,6 +176,7 @@ func test_leave_bonus_spends_money_and_allows_only_upgrades() -> void:
 	state.money = 1e6
 	watch_signals(sim)
 	var cost := Formulas.sick_bonus_cost(state, 2)
+	assert_eq(Formulas.sick_bonus_price(state, review.moods[0], 2), cost)
 	assert_true(sim.leave_bonus(REVIEW, 0, 2))
 	assert_almost_eq(state.money, 1e6 - cost, 0.01)
 	assert_eq(review.moods[0].bonus, 2)
@@ -183,9 +184,56 @@ func test_leave_bonus_spends_money_and_allows_only_upgrades() -> void:
 	assert_signal_emitted_with_parameters(sim, "bonus_left", [REVIEW, 0, 2])
 	assert_false(sim.leave_bonus(REVIEW, 0, 1))
 	assert_false(sim.leave_bonus(REVIEW, 0, 2))
+	var upgrade := Formulas.sick_bonus_cost(state, 3) - Formulas.sick_bonus_cost(state, 2)
+	var before := state.money
 	assert_true(sim.leave_bonus(REVIEW, 0, 3))
+	assert_almost_eq(state.money, before - upgrade, 0.01)
 	assert_eq(review.moods[0].bonus, 3)
 	assert_eq(state.bonuses_paid, 2)
+
+
+func test_upgrade_needs_only_the_difference() -> void:
+	var review := state.station(REVIEW)
+	review.moods[0].rest(DeskMood.SICK)
+	review.moods[0].bonus = 2
+	_stand_at(0)
+	var upgrade := Formulas.sick_bonus_cost(state, 3) - Formulas.sick_bonus_cost(state, 2)
+	state.money = upgrade
+	assert_lt(state.money, Formulas.sick_bonus_cost(state, 3))
+	assert_true(sim.can_leave_bonus(REVIEW, 0, 3))
+	assert_true(sim.leave_bonus(REVIEW, 0, 3))
+	assert_almost_eq(state.money, 0.0, 0.01)
+
+
+func test_bonus_price_is_difference_to_paid_tier_and_never_negative() -> void:
+	var mood := DeskMood.new()
+	mood.rest(DeskMood.SICK)
+	for tier in range(0, GameConfig.sick_bonus_tiers() + 1):
+		assert_eq(Formulas.sick_bonus_price(state, mood, tier), Formulas.sick_bonus_cost(state, tier))
+	mood.bonus = 2
+	assert_eq(Formulas.sick_bonus_price(state, mood, 3), Formulas.sick_bonus_cost(state, 3) - Formulas.sick_bonus_cost(state, 2))
+	assert_eq(Formulas.sick_bonus_price(state, mood, 2), 0.0)
+	assert_eq(Formulas.sick_bonus_price(state, mood, 1), 0.0)
+
+
+func test_bonus_stays_cheap_compared_to_income() -> void:
+	for tier in range(1, GameConfig.sick_bonus_tiers() + 1):
+		assert_lte(GameConfig.SICK_BONUS_MINUTES[tier], 1.0, "tier %d" % tier)
+
+
+func test_time_left_with_tier_previews_each_option() -> void:
+	var mood := DeskMood.new()
+	assert_eq(Formulas.sick_time_left_with(state, mood, 3), 0.0)
+	mood.rest(DeskMood.SICK)
+	mood.resting = 20.0
+	var remaining := GameConfig.SICK_SECONDS - 20.0
+	assert_eq(Formulas.sick_time_left_with(state, mood, 0), remaining)
+	for tier in range(1, GameConfig.sick_bonus_tiers() + 1):
+		assert_almost_eq(Formulas.sick_time_left_with(state, mood, tier), remaining / GameConfig.SICK_BONUS_SPEED[tier], 0.001)
+		assert_lt(Formulas.sick_time_left_with(state, mood, tier), Formulas.sick_time_left_with(state, mood, tier - 1))
+	mood.bonus = 2
+	assert_almost_eq(Formulas.sick_time_left_with(state, mood, 1), remaining / GameConfig.SICK_BONUS_SPEED[2], 0.001)
+	assert_eq(Formulas.sick_time_left_with(state, mood, 2), Formulas.sick_time_left(state, mood))
 
 
 func test_bonus_brings_colleague_back_sooner() -> void:
@@ -301,11 +349,12 @@ func test_guidance_points_to_toilet_guest() -> void:
 
 
 func test_staff_reduces_sickness_disputes_kranz_and_complaints() -> void:
-	assert_eq(Formulas.sick_interval(state, 0.0), GameConfig.SICK_MIN_INTERVAL)
-	assert_eq(Formulas.sick_interval(state, 1.0), GameConfig.SICK_MAX_INTERVAL)
-	assert_eq(Formulas.sick_interval(state, 7.0), GameConfig.SICK_MAX_INTERVAL)
+	var officials := maxi(1, state.staffed_officials())
+	assert_almost_eq(Formulas.sick_interval(state, 0.0), GameConfig.SICK_MIN_PER_OFFICIAL / officials, 0.001)
+	assert_almost_eq(Formulas.sick_interval(state, 1.0), GameConfig.SICK_MAX_PER_OFFICIAL / officials, 0.001)
+	assert_almost_eq(Formulas.sick_interval(state, 7.0), GameConfig.SICK_MAX_PER_OFFICIAL / officials, 0.001)
 	state.hr = 2
-	assert_almost_eq(Formulas.sick_interval(state, 0.0), GameConfig.SICK_MIN_INTERVAL * (1.0 + 2.0 * GameConfig.SICK_HR_RELIEF), 0.001)
+	assert_almost_eq(Formulas.sick_interval(state, 0.0), GameConfig.SICK_MIN_PER_OFFICIAL / officials * (1.0 + 2.0 * GameConfig.SICK_HR_RELIEF), 0.001)
 	assert_eq(Formulas.kranz_interval(state, 0.0), GameConfig.KRANZ_MIN_INTERVAL)
 	assert_eq(Formulas.kranz_interval(state, 1.0), GameConfig.KRANZ_MAX_INTERVAL)
 	state.coffee_interns.append(CoffeeIntern.new())
@@ -321,9 +370,10 @@ func test_staff_reduces_sickness_disputes_kranz_and_complaints() -> void:
 	assert_almost_eq(Formulas.dispute_interval(state, 0.0), GameConfig.DISPUTE_MIN_INTERVAL * (1.0 + 2.0 * GameConfig.DISPUTE_SUPERVISOR_RELIEF), 0.001)
 
 
-func test_early_game_has_more_trouble_than_before() -> void:
-	assert_lte(GameConfig.SICK_MIN_STAFF, 2)
-	assert_lt(GameConfig.SICK_FIRST_SECONDS, 150.0)
+func test_early_game_trouble_without_sickness_spiral() -> void:
+	assert_lte(GameConfig.SICK_MIN_STAFF, 3)
+	assert_lte(GameConfig.SICK_SECONDS, 150.0)
+	assert_gte(GameConfig.SICK_MIN_PER_OFFICIAL / GameConfig.SICK_MIN_STAFF, 300.0)
 	assert_lt(GameConfig.DISPUTE_MIN_CASES, 40)
 	assert_lt(GameConfig.DISPUTE_FIRST_SECONDS, 240.0)
 	assert_lt(GameConfig.KRANZ_FIRST_SECONDS, 120.0)
@@ -333,7 +383,7 @@ func test_sick_timer_respects_phone_clerks() -> void:
 	state.hr = 2
 	state.sick_timer = 0.0
 	sim.tick(0.05)
-	assert_gte(state.sick_timer, GameConfig.SICK_MIN_INTERVAL * (1.0 + 2.0 * GameConfig.SICK_HR_RELIEF) - 0.1)
+	assert_gte(state.sick_timer, GameConfig.SICK_MIN_PER_OFFICIAL / maxi(1, state.staffed_officials()) * (1.0 + 2.0 * GameConfig.SICK_HR_RELIEF) - 0.1)
 
 
 func test_kranz_and_complaint_timers_use_relief() -> void:
@@ -357,7 +407,7 @@ func test_clock_format() -> void:
 
 
 func test_bonus_texts_exist_in_both_languages() -> void:
-	var keys: Array[String] = ["FMT_SICK_RETURN", "FMT_SICK_BONUS_TITLE", "FMT_SICK_BONUS_TEXT", "FMT_SICK_BONUS_BUTTON", "FLOAT_SICK_BONUS"]
+	var keys: Array[String] = ["FMT_SICK_RETURN", "FMT_SICK_BONUS_TITLE", "SICK_BONUS_TEXT", "FMT_SICK_BONUS_BUTTON", "FLOAT_SICK_BONUS"]
 	for tier in range(1, GameConfig.sick_bonus_tiers() + 1):
 		keys.append("SICK_BONUS_TIER_%d" % tier)
 	var original := TranslationServer.get_locale()

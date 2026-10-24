@@ -22,10 +22,12 @@ func test_new_game_starts_with_citizen_services() -> void:
 	assert_null(state.station("nope"))
 
 
-func test_unlocking_creates_staffed_stations_once() -> void:
+func test_unlocking_creates_unstaffed_stations_once() -> void:
 	state.unlock_department("business_licences")
-	assert_eq(state.station("business_licences/review").staff, 1)
-	assert_eq(state.station(GameConfig.INSPECTION).staff, 1)
+	assert_eq(state.station("business_licences/review").staff, 0)
+	assert_eq(state.station(GameConfig.INSPECTION).staff, 0)
+	assert_true(state.station("business_licences/signature").machine)
+	assert_eq(state.station("business_licences/signature").staff, 1)
 	assert_eq(state.station(GameConfig.RECEPTION).staff, 0)
 	state.station(GameConfig.INSPECTION).level = 3
 	state.unlock_department("building_permits")
@@ -104,6 +106,7 @@ func test_roundtrip_keeps_everything() -> void:
 	state.money = 999.0
 	state.reputation = 12.0
 	state.building_stage = 1
+	state.ensure_mailroom()
 	state.goal_index = 4
 	state.unlock_department("tax_services")
 	state.research["briefcase"] = 2
@@ -149,7 +152,8 @@ func test_load_validates_input() -> void:
 	assert_eq(loaded.event_id, "")
 	assert_eq(loaded.research_level("briefcase"), int(GameConfig.RESEARCH.briefcase.max_level))
 	assert_true(loaded.department("general_services").unlocked)
-	assert_eq(loaded.stations.size(), 4)
+	assert_eq(loaded.stations.size(), 5)
+	assert_not_null(loaded.mailroom())
 	assert_eq(loaded.station(GameConfig.COUNTER).staff, 0)
 	assert_eq(loaded.player.position, Vector2(WorldLayout.MARGIN, WorldLayout.MARGIN))
 	assert_eq(loaded.runners.size(), GameConfig.MAX_RUNNERS)

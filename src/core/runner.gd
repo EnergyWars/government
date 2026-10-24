@@ -3,10 +3,19 @@ extends Carrier
 
 enum Task { IDLE, TO_SOURCE, TO_TARGET }
 
+const INTAKE := "intake"
+const INTERNAL := "internal"
+const OUTPUT := "output"
+const ROLES: Array[String] = [INTAKE, INTERNAL, OUTPUT]
+const ALL_DEPARTMENTS := ""
+
 var task := Task.IDLE
 var source := ""
 var target := ""
 var reserved := 0
+var role := INTAKE
+var dept_id := ALL_DEPARTMENTS
+var level := 0
 
 
 func clear_task() -> void:
@@ -16,8 +25,22 @@ func clear_task() -> void:
 	reserved = 0
 
 
+static func role_for(source_key: String, target_key: String) -> String:
+	if target_key == GameConfig.COUNTER:
+		return OUTPUT
+	if source_key == GameConfig.RECEPTION or source_key == GameConfig.MAILROOM or GameConfig.station_kind_of(source_key) == "dock":
+		return INTAKE
+	return INTERNAL
+
+
+func serves(case_file: CaseFile, source_key: String) -> bool:
+	if dept_id != ALL_DEPARTMENTS and case_file.dept_id != dept_id:
+		return false
+	return role_for(source_key, case_file.next_key()) == role
+
+
 func to_dict() -> Dictionary:
-	return {"x": position.x, "y": position.y, "items": items_to_dict(), "target": target if not items.is_empty() else ""}
+	return {"x": position.x, "y": position.y, "items": items_to_dict(), "target": target if not items.is_empty() else "", "role": role, "dept": dept_id, "level": level}
 
 
 static func from_dict(data: Dictionary, fallback: Vector2) -> Runner:
@@ -26,4 +49,9 @@ static func from_dict(data: Dictionary, fallback: Vector2) -> Runner:
 	if not runner.items.is_empty():
 		runner.task = Task.TO_TARGET
 		runner.target = str(data.get("target", runner.items[0].next_key()))
+	var saved_role := str(data.get("role", ""))
+	runner.role = saved_role if ROLES.has(saved_role) else ""
+	var saved_dept := str(data.get("dept", ALL_DEPARTMENTS))
+	runner.dept_id = saved_dept if GameConfig.department_ids().has(saved_dept) else ALL_DEPARTMENTS
+	runner.level = clampi(int(data.get("level", 0)), 0, GameConfig.MAX_RUNNER_LEVEL)
 	return runner

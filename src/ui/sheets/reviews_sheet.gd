@@ -214,6 +214,7 @@ func _build_detail(container: VBoxContainer, review: Review) -> void:
 	column.add_child(head)
 	column.add_child(UiKit.label(tr(review.author_key()), "TitleMedium", true))
 	column.add_child(UiKit.label(tr(review.text_key()), "BodyMedium", true))
+	column.add_child(UiKit.label(tr("FMT_REVIEW_EXPIRES") % UiKit.duration(game.state.review_time_left(review)), "BodySmall", true))
 	card.add_child(column)
 	container.add_child(card)
 	if review.forced:

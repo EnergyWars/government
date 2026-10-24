@@ -24,3 +24,7 @@ static func reward(goal: Dictionary) -> String:
 	if reputation > 0:
 		return UiKit.t("FMT_REWARD_BOTH") % [UiKit.money(money), reputation]
 	return UiKit.t("FMT_REWARD_MONEY") % UiKit.money(money)
+
+
+static func claim_reward(goal: Dictionary) -> String:
+	return UiKit.t("FMT_REWARD_WITH_SEALS") % [reward(goal), GameConfig.GOAL_SEALS]

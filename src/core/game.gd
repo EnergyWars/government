@@ -8,6 +8,7 @@ var simulation: Simulation
 var actions: GameActions
 var goals: GoalTracker
 var tutorial: Tutorial
+var boosts: Boosts
 const CHANGE_INTERVAL := 0.1
 
 var _accumulator := 0.0
@@ -20,6 +21,7 @@ func _init(p_state: GameState) -> void:
 	actions = GameActions.new(state, simulation)
 	goals = GoalTracker.new(state)
 	tutorial = Tutorial.new(state)
+	boosts = Boosts.new(state, simulation)
 
 
 func advance(delta: float) -> int:

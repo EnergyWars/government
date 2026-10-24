@@ -11,7 +11,7 @@ static func build(case_file: CaseFile) -> Array[String]:
 	if GameConfig.is_customs(case_file.dept_id):
 		route.append_array(keys)
 		return route
-	route.append(GameConfig.RECEPTION)
+	route.append(GameConfig.MAILROOM if case_file.mail else GameConfig.RECEPTION)
 	route.append(keys[0])
 	if case_file.follow_up:
 		route.append(GameConfig.COUNTER)
@@ -21,7 +21,8 @@ static func build(case_file: CaseFile) -> Array[String]:
 	if bool(config.inspection):
 		route.append(GameConfig.INSPECTION)
 	route.append(keys[1])
-	route.append(GameConfig.COUNTER)
+	if not case_file.mail:
+		route.append(GameConfig.COUNTER)
 	return route
 
 

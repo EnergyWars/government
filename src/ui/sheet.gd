@@ -104,6 +104,12 @@ func act(action: Callable) -> void:
 		rebuild()
 
 
+func watch_ad(action: Callable) -> AdPlaceholder:
+	var ad := AdPlaceholder.play(get_parent(), game.perform.bind(action))
+	ad.finished.connect(rebuild)
+	return ad
+
+
 func close_sheet() -> void:
 	if is_queued_for_deletion():
 		return

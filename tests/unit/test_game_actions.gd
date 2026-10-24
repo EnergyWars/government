@@ -211,6 +211,7 @@ func test_guidance_pickups_depend_on_automation() -> void:
 	assert_true(Guidance.next_task(state).is_empty())
 	state.runners.clear()
 	state.research["pneumatic_tubes"] = 1
+	state.connect_all_tubes()
 	assert_true(Guidance.next_task(state).is_empty())
 	state.research["pneumatic_tubes"] = 0
 	for i in Formulas.carry_capacity(state):
@@ -218,7 +219,10 @@ func test_guidance_pickups_depend_on_automation() -> void:
 	var review := state.station("general_services/review")
 	for i in review.inbox_capacity(state.lobby_capacity()):
 		review.inbox.append(_case())
-	assert_true(Guidance.next_task(state).is_empty())
+	var task := Guidance.next_task(state)
+	assert_eq(task.action, Guidance.WORK)
+	assert_eq(task.key, review.key)
+	assert_ne(task.action, Guidance.PICKUP)
 
 
 func test_guidance_points_to_unlock_pad() -> void:

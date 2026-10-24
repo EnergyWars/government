@@ -60,6 +60,7 @@ func test_case_file_roundtrip_and_clamping() -> void:
 	case_file.produced = true
 	case_file.age = 12.5
 	case_file.waited = 3.0
+	case_file.handled = 4
 	var copy := CaseFile.from_dict(case_file.to_dict())
 	assert_eq(copy.to_dict(), case_file.to_dict())
 	var data := case_file.to_dict()
@@ -68,7 +69,10 @@ func test_case_file_roundtrip_and_clamping() -> void:
 	var empty := CaseFile.from_dict({})
 	assert_eq(empty.dept_id, "")
 	assert_eq(empty.step, 0)
+	assert_eq(empty.handled, 0)
 	assert_true(empty.route.is_empty())
+	data.handled = -3
+	assert_eq(CaseFile.from_dict(data).handled, 0)
 
 
 func test_station_job_progress() -> void:
@@ -83,7 +87,21 @@ func test_station_job_progress() -> void:
 	assert_eq(copy.required, 2.0)
 	assert_eq(copy.progress, 5.0)
 	assert_true(copy.by_specialist)
+	assert_false(copy.by_hand)
 	assert_eq(StationJob.new(null, 0.0).required, 0.01)
+
+
+func test_station_job_counts_hand_work_once() -> void:
+	var job := StationJob.new(_case(), 2.0)
+	job.work_by_hand(0.5)
+	job.work_by_hand(0.5)
+	assert_true(job.by_hand)
+	assert_eq(job.progress, 1.0)
+	assert_eq(job.case_file.handled, 1)
+	var copy := StationJob.from_dict(job.to_dict())
+	assert_true(copy.by_hand)
+	copy.work_by_hand(0.5)
+	assert_eq(copy.case_file.handled, 1)
 
 
 func test_station_derives_kind_and_machine() -> void:
@@ -149,6 +167,27 @@ func test_station_manual_work_detection() -> void:
 	station.staff = 1
 	assert_false(station.needs_manual_work())
 	assert_false(station.unstaffed_desks_busy())
+
+
+func test_station_accepts_help_only_with_staff_and_work() -> void:
+	var station := Station.new("general_services/review")
+	station.inbox.append(_case())
+	assert_false(station.can_be_helped())
+	station.staff = 1
+	assert_true(station.can_be_helped())
+	assert_false(station.needs_help())
+	for i in GameConfig.HELP_BACKLOG - 1:
+		station.inbox.append(_case())
+	assert_true(station.needs_help())
+	station.inbox.clear()
+	assert_false(station.can_be_helped())
+	station.jobs[0] = StationJob.new(_case())
+	assert_true(station.can_be_helped())
+	station.moods[0].rest(DeskMood.ASLEEP)
+	assert_false(station.can_be_helped())
+	var machine := Station.new("general_services/signature")
+	machine.inbox.append(_case())
+	assert_false(machine.can_be_helped())
 
 
 func test_station_case_selection() -> void:

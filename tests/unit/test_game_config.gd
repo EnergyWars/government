@@ -167,3 +167,30 @@ func test_world_layout_helpers() -> void:
 	assert_false(layout.near(Vector2.ZERO, Vector2(GameConfig.INTERACT_RADIUS + 1.0, 0)))
 	assert_eq(layout.slot_at(layout.room("customs").get_center()), "customs")
 	assert_eq(layout.slot_at(layout.hall.get_center()), "")
+
+
+func test_room_lookups() -> void:
+	assert_eq(GameConfig.room(GameConfig.ROOM_KITCHEN).id, GameConfig.ROOM_KITCHEN)
+	assert_true(GameConfig.room("nope").is_empty())
+	assert_eq(GameConfig.room_items(GameConfig.ROOM_PHONE, "staff"), ["hr"] as Array[String])
+	assert_true(GameConfig.room_items(GameConfig.ROOM_PHONE, "research").is_empty())
+	assert_true(GameConfig.room_items("nope", "staff").is_empty())
+	assert_eq(GameConfig.room_items(GameConfig.ROOM_HALL, "stations"), [GameConfig.RECEPTION, GameConfig.COUNTER] as Array[String])
+	assert_eq(GameConfig.room_items(GameConfig.ROOM_INSPECTION, "stations"), [GameConfig.INSPECTION] as Array[String])
+
+
+func test_rooms_reference_valid_upgrades() -> void:
+	var staff_seen: Array[String] = []
+	for room: Dictionary in GameConfig.ROOMS:
+		for staff_id in GameConfig.room_items(room.id, "staff"):
+			assert_true(Icons.STAFF.has(staff_id), staff_id)
+			assert_false(staff_seen.has(staff_id), staff_id)
+			staff_seen.append(staff_id)
+		for key in GameConfig.room_items(room.id, "stations"):
+			assert_true(GameConfig.SHARED_STATIONS.has(key), key)
+		for area_id in GameConfig.room_items(room.id, "areas"):
+			assert_true(["waiting", "seating", "complaint_clerk", "complaint_box", "mail_storage"].has(area_id), area_id)
+		for boost_id in GameConfig.room_items(room.id, "boosts"):
+			assert_true(GameConfig.BOOSTS.has(boost_id), boost_id)
+			assert_true(Icons.BOOSTS.has(boost_id), boost_id)
+	assert_eq(staff_seen.size(), 6)

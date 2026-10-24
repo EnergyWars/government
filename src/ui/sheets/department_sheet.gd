@@ -26,6 +26,11 @@ func build(container: VBoxContainer) -> void:
 			container.add_child(StationCard.build(self, key))
 	container.add_child(UiKit.label(tr("SECTION_TEAM"), "TitleMedium"))
 	container.add_child(_supervisor_row())
+	if game.state.has_research("pneumatic_tubes"):
+		container.add_child(_tube_row())
+	container.add_child(UiKit.label(tr("SECTION_ALL_OFFICES"), "TitleMedium"))
+	container.add_child(UiKit.label(UpgradeCards.room_description(GameConfig.ROOM_OFFICE), "BodySmall", true))
+	UpgradeCards.add_room(self, container, GameConfig.ROOM_OFFICE)
 
 
 func _shared_route_keys(own_keys: Array[String]) -> Array[String]:
@@ -129,5 +134,28 @@ func _supervisor_row() -> Control:
 	track(func() -> void:
 		name_label.text = tr("FMT_STAFF_COUNT") % [tr("STAFF_SUPERVISORS"), dept().supervisors, GameConfig.MAX_SUPERVISORS]
 		StationCard.update_button(button, "ACTION_HIRE", Formulas.supervisor_cost(dept()), game.actions.can_hire_supervisor(argument), dept().supervisors >= GameConfig.MAX_SUPERVISORS, "LABEL_MAX_LEVEL")
+	)
+	return card
+
+
+func _tube_row() -> Control:
+	var card := UiKit.card("CardRow")
+	var row := UiKit.hbox(AppTheme.SPACING_MD)
+	row.add_child(UiKit.icon_disc(Icons.RESEARCH.pneumatic_tubes, AppTheme.accent("primary")))
+	var column := UiKit.vbox(2)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(UiKit.label(tr("LABEL_TUBE_CONNECTION"), "TitleSmall", true))
+	var status := UiKit.label("", "BodySmall", true)
+	column.add_child(status)
+	row.add_child(column)
+	var button := UiKit.button("")
+	button.custom_minimum_size.x = 120
+	button.pressed.connect(func() -> void: act(game.actions.connect_tube.bind(argument)))
+	row.add_child(button)
+	card.add_child(row)
+	track(func() -> void:
+		var connected := game.state.has_tube(argument)
+		status.text = tr("TUBE_CONNECTED_TEXT") if connected else tr("TUBE_CONNECTION_TEXT")
+		StationCard.update_button(button, "ACTION_CONNECT_TUBE", Formulas.tube_connection_cost(argument), game.actions.can_connect_tube(argument), connected, "LABEL_TUBE_CONNECTED")
 	)
 	return card

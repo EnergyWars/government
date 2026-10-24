@@ -11,6 +11,16 @@ const SICK_AVOIDED := "sick_avoided"
 const DOZED := "dozed"
 const DISPUTE := "dispute"
 const DISPUTE_CALMED := "dispute_calmed"
+const TRANSFER := "transfer"
+const COMPLAINT := "complaint"
+const COMPLAINT_SHREDDED := "complaint_shredded"
+const REJECT_SHREDDED := "reject_shredded"
+const CALL_ANSWERED := "call_answered"
+const CALL_MISSED := "call_missed"
+const BY_PLAYER := "player"
+const BY_RUNNER := "runner"
+const BY_TUBE := "tube"
+const BY_STAFF := "staff"
 
 var started := 0.0
 var _counters := {}

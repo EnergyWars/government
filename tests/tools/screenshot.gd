@@ -12,6 +12,7 @@ var _locale := ""
 var _camera := Vector2.INF
 var _rest := false
 var _tubes := false
+var _spot := ""
 
 
 func _initialize() -> void:
@@ -32,6 +33,8 @@ func _initialize() -> void:
 			_locale = arg.trim_prefix("--locale=")
 		elif arg == "--rest":
 			_rest = true
+		elif arg.begins_with("--spot="):
+			_spot = arg.trim_prefix("--spot=")
 		elif arg == "--tubes":
 			_tubes = true
 		elif arg.begins_with("--camera="):
@@ -65,6 +68,7 @@ func _process(_delta: float) -> bool:
 			state.station("general_services/review").add_specialist()
 		if _tubes:
 			_main.game.state.research["pneumatic_tubes"] = 1
+			_main.game.state.connect_all_tubes()
 		if _seconds > 0.0:
 			var state: GameState = _main.game.state
 			var steps := int(_seconds / GameConfig.TICK)
@@ -87,6 +91,10 @@ func _process(_delta: float) -> bool:
 				for mood in rest_state.stations[key].moods:
 					mood.rest(DeskMood.ASLEEP if toggle % 2 == 0 else DeskMood.COFFEE)
 					toggle += 1
+		if _spot == "complaints":
+			_camera = _main.office.layout.complaint_desk_point() + Vector2(0, 140)
+			_main.game.state.tutorial_step = -1
+			_main.tutorial_card.visible = false
 		if _camera != Vector2.INF:
 			_main.office.camera = _camera
 			_main.office._focus_point = _camera

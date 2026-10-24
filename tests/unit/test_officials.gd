@@ -26,6 +26,14 @@ func _staff_two() -> Station:
 	return station
 
 
+func _staff_sick_team() -> Station:
+	var station := _review()
+	while station.desks < GameConfig.SICK_MIN_STAFF:
+		station.add_desk()
+	station.staff = station.desks
+	return station
+
+
 func test_training_raises_level_and_costs_money() -> void:
 	var station := _review()
 	var cost := Formulas.training_cost(station, "skill", 0)
@@ -122,7 +130,7 @@ func test_stamina_slows_down_tiredness() -> void:
 
 
 func test_health_training_avoids_sick_notes() -> void:
-	var station := _staff_two()
+	var station := _staff_sick_team()
 	for mood in station.moods:
 		mood.training = {"health": GameConfig.MAX_OFFICIAL_TRAINING}
 	watch_signals(game.simulation)
@@ -142,9 +150,11 @@ func test_health_training_avoids_sick_notes() -> void:
 
 
 func test_sick_notes_are_counted_per_official() -> void:
-	var station := _staff_two()
+	var station := _staff_sick_team()
 	assert_true(game.simulation.report_sick())
-	var total := station.moods[0].sick_count + station.moods[1].sick_count
+	var total := 0
+	for mood in station.moods:
+		total += mood.sick_count
 	assert_eq(total, 1)
 	assert_eq(state.production.total(ProductionStats.SICK, REVIEW), 1)
 

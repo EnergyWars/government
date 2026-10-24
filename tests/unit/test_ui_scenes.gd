@@ -208,15 +208,15 @@ func _layer_node(world: WorldView, id: String) -> Node2D:
 	return null
 
 
-func test_tapping_phone_office_opens_team_sheet() -> void:
+func test_tapping_phone_office_opens_phone_room() -> void:
 	var joystick := JoystickView.new()
 	add_child_autofree(joystick)
 	var world := WorldView.new()
 	add_child_autofree(world)
 	world.setup(game, joystick)
 	watch_signals(world)
-	world._handle_tap(world.layout.phone_office.get_center())
-	assert_signal_emitted(world, "open_team")
+	world._handle_tap(world.layout.phone_header().get_center())
+	assert_signal_emitted_with_parameters(world, "open_room", [GameConfig.ROOM_PHONE])
 
 
 func test_phone_and_toilet_painters_draw() -> void:
@@ -235,20 +235,22 @@ func test_phone_and_toilet_painters_draw() -> void:
 	assert_true(is_instance_valid(canvas))
 
 
-func test_tapping_inspection_room_opens_team_sheet() -> void:
+func test_tapping_inspection_room_opens_inspection_room() -> void:
 	var joystick := JoystickView.new()
 	add_child_autofree(joystick)
 	var world := WorldView.new()
 	add_child_autofree(world)
 	world.setup(game, joystick)
+	game.state.stations.erase(GameConfig.INSPECTION)
+	game.state.department("business_licences").unlocked = false
 	watch_signals(world)
-	var point := world.layout.room("inspection").get_center()
+	var point := world.layout.header("inspection").get_center()
 	world._handle_tap(point)
-	assert_signal_not_emitted(world, "open_team")
+	assert_signal_not_emitted(world, "open_room")
 	game.state.unlock_department("business_licences")
 	assert_not_null(game.state.station(GameConfig.INSPECTION))
 	world._handle_tap(point)
-	assert_signal_emitted(world, "open_team")
+	assert_signal_emitted_with_parameters(world, "open_room", [GameConfig.ROOM_INSPECTION])
 
 
 func test_team_sheet_hires_hr() -> void:
@@ -267,7 +269,7 @@ func test_world_view_layers_are_created_and_redrawn_selectively() -> void:
 	var world := WorldView.new()
 	add_child_autofree(world)
 	world.setup(game, joystick)
-	assert_eq(world._layers.size(), 7 + world.layout.rooms.size())
+	assert_eq(world._layers.size(), 8 + world.layout.rooms.size())
 	world._process(0.016)
 	await wait_physics_frames(2)
 	var drawn := 0
@@ -281,7 +283,7 @@ func test_world_view_layers_are_created_and_redrawn_selectively() -> void:
 			static_layers += 1
 	assert_eq(static_layers, 3)
 	var stage_before: int = world._shell_stage
-	game.state.building_stage = mini(stage_before + 1, 4)
+	game.state.building_stage = (stage_before + 1) % GameConfig.BUILDING_STAGES.size()
 	world._process(0.016)
 	assert_ne(world._shell_stage, stage_before)
 	for step in 30:
@@ -333,12 +335,36 @@ func test_world_view_draws_complaint_corner() -> void:
 	game.simulation.complaint_filed.emit(false)
 	game.simulation.complaint_filed.emit(true)
 	game.simulation.complaint_shredded.emit(true)
+	var floaters := world._floaters.size()
+	game.simulation.complaint_fended.emit()
+	assert_eq(world._floaters.size(), floaters + 1)
+	for outcome in ["expired", "lost", "deleted"]:
+		game.simulation.review_removed.emit(outcome)
+	assert_eq(world._floaters.size(), floaters + 4)
+	game.state.complaint_clerk_level = GameConfig.COMPLAINT_CLERK_MAX_LEVEL
+	game.state.complaints = Formulas.complaint_cap(game.state)
 	assert_gt(world._shred_time, 0.0)
 	world._process(0.1)
 	world.queue_redraw()
 	await wait_physics_frames(2)
 	world._process(1.0)
 	assert_eq(world._shred_time, 0.0)
+
+
+func test_world_view_floats_complaint_subject_instead_of_letter() -> void:
+	var joystick := JoystickView.new()
+	add_child_autofree(joystick)
+	var world := WorldView.new()
+	add_child_autofree(world)
+	world.setup(game, joystick)
+	game.state.complaints_filed = 3
+	game.simulation.complaint_filed.emit(false)
+	var floater: Dictionary = world._floaters[world._floaters.size() - 1]
+	assert_eq(floater["text"], Flavor.complaint_subject(2))
+	assert_ne(floater["text"], Flavor.complaint(2))
+	game.simulation.complaint_filed.emit(true)
+	floater = world._floaters[world._floaters.size() - 1]
+	assert_eq(floater["text"], world.tr("FLOAT_COMPLAINT_OVERFLOW"))
 
 
 func test_complaint_painter_elements_draw() -> void:
@@ -349,6 +375,8 @@ func test_complaint_painter_elements_draw() -> void:
 			OfficePainter.complaint_pile(canvas, Vector2(50, 50), count)
 		for active in [true, false]:
 			OfficePainter.shredder(canvas, Vector2(100, 100), active, 0.3)
+		for fill in [0.0, 0.5, 1.0, 3.0]:
+			OfficePainter.complaint_box(canvas, Vector2(150, 100), fill)
 	)
 	canvas.queue_redraw()
 	await wait_physics_frames(2)
@@ -472,11 +500,16 @@ func test_world_view_tap_opens_department() -> void:
 	world.setup(game, joystick)
 	watch_signals(world)
 	world._handle_tap(world.layout.room("tax_services").get_center())
+	assert_signal_not_emitted(world, "open_department")
+	world._handle_tap(world.layout.header("tax_services").get_center())
 	assert_signal_emitted_with_parameters(world, "open_department", ["tax_services"])
 	game.state.department("customs").unlocked = false
 	world._handle_tap(world.layout.room("customs").get_center())
+	assert_signal_not_emitted(world, "open_departments")
+	world._handle_tap(world.layout.header("customs").get_center())
 	assert_signal_emitted(world, "open_departments")
 	world._handle_tap(world.layout.hall.get_center())
+	assert_signal_not_emitted(world, "open_room")
 
 
 func test_world_view_reacts_to_simulation_signals() -> void:
@@ -726,6 +759,23 @@ func test_departments_sheet_shows_jam_and_legend() -> void:
 	await wait_physics_frames(2)
 
 
+func test_building_sheet_offers_clerk_and_box_upgrades() -> void:
+	game.state.money = 1.0e9
+	var sheet := _sheet(BuildingSheet.new())
+	sheet.refresh()
+	var clerk: String = sheet.tr("FMT_WAITING_LEVEL") % [sheet.tr("COMPLAINT_CLERK_TITLE"), 0, GameConfig.COMPLAINT_CLERK_MAX_LEVEL]
+	var box: String = sheet.tr("FMT_WAITING_LEVEL") % [sheet.tr("COMPLAINT_BOX_TITLE"), 0, GameConfig.COMPLAINT_BOX_MAX_LEVEL]
+	assert_true(_has_label(sheet.content, clerk))
+	assert_true(_has_label(sheet.content, box))
+	assert_true(_has_label(sheet.content, UpgradeCards.complaint_clerk_info(game.state)))
+	assert_true(game.actions.upgrade_complaint_clerk())
+	sheet.refresh()
+	assert_true(_has_label(sheet.content, UpgradeCards.complaint_clerk_info(game.state)))
+	game.state.complaint_clerk_level = GameConfig.COMPLAINT_CLERK_MAX_LEVEL
+	assert_false(UpgradeCards.complaint_clerk_info(game.state).contains("\n"))
+	await wait_physics_frames(2)
+
+
 func test_building_sheet_shows_population() -> void:
 	var sheet := _sheet(BuildingSheet.new())
 	sheet.refresh()
@@ -761,6 +811,7 @@ func test_world_view_draws_tubes_capsules_and_reject_piles() -> void:
 	add_child_autofree(world)
 	world.setup(game, joystick)
 	game.state.research["pneumatic_tubes"] = 1
+	game.state.connect_all_tubes()
 	game.state.station("general_services/review").rejects = 3
 	game.state.player.rejects = 2
 	game.simulation.case_piped.emit("general_services/review", "shared/counter", "general_services")
@@ -906,8 +957,10 @@ func test_hud_bonus_card_appears_at_sick_desk_and_pays_bonus() -> void:
 	assert_true(hud._bonus_card.visible)
 	assert_eq(hud._bonus_buttons.size(), GameConfig.sick_bonus_tiers())
 	assert_true(hud._bonus_title.text.contains(NumberFormat.clock(GameConfig.SICK_SECONDS)))
-	var expected := hud.tr("FMT_SICK_BONUS_BUTTON") % [hud.tr("SICK_BONUS_TIER_1"), UiKit.money(Formulas.sick_bonus_cost(game.state, 1))]
+	var fast := NumberFormat.clock(GameConfig.SICK_SECONDS / GameConfig.SICK_BONUS_SPEED[1])
+	var expected := hud.tr("FMT_SICK_BONUS_BUTTON") % [hud.tr("SICK_BONUS_TIER_1"), UiKit.money(Formulas.sick_bonus_cost(game.state, 1)), fast]
 	assert_eq(hud._bonus_buttons[0].text, expected)
+	assert_eq(hud._bonus_text.text, hud.tr("SICK_BONUS_TEXT"))
 	assert_false(hud._bonus_buttons[0].disabled)
 	var money := game.state.money
 	hud._bonus_buttons[1].pressed.emit()
@@ -917,6 +970,9 @@ func test_hud_bonus_card_appears_at_sick_desk_and_pays_bonus() -> void:
 	assert_true(hud._bonus_buttons[0].disabled)
 	assert_true(hud._bonus_buttons[1].disabled)
 	assert_false(hud._bonus_buttons[2].disabled)
+	var mood := review.moods[1]
+	assert_true(hud._bonus_buttons[2].text.contains(UiKit.money(Formulas.sick_bonus_price(game.state, mood, 3))))
+	assert_true(hud._bonus_buttons[2].text.contains(NumberFormat.clock(Formulas.sick_time_left_with(game.state, mood, 3))))
 	game.state.money = 0.0
 	hud.refresh()
 	assert_true(hud._bonus_buttons[2].disabled)
@@ -932,3 +988,82 @@ func test_hud_income_comes_from_core_tracker() -> void:
 	game.state.income.advance(1.0, 0.0)
 	game.state.income.advance(1.0, 5.0)
 	assert_almost_eq(hud.income_per_minute(), 300.0, 0.001)
+
+
+func _ring_world() -> WorldView:
+	var joystick := JoystickView.new()
+	add_child_autofree(joystick)
+	var world := WorldView.new()
+	add_child_autofree(world)
+	world.setup(game, joystick)
+	return world
+
+
+func _ring_ratios(world: WorldView, id: String) -> Array[float]:
+	var ratios: Array[float] = []
+	for entry: Dictionary in world._rings.get(id, []):
+		ratios.append(float((entry.ratio as Callable).call()))
+	return ratios
+
+
+func test_progress_rings_follow_live_state_between_layer_redraws() -> void:
+	var world := _ring_world()
+	game.state.kranz = true
+	game.state.kranz_progress = 0.0
+	_layer_node(world, WorldView.KITCHEN_LAYER).queue_redraw()
+	await wait_physics_frames(2)
+	assert_eq(_ring_ratios(world, WorldView.KITCHEN_LAYER).max(), 0.0)
+	game.state.kranz_progress = GameConfig.KRANZ_END_TIME * 0.5
+	assert_almost_eq(_ring_ratios(world, WorldView.KITCHEN_LAYER).max(), 0.5, 0.001)
+	game.state.kranz = false
+	assert_eq(_ring_ratios(world, WorldView.KITCHEN_LAYER).max(), 0.0)
+	world._actors.queue_redraw()
+	await wait_physics_frames(2)
+	assert_eq(world._ring_layer, "")
+
+
+func test_progress_ring_of_mood_stops_when_state_changes() -> void:
+	var world := _ring_world()
+	var review := game.state.station("general_services/review")
+	review.staff = 1
+	review.moods[0].rest(DeskMood.CHAT, 0)
+	_layer_node(world, WorldView.KITCHEN_LAYER).queue_redraw()
+	await wait_physics_frames(2)
+	review.moods[0].wake_progress = GameConfig.WAKE_TIME * 0.25
+	assert_almost_eq(_ring_ratios(world, WorldView.KITCHEN_LAYER).max(), 0.25, 0.001)
+	review.moods[0].state = DeskMood.AWAKE
+	assert_eq(_ring_ratios(world, WorldView.KITCHEN_LAYER).max(), 0.0)
+
+
+func test_progress_ring_of_phone_call_ends_with_the_call() -> void:
+	var world := _ring_world()
+	var outgoing := PhoneCall.new(PhoneCall.OUTGOING, "general_services/review", 0)
+	outgoing.line = PhoneCall.PLAYER
+	game.state.calls.append(outgoing)
+	_layer_node(world, WorldView.PHONE_LAYER).queue_redraw()
+	await wait_physics_frames(2)
+	outgoing.progress = outgoing.duration() * 0.6
+	assert_almost_eq(_ring_ratios(world, WorldView.PHONE_LAYER).max(), 0.6, 0.001)
+	game.state.calls.clear()
+	assert_eq(_ring_ratios(world, WorldView.PHONE_LAYER).max(), 0.0)
+
+
+func test_progress_ring_draws_directly_outside_layers() -> void:
+	var world := _ring_world()
+	var drawn := [0]
+	var full := func() -> float:
+		drawn[0] += 1
+		return 2.0
+	var empty := func() -> float:
+		drawn[0] += 1
+		return 0.0
+	world._actors.draw.connect(func() -> void:
+		world._canvas = world._actors
+		world._progress_ring(Vector2.ZERO, 10.0, 2.0, func() -> Color: return AppTheme.accent("success"), full)
+		world._progress_ring(Vector2.ZERO, 10.0, 2.0, AppTheme.MONEY, empty)
+		world._canvas = world
+	)
+	world._actors.queue_redraw()
+	await wait_physics_frames(2)
+	assert_gt(drawn[0], 1)
+	assert_false(world._rings.has(""))

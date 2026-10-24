@@ -57,7 +57,7 @@ func _build_scene() -> void:
 	office.setup(game, joystick)
 	office.open_department.connect(func(dept_id: String) -> void: open_sheet("department", dept_id))
 	office.open_departments.connect(func() -> void: open_sheet("departments"))
-	office.open_team.connect(func() -> void: open_sheet("team"))
+	office.open_room.connect(func(room_id: String) -> void: open_sheet("room", room_id))
 	office.open_complaints.connect(func() -> void: open_sheet("complaints"))
 	game.changed.connect(hud.refresh)
 	tutorial_card = TutorialCard.new().setup(game, hud, _safe_top())
@@ -108,6 +108,8 @@ func open_sheet(sheet_id: String, argument: String = "") -> void:
 			sheet = TeamSheet.new()
 		"research":
 			sheet = ResearchSheet.new()
+		"room":
+			sheet = RoomSheet.new()
 		"building":
 			sheet = BuildingSheet.new()
 		"goals":
@@ -120,6 +122,10 @@ func open_sheet(sheet_id: String, argument: String = "") -> void:
 			sheet = StatisticsSheet.new()
 		"officials":
 			sheet = OfficialsSheet.new()
+		"boosts":
+			sheet = BoostSheet.new()
+		"runners":
+			sheet = RunnerSheet.new()
 		"settings":
 			sheet = SettingsSheet.new().with_settings(settings)
 		_:
@@ -143,9 +149,15 @@ func _dialog(dialog: AppDialog) -> AppDialog:
 	return dialog
 
 
-func _show_offline(offline: Dictionary) -> void:
+func _show_offline(offline: Dictionary) -> AppDialog:
 	var text := tr("FMT_OFFLINE_TEXT") % [UiKit.duration(offline.seconds), UiKit.money(offline.money)]
-	_dialog(AppDialog.new().configure(Icons.SCHEDULE, tr("OFFLINE_TITLE"), text, tr("ACTION_OK")))
+	var dialog := _dialog(AppDialog.new().configure(Icons.SCHEDULE, tr("OFFLINE_TITLE"), text, tr("ACTION_DOUBLE_AD"), tr("ACTION_OK")))
+	dialog.confirmed.connect(func() -> void: AdPlaceholder.play(overlay, game.perform.bind(_double_offline.bind(offline))))
+	return dialog
+
+
+func _double_offline(offline: Dictionary) -> bool:
+	return OfflineCalculator.double_up(game.state, offline) > 0.0
 
 
 func _confirm_reset() -> void:

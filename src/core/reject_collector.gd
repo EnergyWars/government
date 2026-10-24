@@ -11,5 +11,5 @@ func to_dict() -> Dictionary:
 
 static func from_dict(data: Dictionary, fallback: Vector2) -> RejectCollector:
 	var collector := RejectCollector.new(Vector2(float(data.get("x", fallback.x)), float(data.get("y", fallback.y))))
-	collector.loaded = clampi(int(data.get("loaded", 0)), 0, GameConfig.COLLECTOR_CAPACITY)
+	collector.loaded = clampi(int(data.get("loaded", 0)), 0, Formulas.collector_capacity_limit())
 	return collector

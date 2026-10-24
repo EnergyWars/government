@@ -11,7 +11,7 @@ static func unlock_block_reason(state: GameState, dept_id: String) -> String:
 	var config := dept.config()
 	if state.unlocked_count() >= int(state.stage_config().max_departments):
 		return "space"
-	if state.reputation < float(config.unlock_reputation):
+	if state.standing() < float(config.unlock_reputation):
 		return "reputation"
 	if not state.can_afford(float(config.unlock_cost)):
 		return "money"
@@ -34,7 +34,7 @@ static func research_block_reason(state: GameState, research_id: String) -> Stri
 		return "max"
 	if config.has("requires") and not state.has_research(str(config.requires)):
 		return "requires"
-	if state.reputation < float(config.reputation):
+	if state.standing() < float(config.reputation):
 		return "reputation"
 	if not state.can_afford(Formulas.research_cost(research_id, level)):
 		return "money"
@@ -46,7 +46,7 @@ static func expansion_block_reason(state: GameState) -> String:
 	if next >= GameConfig.BUILDING_STAGES.size():
 		return "max"
 	var config := GameConfig.building_stage(next)
-	if state.reputation < float(config.reputation):
+	if state.standing() < float(config.reputation):
 		return "reputation"
 	if not state.can_afford(float(config.cost)):
 		return "money"
