@@ -12,10 +12,7 @@ static func effective_seconds(saved_at: int, now: int) -> float:
 
 
 static func earnings_per_second(state: GameState) -> float:
-	var total := 0.0
-	for dept in state.unlocked_departments():
-		total += Formulas.department_throughput(state, dept) * Formulas.expected_case_value(state, dept)
-	return total * GameConfig.OFFLINE_EFFICIENCY
+	return Formulas.income_per_second(state) * GameConfig.OFFLINE_EFFICIENCY
 
 
 static func compute(state: GameState, now: int) -> Dictionary:

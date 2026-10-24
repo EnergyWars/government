@@ -31,7 +31,7 @@ func advance(delta: float) -> int:
 		steps += 1
 	if steps >= GameConfig.MAX_STEPS_PER_FRAME:
 		_accumulator = 0.0
-	tutorial.update()
+	tutorial.update(delta)
 	_since_change += delta
 	if steps > 0 and _since_change >= CHANGE_INTERVAL:
 		_since_change = 0.0

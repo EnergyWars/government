@@ -81,10 +81,16 @@ func refresh() -> void:
 	_title.text = tr("TUTORIAL_%s_TITLE" % key)
 	_text.text = tr("TUTORIAL_%s_TEXT" % key)
 	_progress.value = float(tutorial.index()) / float(tutorial.count())
-	_next.visible = tutorial.is_info()
-	_next.text = tr("TUTORIAL_FINISH") if tutorial.is_last() else tr("TUTORIAL_NEXT")
-	_waiting.visible = not tutorial.is_info()
+	_next.visible = tutorial.can_advance()
+	_next.text = _next_label(tutorial)
+	_waiting.visible = not tutorial.can_advance()
 	highlight_changed.emit(str(step.target))
+
+
+func _next_label(tutorial: Tutorial) -> String:
+	if not tutorial.is_info():
+		return tr("TUTORIAL_SKIP_STEP")
+	return tr("TUTORIAL_FINISH") if tutorial.is_last() else tr("TUTORIAL_NEXT")
 
 
 func _process(_delta: float) -> void:

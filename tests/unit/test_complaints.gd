@@ -35,13 +35,14 @@ func test_complaints_are_filed_after_minimum_cases() -> void:
 	assert_signal_emitted_with_parameters(sim, "complaint_filed", [false])
 
 
-func test_full_box_costs_reputation() -> void:
+func test_full_box_costs_no_reputation() -> void:
 	state.reputation = 5.0
 	state.complaints = GameConfig.COMPLAINT_CAP
 	watch_signals(sim)
 	sim.file_complaint()
 	assert_eq(state.complaints, GameConfig.COMPLAINT_CAP)
-	assert_almost_eq(state.reputation, 5.0 - GameConfig.COMPLAINT_OVERFLOW_PENALTY, 0.001)
+	assert_eq(state.reputation, 5.0)
+	assert_eq(state.complaints_filed, 0)
 	assert_signal_emitted_with_parameters(sim, "complaint_filed", [true])
 
 
@@ -89,7 +90,7 @@ func test_shred_complaints_edge_cases() -> void:
 func test_shredder_intern_shreds_automatically() -> void:
 	state.research["shredder_service"] = 3
 	state.complaints = 2
-	_run(GameConfig.SHREDDER_DELAYS[3] * 2.0 + 1.0, 0.5)
+	_run(GameConfig.SHREDDER_DELAYS[3] * 2.0 + 15.0, 0.5)
 	assert_eq(state.complaints, 0)
 	assert_eq(state.complaints_shredded, 2)
 
@@ -136,10 +137,12 @@ func test_old_saves_and_invalid_values_are_tolerated() -> void:
 	data.complaints = 999
 	data.complaints_shredded = -4
 	data.complaint_timer = 1e9
+	data.complaints_filed = -7
 	data.player.complaints = -3
 	loaded = GameState.from_dict(data)
 	assert_eq(loaded.complaints, GameConfig.COMPLAINT_CAP)
 	assert_eq(loaded.complaints_shredded, 0)
+	assert_eq(loaded.complaints_filed, GameConfig.COMPLAINT_CAP)
 	assert_eq(loaded.complaint_timer, GameConfig.COMPLAINT_INTERVAL)
 	assert_eq(loaded.player.complaints, 0)
 
@@ -154,3 +157,72 @@ func test_guidance_leads_to_desk_then_shredder() -> void:
 	task = Guidance.next_task(state)
 	assert_eq(task.action, Guidance.SHRED)
 	assert_eq(task.point, layout.shredder_point())
+
+
+func test_complaints_are_rare_and_harmless() -> void:
+	assert_gte(GameConfig.COMPLAINT_INTERVAL, 120.0)
+	assert_gt(GameConfig.COMPLAINT_REWARD, 0.0)
+	assert_lte(GameConfig.COMPLAINT_REWARD, 5.0)
+	state.reputation = 10.0
+	state.complaints = GameConfig.COMPLAINT_CAP
+	_run(120.0, 0.5)
+	assert_gte(state.reputation, 10.0)
+
+
+func test_filing_counts_serials_and_pile_texts_are_newest_first() -> void:
+	sim.file_complaint()
+	sim.file_complaint()
+	sim.file_complaint()
+	assert_eq(state.complaints_filed, 3)
+	assert_eq(state.pile_complaint_serials(2), [2, 1])
+	assert_eq(state.pile_complaint_serials(10), [2, 1, 0])
+	state.complaints = 0
+	assert_true(state.pile_complaint_serials(5).is_empty())
+
+
+func test_complaint_texts_cycle_through_all_variants() -> void:
+	var seen := {}
+	for serial in GameConfig.COMPLAINT_TEXTS:
+		seen[Formulas.complaint_text_index(serial)] = true
+	assert_eq(seen.size(), GameConfig.COMPLAINT_TEXTS)
+	assert_eq(Formulas.complaint_text_index(0), Formulas.complaint_text_index(GameConfig.COMPLAINT_TEXTS))
+	assert_eq(Flavor.COMPLAINT_COUNT, GameConfig.COMPLAINT_TEXTS)
+	assert_between(Formulas.complaint_text_index(-5), 0, GameConfig.COMPLAINT_TEXTS - 1)
+
+
+func test_filed_counter_survives_saving() -> void:
+	sim.file_complaint()
+	sim.file_complaint()
+	var loaded := GameState.from_dict(state.to_dict())
+	assert_eq(loaded.complaints_filed, 2)
+	var data := state.to_dict()
+	data.erase("complaints_filed")
+	assert_eq(GameState.from_dict(data).complaints_filed, state.complaints)
+
+
+func test_layout_exposes_read_area_around_the_desk() -> void:
+	assert_true(layout.complaint_read_rect().has_point(layout.complaint_desk_point()))
+	assert_false(layout.complaint_read_rect().has_point(layout.shredder_point()))
+
+
+func test_sheet_shows_empty_box_and_pile_texts() -> void:
+	var game := Game.new(state)
+	var sheet := ComplaintsSheet.new()
+	sheet.setup(game, "")
+	add_child_autofree(sheet)
+	assert_eq(sheet.title(), sheet.tr("SHEET_COMPLAINTS"))
+	assert_true(_has_label(sheet.content, sheet.tr("COMPLAINTS_EMPTY")))
+	for i in GameConfig.COMPLAINT_READ_MAX + 2:
+		sim.file_complaint()
+	sheet.rebuild()
+	assert_true(_has_label(sheet.content, Flavor.complaint(state.complaints_filed - 1)))
+	assert_true(_has_label(sheet.content, sheet.tr("FMT_COMPLAINTS_MORE") % 2))
+
+
+func _has_label(node: Node, text: String) -> bool:
+	if node is Label and (node as Label).text == text:
+		return true
+	for child in node.get_children():
+		if _has_label(child, text):
+			return true
+	return false

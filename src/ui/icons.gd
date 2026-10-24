@@ -22,7 +22,10 @@ const SPEED := "\ue9e4"
 const LANGUAGE := "\ue894"
 const RESTART := "\uf053"
 const INFO := "\ue88e"
+const SEAT := "\uefed"
 const CHEVRON := "\ue5cc"
+const EXPAND_LESS := "\ue5ce"
+const EXPAND_MORE := "\ue5cf"
 const TROPHY := "\uea23"
 const PRIORITY := "\ue645"
 const DOOR := "\ueffd"
@@ -35,6 +38,12 @@ const HOURGLASS := "\uea5b"
 const TOUCH := "\ue913"
 const SCHOOL := "\ue80c"
 const COFFEE := "\ue541"
+const STAR_BORDER := "\ue83a"
+const REVIEWS := "\ue560"
+const ARROW_BACK := "\ue5c4"
+const CHEVRON_LEFT := "\ue5cb"
+const DELETE := "\ue872"
+const GAVEL := "\ue90e"
 const ALARM := "\ue855"
 const SNOOZE := "\ue046"
 const FORUM := "\ue0bf"
@@ -47,6 +56,14 @@ const TEAM := "\uf233"
 const SEARCH := "\ue8b6"
 const FLAG_REPORT := "\uf013"
 const LOCAL_SHIPPING := "\ue558"
+const STATS := "\ue26b"
+
+const TRAININGS := {
+	"skill": "\ue9e4",
+	"health": "\ue87d",
+	"stamina": "\uea0b",
+	"calm": "\ueb4c",
+}
 
 const DEPARTMENTS := {
 	"general_services": "\ue7fd",
@@ -86,6 +103,10 @@ const STAFF := {
 	"specialists": "\uea67",
 	"supervisors": "\uf02e",
 	"hr": "\ue0b0",
+	"guards": "\ue32a",
+	"collectors": "\ue872",
+	"helpers": "\ue7fb",
+	"coffee_interns": "\ue541",
 }
 
 const RESEARCH := {
@@ -97,6 +118,8 @@ const RESEARCH := {
 	"coffee_machine": "\ue536",
 	"kitchen": "\ue0bf",
 	"shredder_service": "\ue872",
+	"climate_control": "\ueb3b",
+	"mediation": "\ue90e",
 	"scanners": "\ue5fa",
 	"comfortable_lobby": "\uefed",
 	"trolleys": "\uf86b",
@@ -104,8 +127,21 @@ const RESEARCH := {
 	"quality_training": "\ue7af",
 	"digital_signatures": "\ue2e6",
 	"pneumatic_tubes": "\uf867",
+	"tube_capacity": "\ue8f9",
+	"complaint_desk": "\ue0b7",
+	"complaint_tube": "\ue8f9",
+	"intern_training": "\ue80c",
 	"online_portal": "\ue894",
 	"ai_classification": "\uea4b",
+}
+
+const DISPUTES := {
+	"window": "\uf088",
+	"thermostat": "\uf076",
+	"radio": "\ue405",
+	"yoghurt": "\ueb44",
+	"stapler": "\ue226",
+	"fish_roll": "\uf1ea",
 }
 
 const EVENTS := {

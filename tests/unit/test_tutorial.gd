@@ -67,7 +67,7 @@ func test_every_step_is_translated_in_both_languages() -> void:
 			for suffix in ["TITLE", "TEXT"]:
 				var full := "TUTORIAL_%s_%s" % [key, suffix]
 				assert_ne(TranslationServer.translate(full), full, "%s in %s" % [full, locale])
-		for key in ["TUTORIAL_SKIP", "TUTORIAL_NEXT", "TUTORIAL_FINISH", "TUTORIAL_WAITING", "FMT_TUTORIAL_STEP", "TUTORIAL_SKIP_TITLE", "TUTORIAL_SKIP_TEXT", "TUTORIAL_SKIP_CONFIRM", "TUTORIAL_REPLAY", "TUTORIAL_REPLAY_HINT"]:
+		for key in ["TUTORIAL_SKIP", "TUTORIAL_SKIP_STEP", "TUTORIAL_NEXT", "TUTORIAL_FINISH", "TUTORIAL_WAITING", "FMT_TUTORIAL_STEP", "TUTORIAL_SKIP_TITLE", "TUTORIAL_SKIP_TEXT", "TUTORIAL_SKIP_CONFIRM", "TUTORIAL_REPLAY", "TUTORIAL_REPLAY_HINT"]:
 			assert_ne(TranslationServer.translate(key), key, "%s in %s" % [key, locale])
 
 
@@ -233,3 +233,126 @@ func test_game_advances_tutorial_every_frame() -> void:
 	state.player.position = origin + Vector2(Tutorial.MOVE_DISTANCE + 1.0, 0.0)
 	game.advance(0.0)
 	assert_eq(game.tutorial.current().id, "resources")
+
+
+func test_action_step_can_be_skipped_after_delay() -> void:
+	_go_to_step("move")
+	watch_signals(tutorial)
+	tutorial.update(Tutorial.STEP_SKIP_DELAY - 1.0)
+	assert_false(tutorial.can_skip_step())
+	assert_false(tutorial.can_advance())
+	assert_signal_emit_count(tutorial, "changed", 0)
+	tutorial.update(1.0)
+	assert_true(tutorial.can_skip_step())
+	assert_true(tutorial.can_advance())
+	assert_signal_emit_count(tutorial, "changed", 1)
+	tutorial.update(5.0)
+	assert_signal_emit_count(tutorial, "changed", 1)
+	assert_true(tutorial.advance())
+	assert_eq(tutorial.current().id, "resources")
+
+
+func test_skip_delay_restarts_with_each_step() -> void:
+	_go_to_step("move")
+	tutorial.update(Tutorial.STEP_SKIP_DELAY)
+	assert_true(tutorial.advance())
+	_go_to_step("first_case")
+	assert_false(tutorial.can_skip_step())
+	tutorial.update(Tutorial.STEP_SKIP_DELAY)
+	assert_true(tutorial.can_skip_step())
+
+
+func test_info_steps_are_never_step_skippable() -> void:
+	tutorial.update(Tutorial.STEP_SKIP_DELAY * 2.0)
+	assert_true(tutorial.is_info())
+	assert_false(tutorial.can_skip_step())
+	assert_true(tutorial.can_advance())
+
+
+func test_skip_step_unavailable_when_finished() -> void:
+	tutorial.skip()
+	tutorial.update(Tutorial.STEP_SKIP_DELAY)
+	assert_false(tutorial.can_skip_step())
+	assert_false(tutorial.can_advance())
+
+
+func test_goal_step_is_skipped_when_all_goals_are_done() -> void:
+	state.goal_index = GameConfig.GOALS.size()
+	_go_to_step("goal")
+	assert_eq(tutorial.current().id, "tasks")
+
+
+func test_runner_step_is_skipped_at_runner_limit() -> void:
+	while state.runners.size() < GameConfig.MAX_RUNNERS:
+		state.add_runner()
+	_go_to_step("runner")
+	assert_eq(tutorial.current().id, "upgrade")
+
+
+func test_upgrade_step_is_skipped_when_every_station_is_maxed() -> void:
+	for key in state.stations:
+		state.stations[key].level = GameConfig.MAX_STATION_LEVEL
+	_go_to_step("upgrade")
+	assert_eq(tutorial.current().id, "department_open")
+
+
+func test_upgrade_step_waits_while_one_station_can_grow() -> void:
+	for key in state.stations:
+		state.stations[key].level = GameConfig.MAX_STATION_LEVEL
+	state.station(GameConfig.RECEPTION).level = 1
+	_go_to_step("upgrade")
+	assert_eq(tutorial.current().id, "upgrade")
+
+
+func test_hire_step_is_skipped_when_no_one_can_be_hired() -> void:
+	while state.runners.size() < GameConfig.MAX_RUNNERS:
+		state.add_runner()
+	for key in state.stations:
+		var station: Station = state.stations[key]
+		station.desks = state.max_desks()
+		station.staff = station.desks
+	_go_to_step("hire")
+	assert_eq(tutorial.current().id, "upgrade")
+
+
+func test_hire_step_waits_while_runners_can_be_hired() -> void:
+	for key in state.stations:
+		var station: Station = state.stations[key]
+		station.desks = state.max_desks()
+		station.staff = station.desks
+	_go_to_step("hire")
+	assert_eq(tutorial.current().id, "hire")
+
+
+func test_hire_step_waits_while_a_desk_is_free() -> void:
+	while state.runners.size() < GameConfig.MAX_RUNNERS:
+		state.add_runner()
+	for key in state.stations:
+		var station: Station = state.stations[key]
+		station.desks = state.max_desks()
+		station.staff = station.desks
+	var reception := state.station(GameConfig.RECEPTION)
+	reception.staff = reception.desks - 1
+	_go_to_step("hire")
+	assert_eq(tutorial.current().id, "hire")
+
+
+func test_room_for_staff_ignores_machines() -> void:
+	var machine := Station.new()
+	machine.machine = true
+	machine.desks = 1
+	machine.staff = 0
+	assert_false(tutorial._has_room_for_staff(machine))
+
+
+func test_unknown_stat_is_never_blocked() -> void:
+	assert_true(tutorial._can_progress("nope"))
+	assert_true(tutorial._can_progress("cases"))
+
+
+func test_game_passes_time_to_tutorial() -> void:
+	var game := Game.new(state)
+	game.tutorial.advance()
+	game.advance(0.0)
+	game.advance(Tutorial.STEP_SKIP_DELAY)
+	assert_true(game.tutorial.can_skip_step())

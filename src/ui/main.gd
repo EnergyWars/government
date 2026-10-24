@@ -58,6 +58,7 @@ func _build_scene() -> void:
 	office.open_department.connect(func(dept_id: String) -> void: open_sheet("department", dept_id))
 	office.open_departments.connect(func() -> void: open_sheet("departments"))
 	office.open_team.connect(func() -> void: open_sheet("team"))
+	office.open_complaints.connect(func() -> void: open_sheet("complaints"))
 	game.changed.connect(hud.refresh)
 	tutorial_card = TutorialCard.new().setup(game, hud, _safe_top())
 	tutorial_card.highlight_changed.connect(hud.highlight)
@@ -111,6 +112,14 @@ func open_sheet(sheet_id: String, argument: String = "") -> void:
 			sheet = BuildingSheet.new()
 		"goals":
 			sheet = GoalsSheet.new()
+		"reviews":
+			sheet = ReviewsSheet.new()
+		"complaints":
+			sheet = ComplaintsSheet.new()
+		"statistics":
+			sheet = StatisticsSheet.new()
+		"officials":
+			sheet = OfficialsSheet.new()
 		"settings":
 			sheet = SettingsSheet.new().with_settings(settings)
 		_:

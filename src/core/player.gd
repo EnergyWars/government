@@ -7,7 +7,6 @@ var pad_progress := 0.0
 var complaints := 0
 var rejects := 0
 var complaint_timer := 0.0
-var call_progress := 0.0
 
 
 func to_dict() -> Dictionary:

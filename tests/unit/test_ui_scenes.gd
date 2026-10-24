@@ -142,19 +142,40 @@ func test_world_view_draws_sick_phone_and_loo() -> void:
 	review.moods[1].wake_progress = 0.5
 	review.moods[2].rest(DeskMood.LOO, GameConfig.KITCHEN_SLOTS + 1)
 	game.state.hr = 3
-	game.state.player.call_progress = 0.7
+	var incoming := PhoneCall.new(PhoneCall.INCOMING, "general_services/review", 0, 10.0)
+	incoming.line = PhoneCall.PLAYER
+	incoming.progress = 1.0
+	var outgoing := PhoneCall.new(PhoneCall.OUTGOING, "general_services/review", 3)
+	outgoing.line = 1
+	outgoing.progress = 1.0
+	game.state.calls.append(PhoneCall.new(PhoneCall.INCOMING, "general_services/review", 2, 10.0))
+	game.state.calls.append(incoming)
+	game.state.calls.append(outgoing)
+	var floaters := world._floaters.size()
 	game.simulation.sick_called.emit(true, "general_services/review", 0)
-	assert_gt(world._call_time, 0.0)
+	game.simulation.sick_called.emit(false, "general_services/review", 0)
+	game.simulation.sick_call_answered.emit(true, "general_services/review", 0, true)
+	game.simulation.sick_call_answered.emit(false, "general_services/review", 0, false)
+	game.simulation.sick_call_missed.emit("general_services/review", 0)
+	assert_eq(world._floaters.size(), floaters + 5)
 	game.simulation.employee_dozed.emit("general_services/review", 0, DeskMood.SICK)
 	game.simulation.employee_dozed.emit("general_services/review", 1, DeskMood.LOO)
+	var phone_layer := _layer_node(world, WorldView.PHONE_LAYER)
+	for ratio in [0.2, 0.8]:
+		incoming.progress = incoming.duration() * ratio
+		outgoing.progress = outgoing.duration() * ratio
+		phone_layer.queue_redraw()
+		await wait_physics_frames(2)
+	game.state.calls.erase(incoming)
+	phone_layer.queue_redraw()
+	await wait_physics_frames(2)
+	game.state.calls.clear()
+	phone_layer.queue_redraw()
+	await wait_physics_frames(2)
 	world._process(0.1)
 	world.queue_redraw()
 	await wait_physics_frames(2)
-	world._process(GameConfig.CALL_VISIBLE_SECONDS * 0.6)
-	world.queue_redraw()
-	await wait_physics_frames(2)
-	world._process(10.0)
-	assert_eq(world._call_time, 0.0)
+	assert_true(is_instance_valid(world))
 
 
 func test_returning_employee_walks_back_and_desk_stays_empty() -> void:
@@ -180,19 +201,22 @@ func test_returning_employee_walks_back_and_desk_stays_empty() -> void:
 	assert_eq(world._walkers.size(), before)
 
 
-func test_sick_call_dialogue_changes_between_calls() -> void:
+func _layer_node(world: WorldView, id: String) -> Node2D:
+	for layer in world._layers:
+		if layer.id == id:
+			return layer.node
+	return null
+
+
+func test_tapping_phone_office_opens_team_sheet() -> void:
 	var joystick := JoystickView.new()
 	add_child_autofree(joystick)
 	var world := WorldView.new()
 	add_child_autofree(world)
 	world.setup(game, joystick)
-	var seen := {}
-	for i in 30:
-		var before: int = world._call_index
-		game.simulation.sick_called.emit(false, "general_services/review", 0)
-		assert_ne(world._call_index, before)
-		seen[world._call_index] = true
-	assert_gt(seen.size(), 6)
+	watch_signals(world)
+	world._handle_tap(world.layout.phone_office.get_center())
+	assert_signal_emitted(world, "open_team")
 
 
 func test_phone_and_toilet_painters_draw() -> void:
@@ -201,6 +225,9 @@ func test_phone_and_toilet_painters_draw() -> void:
 	canvas.draw.connect(func() -> void:
 		for ringing in [true, false]:
 			OfficePainter.phone(canvas, Vector2(50, 50), ringing, 0.2)
+		for ringing in [0, 3, OfficePainter.SWITCHBOARD_LAMPS + 2]:
+			for time in [0.1, 0.3]:
+				OfficePainter.switchboard(canvas, Vector2(80, 120), ringing, time)
 		OfficePainter.toilet_stalls(canvas, Vector2(10, 10), [true, false, true, false])
 	)
 	canvas.queue_redraw()
@@ -240,7 +267,7 @@ func test_world_view_layers_are_created_and_redrawn_selectively() -> void:
 	var world := WorldView.new()
 	add_child_autofree(world)
 	world.setup(game, joystick)
-	assert_eq(world._layers.size(), 6 + world.layout.rooms.size())
+	assert_eq(world._layers.size(), 7 + world.layout.rooms.size())
 	world._process(0.016)
 	await wait_physics_frames(2)
 	var drawn := 0
@@ -507,7 +534,8 @@ func test_office_painter_draws_every_element() -> void:
 		OfficePainter.cabinet(canvas, Rect2(0, 0, 60, 108))
 		OfficePainter.clock(canvas, Vector2(30, 30), 20.0)
 		OfficePainter.flag(canvas, Vector2(30, 100), 100.0, 1.0)
-		OfficePainter.bench(canvas, Vector2(30, 30))
+		OfficePainter.waiting_chair(canvas, Vector2(30, 30), 1.0)
+		OfficePainter.queue_mark(canvas, Vector2(60, 30), 0.5)
 		OfficePainter.ticket_dispenser(canvas, Vector2(30, 30))
 		for occupied in [true, false]:
 			OfficePainter.desk(canvas, Vector2(50, 50), occupied, occupied, 0.1)
@@ -587,6 +615,19 @@ func test_tutorial_card_finish_label_on_last_step() -> void:
 	assert_eq(card._next.text, card.tr("TUTORIAL_FINISH"))
 	card._next.pressed.emit()
 	assert_false(card.visible)
+
+
+func test_tutorial_card_offers_step_skip_after_delay() -> void:
+	var card := _tutorial_card()
+	card._next.pressed.emit()
+	assert_eq(game.tutorial.current().id, "move")
+	game.tutorial.update(Tutorial.STEP_SKIP_DELAY)
+	assert_true(card._next.visible)
+	assert_false(card._waiting.visible)
+	assert_eq(card._next.text, card.tr("TUTORIAL_SKIP_STEP"))
+	card._next.pressed.emit()
+	assert_eq(game.tutorial.current().id, "resources")
+	assert_eq(card._next.text, card.tr("TUTORIAL_NEXT"))
 
 
 func test_tutorial_card_skip_asks_for_confirmation() -> void:
@@ -776,3 +817,118 @@ func test_world_view_marks_stations_affected_by_an_event() -> void:
 	world.queue_redraw()
 	await wait_physics_frames(2)
 	assert_lt(Formulas.event_speed(game.state, game.state.station("general_services/review")), 1.0)
+
+
+func test_task_panel_can_be_minimized() -> void:
+	var panel := TaskPanel.new().setup(game)
+	add_child_autofree(panel)
+	panel.refresh()
+	assert_true(panel.expanded)
+	panel.toggle()
+	assert_false(panel.expanded)
+	panel.toggle()
+	assert_true(panel.expanded)
+
+
+func test_hud_shows_review_banner_and_rating_chip() -> void:
+	var hud := Hud.new().setup(game, 0.0)
+	add_child_autofree(hud)
+	hud.refresh()
+	assert_false(hud._review_banner.visible)
+	assert_true(hud._rating_chip.visible)
+	assert_eq(hud._rating_label.text, "–")
+	game.state.add_review(5)
+	game.state.add_review(1)
+	hud.refresh()
+	assert_true(hud._review_banner.visible)
+	assert_true(hud._rating_chip.visible)
+	assert_eq(hud._rating_label.text, UiKit.decimal(3.0))
+	watch_signals(hud)
+	hud._review_open.pressed.emit()
+	assert_signal_emitted_with_parameters(hud, "open_sheet", ["reviews", ""])
+	var click := InputEventMouseButton.new()
+	click.pressed = true
+	hud._rating_chip.gui_input.emit(click)
+	assert_signal_emit_count(hud, "open_sheet", 2)
+	game.state.reviews.clear()
+	hud.refresh()
+	assert_false(hud._review_banner.visible)
+
+
+func test_team_sheet_shows_helper_card() -> void:
+	game.state.research["shredder_service"] = 1
+	var sheet := _sheet(TeamSheet.new())
+	sheet.refresh()
+	assert_gt(sheet.get_child_count(), 0)
+
+
+func test_world_view_draws_sick_timer_bonus_and_cover_hint() -> void:
+	var joystick := JoystickView.new()
+	add_child_autofree(joystick)
+	var world := WorldView.new()
+	add_child_autofree(world)
+	world.setup(game, joystick)
+	var review := game.state.station("general_services/review")
+	for i in 2:
+		review.add_desk()
+	review.staff = review.desks
+	review.moods[0].rest(DeskMood.SICK)
+	review.moods[0].bonus = 2
+	review.moods[1].rest(DeskMood.SICK)
+	review.moods[2].rest(DeskMood.FETCH, 0)
+	var case_file := CaseFile.new("general_services")
+	case_file.route = RouteBuilder.build(case_file)
+	review.jobs[2] = StationJob.new(case_file, 5.0)
+	assert_true(review.can_cover(2))
+	var floaters := world._floaters.size()
+	game.simulation.bonus_left.emit("general_services/review", 0, 2)
+	assert_eq(world._floaters.size(), floaters + 1)
+	for layer in world._layers:
+		layer.node.queue_redraw()
+	await wait_physics_frames(2)
+	assert_true(is_instance_valid(world))
+
+
+func test_hud_bonus_card_appears_at_sick_desk_and_pays_bonus() -> void:
+	var hud := Hud.new().setup(game, 0.0)
+	add_child_autofree(hud)
+	var layout := WorldLayout.get_default()
+	var review := game.state.station("general_services/review")
+	review.add_desk()
+	review.staff = review.desks
+	game.state.player.position = Vector2(50, 50)
+	hud.refresh()
+	assert_false(hud._bonus_card.visible)
+	assert_false(hud.leave_bonus(1))
+	review.moods[1].rest(DeskMood.SICK)
+	game.state.player.position = layout.desk_position("general_services/review", 1)
+	hud.refresh()
+	assert_true(hud._bonus_card.visible)
+	assert_eq(hud._bonus_buttons.size(), GameConfig.sick_bonus_tiers())
+	assert_true(hud._bonus_title.text.contains(NumberFormat.clock(GameConfig.SICK_SECONDS)))
+	var expected := hud.tr("FMT_SICK_BONUS_BUTTON") % [hud.tr("SICK_BONUS_TIER_1"), UiKit.money(Formulas.sick_bonus_cost(game.state, 1))]
+	assert_eq(hud._bonus_buttons[0].text, expected)
+	assert_false(hud._bonus_buttons[0].disabled)
+	var money := game.state.money
+	hud._bonus_buttons[1].pressed.emit()
+	assert_eq(review.moods[1].bonus, 2)
+	assert_lt(game.state.money, money)
+	hud.refresh()
+	assert_true(hud._bonus_buttons[0].disabled)
+	assert_true(hud._bonus_buttons[1].disabled)
+	assert_false(hud._bonus_buttons[2].disabled)
+	game.state.money = 0.0
+	hud.refresh()
+	assert_true(hud._bonus_buttons[2].disabled)
+	review.moods[1].wake(10.0)
+	hud.refresh()
+	assert_false(hud._bonus_card.visible)
+
+
+func test_hud_income_comes_from_core_tracker() -> void:
+	var hud := Hud.new().setup(game, 0.0)
+	add_child_autofree(hud)
+	assert_eq(hud.income_per_minute(), 0.0)
+	game.state.income.advance(1.0, 0.0)
+	game.state.income.advance(1.0, 5.0)
+	assert_almost_eq(hud.income_per_minute(), 300.0, 0.001)

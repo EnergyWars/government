@@ -213,11 +213,13 @@ func test_flavor_texts_exist_in_both_languages() -> void:
 		for i in Flavor.SICK_CALL_COUNT:
 			assert_ne(Flavor.sick_excuse(i), "SICK_EXCUSE_%d" % (i + 1), "%s excuse %d" % [locale, i])
 			assert_ne(Flavor.sick_reply(i), "SICK_REPLY_%d" % (i + 1), "%s reply %d" % [locale, i])
+		for i in Flavor.SICK_ANSWER_COUNT:
+			assert_ne(Flavor.sick_answer(i), "SICK_ANSWER_%d" % (i + 1), "%s answer %d" % [locale, i])
 		for i in Flavor.GO_LOO_COUNT:
 			assert_ne(Flavor.go_loo(i), "GO_LOO_%d" % (i + 1), "%s loo %d" % [locale, i])
 		for i in Flavor.LOO_VOICE_COUNT:
 			assert_ne(Flavor.loo_voice(i), "LOO_VOICE_%d" % (i + 1), "%s voice %d" % [locale, i])
-		for key in ["SIGN_SICK_PHONE", "FMT_SICK_COUNT", "FMT_COMPLAINT_MALUS", "SECTION_ABSENCE", "STAFF_HR", "STAFF_DESC_HR", "FMT_HR_INFO", "SIGN_LOO", "AREA_TOILETS"]:
+		for key in ["SIGN_SICK_PHONE", "AREA_PHONE_OFFICE", "SIGN_SICK_BOARD", "FMT_RINGING", "FMT_BOARD_SICK", "FMT_BOARD_REPORTED", "FMT_BOARD_UNEXCUSED", "FMT_BOARD_CALLS", "FLOAT_SICK_BACK", "FLOAT_SICK_NOTED", "FLOAT_SICK_PERSUADED", "FLOAT_SICK_MISSED", "SECTION_ABSENCE", "STAFF_HR", "STAFF_DESC_HR", "FMT_HR_INFO", "SIGN_LOO", "AREA_TOILETS"]:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
 		for i in Flavor.SLOW_COUNT:
 			assert_ne(Flavor.slow(i), "SLOW_%d" % (i + 1), "%s slow %d" % [locale, i])

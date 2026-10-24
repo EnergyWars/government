@@ -5,6 +5,7 @@ signal changed
 
 const FINISHED := -1
 const MOVE_DISTANCE := 200.0
+const STEP_SKIP_DELAY := 20.0
 
 const INFO := "info"
 const MOVE := "move"
@@ -45,6 +46,8 @@ var _entered := -2
 var _baseline := 0.0
 var _origin := Vector2.ZERO
 var _open_sheet := ""
+var _elapsed := 0.0
+var _skip_offered := false
 
 
 func _init(p_state: GameState) -> void:
@@ -94,17 +97,31 @@ func set_open_sheet(sheet_id: String) -> void:
 	changed.emit()
 
 
-func update() -> void:
+func can_skip_step() -> bool:
+	return is_active() and not is_info() and _entered == state.tutorial_step and _elapsed >= STEP_SKIP_DELAY
+
+
+func can_advance() -> bool:
+	return is_info() or can_skip_step()
+
+
+func update(delta: float = 0.0) -> void:
+	while is_active():
+		if _entered != state.tutorial_step:
+			_enter()
+		if not (_is_complete() or _is_blocked()):
+			break
+		_go_to(state.tutorial_step + 1)
 	if not is_active():
 		return
-	if _entered != state.tutorial_step:
-		_enter()
-	if _is_complete():
-		_go_to(state.tutorial_step + 1)
+	_elapsed += delta
+	if not _skip_offered and can_skip_step():
+		_skip_offered = true
+		changed.emit()
 
 
 func advance() -> bool:
-	if not is_info():
+	if not can_advance():
 		return false
 	_go_to(state.tutorial_step + 1)
 	return true
@@ -127,6 +144,8 @@ func _go_to(index: int) -> void:
 
 func _enter() -> void:
 	_entered = state.tutorial_step
+	_elapsed = 0.0
+	_skip_offered = false
 	_origin = state.player.position
 	_baseline = _stat(str(current().get("stat", "")))
 
@@ -141,6 +160,28 @@ func _is_complete() -> bool:
 		STAT:
 			return _stat(str(step.stat)) - _baseline >= float(step.amount)
 	return false
+
+
+func _is_blocked() -> bool:
+	var step := current()
+	return str(step.get("kind", "")) == STAT and not _can_progress(str(step.stat))
+
+
+func _can_progress(stat_id: String) -> bool:
+	match stat_id:
+		"goals":
+			return state.goal_index < GameConfig.GOALS.size()
+		"runners":
+			return state.runners.size() < GameConfig.MAX_RUNNERS
+		"levels":
+			return state.stations.values().any(func(station: Station) -> bool: return station.level < GameConfig.MAX_STATION_LEVEL)
+		"staff":
+			return state.runners.size() < GameConfig.MAX_RUNNERS or state.stations.values().any(_has_room_for_staff)
+	return true
+
+
+func _has_room_for_staff(station: Station) -> bool:
+	return not station.machine and (station.staff < station.desks or station.desks < state.max_desks())
 
 
 func _stat(stat_id: String) -> float:

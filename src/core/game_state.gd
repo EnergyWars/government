@@ -13,6 +13,14 @@ var stations: Dictionary[String, Station] = {}
 var research: Dictionary[String, int] = {}
 var player := Player.new()
 var runners: Array[Runner] = []
+var collectors: Array[RejectCollector] = []
+var tube_parcels: Array[TubeParcel] = []
+var coffee_interns: Array[CoffeeIntern] = []
+var visitors: Array[ComplaintVisitor] = []
+var disputes: Array[Dispute] = []
+var calls: Array[PhoneCall] = []
+var intern := ComplaintIntern.new(WorldLayout.get_default().intern_home())
+var helpers: Array[ComplaintIntern] = []
 var event_id := ""
 var event_time_left := 0.0
 var event_cooldown := GameConfig.EVENT_FIRST_COOLDOWN
@@ -23,24 +31,51 @@ var cases_rejected := 0
 var cases_completed := 0
 var cases_flawed := 0
 var citizens_lost := 0
+var cases_shredded := 0
 var contraband_seized := 0
 var staff_hired := 0
 var wakes := 0
+var trainings := 0
 var complaints := 0
+var reviews: Array[Review] = []
+var review_seq := 0
+var review_fear := 0.0
+var complaint_tube_timer := 0.0
 var complaints_shredded := 0
 var complaint_timer := GameConfig.COMPLAINT_INTERVAL
-var shred_timer := 0.0
+var complaints_filed := 0
+var shred_timer: float:
+	get:
+		return intern.work_timer
+	set(value):
+		intern.work_timer = value
+var yell_timer := GameConfig.YELL_INTERVAL
+var dispute_timer := GameConfig.DISPUTE_FIRST_SECONDS
+var waiting_level := 0
+var walkouts := 0
+var seating_level := 0
+var breakdowns := 0
+var coffees_served := 0
+var disputes_solved := 0
 var kranz := false
 var hr := 0
+var guards := 0
+var visitors_stopped := 0
 var sick_timer := GameConfig.SICK_FIRST_SECONDS
-var hr_timer := 0.0
 var calls_made := 0
+var bonuses_paid := 0
+var calls_answered := 0
+var calls_missed := 0
 var kranz_timer := GameConfig.KRANZ_FIRST_SECONDS
 var kranz_progress := 0.0
 var money_earned := 0.0
+var income := IncomeTracker.new()
+var production := ProductionStats.new()
 var play_time := 0.0
 var saved_at := 0
 var rng := RandomNumberGenerator.new()
+var life_rng := RandomNumberGenerator.new()
+var review_rng := RandomNumberGenerator.new()
 var _ordered_keys: Array[String] = []
 var _ordered_signature := -1
 
@@ -59,6 +94,8 @@ static func create_new(seed_value: int = -1) -> GameState:
 		state.rng.seed = seed_value
 	else:
 		state.rng.randomize()
+	state.life_rng.seed = state.rng.seed + 1
+	state.review_rng.seed = state.rng.seed + 2
 	state.unlock_department("general_services")
 	state.station("general_services/review").staff = 1
 	return state
@@ -89,7 +126,38 @@ func stage_config() -> Dictionary:
 
 
 func lobby_capacity() -> int:
-	return int(stage_config().lobby)
+	return int(stage_config().lobby) + waiting_level * GameConfig.WAITING_SEATS_PER_LEVEL
+
+
+func seat_capacity() -> int:
+	return GameConfig.SEATING_BASE_SEATS + seating_level * GameConfig.SEATING_SEATS_PER_LEVEL
+
+
+func seated_citizens() -> int:
+	var count := 0
+	for key in stations:
+		if key == GameConfig.RECEPTION or key.begins_with("customs/"):
+			continue
+		for case_file in stations[key].all_cases():
+			if not GameConfig.is_customs(case_file.dept_id):
+				count += 1
+	for case_file in carried_cases():
+		if not GameConfig.is_customs(case_file.dept_id):
+			count += 1
+	return count
+
+
+func has_free_seat() -> bool:
+	return seated_citizens() < seat_capacity()
+
+
+func reception_may_admit() -> bool:
+	var reception_station := station(GameConfig.RECEPTION)
+	var pending := reception_station.outbox.size()
+	for job in reception_station.jobs:
+		if job != null:
+			pending += 1
+	return seated_citizens() + pending < seat_capacity()
 
 
 func max_desks() -> int:
@@ -163,6 +231,38 @@ func sick_count() -> int:
 	return count
 
 
+func ringing_count() -> int:
+	var count := 0
+	for phone_call in calls:
+		if phone_call.is_incoming() and phone_call.is_ringing():
+			count += 1
+	return count
+
+
+func reported_sick_count() -> int:
+	var count := 0
+	for key in ordered_station_keys():
+		var station := stations[key]
+		for desk in station.moods.size():
+			if station.is_staffed(desk) and station.moods[desk].can_be_called():
+				count += 1
+	return count
+
+
+func line_call(line: int) -> PhoneCall:
+	for phone_call in calls:
+		if phone_call.line == line:
+			return phone_call
+	return null
+
+
+func call_for(key: String, desk: int) -> PhoneCall:
+	for phone_call in calls:
+		if phone_call.targets(key, desk):
+			return phone_call
+	return null
+
+
 func free_loo_slot() -> int:
 	for slot in range(GameConfig.KITCHEN_SLOTS, GameConfig.KITCHEN_SLOTS + GameConfig.LOO_SLOTS):
 		if not kitchen_slot_taken(slot):
@@ -212,7 +312,7 @@ func _compute_ordered_keys() -> Array[String]:
 
 
 func total_staff() -> int:
-	var count := runners.size()
+	var count := runners.size() + collectors.size() + coffee_interns.size() + helpers.size()
 	for key in stations:
 		var item := stations[key]
 		count += item.specialists + (0 if item.machine else item.staff)
@@ -233,6 +333,96 @@ func research_count() -> int:
 	for research_id in research:
 		count += research[research_id]
 	return count
+
+
+func negative_review_count() -> int:
+	var count := 0
+	for review in reviews:
+		if review.is_negative():
+			count += 1
+	return count
+
+
+func pile_complaint_serials(limit: int) -> Array[int]:
+	var result: Array[int] = []
+	for offset in mini(complaints, limit):
+		result.append(complaints_filed - 1 - offset)
+	return result
+
+
+func review_drain() -> float:
+	var total := 0.0
+	for review in reviews:
+		total += review.drain_weight()
+	return total
+
+
+func find_review(review_id: int) -> Review:
+	for review in reviews:
+		if review.id == review_id:
+			return review
+	return null
+
+
+func star_counts() -> Array[int]:
+	var counts: Array[int] = [0, 0, 0, 0, 0]
+	for review in reviews:
+		counts[review.stars - 1] += 1
+	return counts
+
+
+func average_rating() -> float:
+	if reviews.is_empty():
+		return 0.0
+	var total := 0
+	for review in reviews:
+		total += review.stars
+	return float(total) / float(reviews.size())
+
+
+func add_review(stars: int, forced_text: int = -1) -> Review:
+	var review := Review.new(
+		review_seq,
+		stars,
+		review_rng.randi_range(0, GameConfig.review_texts(stars) - 1),
+		review_rng.randi_range(0, GameConfig.REVIEW_AUTHORS - 1),
+		play_time
+	)
+	if forced_text >= 0:
+		review.force_praise(forced_text)
+	review_seq += 1
+	reviews.append(review)
+	_trim_reviews()
+	return review
+
+
+func _trim_reviews() -> void:
+	while reviews.size() > GameConfig.MAX_STORED_REVIEWS:
+		var drop := 0
+		for index in reviews.size():
+			if not reviews[index].is_negative():
+				drop = index
+				break
+		reviews.remove_at(drop)
+
+
+func _restore_reviews(entries: Variant) -> void:
+	reviews.clear()
+	if entries is float or entries is int:
+		for index in clampi(int(entries), 0, GameConfig.MAX_NEGATIVE_REVIEWS):
+			var legacy := Review.new(index, 1, index % GameConfig.review_texts(1), index % GameConfig.REVIEW_AUTHORS)
+			reviews.append(legacy)
+		review_seq = reviews.size()
+		return
+	if not entries is Array:
+		return
+	var highest := -1
+	for entry in entries:
+		var review := Review.from_dict(entry)
+		if review != null and reviews.size() < GameConfig.MAX_STORED_REVIEWS and find_review(review.id) == null:
+			reviews.append(review)
+			highest = maxi(highest, review.id)
+	review_seq = highest + 1
 
 
 func add_reputation(amount: float) -> void:
@@ -272,11 +462,47 @@ func add_runner() -> Runner:
 	return runner
 
 
+func all_interns() -> Array[ComplaintIntern]:
+	var units: Array[ComplaintIntern] = [intern]
+	units.append_array(helpers)
+	return units
+
+
+func add_helper() -> ComplaintIntern:
+	var slot := helpers.size() + 1
+	var helper := ComplaintIntern.new(WorldLayout.get_default().intern_home(slot))
+	helper.slot = slot
+	helpers.append(helper)
+	return helper
+
+
+func add_collector() -> RejectCollector:
+	var collector := RejectCollector.new(WorldLayout.get_default().collector_home() + Vector2(collectors.size() * 18.0, 0))
+	collectors.append(collector)
+	return collector
+
+
+func add_coffee_intern() -> CoffeeIntern:
+	var layout := WorldLayout.get_default()
+	var coffee_intern := CoffeeIntern.new(layout.coffee_home() + Vector2(coffee_interns.size() * 18.0, 0))
+	coffee_interns.append(coffee_intern)
+	return coffee_intern
+
+
+func dispute_in(dept_id: String) -> Dispute:
+	for dispute in disputes:
+		if dispute.dept_id == dept_id:
+			return dispute
+	return null
+
+
 func carried_cases() -> Array[CaseFile]:
 	var cases: Array[CaseFile] = []
 	cases.append_array(player.items)
 	for runner in runners:
 		cases.append_array(runner.items)
+	for parcel in tube_parcels:
+		cases.append(parcel.case_file)
 	return cases
 
 
@@ -299,6 +525,22 @@ func to_dict() -> Dictionary:
 		"research": research.duplicate(),
 		"player": player.to_dict(),
 		"runners": runners.map(func(r: Runner) -> Dictionary: return r.to_dict()),
+		"tube_parcels": tube_parcels.map(func(t: TubeParcel) -> Dictionary: return t.to_dict()),
+		"collectors": collectors.map(func(c: RejectCollector) -> Dictionary: return c.to_dict()),
+		"coffee_interns": coffee_interns.map(func(c: CoffeeIntern) -> Dictionary: return c.to_dict()),
+		"disputes": disputes.map(func(d: Dispute) -> Dictionary: return d.to_dict()),
+		"intern": intern.to_dict(),
+		"reviews": reviews.map(func(r: Review) -> Dictionary: return r.to_dict()),
+		"review_seq": review_seq,
+		"review_fear": review_fear,
+		"helpers": helpers.map(func(h: ComplaintIntern) -> Dictionary: return h.to_dict()),
+		"dispute_timer": dispute_timer,
+		"waiting_level": waiting_level,
+		"seating_level": seating_level,
+		"walkouts": walkouts,
+		"breakdowns": breakdowns,
+		"coffees_served": coffees_served,
+		"disputes_solved": disputes_solved,
 		"event_id": event_id,
 		"event_time_left": event_time_left,
 		"event_cooldown": event_cooldown,
@@ -309,16 +551,24 @@ func to_dict() -> Dictionary:
 		"cases_completed": cases_completed,
 		"cases_flawed": cases_flawed,
 		"citizens_lost": citizens_lost,
+		"cases_shredded": cases_shredded,
 		"contraband_seized": contraband_seized,
 		"staff_hired": staff_hired,
 		"wakes": wakes,
+		"trainings": trainings,
 		"complaints": complaints,
 		"complaints_shredded": complaints_shredded,
 		"complaint_timer": complaint_timer,
+		"complaints_filed": complaints_filed,
 		"kranz": kranz,
 		"hr": hr,
+		"guards": guards,
 		"sick_timer": sick_timer,
 		"calls_made": calls_made,
+		"bonuses_paid": bonuses_paid,
+		"calls_answered": calls_answered,
+		"visitors_stopped": visitors_stopped,
+		"calls_missed": calls_missed,
 		"kranz_timer": kranz_timer,
 		"money_earned": money_earned,
 		"play_time": play_time,
@@ -360,6 +610,30 @@ static func from_dict(data: Dictionary) -> GameState:
 	for entry in data.get("runners", []):
 		if entry is Dictionary and state.runners.size() < GameConfig.MAX_RUNNERS:
 			state.runners.append(Runner.from_dict(entry, layout.runner_home()))
+	for entry in data.get("tube_parcels", []):
+		var parcel := TubeParcel.from_dict(entry)
+		if parcel != null and state.tube_parcels.size() < GameConfig.MAX_TUBE_PARCELS:
+			state.tube_parcels.append(parcel)
+	for entry in data.get("collectors", []):
+		if entry is Dictionary and state.collectors.size() < GameConfig.MAX_COLLECTORS:
+			state.collectors.append(RejectCollector.from_dict(entry, layout.collector_home()))
+	for entry in data.get("coffee_interns", []):
+		if entry is Dictionary and state.coffee_interns.size() < GameConfig.MAX_COFFEE_INTERNS:
+			state.coffee_interns.append(CoffeeIntern.from_dict(entry, layout.coffee_home()))
+	state.intern = ComplaintIntern.from_dict(data.get("intern"), layout.intern_home())
+	state._restore_reviews(data.get("reviews", []))
+	state.review_seq = maxi(state.review_seq, int(data.get("review_seq", 0)))
+	state.review_fear = clampf(float(data.get("review_fear", 0.0)), 0.0, GameConfig.REVIEW_FEAR_SECONDS)
+	for entry in data.get("helpers", []):
+		if entry is Dictionary and state.helpers.size() < GameConfig.MAX_HELPERS:
+			state.helpers.append(ComplaintIntern.from_dict(entry, layout.intern_home(state.helpers.size() + 1), state.helpers.size() + 1))
+	state.waiting_level = clampi(int(data.get("waiting_level", 0)), 0, GameConfig.WAITING_MAX_LEVEL)
+	state.seating_level = clampi(int(data.get("seating_level", 0)), 0, GameConfig.SEATING_MAX_LEVEL)
+	state.walkouts = maxi(0, int(data.get("walkouts", 0)))
+	state.breakdowns = maxi(0, int(data.get("breakdowns", 0)))
+	state.coffees_served = maxi(0, int(data.get("coffees_served", 0)))
+	state.disputes_solved = maxi(0, int(data.get("disputes_solved", 0)))
+	state.dispute_timer = clampf(float(data.get("dispute_timer", GameConfig.DISPUTE_FIRST_SECONDS)), 0.0, GameConfig.DISPUTE_MAX_INTERVAL * 2.0)
 	state.event_id = str(data.get("event_id", ""))
 	if not GameConfig.EVENTS.has(state.event_id):
 		state.event_id = ""
@@ -372,16 +646,24 @@ static func from_dict(data: Dictionary) -> GameState:
 	state.cases_completed = int(data.get("cases_completed", 0))
 	state.cases_flawed = int(data.get("cases_flawed", 0))
 	state.citizens_lost = int(data.get("citizens_lost", 0))
+	state.cases_shredded = maxi(0, int(data.get("cases_shredded", 0)))
 	state.contraband_seized = int(data.get("contraband_seized", 0))
 	state.staff_hired = int(data.get("staff_hired", 0))
 	state.wakes = maxi(0, int(data.get("wakes", 0)))
-	state.complaints = clampi(int(data.get("complaints", 0)), 0, GameConfig.COMPLAINT_CAP)
+	state.trainings = maxi(0, int(data.get("trainings", 0)))
+	state.complaints = clampi(int(data.get("complaints", 0)), 0, GameConfig.COMPLAINT_CAP_MAX)
 	state.hr = clampi(int(data.get("hr", 0)), 0, GameConfig.MAX_HR)
+	state.guards = clampi(int(data.get("guards", 0)), 0, GameConfig.MAX_GUARDS)
 	state.sick_timer = clampf(float(data.get("sick_timer", GameConfig.SICK_FIRST_SECONDS)), 0.0, GameConfig.SICK_MAX_INTERVAL)
 	state.calls_made = maxi(0, int(data.get("calls_made", 0)))
+	state.bonuses_paid = maxi(0, int(data.get("bonuses_paid", 0)))
+	state.calls_answered = maxi(0, int(data.get("calls_answered", 0)))
+	state.visitors_stopped = maxi(0, int(data.get("visitors_stopped", 0)))
+	state.calls_missed = maxi(0, int(data.get("calls_missed", 0)))
 	state.kranz = bool(data.get("kranz", false))
 	state.kranz_timer = clampf(float(data.get("kranz_timer", GameConfig.KRANZ_FIRST_SECONDS)), 0.0, GameConfig.KRANZ_MAX_INTERVAL)
 	state.complaints_shredded = maxi(0, int(data.get("complaints_shredded", 0)))
+	state.complaints_filed = maxi(state.complaints, int(data.get("complaints_filed", 0)))
 	state.complaint_timer = clampf(float(data.get("complaint_timer", GameConfig.COMPLAINT_INTERVAL)), 0.0, GameConfig.COMPLAINT_INTERVAL)
 	state.money_earned = float(data.get("money_earned", 0.0))
 	state.play_time = float(data.get("play_time", 0.0))
@@ -391,11 +673,26 @@ static func from_dict(data: Dictionary) -> GameState:
 		state.rng.state = str(data.get("rng_state", "0")).to_int()
 	else:
 		state.rng.randomize()
+	state.life_rng.seed = state.rng.seed + 1
+	state.review_rng.seed = state.rng.seed + 2
 	if state.unlocked_count() == 0:
 		state.unlock_department("general_services")
 	state._ensure_stations()
+	state._restore_disputes(data.get("disputes", []))
 	state._repair_kitchen_slots()
 	return state
+
+
+func _restore_disputes(entries: Variant) -> void:
+	if not entries is Array:
+		return
+	for entry in entries:
+		var dispute := Dispute.from_dict(entry)
+		if dispute == null or disputes.size() >= GameConfig.MAX_DISPUTES:
+			continue
+		var dept := department(dispute.dept_id)
+		if dept != null and dept.unlocked and dispute_in(dispute.dept_id) == null:
+			disputes.append(dispute)
 
 
 func _ensure_stations() -> void:

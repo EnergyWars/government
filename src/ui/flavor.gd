@@ -13,13 +13,18 @@ const GO_LOO_COUNT := 3
 const LOO_VOICE_COUNT := 4
 const SICK_NOTE_COUNT := 4
 const SICK_CALL_COUNT := 12
+const SICK_ANSWER_COUNT := 8
 const SLOW_COUNT := 3
 const KRANZ_COUNT := 3
-const COMPLAINT_COUNT := 4
+const COMPLAINT_COUNT := 50
 const SHRED_COUNT := 4
 const REJECT_COUNT := 4
 const GO_KITCHEN_COUNT := 3
 const FETCH_COUNT := 3
+const INTERN_CRY_COUNT := 4
+const INTERN_NERVOUS_COUNT := 3
+const COFFEE_SERVED_COUNT := 3
+const DISPUTE_LINES := 4
 const SECONDS_PER_DAY := 86400
 
 
@@ -47,8 +52,8 @@ static func woke(index: int) -> String:
 	return TranslationServer.translate("WOKE_%d" % (posmod(index, WOKE_COUNT) + 1))
 
 
-static func complaint(index: int) -> String:
-	return TranslationServer.translate("COMPLAINT_%d" % (posmod(index, COMPLAINT_COUNT) + 1))
+static func complaint(serial: int) -> String:
+	return TranslationServer.translate("COMPLAINT_%d" % (Formulas.complaint_text_index(serial) + 1))
 
 
 static func shred(index: int) -> String:
@@ -65,6 +70,10 @@ static func sick_note(index: int) -> String:
 
 static func sick_excuse(index: int) -> String:
 	return TranslationServer.translate("SICK_EXCUSE_%d" % (posmod(index, SICK_CALL_COUNT) + 1))
+
+
+static func sick_answer(index: int) -> String:
+	return TranslationServer.translate("SICK_ANSWER_%d" % (posmod(index, SICK_ANSWER_COUNT) + 1))
 
 
 static func sick_reply(index: int) -> String:
@@ -97,6 +106,31 @@ static func go_kitchen(index: int) -> String:
 
 static func fetch(index: int) -> String:
 	return TranslationServer.translate("FETCH_%d" % (posmod(index, FETCH_COUNT) + 1))
+
+
+static func visit_line(angry: bool, dialog: int, line: int) -> String:
+	var prefix := "YELL" if angry else "VISIT"
+	return TranslationServer.translate("%s_%d_%d" % [prefix, dialog + 1, line + 1])
+
+
+static func guard_line(dialog: int, line: int) -> String:
+	return TranslationServer.translate("GUARD_%d_%d" % [posmod(dialog, GameConfig.GUARD_DIALOGS) + 1, clampi(line, 0, GameConfig.GUARD_LINES - 1) + 1])
+
+
+static func intern_cry(index: int) -> String:
+	return TranslationServer.translate("INTERN_CRY_%d" % (posmod(index, INTERN_CRY_COUNT) + 1))
+
+
+static func intern_nervous(index: int) -> String:
+	return TranslationServer.translate("INTERN_NERVOUS_%d" % (posmod(index, INTERN_NERVOUS_COUNT) + 1))
+
+
+static func coffee_served(index: int) -> String:
+	return TranslationServer.translate("COFFEE_SERVED_%d" % (posmod(index, COFFEE_SERVED_COUNT) + 1))
+
+
+static func dispute_line(kind: String, index: int) -> String:
+	return TranslationServer.translate("DISPUTE_%s_%d" % [kind.to_upper(), posmod(index, DISPUTE_LINES) + 1])
 
 
 static func wisdom(unix_time: float) -> String:

@@ -4,10 +4,10 @@ config_version=5
 
 [application]
 
-config/name="Department Tycoon"
+config/name="Idle Germany"
 config/name_localized={
-"de": "Amts-Tycoon",
-"en": "Department Tycoon"
+"de": "Idle Germany",
+"en": "Idle Germany"
 }
 config/description="Grow a tiny civil service office into a sprawling, automated government complex."
 run/main_scene="res://scenes/main.tscn"

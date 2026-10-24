@@ -449,7 +449,7 @@ func test_idle_runner_returns_home() -> void:
 	assert_lt(runner.position.distance_to(layout.runner_home()), 1.0)
 
 
-func test_pneumatic_tubes_route_files_instantly() -> void:
+func test_pneumatic_tubes_route_files_through_tubes() -> void:
 	state.research["pneumatic_tubes"] = 1
 	var runner := state.add_runner()
 	runner.items.append(_case())
@@ -460,10 +460,12 @@ func test_pneumatic_tubes_route_files_instantly() -> void:
 	state.station("general_services/review").staff = 0
 	state.station(GameConfig.RECEPTION).outbox.append(_case())
 	sim.tick(0.05)
-	assert_eq(state.station("general_services/review").inbox.size(), 1)
+	assert_eq(state.station("general_services/review").inbox.size(), 0)
+	assert_eq(state.tube_parcels.size(), 1)
 	assert_eq(idle.task, Runner.Task.IDLE)
 	_run(20.0)
 	assert_eq(state.station("general_services/review").inbox.size(), 2)
+	assert_true(state.tube_parcels.is_empty())
 	assert_true(runner.items.is_empty())
 
 

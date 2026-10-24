@@ -32,6 +32,8 @@ static func research_block_reason(state: GameState, research_id: String) -> Stri
 	var level := state.research_level(research_id)
 	if level >= int(config.max_level):
 		return "max"
+	if config.has("requires") and not state.has_research(str(config.requires)):
+		return "requires"
 	if state.reputation < float(config.reputation):
 		return "reputation"
 	if not state.can_afford(Formulas.research_cost(research_id, level)):

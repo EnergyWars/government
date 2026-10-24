@@ -42,6 +42,10 @@ static func build(sheet: Sheet, key: String, step: int = -1) -> Control:
 		buttons.add_child(hire)
 	buttons.add_child(upgrade)
 	column.add_child(buttons)
+	if not station.machine:
+		var officials := UiKit.button(sheet.tr("ACTION_OFFICIALS"), "primary", "Outlined")
+		officials.pressed.connect(func() -> void: sheet.navigate.emit("officials", key))
+		column.add_child(officials)
 	var specialist: Button = null
 	if station.supports_specialists():
 		specialist = action_button(sheet, game.actions.hire_specialist.bind(key))

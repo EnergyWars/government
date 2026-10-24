@@ -9,6 +9,7 @@ const ROW_WIDTH := 244
 var game: Game
 var _rows: VBoxContainer
 var _toggle: Button
+var _chevron: Button
 var _count := -1
 var _updaters: Array[Callable] = []
 var expanded := true
@@ -27,16 +28,25 @@ func _ready() -> void:
 		_fills[role] = AppTheme.box(AppTheme.accent(role), AppTheme.RADIUS_PILL)
 	var column := UiKit.vbox(AppTheme.SPACING_XS)
 	add_child(column)
+	var header := UiKit.hbox(AppTheme.SPACING_XS)
 	_toggle = UiKit.button(tr("TASKS_TITLE"), "neutral", "Text")
-	_toggle.custom_minimum_size = Vector2(ROW_WIDTH, 32)
+	_toggle.custom_minimum_size = Vector2(ROW_WIDTH - 40, 32)
 	_toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_toggle.pressed.connect(func() -> void:
-		expanded = not expanded
-		_rows.visible = expanded
-	)
-	column.add_child(_toggle)
+	_toggle.pressed.connect(toggle)
+	header.add_child(_toggle)
+	_chevron = UiKit.icon_button(Icons.EXPAND_LESS, "neutral", "IconStandard")
+	_chevron.custom_minimum_size = Vector2(36, 32)
+	_chevron.pressed.connect(toggle)
+	header.add_child(_chevron)
+	column.add_child(header)
 	_rows = UiKit.vbox(AppTheme.SPACING_XS)
 	column.add_child(_rows)
+
+
+func toggle() -> void:
+	expanded = not expanded
+	_rows.visible = expanded
+	_chevron.text = Icons.EXPAND_LESS if expanded else Icons.EXPAND_MORE
 
 
 func refresh() -> void:

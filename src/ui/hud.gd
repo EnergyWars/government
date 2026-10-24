@@ -9,6 +9,7 @@ const NAV_ITEMS := [
 	{"id": "team", "icon": Icons.TEAM, "label": "NAV_TEAM"},
 	{"id": "research", "icon": Icons.SCIENCE, "label": "NAV_RESEARCH"},
 	{"id": "building", "icon": Icons.DOMAIN, "label": "NAV_BUILDING"},
+	{"id": "statistics", "icon": Icons.STATS, "label": "NAV_STATISTICS"},
 	{"id": "goals", "icon": Icons.FLAG, "label": "NAV_GOALS"},
 ]
 
@@ -27,15 +28,23 @@ var _event_title: Label
 var _event_text: Label
 var _event_actions: HBoxContainer
 var _event_actions_key := ""
+var _review_banner: PanelContainer
+var _review_title: Label
+var _review_text: Label
+var _review_open: Button
+var _bonus_card: PanelContainer
+var _bonus_title: Label
+var _bonus_text: Label
+var _bonus_buttons: Array[Button] = []
+var _bonus_target: Array = []
+var _rating_label: Label
+var _rating_chip: Control
 var _safe_top := 0.0
 var task_panel: TaskPanel
 var _nav_buttons := {}
 var _settings_button: Button
 var _highlighted: Control
 var _highlight_tween: Tween
-var _income_window: Array[float] = []
-var _income_last_money := -1.0
-var _income_timer := 0.0
 
 
 func setup(p_game: Game, safe_top: float) -> Hud:
@@ -72,6 +81,13 @@ func _build_top() -> void:
 	var row := UiKit.hbox(AppTheme.SPACING_SM)
 	_money_label = _resource_chip(row, Icons.PAID, AppTheme.MONEY)
 	_reputation_label = _resource_chip(row, Icons.STAR, AppTheme.accent("warning"))
+	_rating_label = _resource_chip(row, Icons.REVIEWS, AppTheme.accent("primary"))
+	_rating_chip = _rating_label.get_parent().get_parent()
+	_rating_chip.tooltip_text = tr("FMT_RATING_CHIP")
+	_rating_chip.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed:
+			open_sheet.emit("reviews", "")
+	)
 	_income_label = UiKit.label("", "BodySmall")
 	row.add_child(_income_label)
 	row.add_child(UiKit.spacer())
@@ -112,6 +128,68 @@ func _build_top() -> void:
 	event_row.add_child(event_column)
 	_event_banner.add_child(event_row)
 	column.add_child(_event_banner)
+	_review_banner = UiKit.card("BannerError")
+	var review_column := UiKit.vbox(AppTheme.SPACING_XS)
+	_review_title = UiKit.label("", "TitleSmall", true)
+	_review_title.add_theme_color_override(&"font_color", AppTheme.accent("error"))
+	review_column.add_child(_review_title)
+	_review_text = UiKit.label("", "BodySmall", true)
+	_review_text.add_theme_color_override(&"font_color", AppTheme.on_container("error"))
+	review_column.add_child(_review_text)
+	_review_open = UiKit.button(tr("ACTION_REVIEWS_OPEN"), "error")
+	_review_open.pressed.connect(func() -> void: open_sheet.emit("reviews", ""))
+	review_column.add_child(_review_open)
+	_review_banner.add_child(review_column)
+	column.add_child(_review_banner)
+	_build_bonus_card(column)
+
+
+func _build_bonus_card(column: VBoxContainer) -> void:
+	_bonus_card = UiKit.card("BannerPrimary")
+	var bonus_column := UiKit.vbox(AppTheme.SPACING_XS)
+	_bonus_title = UiKit.label("", "TitleSmall", true)
+	_bonus_title.add_theme_color_override(&"font_color", AppTheme.accent("primary"))
+	bonus_column.add_child(_bonus_title)
+	_bonus_text = UiKit.label("", "BodySmall", true)
+	_bonus_text.add_theme_color_override(&"font_color", AppTheme.on_container("primary"))
+	bonus_column.add_child(_bonus_text)
+	var bonus_row := UiKit.hbox(AppTheme.SPACING_SM)
+	for tier in range(1, GameConfig.sick_bonus_tiers() + 1):
+		var button := UiKit.button("")
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(leave_bonus.bind(tier))
+		bonus_row.add_child(button)
+		_bonus_buttons.append(button)
+	bonus_column.add_child(bonus_row)
+	_bonus_card.add_child(bonus_column)
+	_bonus_card.visible = false
+	column.add_child(_bonus_card)
+
+
+func leave_bonus(tier: int) -> bool:
+	if _bonus_target.is_empty():
+		return false
+	return game.perform(game.simulation.leave_bonus.bind(str(_bonus_target[0]), int(_bonus_target[1]), tier))
+
+
+func _refresh_bonus_card(state: GameState) -> void:
+	_bonus_target = game.simulation.sick_desk_near(state.player.position)
+	_bonus_card.visible = not _bonus_target.is_empty()
+	if not _bonus_card.visible:
+		return
+	var key := str(_bonus_target[0])
+	var desk := int(_bonus_target[1])
+	var mood := state.station(key).moods[desk]
+	_bonus_title.text = tr("FMT_SICK_BONUS_TITLE") % NumberFormat.clock(Formulas.sick_time_left(state, mood))
+	var speeds := []
+	for tier in range(1, GameConfig.sick_bonus_tiers() + 1):
+		speeds.append(UiKit.decimal(Formulas.sick_recovery_speed(tier), 0))
+	_bonus_text.text = tr("FMT_SICK_BONUS_TEXT") % speeds
+	for index in _bonus_buttons.size():
+		var tier := index + 1
+		var button := _bonus_buttons[index]
+		button.text = tr("FMT_SICK_BONUS_BUTTON") % [tr("SICK_BONUS_TIER_%d" % tier), UiKit.money(Formulas.sick_bonus_cost(state, tier))]
+		button.disabled = not game.simulation.can_leave_bonus(key, desk, tier)
 
 
 func _resource_chip(parent: HBoxContainer, icon_code: String, color: Color) -> Label:
@@ -203,33 +281,13 @@ func bottom_height() -> float:
 	return bottom_bar.size.y
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if task_panel != null:
 		task_panel.position = Vector2(AppTheme.SPACING_SM, top_bar.size.y + AppTheme.SPACING_SM)
-	_income_timer += delta
-	if _income_timer >= 1.0:
-		_income_timer = 0.0
-		_sample_income()
-
-
-func _sample_income() -> void:
-	if game == null:
-		return
-	var earned := game.state.money_earned
-	if _income_last_money >= 0.0:
-		_income_window.append(earned - _income_last_money)
-		if _income_window.size() > 30:
-			_income_window.remove_at(0)
-	_income_last_money = earned
 
 
 func income_per_minute() -> float:
-	if _income_window.is_empty():
-		return 0.0
-	var total := 0.0
-	for value in _income_window:
-		total += value
-	return total / _income_window.size() * 60.0
+	return game.state.income.per_minute() if game != null else 0.0
 
 
 func refresh() -> void:
@@ -252,6 +310,21 @@ func refresh() -> void:
 		_event_title.text = tr("FMT_EVENT_TITLE") % [tr("EVENT_" + state.event_id.to_upper()), int(ceilf(state.event_time_left))]
 		_event_text.text = tr("EVENT_DESC_" + state.event_id.to_upper())
 		_refresh_event_actions(state)
+	_rating_label.text = UiKit.decimal(state.average_rating()) if not state.reviews.is_empty() else "–"
+	var negative := state.negative_review_count()
+	_refresh_bonus_card(state)
+	_review_banner.visible = negative > 0
+	if _review_banner.visible:
+		var newest := _newest_negative(state)
+		_review_title.text = tr("FMT_REVIEWS_TITLE") % negative
+		_review_text.text = tr("FMT_REVIEW_BANNER") % tr(newest.text_key())
+
+
+func _newest_negative(state: GameState) -> Review:
+	for index in range(state.reviews.size() - 1, -1, -1):
+		if state.reviews[index].is_negative():
+			return state.reviews[index]
+	return null
 
 
 func _refresh_event_actions(state: GameState) -> void:

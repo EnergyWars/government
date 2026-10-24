@@ -53,6 +53,30 @@ func upgrade(key: String) -> bool:
 	return true
 
 
+func is_trainable(key: String, desk: int) -> bool:
+	var station := state.station(key)
+	return station != null and not station.machine and desk >= 0 and desk < station.moods.size() and station.is_staffed(desk)
+
+
+func can_train_official(key: String, desk: int, track: String) -> bool:
+	if not is_trainable(key, desk):
+		return false
+	var station := state.station(key)
+	var mood := station.moods[desk]
+	return mood.can_train(track) and state.can_afford(Formulas.training_cost(station, track, mood.training_level(track)))
+
+
+func train_official(key: String, desk: int, track: String) -> bool:
+	if not can_train_official(key, desk, track):
+		return false
+	var station := state.station(key)
+	var mood := station.moods[desk]
+	state.spend(Formulas.training_cost(station, track, mood.training_level(track)))
+	mood.train(track)
+	state.trainings += 1
+	return true
+
+
 func can_hire_specialist(key: String) -> bool:
 	var station := state.station(key)
 	return station != null and station.supports_specialists() and station.specialists < GameConfig.MAX_SPECIALISTS and state.can_afford(Formulas.specialist_cost(station))
@@ -96,6 +120,69 @@ func hire_runner() -> bool:
 	return true
 
 
+func can_hire_collector() -> bool:
+	return state.collectors.size() < GameConfig.MAX_COLLECTORS and state.can_afford(Formulas.collector_cost(state))
+
+
+func hire_collector() -> bool:
+	if not can_hire_collector():
+		return false
+	state.spend(Formulas.collector_cost(state))
+	state.add_collector()
+	state.staff_hired += 1
+	return true
+
+
+func can_hire_coffee_intern() -> bool:
+	return state.coffee_interns.size() < GameConfig.MAX_COFFEE_INTERNS and state.can_afford(Formulas.coffee_intern_cost(state))
+
+
+func hire_coffee_intern() -> bool:
+	if not can_hire_coffee_intern():
+		return false
+	state.spend(Formulas.coffee_intern_cost(state))
+	state.add_coffee_intern()
+	state.staff_hired += 1
+	return true
+
+
+func can_upgrade_waiting_area() -> bool:
+	return state.waiting_level < GameConfig.WAITING_MAX_LEVEL and state.can_afford(Formulas.waiting_area_cost(state))
+
+
+func upgrade_waiting_area() -> bool:
+	if not can_upgrade_waiting_area():
+		return false
+	state.spend(Formulas.waiting_area_cost(state))
+	state.waiting_level += 1
+	return true
+
+
+func can_upgrade_seating_area() -> bool:
+	return state.seating_level < GameConfig.SEATING_MAX_LEVEL and state.can_afford(Formulas.seating_area_cost(state))
+
+
+func upgrade_seating_area() -> bool:
+	if not can_upgrade_seating_area():
+		return false
+	state.spend(Formulas.seating_area_cost(state))
+	state.seating_level += 1
+	return true
+
+
+func can_hire_helper() -> bool:
+	return state.has_research("shredder_service") and state.helpers.size() < GameConfig.MAX_HELPERS and state.can_afford(Formulas.helper_cost(state))
+
+
+func hire_helper() -> bool:
+	if not can_hire_helper():
+		return false
+	state.spend(Formulas.helper_cost(state))
+	state.add_helper()
+	state.staff_hired += 1
+	return true
+
+
 func can_hire_hr() -> bool:
 	return state.hr < GameConfig.MAX_HR and state.can_afford(Formulas.hr_cost(state))
 
@@ -105,6 +192,19 @@ func hire_hr() -> bool:
 		return false
 	state.spend(Formulas.hr_cost(state))
 	state.hr += 1
+	state.staff_hired += 1
+	return true
+
+
+func can_hire_guard() -> bool:
+	return state.guards < GameConfig.MAX_GUARDS and state.can_afford(Formulas.guard_cost(state))
+
+
+func hire_guard() -> bool:
+	if not can_hire_guard():
+		return false
+	state.spend(Formulas.guard_cost(state))
+	state.guards += 1
 	state.staff_hired += 1
 	return true
 

@@ -51,31 +51,70 @@ const COFFEE_MACHINE_FETCH_FACTOR := 0.8
 const COFFEE_MACHINE_ALERT_BONUS := 0.25
 const SLOW_SECONDS := 70.0
 const DRIVE_FACTOR := 9.0
-const KRANZ_FIRST_SECONDS := 120.0
-const KRANZ_MIN_INTERVAL := 150.0
-const KRANZ_MAX_INTERVAL := 240.0
+const KRANZ_FIRST_SECONDS := 90.0
+const KRANZ_MIN_INTERVAL := 110.0
+const KRANZ_MAX_INTERVAL := 200.0
+const KRANZ_COFFEE_RELIEF := 0.3
 const KRANZ_RETRY_SECONDS := 20.0
 const KRANZ_SIZE := 4
 const KRANZ_MIN_PARTICIPANTS := 2
 const KRANZ_END_TIME := 1.2
 const KITCHEN_SLOTS := 12
 const KITCHEN_TABLE_SLOT := 6
-const SICK_FIRST_SECONDS := 150.0
-const SICK_MIN_INTERVAL := 70.0
-const SICK_MAX_INTERVAL := 150.0
-const SICK_MIN_STAFF := 3
+const SICK_FIRST_SECONDS := 90.0
+const SICK_MIN_INTERVAL := 45.0
+const SICK_MAX_INTERVAL := 100.0
+const SICK_MIN_STAFF := 2
 const SICK_SECONDS := 240.0
+const SICK_HR_RELIEF := 0.5
+const SICK_BONUS_MINUTES: Array[float] = [0.0, 0.5, 1.5, 4.0]
+const SICK_BONUS_SPEED: Array[float] = [1.0, 2.0, 4.0, 10.0]
+const SICK_BONUS_MIN_INCOME := 30.0
 const CALL_TIME := 1.5
-const CALL_VISIBLE_SECONDS := 4.0
 const MAX_HR := 4
 const HR_COST := 400.0
 const HR_GROWTH := 2.2
 const HR_CALL_SECONDS := 12.0
-const COMPLAINT_DRAIN := 0.002
-const COMPLAINT_INTERVAL := 45.0
-const COMPLAINT_MIN_CASES := 5
+const HR_ANSWER_SECONDS := 4.0
+const SICK_RING_SECONDS := 30.0
+const SICK_TALK_CHANCE := 0.3
+const COMPLAINT_INTERVAL := 120.0
+const COMPLAINT_STAFF_RELIEF := 0.3
+const COMPLAINT_MIN_CASES := 10
 const COMPLAINT_CAP := 8
-const COMPLAINT_OVERFLOW_PENALTY := 0.5
+const COMPLAINT_CAP_PER_LEVEL := 4
+const COMPLAINT_CAP_MAX := 20
+const COMPLAINT_TUBE_DELAYS: Array[float] = [-1.0, 60.0, 35.0, 20.0]
+const REVIEW_CHANCE := 0.18
+const MAX_NEGATIVE_REVIEWS := 5
+const MAX_STORED_REVIEWS := 80
+const REVIEW_NEGATIVE_MAX_STARS := 2
+const REVIEW_ONE_STAR_SHARE := 0.7
+const REVIEW_PRAISE_CHANCE := 0.18
+const REVIEW_FLAWED_CHANCE := 0.3
+const REVIEW_FEAR_SECONDS := 420.0
+const REVIEW_FEAR_FACTOR := 0.1
+const REVIEW_DELETE_REPUTATION := 0.15
+const REVIEW_AUTHORS := 12
+const REVIEW_FORCED_TEXTS := 6
+const REVIEW_DRAIN := 0.0006
+const REVIEW_DELETE_BASE := 30.0
+const REVIEW_DELETE_INCOME_SECONDS := 45.0
+const REVIEW_DELETE_STAR_FACTORS: Array[float] = [8.0, 3.0, 1.0, 0.3, 0.0]
+const REVIEW_LAWSUIT_FACTOR := 4.0
+const REVIEW_LAWSUIT_GROWTH := 1.6
+const REVIEW_LAWSUIT_CHANCE := 0.4
+const REVIEW_LAWSUIT_CHANCE_STEP := 0.08
+const REVIEW_LAWSUIT_MAX_CHANCE := 0.85
+const MAX_REVIEW_LAWSUITS := 20
+const REVIEW_LAWSUIT_PAYOUT_FACTOR := 2.5
+const REVIEW_LAWSUIT_REPUTATION := 0.5
+const REVIEW_LAWSUIT_LOSS := 0.2
+const REVIEW_TEXTS: Array[int] = [40, 35, 30, 25, 30]
+const REVIEW_PAGE_SIZE := 20
+const COMPLAINT_TEXTS := 50
+const COMPLAINT_TEXT_STEP := 17
+const COMPLAINT_READ_MAX := 8
 const COMPLAINT_REWARD := 4.0
 const COMPLAINT_REPUTATION := 0.05
 const COMPLAINT_TRANSFER_INTERVAL := 0.25
@@ -112,7 +151,6 @@ const REP_URGENT_LATE := -0.3
 const REP_CONTRABAND := 0.3
 const REP_SMUGGLED := -1.0
 const REP_CITIZEN_LEFT := -0.3
-const REP_TURNED_AWAY := -0.15
 
 const EVENT_FIRST_COOLDOWN := 240.0
 const EVENT_MIN_COOLDOWN := 180.0
@@ -132,6 +170,83 @@ const REJECT_MIN_CASES := 10
 const REJECT_CAPACITY := 6
 const REJECT_FEE_FACTOR := 0.15
 const REJECT_SHRED_REWARD := 2.0
+const TUBE_SPEED := 520.0
+const TUBE_BASE_CAPACITY := 2
+const TUBE_CAPACITY_PER_LEVEL := 2
+const MAX_TUBE_PARCELS := 400
+const MAX_COLLECTORS := 3
+const COLLECTOR_COST := 250.0
+const COLLECTOR_GROWTH := 2.0
+const COLLECTOR_CAPACITY := 3
+const COLLECTOR_SPEED := 170.0
+const SHRED_CASE_PENALTY := 1.0
+const WAITING_MAX_LEVEL := 8
+const MAX_LOBBY_SLOTS := 64
+const WAITING_SEATS_PER_LEVEL := 3
+const WAITING_COST := 400.0
+const WAITING_GROWTH := 1.9
+const SEATING_BASE_SEATS := 24
+const SEATING_MAX_LEVEL := 12
+const SEATING_SEATS_PER_LEVEL := 3
+const SEATING_COST := 500.0
+const SEATING_GROWTH := 1.6
+const REP_WALKED_OUT := -0.3
+const VISITOR_SPEED := 120.0
+const VISITOR_SLOTS := 3
+const VISITOR_TALK_SECONDS := 7.5
+const VISITOR_ANGRY_TALK_SECONDS := 6.0
+const VISITOR_DIALOGS := 30
+const YELL_DIALOGS := 10
+const VISITOR_LINES := 3
+const YELL_COMPLAINTS := 8
+const YELL_INTERVAL := 14.0
+const MAX_GUARDS := 2
+const GUARD_COST := 500.0
+const GUARD_GROWTH := 2.4
+const GUARD_BLOCK_CHANCE := 0.35
+const GUARD_STOP_SECONDS := 4.0
+const GUARD_DIALOGS := 5
+const GUARD_LINES := 2
+const INTERN_STRESS_FREE := 3
+const INTERN_STRESS_RATE := 0.004
+const INTERN_CALM_RATE := 0.012
+const INTERN_YELL_RATE := 0.06
+const INTERN_SPEED := 150.0
+const INTERN_CRY_SECONDS := 20.0
+const INTERN_TRAINING_CRY_FACTOR := 0.7
+const MAX_HELPERS := 2
+const HELPER_COST := 600.0
+const HELPER_GROWTH := 2.5
+const INTERN_RECOVERED_STRESS := 0.25
+const INTERN_COMFORT_TIME := 2.0
+const INTERN_COMFORT_STRESS := 0.35
+const MAX_COFFEE_INTERNS := 4
+const COFFEE_INTERN_COST := 300.0
+const COFFEE_INTERN_GROWTH := 2.0
+const COFFEE_INTERN_SPEED := 180.0
+const COFFEE_BREW_SECONDS := 1.5
+const COFFEE_SERVE_THRESHOLD := 0.6
+const COFFEE_SERVE_BONUS := 1.25
+const MAX_DISPUTES := 2
+const DISPUTE_MIN_CASES := 15
+const DISPUTE_MIN_STAFF := 2
+const DISPUTE_FIRST_SECONDS := 150.0
+const DISPUTE_MIN_INTERVAL := 90.0
+const DISPUTE_MAX_INTERVAL := 200.0
+const DISPUTE_SUPERVISOR_RELIEF := 0.3
+const DISPUTE_MAX_SECONDS := 240.0
+const DISPUTE_RETRY_SECONDS := 30.0
+const MEDIATE_TIME := 2.5
+const MEDIATE_REPUTATION := 0.2
+const MEDIATION_DELAYS: Array[float] = [-1.0, 120.0, 60.0, 25.0]
+const DISPUTES := {
+	"window": {"speed": 0.85, "climate": 1},
+	"thermostat": {"speed": 0.8, "climate": 2},
+	"radio": {"speed": 0.9, "climate": 0},
+	"yoghurt": {"speed": 0.9, "climate": 0},
+	"stapler": {"speed": 0.85, "climate": 0},
+	"fish_roll": {"speed": 0.8, "climate": 0},
+}
 const POPULATION_BASE := 1000
 const POPULATION_PER_CASE := 12
 const POPULATION_PER_LOST := 20
@@ -186,11 +301,11 @@ const CUSTOMS_VARIANTS: Array[String] = ["general_cargo", "electronics", "vehicl
 const CUSTOMS_VARIANT_SUSPICION := {"general_cargo": 0.8, "electronics": 1.6, "vehicles": 0.8}
 
 const BUILDING_STAGES := [
-	{"id": "service_counter", "cost": 0.0, "reputation": 0.0, "max_departments": 1, "max_desks": 2, "lobby": 8},
-	{"id": "multi_service_office", "cost": 2500.0, "reputation": 10.0, "max_departments": 3, "max_desks": 3, "lobby": 14},
-	{"id": "regional_administration", "cost": 50000.0, "reputation": 100.0, "max_departments": 5, "max_desks": 4, "lobby": 20},
-	{"id": "public_services_centre", "cost": 1500000.0, "reputation": 400.0, "max_departments": 7, "max_desks": 5, "lobby": 28},
-	{"id": "citywide_administration", "cost": 40000000.0, "reputation": 1000.0, "max_departments": 8, "max_desks": 6, "lobby": 36},
+	{"id": "service_counter", "cost": 0.0, "reputation": 0.0, "max_departments": 1, "max_desks": 2, "lobby": 16},
+	{"id": "multi_service_office", "cost": 2500.0, "reputation": 10.0, "max_departments": 3, "max_desks": 3, "lobby": 22},
+	{"id": "regional_administration", "cost": 50000.0, "reputation": 100.0, "max_departments": 5, "max_desks": 4, "lobby": 28},
+	{"id": "public_services_centre", "cost": 1500000.0, "reputation": 400.0, "max_departments": 7, "max_desks": 5, "lobby": 34},
+	{"id": "citywide_administration", "cost": 40000000.0, "reputation": 1000.0, "max_departments": 8, "max_desks": 6, "lobby": 40},
 ]
 
 const RESEARCH := {
@@ -203,17 +318,39 @@ const RESEARCH := {
 	"digital_records": {"max_level": 3, "cost": 1500.0, "growth": 6.0, "reputation": 15.0},
 	"quality_training": {"max_level": 3, "cost": 3000.0, "growth": 6.0, "reputation": 25.0},
 	"shredder_service": {"max_level": 3, "cost": 800.0, "growth": 5.0, "reputation": 10.0},
+	"climate_control": {"max_level": 2, "cost": 900.0, "growth": 4.0, "reputation": 12.0},
+	"mediation": {"max_level": 3, "cost": 1500.0, "growth": 4.0, "reputation": 18.0},
 	"coffee_machine": {"max_level": 4, "cost": 700.0, "growth": 3.5, "reputation": 8.0},
 	"kitchen": {"max_level": 3, "cost": 1200.0, "growth": 5.0, "reputation": 15.0},
 	"wake_service": {"max_level": 5, "cost": 1500.0, "growth": 4.0, "reputation": 20.0},
 	"it_support": {"max_level": 3, "cost": 2000.0, "growth": 4.0, "reputation": 20.0},
 	"digital_signatures": {"max_level": 2, "cost": 25000.0, "growth": 6.0, "reputation": 80.0},
 	"pneumatic_tubes": {"max_level": 1, "cost": 250000.0, "growth": 1.0, "reputation": 250.0},
+	"complaint_desk": {"max_level": 3, "cost": 1500.0, "growth": 4.0, "reputation": 15.0},
+	"complaint_tube": {"max_level": 3, "cost": 6000.0, "growth": 4.0, "reputation": 50.0, "requires": "shredder_service"},
+	"intern_training": {"max_level": 3, "cost": 3000.0, "growth": 4.0, "reputation": 40.0, "requires": "shredder_service"},
+	"tube_capacity": {"max_level": 3, "cost": 120000.0, "growth": 3.0, "reputation": 300.0, "requires": "pneumatic_tubes"},
 	"online_portal": {"max_level": 2, "cost": 1000000.0, "growth": 8.0, "reputation": 500.0},
 	"ai_classification": {"max_level": 1, "cost": 20000000.0, "growth": 1.0, "reputation": 1000.0},
 }
 
-const RESEARCH_ORDER: Array[String] = ["briefcase", "work_ethic", "coffee", "coffee_machine", "kitchen", "it_support", "scanners", "comfortable_lobby", "trolleys", "digital_records", "quality_training", "shredder_service", "wake_service", "digital_signatures", "pneumatic_tubes", "online_portal", "ai_classification"]
+const RESEARCH_ORDER: Array[String] = ["briefcase", "work_ethic", "coffee", "coffee_machine", "kitchen", "it_support", "scanners", "comfortable_lobby", "trolleys", "digital_records", "quality_training", "shredder_service", "complaint_desk", "complaint_tube", "intern_training", "wake_service", "climate_control", "mediation", "digital_signatures", "pneumatic_tubes", "tube_capacity", "online_portal", "ai_classification"]
+
+const RESEARCH_GROUPS := [
+	{"id": "work", "items": ["briefcase", "work_ethic", "scanners", "digital_records", "quality_training", "digital_signatures", "ai_classification"]},
+	{"id": "staff", "items": ["coffee", "coffee_machine", "kitchen", "wake_service", "climate_control", "mediation", "it_support"]},
+	{"id": "public", "items": ["comfortable_lobby", "shredder_service", "complaint_desk", "complaint_tube", "intern_training", "online_portal"]},
+	{"id": "transport", "items": ["trolleys", "pneumatic_tubes", "tube_capacity"]},
+]
+
+const OFFICIAL_TRAININGS := {
+	"skill": {"cost": 1.5, "growth": 2.5, "effect": 0.15},
+	"health": {"cost": 1.2, "growth": 2.5, "effect": 0.2},
+	"stamina": {"cost": 1.0, "growth": 2.5, "effect": 0.8},
+	"calm": {"cost": 1.0, "growth": 2.5, "effect": 0.2},
+}
+const OFFICIAL_TRAINING_ORDER: Array[String] = ["skill", "health", "stamina", "calm"]
+const MAX_OFFICIAL_TRAINING := 3
 
 const RESEARCH_SPEED := {
 	"reception": {"research": "scanners", "bonus": 0.3},
@@ -325,3 +462,11 @@ static func is_machine(key: String) -> bool:
 	if kind == "signature":
 		return bool(department(station_dept(key)).get("signature_machine", false))
 	return bool(station_kind(kind).get("machine", false))
+
+
+static func review_texts(stars: int) -> int:
+	return REVIEW_TEXTS[clampi(stars, 1, REVIEW_TEXTS.size()) - 1]
+
+
+static func sick_bonus_tiers() -> int:
+	return SICK_BONUS_MINUTES.size() - 1

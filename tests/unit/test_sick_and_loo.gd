@@ -84,59 +84,6 @@ func test_sick_returns_on_its_own_after_long_time() -> void:
 	assert_false(review.moods[0].is_resting())
 
 
-func test_player_calls_sick_employee_at_phone() -> void:
-	var review := state.station(REVIEW)
-	review.moods[0].rest(DeskMood.SICK)
-	state.player.position = layout.phone_point()
-	watch_signals(sim)
-	_run(GameConfig.CALL_TIME + 0.5, 0.1)
-	assert_false(review.moods[0].is_resting())
-	assert_eq(state.calls_made, 1)
-	assert_eq(state.wakes, 1)
-	assert_signal_emitted_with_parameters(sim, "sick_called", [true, REVIEW, 0])
-
-
-func test_call_needs_presence_and_resets_progress() -> void:
-	var review := state.station(REVIEW)
-	review.moods[0].rest(DeskMood.SICK)
-	state.player.position = layout.phone_point()
-	_run(0.5, 0.1)
-	assert_gt(state.player.call_progress, 0.0)
-	state.player.position = Vector2(50, 50)
-	_run(0.1)
-	assert_eq(state.player.call_progress, 0.0)
-	_run(5.0, 0.5)
-	assert_true(review.moods[0].is_sick())
-
-
-func test_call_picks_longest_sick_first() -> void:
-	var review := state.station(REVIEW)
-	review.moods[0].rest(DeskMood.SICK)
-	review.moods[1].rest(DeskMood.SICK)
-	review.moods[1].resting = 50.0
-	assert_true(sim.call_in_sick(false))
-	assert_true(review.moods[0].is_sick())
-	assert_false(review.moods[1].is_resting())
-	assert_eq(state.wakes, 0)
-	assert_false(sim.call_in_sick(false) and sim.call_in_sick(false))
-
-
-func test_hr_clerks_call_automatically() -> void:
-	state.hr = 2
-	var review := state.station(REVIEW)
-	review.moods[0].rest(DeskMood.SICK)
-	_run(GameConfig.HR_CALL_SECONDS / 2.0 + 1.0, 0.25)
-	assert_false(review.moods[0].is_resting())
-	assert_eq(state.wakes, 0)
-
-
-func test_hr_timer_resets_without_sick_people() -> void:
-	state.hr = 1
-	state.hr_timer = 5.0
-	_run(0.1)
-	assert_eq(state.hr_timer, 0.0)
-
-
 func test_hire_hr_costs_money_and_has_limit() -> void:
 	var actions := GameActions.new(state, sim)
 	state.money = 1e9
@@ -174,19 +121,11 @@ func test_sick_and_hr_are_saved_and_clamped() -> void:
 	assert_eq(loaded.calls_made, 0)
 
 
-func test_guidance_leads_to_phone() -> void:
-	state.station(REVIEW).moods[0].rest(DeskMood.SICK)
-	var task := Guidance.next_task(state)
-	assert_eq(task.action, Guidance.CALL)
-	assert_eq(task.point, layout.phone_point())
-
-
-func test_complaints_drain_reputation() -> void:
+func test_complaints_do_not_drain_reputation() -> void:
 	state.reputation = 10.0
 	state.complaints = 4
 	_run(10.0, 0.5)
-	assert_almost_eq(state.reputation, 10.0 - 4 * GameConfig.COMPLAINT_DRAIN * 10.0, 0.01)
-	assert_almost_eq(Formulas.complaint_malus_per_minute(state), 4 * GameConfig.COMPLAINT_DRAIN * 60.0, 0.0001)
+	assert_eq(state.reputation, 10.0)
 	state.complaints = 0
 	var before := state.reputation
 	_run(5.0, 0.5)
@@ -210,7 +149,7 @@ func test_loo_slot_points() -> void:
 		assert_true(layout.toilets.has_point(layout.slot_point(GameConfig.KITCHEN_SLOTS + i)))
 	assert_eq(layout.slot_point(3), layout.kitchen_slot(3))
 	assert_eq(layout.slot_point(999), layout.slot_point(GameConfig.KITCHEN_SLOTS + GameConfig.LOO_SLOTS - 1))
-	assert_true(layout.toilets.has_point(layout.phone_point()))
+	assert_false(layout.toilets.has_point(layout.phone_point()))
 	assert_true(layout.toilets.has_point(layout.loo_origin() + Vector2(256, 98)))
 
 

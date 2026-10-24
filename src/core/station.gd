@@ -79,6 +79,10 @@ func is_working(desk: int) -> bool:
 	return is_staffed(desk) and not moods[desk].is_resting()
 
 
+func can_cover(desk: int) -> bool:
+	return not machine and is_staffed(desk) and moods[desk].is_absent() and (jobs[desk] != null or not inbox.is_empty())
+
+
 func resting_count() -> int:
 	var count := 0
 	for desk in moods.size():
@@ -124,8 +128,8 @@ func needs_manual_work() -> bool:
 	return staff < desks and (not inbox.is_empty() or unstaffed_desks_busy())
 
 
-func take_next_case(prioritize_urgent: bool, for_specialist: bool) -> CaseFile:
-	var index := _pick(prioritize_urgent, for_specialist)
+func take_next_case(prioritize_urgent: bool, for_specialist: bool, blocked_targets: Array[String] = []) -> CaseFile:
+	var index := _pick(prioritize_urgent, for_specialist, blocked_targets)
 	if index < 0:
 		return null
 	var case_file := inbox[index]
@@ -133,12 +137,14 @@ func take_next_case(prioritize_urgent: bool, for_specialist: bool) -> CaseFile:
 	return case_file
 
 
-func _pick(prioritize_urgent: bool, for_specialist: bool) -> int:
+func _pick(prioritize_urgent: bool, for_specialist: bool, blocked_targets: Array[String]) -> int:
 	var best := -1
 	var best_score := -1
 	for i in inbox.size():
 		var case_file := inbox[i]
 		if specialists > 0 and not for_specialist and case_file.complex:
+			continue
+		if blocked_targets.has(case_file.next_key()):
 			continue
 		var score := 0
 		if for_specialist and case_file.complex:

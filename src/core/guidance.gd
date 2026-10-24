@@ -11,6 +11,8 @@ const SHRED := "shred"
 const KRANZ := "kranz"
 const CALL := "call"
 const REJECT := "reject"
+const COMFORT := "comfort"
+const DISPUTE := "dispute"
 
 
 static func next_task(state: GameState) -> Dictionary:
@@ -35,10 +37,16 @@ static func next_task(state: GameState) -> Dictionary:
 				options.append({"action": WORK, "key": key, "point": layout.work_point(key)})
 			if room and not station.outbox.is_empty() and not _automated(state, station):
 				options.append({"action": PICKUP, "key": key, "point": layout.output_point(key)})
-			if station.rejects > 0 and player.rejects == 0 and player.complaints == 0 and room:
+			if station.rejects > 0 and state.collectors.is_empty() and player.rejects == 0 and player.complaints == 0 and room:
 				options.append({"action": REJECT, "key": key, "point": layout.reject_point(key)})
-	if state.sick_count() > 0:
+	if state.ringing_count() > 0 or state.reported_sick_count() > 0:
 		options.append({"action": CALL, "key": "", "point": layout.phone_point()})
+	if state.has_research("shredder_service"):
+		for unit in state.all_interns():
+			if unit.is_away():
+				options.append({"action": COMFORT, "key": "", "point": unit.position})
+	for dispute in state.disputes:
+		options.append({"action": DISPUTE, "key": dispute.dept_id, "point": layout.dispute_point(dispute.dept_id)})
 	if state.kranz:
 		options.append({"action": KRANZ, "key": "", "point": layout.kranz_point()})
 	if player.complaints > 0 or player.rejects > 0:

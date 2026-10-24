@@ -54,6 +54,15 @@ static func icon(code: String, color: Color, size: int = AppTheme.SIZE_ICON) -> 
 	return node
 
 
+static func stars(count: int, size: int = AppTheme.SIZE_ICON_SMALL) -> HBoxContainer:
+	var row := hbox(0)
+	for index in 5:
+		var filled := index < count
+		var color := AppTheme.accent("warning") if filled else Color(AppTheme.OUTLINE, 0.5)
+		row.add_child(icon(Icons.STAR if filled else Icons.STAR_BORDER, color, size))
+	return row
+
+
 static func icon_disc(code: String, color: Color, diameter: int = 40) -> PanelContainer:
 	var disc := PanelContainer.new()
 	disc.add_theme_stylebox_override(&"panel", AppTheme.box(Color(color, 0.15), AppTheme.RADIUS_PILL))

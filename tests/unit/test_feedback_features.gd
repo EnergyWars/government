@@ -235,7 +235,7 @@ func test_shredder_intern_also_shreds_rejects() -> void:
 	state.research["shredder_service"] = 1
 	var review := state.station("general_services/review")
 	review.rejects = 2
-	_run(GameConfig.SHREDDER_DELAYS[1] + 1.0)
+	_run(GameConfig.SHREDDER_DELAYS[1] + 6.0)
 	assert_eq(review.rejects, 1)
 	assert_eq(state.rejects_waiting(), 1)
 
@@ -572,3 +572,375 @@ func test_translations_exist_for_new_texts() -> void:
 	for key in keys:
 		assert_ne(TranslationServer.translate(key), key, key)
 	assert_ne(Flavor.reject(0), Flavor.reject(1))
+
+
+func test_reception_skips_cases_for_saturated_departments() -> void:
+	state.unlock_department("social_benefits")
+	var reception := state.station(GameConfig.RECEPTION)
+	var review := state.station("social_benefits/review")
+	for i in review.inbox_capacity(state.lobby_capacity()):
+		review.inbox.append(sim.create_case(state.department("social_benefits")))
+	var stuck := sim.create_case(state.department("social_benefits"))
+	stuck.step = 0
+	var other := sim.create_case(state.department("general_services"))
+	other.step = 0
+	reception.inbox.append_array([stuck, other])
+	assert_true(sim.start_job(reception, 0))
+	assert_eq(reception.jobs[0].case_file, other)
+	assert_true(reception.inbox.has(stuck))
+
+
+func test_reception_keeps_working_when_only_blocked_cases_wait() -> void:
+	state.unlock_department("social_benefits")
+	var reception := state.station(GameConfig.RECEPTION)
+	var review := state.station("social_benefits/review")
+	for i in review.inbox_capacity(state.lobby_capacity()):
+		review.inbox.append(sim.create_case(state.department("social_benefits")))
+	reception.inbox.append(sim.create_case(state.department("social_benefits")))
+	assert_false(sim.start_job(reception, 0))
+	review.inbox.pop_back()
+	assert_true(sim.start_job(reception, 0))
+
+
+func test_player_shreds_normal_case_at_shredder() -> void:
+	var case_file := sim.create_case(state.department("general_services"))
+	state.player.items.append(case_file)
+	state.player.position = layout.shredder_point()
+	var before := state.reputation
+	watch_signals(sim)
+	assert_true(sim.move_complaints())
+	assert_true(state.player.items.is_empty())
+	assert_eq(state.cases_shredded, 1)
+	assert_eq(state.citizens_lost, 1)
+	assert_almost_eq(state.reputation, before - GameConfig.SHRED_CASE_PENALTY, 0.001)
+	assert_signal_emitted(sim, "case_shredded")
+	assert_signal_emitted(sim, "citizen_left")
+
+
+func test_shredder_prefers_complaints_and_rejects_over_cases() -> void:
+	state.player.position = layout.shredder_point()
+	state.player.items.append(sim.create_case(state.department("general_services")))
+	state.player.rejects = 1
+	assert_true(sim.move_complaints())
+	assert_eq(state.player.rejects, 0)
+	assert_eq(state.player.items.size(), 1)
+	assert_true(sim.move_complaints())
+	assert_true(state.player.items.is_empty())
+
+
+func test_no_case_shredding_away_from_shredder() -> void:
+	state.player.items.append(sim.create_case(state.department("general_services")))
+	state.player.position = Vector2(50, 50)
+	assert_false(sim.move_complaints())
+	assert_eq(state.player.items.size(), 1)
+
+
+func test_collector_hire_cost_and_limit() -> void:
+	state.money = 1.0e9
+	var first := Formulas.collector_cost(state)
+	assert_true(state.station("shared/counter") != null)
+	for i in GameConfig.MAX_COLLECTORS:
+		assert_true(game_actions().hire_collector())
+	assert_false(game_actions().can_hire_collector())
+	assert_eq(state.collectors.size(), GameConfig.MAX_COLLECTORS)
+	assert_eq(first, GameConfig.COLLECTOR_COST)
+
+
+func game_actions() -> GameActions:
+	return GameActions.new(state, sim)
+
+
+func test_collector_brings_rejects_to_shredder() -> void:
+	state.add_collector()
+	var station := state.station("general_services/review")
+	station.rejects = 4
+	var money := state.money
+	_run(60.0, 0.1)
+	assert_eq(station.rejects, 0)
+	assert_eq(state.collectors[0].loaded, 0)
+	assert_almost_eq(state.money, money + GameConfig.REJECT_SHRED_REWARD * 4.0, 0.001)
+
+
+func test_collector_idles_without_rejects() -> void:
+	var collector := state.add_collector()
+	var start := collector.position
+	_run(5.0, 0.1)
+	assert_eq(collector.loaded, 0)
+	assert_lt(collector.position.distance_to(layout.collector_home()), start.distance_to(layout.collector_home()) + 1.0)
+
+
+func test_two_collectors_split_rejects() -> void:
+	state.add_collector()
+	state.add_collector()
+	state.station("general_services/review").rejects = 6
+	sim.tick(0.1)
+	assert_ne(state.collectors[0].source, state.collectors[1].source if state.collectors[1].source != "" else "x")
+
+
+func test_collectors_and_shred_counter_survive_save() -> void:
+	var collector := state.add_collector()
+	collector.loaded = 2
+	state.cases_shredded = 3
+	var restored := GameState.from_dict(state.to_dict())
+	assert_eq(restored.collectors.size(), 1)
+	assert_eq(restored.collectors[0].loaded, 2)
+	assert_eq(restored.cases_shredded, 3)
+
+
+func test_guidance_skips_reject_pickup_when_collector_exists() -> void:
+	state.station("general_services/review").rejects = 2
+	state.add_collector()
+	var task := Guidance.next_task(state)
+	assert_ne(task.get("action", ""), Guidance.REJECT)
+
+
+func test_collector_translations() -> void:
+	for key in ["STAFF_COLLECTORS", "STAFF_DESC_COLLECTORS", "FMT_COLLECTOR_INFO"]:
+		assert_ne(TranslationServer.translate(key), key, key)
+
+
+func _fill_outbox(count: int) -> Station:
+	var review := state.station("general_services/review")
+	for i in count:
+		review.outbox.append(_case("general_services", 1))
+	return review
+
+
+func test_tube_capacity_formula_and_research_gate() -> void:
+	assert_eq(Formulas.tube_capacity(state), GameConfig.TUBE_BASE_CAPACITY)
+	state.research["tube_capacity"] = 2
+	assert_eq(Formulas.tube_capacity(state), GameConfig.TUBE_BASE_CAPACITY + 2 * GameConfig.TUBE_CAPACITY_PER_LEVEL)
+	state.research["tube_capacity"] = 0
+	state.money = 1.0e9
+	state.reputation = 1.0e6
+	assert_eq(Progression.research_block_reason(state, "tube_capacity"), "requires")
+	state.research["pneumatic_tubes"] = 1
+	assert_eq(Progression.research_block_reason(state, "tube_capacity"), "")
+	state.research["tube_capacity"] = 3
+	assert_eq(Progression.research_block_reason(state, "tube_capacity"), "max")
+
+
+func test_tube_holds_only_its_capacity() -> void:
+	state.research["pneumatic_tubes"] = 1
+	var review := _fill_outbox(5)
+	sim.tick(0.05)
+	assert_eq(state.tube_parcels.size(), GameConfig.TUBE_BASE_CAPACITY)
+	assert_eq(review.outbox.size(), 5 - GameConfig.TUBE_BASE_CAPACITY)
+
+
+func test_tube_upgrade_raises_load() -> void:
+	state.research["pneumatic_tubes"] = 1
+	state.research["tube_capacity"] = 1
+	var review := _fill_outbox(8)
+	sim.tick(0.05)
+	assert_eq(state.tube_parcels.size(), Formulas.tube_capacity(state))
+	assert_eq(review.outbox.size(), 8 - Formulas.tube_capacity(state))
+
+
+func test_parcels_arrive_and_free_the_tube() -> void:
+	state.research["pneumatic_tubes"] = 1
+	var review := _fill_outbox(4)
+	var target := state.station("general_services/signature")
+	_run(0.05)
+	_run(10.0, 0.1)
+	assert_true(review.outbox.is_empty())
+	assert_true(state.tube_parcels.is_empty())
+	assert_eq(target.inbox.size() + target.active_jobs() + target.outbox.size(), 4)
+
+
+func test_parcel_waits_when_target_is_full() -> void:
+	state.research["pneumatic_tubes"] = 1
+	var target := state.station("general_services/signature")
+	target.staff = 0
+	for i in target.inbox_capacity(state.lobby_capacity()):
+		target.inbox.append(_case("general_services", 2))
+	_fill_outbox(1)
+	_run(5.0, 0.1)
+	assert_eq(state.tube_parcels.size(), 1)
+	assert_eq(state.tube_parcels[0].left, 0.0)
+	target.inbox.pop_back()
+	_run(0.5, 0.1)
+	assert_true(state.tube_parcels.is_empty())
+
+
+func test_parcels_count_as_carried_and_survive_save() -> void:
+	state.research["pneumatic_tubes"] = 1
+	_fill_outbox(2)
+	sim.tick(0.05)
+	assert_eq(state.carried_cases().size(), 2)
+	var restored := GameState.from_dict(state.to_dict())
+	assert_eq(restored.tube_parcels.size(), 2)
+	assert_eq(restored.tube_parcels[0].tube_id(), state.tube_parcels[0].tube_id())
+	assert_null(TubeParcel.from_dict({"from": "", "to": "x", "case": {}}))
+	assert_null(TubeParcel.from_dict("bad"))
+
+
+func test_tube_capacity_texts_and_icon_exist() -> void:
+	assert_true(Icons.RESEARCH.has("tube_capacity"))
+	for key in ["RESEARCH_TUBE_CAPACITY", "RESEARCH_DESC_TUBE_CAPACITY", "FMT_REQ_RESEARCH", "FMT_TUBE_CAPACITY"]:
+		assert_ne(TranslationServer.translate(key), key, key)
+
+
+func test_intern_walks_to_the_shredder_and_back() -> void:
+	state.research["shredder_service"] = 3
+	state.complaints = 1
+	var delay: float = GameConfig.SHREDDER_DELAYS[3]
+	_run(delay + 0.5, 0.1)
+	assert_eq(state.intern.mood, ComplaintIntern.Mood.TO_SHREDDER)
+	assert_eq(state.complaints, 1)
+	_run(5.0, 0.1)
+	assert_eq(state.complaints, 0)
+	assert_eq(state.intern.mood, ComplaintIntern.Mood.DESK)
+	assert_eq(state.intern.position, layout.intern_home())
+
+
+func test_intern_training_formulas_and_gate() -> void:
+	assert_eq(Formulas.intern_capacity(state), 1)
+	assert_eq(Formulas.intern_stress_free(state), GameConfig.INTERN_STRESS_FREE)
+	assert_almost_eq(Formulas.intern_cry_seconds(state), GameConfig.INTERN_CRY_SECONDS, 0.001)
+	state.research["intern_training"] = 2
+	assert_eq(Formulas.intern_capacity(state), 3)
+	assert_eq(Formulas.intern_stress_free(state), GameConfig.INTERN_STRESS_FREE + 2)
+	assert_almost_eq(Formulas.intern_cry_seconds(state), GameConfig.INTERN_CRY_SECONDS * 0.49, 0.001)
+	state.research["intern_training"] = 0
+	state.money = 1.0e9
+	state.reputation = 1.0e6
+	assert_eq(Progression.research_block_reason(state, "intern_training"), "requires")
+
+
+func test_trained_intern_shreds_several_per_trip() -> void:
+	state.research["shredder_service"] = 3
+	state.research["intern_training"] = 2
+	state.complaints = 5
+	_run(GameConfig.SHREDDER_DELAYS[3] + 6.0, 0.1)
+	assert_eq(state.complaints, 2)
+
+
+func test_intern_stops_crying_by_himself() -> void:
+	state.research["shredder_service"] = 1
+	state.intern.mood = ComplaintIntern.Mood.CRYING
+	state.intern.position = layout.intern_cry_point()
+	_run(GameConfig.INTERN_CRY_SECONDS + 1.0, 0.5)
+	assert_ne(state.intern.mood, ComplaintIntern.Mood.CRYING)
+	assert_lte(GameConfig.INTERN_CRY_SECONDS, 20.0)
+
+
+func test_helpers_share_stress_and_work() -> void:
+	state.research["shredder_service"] = 1
+	state.money = 1.0e9
+	assert_true(game_actions().hire_helper())
+	assert_eq(state.all_interns().size(), 2)
+	assert_eq(state.helpers[0].slot, 1)
+	state.complaints = GameConfig.COMPLAINT_CAP
+	_run(10.0, 0.5)
+	var solo := (GameConfig.COMPLAINT_CAP - GameConfig.INTERN_STRESS_FREE) * GameConfig.INTERN_STRESS_RATE * 10.0
+	assert_lt(state.intern.stress, solo)
+
+
+func test_helper_hiring_limits_and_save() -> void:
+	state.money = 1.0e9
+	assert_false(game_actions().can_hire_helper())
+	state.research["shredder_service"] = 1
+	for i in GameConfig.MAX_HELPERS:
+		assert_true(game_actions().hire_helper())
+	assert_false(game_actions().can_hire_helper())
+	state.helpers[1].stress = 0.4
+	var restored := GameState.from_dict(state.to_dict())
+	assert_eq(restored.helpers.size(), GameConfig.MAX_HELPERS)
+	assert_almost_eq(restored.helpers[1].stress, 0.4, 0.001)
+	assert_eq(restored.helpers[1].slot, 2)
+	assert_eq(Formulas.helper_cost(state), GameConfig.HELPER_COST * pow(GameConfig.HELPER_GROWTH, GameConfig.MAX_HELPERS))
+
+
+func test_angry_visitor_stresses_the_calmest_intern() -> void:
+	state.research["shredder_service"] = 1
+	state.add_helper()
+	state.intern.stress = 0.5
+	sim.spawn_visitor(true, false)
+	_run(3.0, 0.5)
+	assert_gt(state.helpers[0].stress, 0.0)
+
+
+func test_leaving_citizen_files_a_complaint() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	var waiting := _case("general_services")
+	waiting.waited = Formulas.patience(state)
+	state.station(GameConfig.RECEPTION).inbox.append(waiting)
+	sim.tick(0.1)
+	assert_eq(state.visitors.size() + state.complaints, 1)
+
+
+func test_leaving_citizen_without_experience_does_not_complain() -> void:
+	var waiting := _case("general_services")
+	waiting.waited = Formulas.patience(state)
+	state.station(GameConfig.RECEPTION).inbox.append(waiting)
+	sim.tick(0.1)
+	assert_eq(state.visitors.size() + state.complaints, 0)
+
+
+func test_leaving_citizen_files_directly_when_no_slot_is_free() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	for i in GameConfig.VISITOR_SLOTS:
+		sim.spawn_visitor(false, false)
+	var waiting := _case("general_services")
+	waiting.waited = Formulas.patience(state)
+	state.station(GameConfig.RECEPTION).inbox.append(waiting)
+	sim.tick(0.1)
+	assert_eq(state.complaints, 1)
+
+
+func test_complaint_desk_research_raises_the_cap() -> void:
+	assert_eq(Formulas.complaint_cap(state), GameConfig.COMPLAINT_CAP)
+	state.research["complaint_desk"] = 3
+	assert_eq(Formulas.complaint_cap(state), GameConfig.COMPLAINT_CAP + 3 * GameConfig.COMPLAINT_CAP_PER_LEVEL)
+	assert_lte(Formulas.complaint_cap(state), GameConfig.COMPLAINT_CAP_MAX)
+	state.complaints = GameConfig.COMPLAINT_CAP
+	sim.file_complaint()
+	assert_eq(state.complaints, GameConfig.COMPLAINT_CAP + 1)
+
+
+func test_complaint_tube_sends_complaints_slowly() -> void:
+	state.research["shredder_service"] = 1
+	state.research["complaint_tube"] = 2
+	state.intern.mood = ComplaintIntern.Mood.CRYING
+	state.intern.position = layout.intern_cry_point()
+	state.complaints = 3
+	watch_signals(sim)
+	var delay: float = GameConfig.COMPLAINT_TUBE_DELAYS[2]
+	_run(delay - 1.0, 0.5)
+	assert_eq(state.complaints, 3)
+	_run(2.0, 0.5)
+	assert_eq(state.complaints, 2)
+	assert_signal_emitted(sim, "complaint_piped")
+	assert_eq(state.complaints_shredded, 1)
+
+
+func test_complaint_tube_idle_without_research_or_complaints() -> void:
+	state.complaints = 2
+	_run(100.0, 1.0)
+	assert_eq(state.complaints, 2)
+	assert_eq(state.complaint_tube_timer, 0.0)
+	state.research["complaint_tube"] = 1
+	state.complaints = 0
+	_run(100.0, 1.0)
+	assert_eq(state.complaint_tube_timer, 0.0)
+
+
+func test_complaint_tube_is_slower_than_intern_and_gated() -> void:
+	assert_eq(GameConfig.COMPLAINT_TUBE_DELAYS.size(), int(GameConfig.RESEARCH.complaint_tube.max_level) + 1)
+	for level in range(2, 4):
+		assert_lt(GameConfig.COMPLAINT_TUBE_DELAYS[level], GameConfig.COMPLAINT_TUBE_DELAYS[level - 1])
+	assert_gt(GameConfig.COMPLAINT_TUBE_DELAYS[3], GameConfig.SHREDDER_DELAYS[3])
+	state.money = 1.0e9
+	state.reputation = 1.0e6
+	assert_eq(Progression.research_block_reason(state, "complaint_tube"), "requires")
+	assert_gt(layout.complaint_tube_path().size(), 2)
+
+
+func test_new_intern_and_review_texts_exist() -> void:
+	var keys: Array[String] = ["STAFF_HELPERS", "STAFF_DESC_HELPERS", "FMT_HELPER_INFO", "LABEL_NEEDS_SHREDDER_SERVICE", "RESEARCH_COMPLAINT_DESK", "RESEARCH_DESC_COMPLAINT_DESK", "RESEARCH_COMPLAINT_TUBE", "RESEARCH_DESC_COMPLAINT_TUBE", "RESEARCH_INTERN_TRAINING", "RESEARCH_DESC_INTERN_TRAINING", "FMT_REVIEWS_TITLE", "ACTION_REVIEW_DELETE", "ACTION_REVIEW_SUE", "FLOAT_REVIEW_POSTED", "FLOAT_REVIEW_DELETED", "FLOAT_REVIEW_WON", "FLOAT_REVIEW_LOST"]
+	for key in keys:
+		assert_ne(TranslationServer.translate(key), key, key)
+	for research_id in ["complaint_desk", "complaint_tube", "intern_training"]:
+		assert_true(Icons.RESEARCH.has(research_id))
+		assert_true(GameConfig.RESEARCH_ORDER.has(research_id))

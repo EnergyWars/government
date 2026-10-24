@@ -27,3 +27,8 @@ static func decimal(value: float, digits: int, decimal_separator: String = ".") 
 static func duration_parts(seconds: float) -> Dictionary:
 	var total := maxi(0, int(seconds))
 	return {"hours": floori(total / 3600.0), "minutes": floori((total % 3600) / 60.0), "seconds": total % 60}
+
+
+static func clock(seconds: float) -> String:
+	var total := maxi(0, ceili(seconds))
+	return "%d:%02d" % [floori(total / 60.0), total % 60]

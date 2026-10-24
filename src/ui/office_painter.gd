@@ -1,7 +1,9 @@
 class_name OfficePainter
 extends RefCounted
 
+const SWITCHBOARD_LAMPS := 8
 const TILE := 44.0
+const POP_SECONDS := 0.45
 
 
 static var _tile_texture: ImageTexture
@@ -78,11 +80,33 @@ static func flag(canvas: CanvasItem, pole_base: Vector2, height: float, time: fl
 		canvas.draw_colored_polygon(points, colors[i])
 
 
-static func bench(canvas: CanvasItem, center: Vector2) -> void:
-	canvas.draw_rect(Rect2(center + Vector2(-17, -2), Vector2(34, 5)), AppTheme.BENCH.darkened(0.2))
-	canvas.draw_rect(Rect2(center + Vector2(-17, 4), Vector2(34, 7)), AppTheme.BENCH)
-	canvas.draw_rect(Rect2(center + Vector2(-15, 11), Vector2(3, 4)), AppTheme.WOOD_DARK)
-	canvas.draw_rect(Rect2(center + Vector2(12, 11), Vector2(3, 4)), AppTheme.WOOD_DARK)
+static func pop_scale(age: float) -> float:
+	if age <= 0.0:
+		return 0.0
+	if age >= POP_SECONDS:
+		return 1.0
+	var t := age / POP_SECONDS - 1.0
+	return 1.0 + 2.70158 * t * t * t + 1.70158 * t * t
+
+
+static func waiting_chair(canvas: CanvasItem, center: Vector2, scale: float = 1.0) -> void:
+	if scale <= 0.0:
+		return
+	canvas.draw_set_transform(center, 0.0, Vector2(scale, scale))
+	canvas.draw_rect(Rect2(Vector2(-10, -4), Vector2(20, 5)), AppTheme.BENCH.darkened(0.2))
+	canvas.draw_rect(Rect2(Vector2(-10, 1), Vector2(20, 8)), AppTheme.BENCH)
+	canvas.draw_rect(Rect2(Vector2(-9, 9), Vector2(3, 5)), AppTheme.WOOD_DARK)
+	canvas.draw_rect(Rect2(Vector2(6, 9), Vector2(3, 5)), AppTheme.WOOD_DARK)
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+static func queue_mark(canvas: CanvasItem, center: Vector2, scale: float = 1.0) -> void:
+	if scale <= 0.0:
+		return
+	canvas.draw_set_transform(center, 0.0, Vector2(scale, scale))
+	canvas.draw_circle(Vector2(0, 10), 11.0, Color(AppTheme.OUTLINE, 0.18))
+	canvas.draw_arc(Vector2(0, 10), 11.0, 0.0, TAU, 16, Color(AppTheme.OUTLINE, 0.55), 2.0)
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 static func ticket_dispenser(canvas: CanvasItem, center: Vector2) -> void:
@@ -265,7 +289,7 @@ static func kitchen_table(canvas: CanvasItem, center: Vector2) -> void:
 
 
 static func complaint_pile(canvas: CanvasItem, base: Vector2, count: int) -> void:
-	for i in mini(count, GameConfig.COMPLAINT_CAP):
+	for i in mini(count, GameConfig.COMPLAINT_CAP_MAX):
 		var offset := Vector2((i % 3) * 13.0 - 13.0, -floorf(i / 3.0) * 5.0)
 		canvas.draw_rect(Rect2(base + offset + Vector2(-9, -4), Vector2(18, 10)), AppTheme.PAPER)
 		canvas.draw_rect(Rect2(base + offset + Vector2(-9, -4), Vector2(18, 10)), AppTheme.METAL_DARK, false, 1.0)
@@ -300,6 +324,21 @@ static func phone(canvas: CanvasItem, base: Vector2, ringing: bool, time: float)
 		for i in 2:
 			var radius := 14.0 + i * 8.0 + fmod(time * 10.0, 8.0)
 			canvas.draw_arc(base + Vector2(0, -12), radius, -PI * 0.85, -PI * 0.15, 10, Color(AppTheme.accent("warning"), 0.8 - i * 0.3), 2.0)
+
+
+static func switchboard(canvas: CanvasItem, base: Vector2, ringing: int, time: float) -> void:
+	ItemPainter.shadow(canvas, base + Vector2(0, 24), 52, 7)
+	canvas.draw_rect(Rect2(base + Vector2(-50, -70), Vector2(100, 92)), AppTheme.WOOD_FRONT)
+	canvas.draw_rect(Rect2(base + Vector2(-50, -70), Vector2(100, 92)), AppTheme.WOOD_DARK, false, 2.0)
+	canvas.draw_rect(Rect2(base + Vector2(-42, -62), Vector2(84, 48)), AppTheme.METAL_DARK)
+	var blink := fmod(time, 0.5) < 0.25
+	for i in SWITCHBOARD_LAMPS:
+		var lamp := base + Vector2(-30 + (i % 4) * 20, -50 + floori(i / 4.0) * 22)
+		var lit := i < ringing
+		canvas.draw_circle(lamp, 6.0, AppTheme.accent("warning") if lit and blink else AppTheme.METAL)
+		canvas.draw_arc(lamp, 6.0, 0, TAU, 12, AppTheme.SHOES, 1.5)
+	for i in 5:
+		canvas.draw_line(base + Vector2(-34 + i * 17, -4), base + Vector2(-30 + i * 15, 14), AppTheme.SHOES, 2.0)
 
 
 static func toilet_stalls(canvas: CanvasItem, origin: Vector2, occupied: Array[bool]) -> void:
