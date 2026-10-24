@@ -167,7 +167,7 @@ Fachkraft: 5 × Einstellkosten × 2,4^n, nur komplexe Fälle (10–35 %) ohne Ze
 ### 4.4 [M] Prozess-Klage ist ab dem zweiten Versuch ein Geldautomat
 Erwartungswert Geld = Chance × 2,5 − 1 ≥ 0 schon bei 40 %; Chance steigt +8 % je Klage bis 85 %, Kosten nur ×1,25. Ab Klage 2 positiver Erwartungswert, bis 20 Klagen je Bewertung.
 - [x] `REVIEW_LAWSUIT_GROWTH` 1,25 → 1,6 oder Auszahlung 2,5 → 1,8. **Umgesetzt:** Wachstum 1,6; höchstens 3 Klagen je Bewertung (Chance 50/58/66 %), danach nur Werbung oder Löschen (×1,5 je gescheiterter Klage). Kein Schadenersatz mehr: Sieg erstattet nur die Klagekosten (1,0-fach), Klagen bringen also nie Gewinn.
-- [x] Löschen und Krank-Bonus teurer: Bewertung löschen Grundpreis 25 s Einkommen (min. 40) statt 8 s (min. 10), 1 Stern damit ≈ 75 s Einkommen; Klage 1,2 × Grundpreis (≈ 30 s statt 12 s, bleibt günstiger als 1-Stern-Löschen, Risiko dafür). Krank-Bonus 0,3/0,6/1,0 Einkommensminuten statt 0,1/0,25/0,6, Mindesteinkommen 50/min; Obergrenze 1 Minute bleibt (Test `test_bonus_stays_cheap_compared_to_income`).
+- [x] Löschen und Krank-Bonus teurer: Bewertung löschen Grundpreis 25 s Einkommen (min. 40) statt 8 s (min. 10), 1 Stern damit ≈ 75 s Einkommen; Klage 3,6 × Grundpreis (≈ 90 s Einkommen): Löschen ist damit immer günstiger als Klagen (höchster Löschfaktor 3,0 < 3,6, Löschen wächst ×1,5, Klage ×1,6 je gescheiterter Klage; Test `test_deleting_is_always_cheaper_than_suing`). Klagen lohnen sich nur wegen der Kostenerstattung bei Sieg und des Abschreckungseffekts. Krank-Bonus 0,3/0,6/1,0 Einkommensminuten statt 0,1/0,25/0,6, Mindesteinkommen 50/min; Obergrenze 1 Minute bleibt (Test `test_bonus_stays_cheap_compared_to_income`).
 - [ ] Verlorene Klage: zusätzlich eine neue 1-Sterne-Bewertung („Amt verklagt Bürger“), damit Spam riskant bleibt.
 
 ### 4.5 [M] Permanentes Einnicken/Tratschen ohne Weckdienst
@@ -214,6 +214,36 @@ Modellrechnung (eigenes Python-Modell der Praktikanten-Logik, 60 min, 6 Seeds; �
 | Stau S2 T3 | 4,90 | 11 | 4,91 | kein Zusammenbruch |
 
 Offen, falls es weiterhin zu wenig ist: mehr zusätzliche Praktikanten (2 → 4, Platz an der Beschwerdestelle vorher im Screenshot prüfen) oder Schreddern beruhigt („Schreddern ist Therapie“).
+
+### 4.10 [H] Beschwerde-Flut durch gehende Bürger
+**Befund (Spieler-Feedback, nachgerechnet).** Jeder Bürger, dessen feste Geduld (90 s) ablief, und jeder wegen voller Halle Abgewiesene reichte eine Beschwerde ein, Abgewiesene sogar schon vor Fall 10. Weil alle dieselbe Geduld hatten, ging bei einer Störung die ganze Schlange in einer Welle: Eine 150-s-Krankmeldung im Spätspiel erzeugte rund 18 Beschwerden/min, Überlast rund 28/min. Ohne Störung ging dagegen fast nie jemand.
+- [x] Eigene Geduld je Bürger: gleichmäßig verteilt 30–170 % der Grundgeduld (Mittel unverändert), erst ab 10 erledigten Fällen (`PATIENCE_*`). Eilige gehen schon bei kürzeren Ausfällen: regelmäßige, kleine Verluste statt seltener Massenflucht.
+- [x] Nur ein Teil beschwert sich: Gehende mit 30 % × Geduldsfaktor (Eilige rund 9 %, Geduldige bis 51 %), Abgewiesene mit 10 %; beides erst ab 10 Fällen.
+- [x] Sammelbeschwerde: Nach einer Beschwerde von Gehenden 45 s lang keine weitere (höchstens rund 1,3/min).
+- [x] Grundtakt der regelmäßigen Beschwerden 120 → 150 s (105–195 s).
+- [x] Durchsatz-Analyse: Der Beschwerde-Bedarf enthält den gemessenen Zulauf durch Gehende (gedeckelt auf die Sperre).
+- [x] Tests: `test_overcrowded_office_does_not_flood_the_box` (600 s ohne Bedienung: höchstens eine Beschwerde je 45 s, aber mehrere), dazu Anteils-, Sperr- und Geduldstests in `test_feedback_features.gd`, `test_hall_life.gd`, `test_simulation.gd`, `test_formulas.gd`.
+
+Modellrechnung (eigenes Python-Warteschlangenmodell, 30 min, 12 Seeds; Beschwerden inklusive der regelmäßigen, vor Abwimmeln und Wachen; früh = 1 Bürger je 7 s, Bedienung 2 s; mittel = 1 je 2,5 s, 1,2 s; spät = 1 je 0,7 s, 0,45 s; gut/normal/schlampig = zufällige Ausfälle mit 12/45/120 s Reaktionszeit; krank = zwei Komplettausfälle à 150 s; AFK = niemand bedient; Überlast = Bedienung langsamer als der Zulauf):
+| Szenario | Vorher: Beschwerden/min | Vorher: verlorene Bürger | Nachher: Beschwerden/min | Nachher: verlorene Bürger |
+|---|---|---|---|---|
+| früh gut | 0,49 | 0 % | 0,39 | 0 % |
+| früh normal | 0,49 | 0 % | 0,39 | 0,2 % |
+| früh schlampig | 0,48 | 0 % | 0,46 | 6,4 % |
+| früh krank | 1,32 | 9,9 % | 0,45 | 10,9 % |
+| früh AFK | 8,66 | 95,0 % | 1,21 | 94,9 % |
+| mittel normal | 0,49 | 0 % | 0,39 | 0,2 % |
+| mittel schlampig | 3,23 | 11,4 % | 0,56 | 13,4 % |
+| mittel krank | 4,38 | 16,2 % | 0,58 | 17,2 % |
+| spät krank | 18,52 | 21,0 % | 0,66 | 21,3 % |
+| spät Überlast | 28,06 | 32,2 % | 1,27 | 32,2 % |
+
+Ergebnis: Bürger gehen jetzt auch bei nachlässigem Spiel regelmäßig (früh 0 → 6 %), wer zügig bedient, verliert aber fast niemanden. Beschwerden steigen unter Last nur noch moderat (höchstens rund 1,3/min statt bis zu 28/min).
+
+### 4.11 [M] Wartemarken als zusätzlicher Engpass ab Ausbaustufe 3
+Ziel: Vor dem Empfang ein weiterer Engpass, der früh in der Regionalverwaltung spürbar wird und per Hand oder Ausbau gelöst wird.
+- [x] Automat 3 s je Nummer (max. 20/Min.), Aufruf 3,5 s je Nummer (max. ≈ 17/Min.), Hand ×2,5, je Stufe −18 % (10 Stufen, Endwert ≈ 0,41 s bzw. 0,48 s). Kosten 30 000 bzw. 35 000 · 1,7^Stufe. Aufruf nur bei < 4 Anstehenden am Empfang. Konstanten `TICKET_*` in `game_config.gd`.
+- [ ] Mit Balance-Bot prüfen, ob die Kombination aus Ankunftsrate und Aufrufzeit ab Stufe 3 zu häufigem Abhauen führt; ggf. Startwerte senken.
 
 ---
 

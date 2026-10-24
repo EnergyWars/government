@@ -41,6 +41,8 @@ signal mail_answered(dept_id: String, money: float)
 signal applications_bundled(dept_id: String, extras: int)
 signal form_missing(dept_id: String)
 signal onboarding_completed(dept_id: String)
+signal ticket_drawn(number: int)
+signal ticket_called(number: int)
 
 var state: GameState
 var layout: WorldLayout
@@ -61,6 +63,7 @@ func tick(delta: float) -> void:
 	_update_event(delta)
 	_age_cases(delta)
 	_spawn_citizens(delta)
+	_update_tickets(delta)
 	_update_mail(delta)
 	_update_moods(delta)
 	_update_complaints(delta)
@@ -208,6 +211,22 @@ func _age_cases(delta: float) -> void:
 			index -= 1
 	for case_file in state.carried_cases():
 		case_file.age += delta
+	if not state.is_boost_active("mayor_speech"):
+		_age_ticket_holders(state.ticket_line, delta, limit)
+		_age_ticket_holders(state.ticket_waiting, delta, limit)
+
+
+func _age_ticket_holders(holders: Array[CaseFile], delta: float, limit: float) -> void:
+	var index := holders.size() - 1
+	while index >= 0:
+		var waiting := holders[index]
+		waiting.age += delta
+		waiting.waited += delta
+		if waiting.waited > limit * waiting.patience_factor:
+			holders.remove_at(index)
+			_lose_citizen(waiting.dept_id, GameConfig.REP_CITIZEN_LEFT)
+			complain_after_leaving(Formulas.leave_complaint_chance(waiting), false)
+		index -= 1
 
 
 func complain_after_leaving(chance: float, angry: bool) -> bool:
@@ -258,10 +277,15 @@ func create_case(dept: Department, follow_up: bool = false) -> CaseFile:
 func spawn_case(dept: Department, follow_up: bool = false) -> CaseFile:
 	var case_file := create_case(dept, follow_up)
 	var entry := state.station(case_file.route[0])
-	if entry != null and entry.has_inbox_space(state.lobby_capacity()):
+	var ticketed := needs_ticket(case_file)
+	var has_space := state.ticket_line_has_space() if ticketed else (entry != null and entry.has_inbox_space(state.lobby_capacity()))
+	if has_space:
 		if not follow_up:
 			case_file.extras = roll_extras(dept)
-		entry.inbox.append(case_file)
+		if ticketed:
+			state.ticket_line.append(case_file)
+		else:
+			entry.inbox.append(case_file)
 		state.production.record(ProductionStats.ARRIVED, dept.id, state.play_time)
 		case_arrived.emit(dept.id)
 		return case_file
@@ -270,6 +294,49 @@ func spawn_case(dept: Department, follow_up: bool = false) -> CaseFile:
 	state.walkouts += 1
 	complain_after_leaving(GameConfig.WALKOUT_COMPLAINT_CHANCE, true)
 	return null
+
+
+func needs_ticket(case_file: CaseFile) -> bool:
+	return state.tickets_unlocked() and case_file.takes_seat() and not case_file.route.is_empty() and case_file.route[0] == GameConfig.RECEPTION
+
+
+func _update_tickets(delta: float) -> void:
+	if not state.tickets_unlocked():
+		return
+	if state.ticket_line.is_empty():
+		state.ticket_progress = 0.0
+	else:
+		state.ticket_progress += delta * Formulas.ticket_speed(layout.near(state.player.position, layout.ticket_machine_point()))
+		if state.ticket_progress >= Formulas.ticket_draw_time(state.ticket_machine_level):
+			draw_ticket()
+	var reception := state.station(GameConfig.RECEPTION)
+	if state.ticket_waiting.is_empty() or reception == null or reception.inbox.size() >= GameConfig.TICKET_CALL_SLOTS:
+		state.ticket_call_progress = 0.0
+		return
+	state.ticket_call_progress += delta * Formulas.ticket_speed(layout.near(state.player.position, layout.ticket_display_point()))
+	if state.ticket_call_progress >= Formulas.ticket_call_time(state.ticket_display_level):
+		call_ticket()
+
+
+func draw_ticket() -> bool:
+	if state.ticket_line.is_empty():
+		return false
+	state.ticket_progress = 0.0
+	state.ticket_waiting.append(state.ticket_line.pop_front())
+	state.tickets_drawn += 1
+	ticket_drawn.emit(state.tickets_drawn)
+	return true
+
+
+func call_ticket() -> bool:
+	var reception := state.station(GameConfig.RECEPTION)
+	if state.ticket_waiting.is_empty() or reception == null:
+		return false
+	state.ticket_call_progress = 0.0
+	reception.inbox.append(state.ticket_waiting.pop_front())
+	state.tickets_called = mini(state.tickets_called + 1, state.tickets_drawn)
+	ticket_called.emit(state.tickets_called)
+	return true
 
 
 func roll_extras(dept: Department) -> Array[String]:
@@ -448,7 +515,7 @@ func _free_visitor_slot() -> int:
 	for slot in GameConfig.VISITOR_SLOTS:
 		var taken := false
 		for visitor in state.visitors:
-			if visitor.slot == slot and visitor.phase != ComplaintVisitor.Phase.LEAVING:
+			if visitor.slot == slot and visitor.is_at_clerk():
 				taken = true
 				break
 		if not taken:
@@ -517,11 +584,20 @@ func _update_visitors(delta: float) -> void:
 					visitor.phase = ComplaintVisitor.Phase.LEAVING
 			ComplaintVisitor.Phase.TALKING:
 				visitor.timer -= delta
-				if visitor.angry and state.has_research("shredder_service"):
-					var target := _calmest_intern_at_desk()
-					if target != null:
-						target.stress = minf(1.0, target.stress + GameConfig.INTERN_YELL_RATE * Formulas.intern_stress_factor(state) * delta)
 				if visitor.timer <= 0.0:
+					_finish_talking(visitor)
+			ComplaintVisitor.Phase.TO_INTERNS:
+				if visitor.move_towards(layout.vent_spot(visitor.slot), GameConfig.VISITOR_SPEED, delta):
+					_start_venting(visitor)
+			ComplaintVisitor.Phase.VENTING:
+				visitor.timer -= delta
+				_vent_at_interns(visitor, delta)
+				if visitor.timer <= 0.0:
+					visitor.phase = ComplaintVisitor.Phase.TO_BOX if visitor.files_complaint else ComplaintVisitor.Phase.LEAVING
+			ComplaintVisitor.Phase.TO_BOX:
+				if visitor.move_towards(layout.complaint_drop_spot(), GameConfig.VISITOR_SPEED, delta):
+					visitor.files_complaint = false
+					file_complaint()
 					visitor.phase = ComplaintVisitor.Phase.LEAVING
 			ComplaintVisitor.Phase.LEAVING:
 				if visitor.move_towards(layout.door_out(), GameConfig.VISITOR_SPEED, delta):
@@ -549,9 +625,32 @@ func _start_talking(visitor: ComplaintVisitor) -> void:
 	visitor.phase = ComplaintVisitor.Phase.TALKING
 	visitor.duration = GameConfig.VISITOR_ANGRY_TALK_SECONDS if visitor.angry else GameConfig.VISITOR_TALK_SECONDS
 	visitor.timer = visitor.duration
-	if visitor.files_complaint:
+
+
+func _finish_talking(visitor: ComplaintVisitor) -> void:
+	if state.is_boost_active("complaint_amnesty"):
 		visitor.files_complaint = false
-		submit_complaint()
+	if (not visitor.files_complaint and not visitor.angry) or _clerk_fends_off():
+		visitor.files_complaint = false
+		visitor.phase = ComplaintVisitor.Phase.LEAVING
+	elif state.has_research("shredder_service"):
+		visitor.phase = ComplaintVisitor.Phase.TO_INTERNS
+	else:
+		visitor.phase = ComplaintVisitor.Phase.TO_BOX if visitor.files_complaint else ComplaintVisitor.Phase.LEAVING
+
+
+func _start_venting(visitor: ComplaintVisitor) -> void:
+	visitor.phase = ComplaintVisitor.Phase.VENTING
+	visitor.duration = GameConfig.VISITOR_VENT_SECONDS
+	visitor.timer = visitor.duration
+
+
+func _vent_at_interns(visitor: ComplaintVisitor, delta: float) -> void:
+	var target := _calmest_intern_at_desk()
+	if target == null:
+		return
+	var rate := GameConfig.INTERN_YELL_RATE if visitor.angry else GameConfig.INTERN_VENT_RATE
+	target.stress = minf(1.0, target.stress + rate * Formulas.intern_stress_factor(state) * delta)
 
 
 func _update_intern(delta: float) -> void:
@@ -797,13 +896,17 @@ func end_dispute(dispute: Dispute, by_player: bool) -> void:
 
 
 func submit_complaint() -> void:
-	if state.is_boost_active("complaint_amnesty"):
-		return
-	if state.life_rng.randf() < Formulas.complaint_fend_chance(state.complaint_clerk_level):
-		state.complaints_fended += 1
-		complaint_fended.emit()
+	if state.is_boost_active("complaint_amnesty") or _clerk_fends_off():
 		return
 	file_complaint()
+
+
+func _clerk_fends_off() -> bool:
+	if state.life_rng.randf() >= Formulas.complaint_fend_chance(state.complaint_clerk_level):
+		return false
+	state.complaints_fended += 1
+	complaint_fended.emit()
+	return true
 
 
 func file_complaint() -> void:

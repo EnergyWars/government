@@ -232,6 +232,18 @@ func test_fully_staffed_complaints_offer_nothing() -> void:
 	assert_almost_eq(ThroughputReport.complaint_demand(state, state.guards), blocked / interval, 0.0001)
 
 
+func test_lost_citizens_add_bundled_complaint_demand() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	var calm := ThroughputReport.complaint_demand(state, 0)
+	var passed := 1.0 - Formulas.complaint_fend_chance(0)
+	assert_almost_eq(calm, passed / GameConfig.COMPLAINT_INTERVAL, 0.0001)
+	state.play_time = 60.0
+	state.production.record(ProductionStats.LOST, "general_services", 30.0, 3)
+	assert_almost_eq(ThroughputReport.complaint_demand(state, 0), calm + passed * 3.0 / 60.0 * GameConfig.LEAVE_COMPLAINT_CHANCE, 0.0001)
+	state.production.record(ProductionStats.LOST, "general_services", 40.0, 1000)
+	assert_almost_eq(ThroughputReport.complaint_demand(state, 0), calm + passed / GameConfig.LEAVE_COMPLAINT_COOLDOWN, 0.0001)
+
+
 func test_rejects_need_collectors() -> void:
 	assert_eq(ThroughputReport.reject_demand(state), 0.0)
 	state.cases_completed = GameConfig.REJECT_MIN_CASES

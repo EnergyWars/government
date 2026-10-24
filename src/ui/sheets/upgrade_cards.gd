@@ -192,6 +192,20 @@ static func area_spec(game: Game, area_id: String) -> Dictionary:
 				"cost": func() -> float: return Formulas.waiting_area_cost(state),
 				"title": "WAITING_TITLE",
 				"info": func() -> String: return TranslationServer.translate("FMT_WAITING_INFO") % [state.lobby_capacity(), GameConfig.WAITING_SEATS_PER_LEVEL, state.walkouts]}
+		"ticket_machine":
+			return {"icon": Icons.TICKET, "desc": "TICKET_MACHINE_DESC", "action": "ACTION_UPGRADE_TICKET_MACHINE",
+				"upgrade": actions.upgrade_ticket_machine, "can": actions.can_upgrade_ticket_machine,
+				"level": func() -> int: return state.ticket_machine_level, "max": GameConfig.TICKET_MAX_LEVEL,
+				"cost": func() -> float: return Formulas.ticket_machine_cost(state),
+				"title": "TICKET_MACHINE_TITLE",
+				"info": UpgradeCards.ticket_machine_info.bind(state)}
+		"ticket_display":
+			return {"icon": Icons.CALL_DISPLAY, "desc": "TICKET_DISPLAY_DESC", "action": "ACTION_UPGRADE_TICKET_DISPLAY",
+				"upgrade": actions.upgrade_ticket_display, "can": actions.can_upgrade_ticket_display,
+				"level": func() -> int: return state.ticket_display_level, "max": GameConfig.TICKET_MAX_LEVEL,
+				"cost": func() -> float: return Formulas.ticket_display_cost(state),
+				"title": "TICKET_DISPLAY_TITLE",
+				"info": UpgradeCards.ticket_display_info.bind(state)}
 		"seating":
 			return {"icon": Icons.SEAT, "desc": "SEATING_DESC", "action": "ACTION_BUILD_SEATING",
 				"upgrade": actions.upgrade_seating_area, "can": actions.can_upgrade_seating_area,
@@ -229,6 +243,18 @@ static func complaint_clerk_info(state: GameState) -> String:
 	if level < GameConfig.COMPLAINT_CLERK_MAX_LEVEL:
 		text += "\n" + TranslationServer.translate("FMT_COMPLAINT_CLERK_NEXT") % UiKit.percent(Formulas.complaint_fend_chance(level + 1))
 	return text
+
+
+static func ticket_machine_info(state: GameState) -> String:
+	if not state.tickets_unlocked():
+		return TranslationServer.translate("FMT_TICKETS_LOCKED") % (GameConfig.TICKET_UNLOCK_STAGE + 1)
+	return TranslationServer.translate("FMT_TICKET_MACHINE_INFO") % [UiKit.decimal(Formulas.ticket_draw_time(state.ticket_machine_level)), state.ticket_line.size(), GameConfig.TICKET_LINE_SLOTS]
+
+
+static func ticket_display_info(state: GameState) -> String:
+	if not state.tickets_unlocked():
+		return TranslationServer.translate("FMT_TICKETS_LOCKED") % (GameConfig.TICKET_UNLOCK_STAGE + 1)
+	return TranslationServer.translate("FMT_TICKET_DISPLAY_INFO") % [UiKit.decimal(Formulas.ticket_call_time(state.ticket_display_level)), state.ticket_waiting.size(), state.tickets_called]
 
 
 static func mail_storage_info(state: GameState) -> String:

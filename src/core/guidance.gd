@@ -14,6 +14,8 @@ const REJECT := "reject"
 const COMFORT := "comfort"
 const DISPUTE := "dispute"
 const COVER := "cover"
+const TICKET := "ticket"
+const TICKET_CALL := "ticket_call"
 
 
 static func next_task(state: GameState) -> Dictionary:
@@ -52,6 +54,12 @@ static func next_task(state: GameState) -> Dictionary:
 		options.append({"action": DISPUTE, "key": dispute.dept_id, "point": layout.dispute_point(dispute.dept_id)})
 	if state.kranz:
 		options.append({"action": KRANZ, "key": "", "point": layout.kranz_point()})
+	if state.tickets_unlocked():
+		if state.ticket_line.size() >= GameConfig.TICKET_RUSH:
+			options.append({"action": TICKET, "key": "", "point": layout.ticket_machine_point()})
+		var reception := state.station(GameConfig.RECEPTION)
+		if state.ticket_waiting.size() >= GameConfig.TICKET_RUSH and reception != null and reception.inbox.size() < GameConfig.TICKET_CALL_SLOTS:
+			options.append({"action": TICKET_CALL, "key": "", "point": layout.ticket_display_point()})
 	if player.complaints > 0 or player.rejects > 0:
 		options.append({"action": SHRED, "key": "", "point": layout.shredder_point()})
 	elif state.complaints > 0 and player.items.size() < Formulas.carry_capacity(state):

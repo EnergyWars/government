@@ -91,6 +91,38 @@ func test_impatient_citizens_leave() -> void:
 	assert_almost_eq(state.reputation, 5.0 + GameConfig.REP_CITIZEN_LEFT * GameConfig.REP_LOSS_FACTOR, 0.001)
 
 
+func test_each_citizen_waits_as_long_as_their_own_patience() -> void:
+	var reception := state.station(GameConfig.RECEPTION)
+	var hurried := _case()
+	hurried.patience_factor = GameConfig.PATIENCE_MIN_FACTOR
+	hurried.waited = Formulas.citizen_patience(state, hurried)
+	var calm := _case()
+	calm.patience_factor = GameConfig.PATIENCE_MAX_FACTOR
+	calm.waited = Formulas.patience(state)
+	reception.inbox.append(hurried)
+	reception.inbox.append(calm)
+	sim.tick(0.1)
+	assert_false(reception.inbox.has(hurried))
+	assert_true(reception.inbox.has(calm))
+	assert_eq(state.citizens_lost, 1)
+	calm.waited = Formulas.citizen_patience(state, calm)
+	sim.tick(0.1)
+	assert_false(reception.inbox.has(calm))
+	assert_eq(state.citizens_lost, 2)
+
+
+func test_patience_spread_starts_after_the_first_cases() -> void:
+	var dept := state.department("general_services")
+	assert_eq(sim.create_case(dept).patience_factor, 1.0)
+	state.cases_completed = GameConfig.PATIENCE_SPREAD_MIN_CASES
+	var factors := {}
+	for i in 30:
+		var case_file := sim.create_case(dept)
+		assert_eq(case_file.patience_factor, Formulas.patience_factor(state, state.cases_spawned))
+		factors[case_file.patience_factor] = true
+	assert_gt(factors.size(), 10)
+
+
 func test_cases_age_everywhere() -> void:
 	var queued := _case()
 	var carried := _case()

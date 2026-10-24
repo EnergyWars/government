@@ -175,6 +175,59 @@ func test_player_and_runner_stats() -> void:
 	assert_almost_eq(Formulas.work_power(state), 5.0, 0.001)
 
 
+func test_citizens_bring_their_own_patience() -> void:
+	assert_eq(Formulas.patience_factor(state, 7), 1.0)
+	state.cases_completed = GameConfig.PATIENCE_SPREAD_MIN_CASES
+	var samples := 2000
+	var lowest := INF
+	var highest := -INF
+	var total := 0.0
+	for serial in samples:
+		var factor := Formulas.patience_factor(state, serial)
+		assert_between(factor, GameConfig.PATIENCE_MIN_FACTOR, GameConfig.PATIENCE_MAX_FACTOR)
+		lowest = minf(lowest, factor)
+		highest = maxf(highest, factor)
+		total += factor
+	assert_lt(lowest, GameConfig.PATIENCE_MIN_FACTOR + 0.05)
+	assert_gt(highest, GameConfig.PATIENCE_MAX_FACTOR - 0.05)
+	assert_almost_eq(total / samples, (GameConfig.PATIENCE_MIN_FACTOR + GameConfig.PATIENCE_MAX_FACTOR) / 2.0, 0.05)
+	assert_eq(Formulas.patience_factor(state, 42), Formulas.patience_factor(state, 42))
+
+
+func test_patience_spread_averages_the_base_patience() -> void:
+	assert_lt(GameConfig.PATIENCE_MIN_FACTOR, 1.0)
+	assert_gt(GameConfig.PATIENCE_MAX_FACTOR, 1.0)
+	assert_almost_eq((GameConfig.PATIENCE_MIN_FACTOR + GameConfig.PATIENCE_MAX_FACTOR) / 2.0, 1.0, 0.0001)
+	assert_gte(GameConfig.BASE_PATIENCE * GameConfig.PATIENCE_MIN_FACTOR, 20.0)
+
+
+func test_citizen_patience_and_complaint_chance_follow_the_factor() -> void:
+	var calm := _case()
+	calm.patience_factor = GameConfig.PATIENCE_MAX_FACTOR
+	var hurried := _case()
+	hurried.patience_factor = GameConfig.PATIENCE_MIN_FACTOR
+	assert_almost_eq(Formulas.citizen_patience(state, calm), GameConfig.BASE_PATIENCE * GameConfig.PATIENCE_MAX_FACTOR, 0.001)
+	assert_almost_eq(Formulas.citizen_patience(state, hurried), GameConfig.BASE_PATIENCE * GameConfig.PATIENCE_MIN_FACTOR, 0.001)
+	state.research["comfortable_lobby"] = 1
+	assert_almost_eq(Formulas.citizen_patience(state, hurried), GameConfig.BASE_PATIENCE * 1.4 * GameConfig.PATIENCE_MIN_FACTOR, 0.001)
+	assert_almost_eq(Formulas.leave_complaint_chance(calm), GameConfig.LEAVE_COMPLAINT_CHANCE * GameConfig.PATIENCE_MAX_FACTOR, 0.0001)
+	assert_almost_eq(Formulas.leave_complaint_chance(hurried), GameConfig.LEAVE_COMPLAINT_CHANCE * GameConfig.PATIENCE_MIN_FACTOR, 0.0001)
+	assert_almost_eq(Formulas.leave_complaint_chance(_case()), GameConfig.LEAVE_COMPLAINT_CHANCE, 0.0001)
+	calm.patience_factor = 10.0
+	assert_eq(Formulas.leave_complaint_chance(calm), 1.0)
+	calm.patience_factor = -1.0
+	assert_eq(Formulas.leave_complaint_chance(calm), 0.0)
+
+
+func test_leave_complaint_rate_follows_losses_up_to_the_cooldown() -> void:
+	assert_eq(Formulas.leave_complaint_rate(state), 0.0)
+	state.play_time = 60.0
+	state.production.record(ProductionStats.LOST, "general_services", 30.0, 2)
+	assert_almost_eq(Formulas.leave_complaint_rate(state), 2.0 / 60.0 * GameConfig.LEAVE_COMPLAINT_CHANCE, 0.0001)
+	state.production.record(ProductionStats.LOST, "general_services", 40.0, 500)
+	assert_almost_eq(Formulas.leave_complaint_rate(state), 1.0 / GameConfig.LEAVE_COMPLAINT_COOLDOWN, 0.0001)
+
+
 func test_case_outcomes() -> void:
 	var simple := Formulas.case_outcome(state, _case())
 	assert_almost_eq(simple.money, 20.0, 0.001)

@@ -60,9 +60,11 @@ func test_case_file_roundtrip_and_clamping() -> void:
 	case_file.produced = true
 	case_file.age = 12.5
 	case_file.waited = 3.0
+	case_file.patience_factor = 0.45
 	case_file.handled = 4
 	var copy := CaseFile.from_dict(case_file.to_dict())
 	assert_eq(copy.to_dict(), case_file.to_dict())
+	assert_almost_eq(copy.patience_factor, 0.45, 0.0001)
 	var data := case_file.to_dict()
 	data.step = 99
 	assert_eq(CaseFile.from_dict(data).step, 3)
@@ -70,9 +72,16 @@ func test_case_file_roundtrip_and_clamping() -> void:
 	assert_eq(empty.dept_id, "")
 	assert_eq(empty.step, 0)
 	assert_eq(empty.handled, 0)
+	assert_eq(empty.patience_factor, 1.0)
 	assert_true(empty.route.is_empty())
 	data.handled = -3
 	assert_eq(CaseFile.from_dict(data).handled, 0)
+	data.patience_factor = 9.0
+	assert_eq(CaseFile.from_dict(data).patience_factor, GameConfig.PATIENCE_MAX_FACTOR)
+	data.patience_factor = -2.0
+	assert_eq(CaseFile.from_dict(data).patience_factor, GameConfig.PATIENCE_MIN_FACTOR)
+	data.erase("patience_factor")
+	assert_eq(CaseFile.from_dict(data).patience_factor, 1.0)
 
 
 func test_station_job_progress() -> void:

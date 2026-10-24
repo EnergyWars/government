@@ -172,6 +172,32 @@ func test_complaints_are_rare_and_harmless() -> void:
 	assert_gte(state.reputation, 10.0)
 
 
+func test_leaving_citizens_complain_only_occasionally() -> void:
+	assert_lte(GameConfig.LEAVE_COMPLAINT_CHANCE * GameConfig.PATIENCE_MAX_FACTOR, 0.6)
+	assert_lte(GameConfig.WALKOUT_COMPLAINT_CHANCE, GameConfig.LEAVE_COMPLAINT_CHANCE)
+	assert_gte(GameConfig.LEAVE_COMPLAINT_COOLDOWN, 30.0)
+	assert_lte(GameConfig.LEAVE_COMPLAINT_COOLDOWN, GameConfig.COMPLAINT_INTERVAL)
+
+
+func test_overcrowded_office_does_not_flood_the_box() -> void:
+	state.cases_completed = 50
+	state.complaint_timer = 1e6
+	state.event_cooldown = 1e6
+	state.sick_timer = 1e6
+	state.kranz_timer = 1e6
+	state.dispute_timer = 1e6
+	state.department("general_services").arrival_timer = 0.0
+	var seconds := 600.0
+	_run(seconds, 0.1)
+	var received := state.complaints_filed + state.complaints_fended
+	for visitor in state.visitors:
+		if visitor.files_complaint:
+			received += 1
+	assert_gte(state.citizens_lost, 50)
+	assert_gte(received, 3)
+	assert_lte(received, int(seconds / GameConfig.LEAVE_COMPLAINT_COOLDOWN) + 1)
+
+
 func test_filing_counts_serials_and_pile_texts_are_newest_first() -> void:
 	sim.file_complaint()
 	sim.file_complaint()

@@ -264,6 +264,16 @@ func test_lawsuit_cost_is_the_same_for_every_rating() -> void:
 	assert_almost_eq(first, Formulas.review_base_cost(state) * GameConfig.REVIEW_LAWSUIT_FACTOR, 0.001)
 
 
+func test_deleting_is_always_cheaper_than_suing() -> void:
+	assert_gt(GameConfig.REVIEW_LAWSUIT_FACTOR, GameConfig.REVIEW_DELETE_STAR_FACTORS.max())
+	assert_gte(GameConfig.REVIEW_LAWSUIT_GROWTH, GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH)
+	for stars in range(1, 6):
+		for lawsuits in range(GameConfig.MAX_REVIEW_LAWSUITS + 1):
+			var review := Review.new(0, stars)
+			review.lawsuits = lawsuits
+			assert_lt(Formulas.review_delete_cost(state, review), Formulas.review_lawsuit_cost(state, review), "stars %d lawsuits %d" % [stars, lawsuits])
+
+
 func test_lawsuit_gets_dearer_and_likelier_with_each_attempt() -> void:
 	var review := Review.new(0, 2)
 	var cost := Formulas.review_lawsuit_cost(state, review)

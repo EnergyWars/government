@@ -525,7 +525,10 @@ func test_world_view_reacts_to_simulation_signals() -> void:
 	sim.citizen_left.emit("general_services")
 	sim.contraband_found.emit("customs")
 	sim.smuggling_missed.emit("customs")
-	assert_gt(world._walkers.size(), 2)
+	sim.ticket_called.emit(7)
+	assert_gt(world._walkers.size(), 0)
+	for walker in world._walkers:
+		assert_true(["car", "truck"].has(walker.kind), str(walker.kind))
 	assert_gt(world._floaters.size(), 3)
 	world._advance_effects(10.0)
 	assert_true(world._walkers.is_empty())
@@ -570,6 +573,7 @@ func test_office_painter_draws_every_element() -> void:
 		OfficePainter.waiting_chair(canvas, Vector2(30, 30), 1.0)
 		OfficePainter.queue_mark(canvas, Vector2(60, 30), 0.5)
 		OfficePainter.ticket_dispenser(canvas, Vector2(30, 30))
+		OfficePainter.call_display(canvas, Rect2(10, 10, 120, 30))
 		for occupied in [true, false]:
 			OfficePainter.desk(canvas, Vector2(50, 50), occupied, occupied, 0.1)
 		for dept_id in GameConfig.department_ids() + ["unknown"]:
@@ -847,10 +851,15 @@ func test_citizens_enter_left_and_leave_right() -> void:
 	var world := WorldView.new()
 	add_child_autofree(world)
 	world.setup(game, joystick)
-	game.simulation.case_arrived.emit("general_services")
-	assert_eq(world._walkers[0].from, world.layout.door_in())
-	game.simulation.case_completed.emit("general_services", 10.0, false)
+	world._sync_citizens(game.state)
+	var citizen := game.simulation.create_case(game.state.department("general_services"))
+	game.state.station(GameConfig.RECEPTION).inbox.append(citizen)
+	world._sync_citizens(game.state)
+	assert_eq(world._citizens.entry_for(citizen).pos, world.layout.door_in())
+	game.state.station(GameConfig.RECEPTION).inbox.clear()
+	world._sync_citizens(game.state)
 	var leaver: Dictionary = world._walkers[world._walkers.size() - 1]
+	assert_eq(leaver.from, world.layout.door_in())
 	assert_eq(leaver.to, world.layout.door_out())
 	assert_lt(world.layout.door_in().x, world.layout.door_out().x)
 	await wait_physics_frames(2)
@@ -875,10 +884,21 @@ func test_task_panel_can_be_minimized() -> void:
 	add_child_autofree(panel)
 	panel.refresh()
 	assert_true(panel.expanded)
+	var full_width := panel.get_combined_minimum_size().x
 	panel.toggle()
 	assert_false(panel.expanded)
+	assert_false(panel._rows.visible)
+	assert_false(panel._toggle.visible)
+	assert_true(panel._chevron.visible)
+	assert_eq(panel._chevron.text, Icons.EXPAND_MORE)
+	assert_eq(panel._chevron.theme_type_variation, "PrimaryIconTonal")
+	assert_true(panel.get_theme_stylebox(&"panel") is StyleBoxEmpty)
+	assert_lt(panel.get_combined_minimum_size().x, full_width * 0.5)
 	panel.toggle()
 	assert_true(panel.expanded)
+	assert_true(panel._rows.visible)
+	assert_true(panel._toggle.visible)
+	assert_eq(panel._chevron.theme_type_variation, "NeutralIconStandard")
 
 
 func test_hud_shows_review_banner_and_rating_chip() -> void:
@@ -1067,3 +1087,192 @@ func test_progress_ring_draws_directly_outside_layers() -> void:
 	await wait_physics_frames(2)
 	assert_gt(drawn[0], 1)
 	assert_false(world._rings.has(""))
+
+
+func _world() -> WorldView:
+	var joystick := JoystickView.new()
+	add_child_autofree(joystick)
+	var world := WorldView.new()
+	add_child_autofree(world)
+	world.setup(game, joystick)
+	return world
+
+
+func _citizen() -> CaseFile:
+	return game.simulation.create_case(game.state.department("general_services"))
+
+
+func _stage_of(placements: Array[Dictionary], case_file: CaseFile) -> String:
+	for placement in placements:
+		if placement.case == case_file:
+			return str(placement.stage)
+	return ""
+
+
+func test_world_view_places_every_citizen_along_the_ticket_flow() -> void:
+	var world := _world()
+	var state := game.state
+	var reception := state.station(GameConfig.RECEPTION)
+	var counter := state.station(GameConfig.COUNTER)
+	var review := state.station("general_services/review")
+	var in_line := _citizen()
+	var waiting := _citizen()
+	var called := _citizen()
+	var at_desk := _citizen()
+	var processed := _citizen()
+	var at_counter := _citizen()
+	var carried := _citizen()
+	var letter := game.simulation.create_mail_case(state.department("general_services"))
+	state.ticket_line.append(in_line)
+	state.ticket_waiting.append(waiting)
+	reception.inbox.append(called)
+	reception.jobs[0] = StationJob.new(at_desk)
+	review.inbox.append(processed)
+	review.inbox.append(letter)
+	counter.jobs[0] = StationJob.new(at_counter)
+	state.player.items.append(carried)
+	var placements := world.citizen_placements(state)
+	assert_eq(_stage_of(placements, in_line), WorldView.STAGE_TICKET)
+	assert_eq(_stage_of(placements, waiting), WorldView.STAGE_WAITING)
+	assert_eq(_stage_of(placements, called), WorldView.STAGE_CALLED)
+	assert_eq(_stage_of(placements, at_desk), WorldView.STAGE_DESK)
+	assert_eq(_stage_of(placements, processed), WorldView.STAGE_SEATED)
+	assert_eq(_stage_of(placements, at_counter), WorldView.STAGE_COUNTER)
+	assert_eq(_stage_of(placements, carried), WorldView.STAGE_SEATED)
+	assert_eq(_stage_of(placements, letter), "")
+	for placement in placements:
+		if placement.case == called:
+			assert_eq(placement.target, world.layout.queue_point(0))
+		if placement.case == waiting:
+			assert_eq(placement.target, world.layout.queue_point(1))
+		if placement.case == in_line:
+			assert_eq(placement.target, world.layout.ticket_line_point(0))
+
+
+func test_world_view_citizens_walk_out_in_their_own_colour() -> void:
+	var world := _world()
+	var state := game.state
+	var counter := state.station(GameConfig.COUNTER)
+	var leaving := _citizen()
+	var angry := _citizen()
+	counter.jobs[0] = StationJob.new(leaving)
+	state.ticket_waiting.append(angry)
+	world._sync_citizens(state)
+	var look := int(world._citizens.entry_for(leaving).look)
+	var angry_look := int(world._citizens.entry_for(angry).look)
+	counter.jobs[0] = null
+	state.ticket_waiting.clear()
+	var before := world._walkers.size()
+	world._sync_citizens(state)
+	assert_eq(world._walkers.size(), before + 2)
+	var kinds := {}
+	for walker in world._walkers.slice(before):
+		kinds[walker.kind] = walker
+	assert_eq(kinds.leave.color, WorldView.citizen_color(look))
+	assert_eq(kinds.exit.color, WorldView.citizen_color(angry_look))
+	assert_eq(kinds.exit.to, world.layout.door_out())
+	world.queue_redraw()
+	await wait_physics_frames(2)
+
+
+func test_world_view_draws_the_ticket_corner_and_moving_citizens() -> void:
+	var world := _world()
+	var state := game.state
+	for i in 3:
+		state.ticket_line.append(_citizen())
+		state.ticket_waiting.append(_citizen())
+	state.station(GameConfig.RECEPTION).inbox.append(_citizen())
+	state.ticket_progress = 1.0
+	state.ticket_call_progress = 1.0
+	state.tickets_called = 42
+	world._process(0.1)
+	world._sync_citizens(state)
+	state.ticket_waiting.append(_citizen())
+	for step in 5:
+		world._process(0.1)
+		world.queue_redraw()
+		await wait_physics_frames(1)
+	var walking := 0
+	for entry in world._citizens.entries.values():
+		if CitizenTracker.is_walking(entry):
+			walking += 1
+	assert_gt(walking, 0)
+	assert_eq(world._citizens.entries.size(), 8)
+
+
+func test_away_walk_hides_the_kitchen_guest_until_arrival() -> void:
+	var world := _world()
+	var review := game.state.station("general_services/review")
+	review.staff = 1
+	review.moods[0].rest(DeskMood.CHAT, 2)
+	game.simulation.employee_dozed.emit("general_services/review", 0, DeskMood.CHAT)
+	assert_true(world.is_guest_arriving("general_services/review", 0))
+	var walker: Dictionary = world._walkers.back()
+	assert_eq(walker.kind, "staff")
+	assert_eq(walker.to, world.layout.slot_point(2))
+	assert_eq(int(walker.look), WorldView.staff_look(review, 0))
+	world._advance_effects(20.0)
+	assert_false(world.is_guest_arriving("general_services/review", 0))
+	review.moods[0].wake(1.0)
+	review.moods[0].rest(DeskMood.ASLEEP)
+	var before := world._walkers.size()
+	game.simulation.employee_dozed.emit("general_services/review", 0, DeskMood.ASLEEP)
+	assert_eq(world._walkers.size(), before)
+
+
+func test_waking_during_the_walk_turns_the_employee_around() -> void:
+	var world := _world()
+	var review := game.state.station("general_services/review")
+	review.staff = 1
+	review.moods[0].rest(DeskMood.CHAT, 2)
+	game.simulation.employee_dozed.emit("general_services/review", 0, DeskMood.CHAT)
+	game.simulation.wake_up(review, 0, true)
+	assert_false(world.is_guest_arriving("general_services/review", 0))
+	assert_true(world.is_desk_hidden("general_services/review", 0))
+	assert_eq(world._walkers.back().to, world.layout.desk_position("general_services/review", 0) + Vector2(0, -24))
+
+
+func test_dispute_crew_walks_over_and_back() -> void:
+	var world := _world()
+	var review := game.state.station("general_services/review")
+	while review.desks < 2:
+		review.add_desk()
+	review.staff = 2
+	game.simulation.dispute_started.emit("coffee", "general_services")
+	var crew := world.dispute_crew("general_services")
+	assert_eq(crew.size(), 2)
+	for member in crew:
+		assert_true(world.is_desk_hidden(str(member.key), int(member.desk)))
+	assert_true(world._leaving.has("dispute#general_services"))
+	var walkers := world._walkers.size()
+	world.queue_redraw()
+	await wait_physics_frames(2)
+	world._advance_effects(20.0)
+	assert_false(world._leaving.has("dispute#general_services"))
+	game.simulation.dispute_ended.emit("coffee", "general_services", true)
+	assert_eq(world._walkers.size(), 2)
+	for walker in world._walkers:
+		assert_eq(walker.kind, "staff")
+		assert_eq(walker.from.distance_to(world.layout.dispute_point("general_services")), WorldView.DISPUTE_OFFSET)
+	for member in crew:
+		assert_true(world._returning.has(WorldView.desk_key(str(member.key), int(member.desk))))
+	assert_false(world._dispute_crews.has("general_services"))
+	assert_gt(walkers, 0)
+
+
+func test_dispute_crew_member_leaving_for_the_kitchen_starts_at_the_dispute() -> void:
+	var world := _world()
+	var review := game.state.station("general_services/review")
+	while review.desks < 2:
+		review.add_desk()
+	review.staff = 2
+	world.dispute_crew("general_services")
+	assert_eq(world._dispute_crews.general_services.size(), 2)
+	review.moods[0].rest(DeskMood.CHAT, 1)
+	game.simulation.employee_dozed.emit("general_services/review", 0, DeskMood.CHAT)
+	assert_eq(world._walkers.back().from, world._crew_spot("general_services", 0))
+	assert_eq(world._dispute_crews.general_services.size(), 1)
+	review.moods[1].rest(DeskMood.SICK)
+	game.simulation.dispute_ended.emit("coffee", "general_services", false)
+	assert_false(world.is_desk_hidden("general_services/review", 1))
+	assert_false(world._returning.has("general_services/review#1"))

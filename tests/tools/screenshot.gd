@@ -95,6 +95,8 @@ func _process(_delta: float) -> bool:
 			_camera = _main.office.layout.complaint_desk_point() + Vector2(0, 140)
 			_main.game.state.tutorial_step = -1
 			_main.tutorial_card.visible = false
+		if _spot == "complaint_flow":
+			_stage_complaint_flow()
 		if _camera != Vector2.INF:
 			_main.office.camera = _camera
 			_main.office._focus_point = _camera
@@ -105,3 +107,25 @@ func _process(_delta: float) -> bool:
 		root.get_texture().get_image().save_png(_out)
 		quit()
 	return false
+
+
+func _stage_complaint_flow() -> void:
+	var state: GameState = _main.game.state
+	var layout: WorldLayout = _main.office.layout
+	state.tutorial_step = -1
+	_main.tutorial_card.visible = false
+	state.research["shredder_service"] = 1
+	state.complaints = 6
+	while state.helpers.size() < GameConfig.MAX_HELPERS:
+		state.add_helper()
+	for unit in state.all_interns():
+		unit.position = layout.intern_home(unit.slot)
+	var venting: ComplaintVisitor = _main.game.simulation.spawn_visitor(true, false)
+	venting.phase = ComplaintVisitor.Phase.VENTING
+	venting.position = layout.vent_spot(venting.slot)
+	venting.duration = GameConfig.VISITOR_VENT_SECONDS
+	venting.timer = GameConfig.VISITOR_VENT_SECONDS * (0.2 if _argument == "reply" else 0.9)
+	var dropping: ComplaintVisitor = _main.game.simulation.spawn_visitor(false, true)
+	dropping.phase = ComplaintVisitor.Phase.TO_BOX
+	dropping.position = layout.complaint_drop_spot() + Vector2(-20, 6)
+	_camera = layout.complaint_desk_point() + Vector2(110, 140)

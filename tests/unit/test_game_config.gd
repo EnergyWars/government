@@ -189,7 +189,7 @@ func test_rooms_reference_valid_upgrades() -> void:
 		for key in GameConfig.room_items(room.id, "stations"):
 			assert_true(GameConfig.SHARED_STATIONS.has(key), key)
 		for area_id in GameConfig.room_items(room.id, "areas"):
-			assert_true(["waiting", "seating", "complaint_clerk", "complaint_box", "mail_storage"].has(area_id), area_id)
+			assert_true(["ticket_machine", "ticket_display", "waiting", "seating", "complaint_clerk", "complaint_box", "mail_storage"].has(area_id), area_id)
 		for boost_id in GameConfig.room_items(room.id, "boosts"):
 			assert_true(GameConfig.BOOSTS.has(boost_id), boost_id)
 			assert_true(Icons.BOOSTS.has(boost_id), boost_id)

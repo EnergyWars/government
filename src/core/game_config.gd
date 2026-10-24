@@ -139,7 +139,7 @@ const REVIEW_DELETE_BASE := 40.0
 const REVIEW_DELETE_INCOME_SECONDS := 25.0
 const REVIEW_DELETE_STAR_FACTORS: Array[float] = [3.0, 1.5, 0.6, 0.2, 0.0]
 const REVIEW_DELETE_LAWSUIT_GROWTH := 1.5
-const REVIEW_LAWSUIT_FACTOR := 1.2
+const REVIEW_LAWSUIT_FACTOR := 3.6
 const REVIEW_LAWSUIT_GROWTH := 1.6
 const REVIEW_LAWSUIT_CHANCE := 0.5
 const REVIEW_LAWSUIT_CHANCE_STEP := 0.08
@@ -243,11 +243,26 @@ const SEATING_MAX_LEVEL := 12
 const SEATING_SEATS_PER_LEVEL := 3
 const SEATING_COST := 500.0
 const SEATING_GROWTH := 1.6
+const TICKET_UNLOCK_STAGE := 2
+const TICKET_DRAW_SECONDS := 3.0
+const TICKET_CALL_SECONDS := 3.5
+const TICKET_LEVEL_FACTOR := 0.82
+const TICKET_MAX_LEVEL := 10
+const TICKET_HAND_FACTOR := 2.5
+const TICKET_CALL_SLOTS := 4
+const TICKET_RUSH := 4
+const TICKET_LINE_SLOTS := 10
+const TICKET_MACHINE_COST := 30000.0
+const TICKET_MACHINE_GROWTH := 1.7
+const TICKET_DISPLAY_COST := 35000.0
+const TICKET_DISPLAY_GROWTH := 1.7
 const REP_WALKED_OUT := -0.3
 const VISITOR_SPEED := 120.0
 const VISITOR_SLOTS := 3
 const VISITOR_TALK_SECONDS := 7.5
 const VISITOR_ANGRY_TALK_SECONDS := 6.0
+const VISITOR_VENT_SECONDS := 5.0
+const VENT_DIALOGS := 10
 const VISITOR_DIALOGS := 30
 const YELL_DIALOGS := 10
 const VISITOR_LINES := 3
@@ -264,6 +279,7 @@ const INTERN_STRESS_FREE := 3
 const INTERN_STRESS_RATE := 0.0002
 const INTERN_CALM_RATE := 0.004
 const INTERN_YELL_RATE := 0.006
+const INTERN_VENT_RATE := 0.005
 const INTERN_SPEED := 150.0
 const INTERN_TRIP_ESTIMATE := 8.0
 const INTERN_CRY_SECONDS := 20.0
@@ -461,7 +477,7 @@ const ROOMS := [
 	{"id": ROOM_TOILETS, "research": ["wake_service"]},
 	{"id": ROOM_PHONE, "staff": ["hr"], "boosts": ["doctor_visit"]},
 	{"id": ROOM_MAIL, "stations": [MAILROOM], "areas": ["mail_storage"], "research": ["letter_opener", "mail_subscription", "registered_mail"], "boosts": ["express_post"]},
-	{"id": ROOM_HALL, "staff": ["guards", "helpers"], "stations": [RECEPTION, COUNTER], "areas": ["waiting", "seating", "complaint_clerk", "complaint_box"], "research": ["comfortable_lobby", "shredder_service", "complaint_tube", "intern_training", "online_portal"], "boosts": ["mayor_speech", "complaint_amnesty", "gazette_ad", "fee_increase"]},
+	{"id": ROOM_HALL, "staff": ["guards", "helpers"], "stations": [RECEPTION, COUNTER], "areas": ["ticket_machine", "ticket_display", "waiting", "seating", "complaint_clerk", "complaint_box"], "research": ["comfortable_lobby", "shredder_service", "complaint_tube", "intern_training", "online_portal"], "boosts": ["mayor_speech", "complaint_amnesty", "gazette_ad", "fee_increase"]},
 ]
 
 const OFFICIAL_TRAININGS := {

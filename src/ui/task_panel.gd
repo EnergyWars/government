@@ -14,6 +14,8 @@ var _count := -1
 var _updaters: Array[Callable] = []
 var expanded := true
 var _fills := {}
+var _panel_style: StyleBox
+var _collapsed_style := StyleBoxEmpty.new()
 
 
 func setup(p_game: Game) -> TaskPanel:
@@ -22,8 +24,8 @@ func setup(p_game: Game) -> TaskPanel:
 
 
 func _ready() -> void:
-	var style := AppTheme.box(Color(AppTheme.SURFACE, 0.92), AppTheme.RADIUS_CARD, AppTheme.outline_soft(), AppTheme.SPACING_SM)
-	add_theme_stylebox_override(&"panel", style)
+	_panel_style = AppTheme.box(Color(AppTheme.SURFACE, 0.92), AppTheme.RADIUS_CARD, AppTheme.outline_soft(), AppTheme.SPACING_SM)
+	add_theme_stylebox_override(&"panel", _panel_style)
 	for role in ["success", "warning", "error"]:
 		_fills[role] = AppTheme.box(AppTheme.accent(role), AppTheme.RADIUS_PILL)
 	var column := UiKit.vbox(AppTheme.SPACING_XS)
@@ -46,7 +48,11 @@ func _ready() -> void:
 func toggle() -> void:
 	expanded = not expanded
 	_rows.visible = expanded
+	_toggle.visible = expanded
 	_chevron.text = Icons.EXPAND_LESS if expanded else Icons.EXPAND_MORE
+	_chevron.theme_type_variation = "NeutralIconStandard" if expanded else "PrimaryIconTonal"
+	add_theme_stylebox_override(&"panel", _panel_style if expanded else _collapsed_style)
+	reset_size()
 
 
 func refresh() -> void:

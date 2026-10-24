@@ -10,6 +10,8 @@ const REJECTS := "rejects"
 const PHONES := "phones"
 const SEATING := "seating"
 const WAITING := "waiting"
+const TICKETS := "tickets"
+const CALLS := "calls"
 
 const HIRE := "hire"
 const DESK := "desk"
@@ -26,6 +28,8 @@ const GUARD := "guard"
 const CLERK := "clerk"
 const SEATS := "seats"
 const WAITING_SEATS := "waiting_seats"
+const TICKET_MACHINE := "ticket_machine"
+const TICKET_DISPLAY := "ticket_display"
 
 const CAPACITY := "capacity"
 const RELIEF := "relief"
@@ -238,9 +242,27 @@ static func waiting_area(state: GameState) -> Dictionary:
 	var upgrades: Array[Dictionary] = []
 	if state.waiting_level < GameConfig.WAITING_MAX_LEVEL:
 		upgrades.append(upgrade(WAITING_SEATS, float(GameConfig.WAITING_SEATS_PER_LEVEL), PLACES))
-	var reception := state.station(GameConfig.RECEPTION)
-	var waiting := reception.inbox.size() if reception != null else 0
-	return area(WAITING, "", float(waiting), float(state.lobby_capacity()), upgrades)
+	return area(WAITING, "", float(state.lobby_used()), float(state.lobby_capacity()), upgrades)
+
+
+static func ticket_demand(state: GameState) -> float:
+	return Formulas.station_demand(state, GameConfig.RECEPTION)
+
+
+static func ticket_machine_area(state: GameState) -> Dictionary:
+	var upgrades: Array[Dictionary] = []
+	var rate := Formulas.ticket_draw_rate(state)
+	if state.ticket_machine_level < GameConfig.TICKET_MAX_LEVEL:
+		upgrades.append(upgrade(TICKET_MACHINE, 1.0 / Formulas.ticket_draw_time(state.ticket_machine_level + 1) - rate))
+	return area(TICKETS, "", ticket_demand(state), rate, upgrades)
+
+
+static func ticket_call_area(state: GameState) -> Dictionary:
+	var upgrades: Array[Dictionary] = []
+	var rate := Formulas.ticket_call_rate(state)
+	if state.ticket_display_level < GameConfig.TICKET_MAX_LEVEL:
+		upgrades.append(upgrade(TICKET_DISPLAY, 1.0 / Formulas.ticket_call_time(state.ticket_display_level + 1) - rate))
+	return area(CALLS, "", ticket_demand(state), rate, upgrades)
 
 
 static func support_areas(state: GameState) -> Array[Dictionary]:
@@ -251,6 +273,9 @@ static func support_areas(state: GameState) -> Array[Dictionary]:
 	result.append(phone_area(state))
 	result.append(seating_area(state))
 	result.append(waiting_area(state))
+	if state.tickets_unlocked():
+		result.append(ticket_machine_area(state))
+		result.append(ticket_call_area(state))
 	return result
 
 

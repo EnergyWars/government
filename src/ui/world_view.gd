@@ -22,6 +22,15 @@ const SHRED_ANIMATION := 0.8
 const LAYERS_PER_FRAME := 1
 const SMOOTH_WALKERS := 12
 const RETURN_SPEED := 200.0
+const MAX_WALKERS := 80
+const STAGE_TICKET := "ticket"
+const STAGE_WAITING := "waiting"
+const STAGE_CALLED := "called"
+const STAGE_DESK := "desk"
+const STAGE_COUNTER := "counter"
+const STAGE_SEATED := "seated"
+const COUNTER_STEP := Vector2(0, 46)
+const DISPUTE_OFFSET := 26.0
 const LIFT_MAX_WIDTH := 500.0
 const CROWD_INTERVAL := 0.033
 const SHELL_LAYER := "_shell"
@@ -68,6 +77,11 @@ var _styles: Dictionary = {}
 var _flavor_count := 0
 var _shred_time := 0.0
 var _returning: Dictionary = {}
+var _leaving: Dictionary = {}
+var _dispute_crews: Dictionary = {}
+var _crew_desks: Dictionary = {}
+var _citizens := CitizenTracker.new()
+var _citizen_clock := 0.0
 var _capsules: Array[Dictionary] = []
 var _tube_signature := -1
 var _canvas: CanvasItem
@@ -112,7 +126,6 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	joystick = p_joystick
 	camera = game.state.player.position
 	var sim := game.simulation
-	sim.case_arrived.connect(_on_case_arrived)
 	sim.case_completed.connect(_on_case_completed)
 	sim.citizen_left.connect(_on_citizen_left)
 	sim.contraband_found.connect(func(_dept_id: String) -> void: _float(layout.area("customs/signature").get_center(), tr("FLOAT_SEIZED"), AppTheme.accent("error")))
@@ -144,6 +157,7 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	sim.coffee_served.connect(_on_coffee_served)
 	sim.dispute_started.connect(_on_dispute_started)
 	sim.dispute_ended.connect(_on_dispute_ended)
+	sim.ticket_called.connect(_on_ticket_called)
 	sim.department_unlocked.connect(func(dept_id: String) -> void: focus(dept_id))
 
 
@@ -186,6 +200,7 @@ func _process(delta: float) -> void:
 	_advance_effects(delta)
 	_refresh_layers()
 	_crowd_timer += delta
+	_citizen_clock += delta
 	if _crowd != null and _crowd_timer >= (0.0 if _walkers.size() + _capsules.size() <= SMOOTH_WALKERS else CROWD_INTERVAL):
 		_crowd_timer = 0.0
 		_crowd.queue_redraw()
@@ -258,10 +273,8 @@ func _handle_tap(point: Vector2) -> void:
 
 func _advance_effects(delta: float) -> void:
 	_shred_time = maxf(0.0, _shred_time - delta)
-	for return_key in _returning.keys():
-		_returning[return_key] = float(_returning[return_key]) - delta
-		if float(_returning[return_key]) <= 0.0:
-			_returning.erase(return_key)
+	_count_down(_returning, delta)
+	_count_down(_leaving, delta)
 	for list: Array[Dictionary] in [_walkers, _floaters, _capsules]:
 		var index := list.size() - 1
 		while index >= 0:
@@ -269,6 +282,44 @@ func _advance_effects(delta: float) -> void:
 			if list[index].t >= list[index].duration:
 				list.remove_at(index)
 			index -= 1
+
+
+func _count_down(walks: Dictionary, delta: float) -> void:
+	for walk_key in walks.keys():
+		var walk: Dictionary = walks[walk_key]
+		walk.left = float(walk.left) - delta
+		if float(walk.left) <= 0.0:
+			walks.erase(walk_key)
+			_redraw_at(walk.point)
+
+
+func _redraw_at(point: Vector2) -> void:
+	for layer in _layers:
+		if layer.id != SHELL_LAYER and layer.id != HALL_STATIC_LAYER and (layer.rect as Rect2).has_point(point):
+			layer.last = _time
+			layer.drawn = true
+			(layer.node as Node2D).queue_redraw()
+
+
+static func desk_key(key: String, desk: int) -> String:
+	return "%s#%d" % [key, desk]
+
+
+func _staff_walk(station: Station, desk: int, from: Vector2, to: Vector2) -> float:
+	var duration := clampf(from.distance_to(to) / RETURN_SPEED, 0.4, 8.0)
+	var expert := station.is_specialist_desk(desk)
+	_walkers.append({"from": from, "to": to, "kind": "staff", "dept": "", "t": 0.0, "duration": duration, "color": AppTheme.SPECIALIST_COAT if expert else AppTheme.STAFF_COLOR, "tie": AppTheme.SPECIALIST if expert else AppTheme.TIE, "expert": expert, "look": staff_look(station, desk)})
+	_redraw_at(from)
+	_redraw_at(to)
+	return duration
+
+
+static func staff_look(station: Station, desk: int) -> int:
+	return desk + 3 if station.is_specialist_desk(desk) else desk
+
+
+func _desk_seat(key: String, desk: int) -> Vector2:
+	return layout.desk_position(key, desk) + Vector2(0, -24)
 
 
 func _float(pos: Vector2, text: String, color: Color, size: int = 24) -> void:
@@ -283,16 +334,9 @@ func _float_flavor(pos: Vector2, flawed: bool, color: Color) -> void:
 
 
 func _walker(from: Vector2, to: Vector2, kind: String, dept_id: String, duration: float = WALK_TIME) -> void:
-	if _walkers.size() > 40:
+	if _walkers.size() > MAX_WALKERS:
 		return
 	_walkers.append({"from": from, "to": to, "kind": kind, "dept": dept_id, "t": 0.0, "duration": duration, "look": _walkers.size() + _flavor_count, "color": AppTheme.CITIZEN_COLORS[_walkers.size() % AppTheme.CITIZEN_COLORS.size()]})
-
-
-func _on_case_arrived(dept_id: String) -> void:
-	if GameConfig.is_customs(dept_id):
-		return
-	var queue := game.state.station(GameConfig.RECEPTION).inbox.size()
-	_walker(layout.door_in(), layout.queue_point(maxi(0, queue - 1)), "arrive", dept_id, 1.4)
 
 
 func _on_mail_delivered(count: int, returned: int) -> void:
@@ -341,7 +385,6 @@ func _on_case_completed(dept_id: String, money: float, flawed: bool) -> void:
 	_float_flavor(counter.get_center() + Vector2(0, -62), flawed, color)
 	if dept_id == "vehicle_registration":
 		_walker(layout.door_out() + Vector2(0, -30), layout.door_out() + Vector2(0, 260), "car", dept_id, 1.8)
-	_walker(Vector2(counter.get_center().x, counter.end.y + 20), layout.door_out(), "leave", dept_id)
 
 
 func _on_employee_dozed(key: String, desk: int, rest_state: String) -> void:
@@ -363,6 +406,25 @@ func _on_employee_dozed(key: String, desk: int, rest_state: String) -> void:
 		DeskMood.LOO:
 			text = Flavor.go_loo(_flavor_count)
 	_float(layout.desk_position(key, desk) + Vector2(0, -76), text, AppTheme.accent("warning"), AppTheme.SIZE_TITLE_SMALL)
+	_start_away_walk(key, desk)
+
+
+func _start_away_walk(key: String, desk: int) -> void:
+	var station := game.state.station(key)
+	if station == null or desk >= station.moods.size():
+		return
+	var mood := station.moods[desk]
+	if not mood.is_away() or mood.slot < 0:
+		_redraw_at(layout.desk_position(key, desk))
+		return
+	var id := desk_key(key, desk)
+	_returning.erase(id)
+	var from := _desk_seat(key, desk)
+	if _crew_desks.has(id):
+		from = _crew_desks[id]
+		_release_crew_desk(id)
+	var to := layout.slot_point(mood.slot)
+	_leaving[id] = {"left": _staff_walk(station, desk, from, to), "point": to}
 
 
 func _start_return_walk(key: String, desk: int) -> void:
@@ -370,13 +432,22 @@ func _start_return_walk(key: String, desk: int) -> void:
 	if station == null or desk >= station.moods.size():
 		return
 	var left := station.moods[desk].left_slot
+	var id := desk_key(key, desk)
+	_leaving.erase(id)
 	if left < 0:
+		_redraw_at(layout.desk_position(key, desk))
 		return
-	var from := layout.slot_point(left)
-	var to := layout.desk_position(key, desk) + Vector2(0, -24)
-	var duration := clampf(from.distance_to(to) / RETURN_SPEED, 0.8, 6.0)
-	_returning["%s#%d" % [key, desk]] = duration
-	_walkers.append({"from": from, "to": to, "kind": "return", "dept": "", "t": 0.0, "duration": duration, "color": AppTheme.SPECIALIST_COAT if station.is_specialist_desk(desk) else AppTheme.STAFF_COLOR, "look": desk})
+	var to := _desk_seat(key, desk)
+	_returning[id] = {"left": _staff_walk(station, desk, layout.slot_point(left), to), "point": to}
+
+
+func is_desk_hidden(key: String, desk: int) -> bool:
+	var id := desk_key(key, desk)
+	return _returning.has(id) or _crew_desks.has(id)
+
+
+func is_guest_arriving(key: String, desk: int) -> bool:
+	return _leaving.has(desk_key(key, desk))
 
 
 func _on_sick_called(by_player: bool, _key: String, _desk: int) -> void:
@@ -495,10 +566,79 @@ func _on_coffee_served(key: String, desk: int) -> void:
 
 func _on_dispute_started(_kind: String, dept_id: String) -> void:
 	_float(layout.dispute_point(dept_id) + Vector2(0, -90), tr("FLOAT_DISPUTE_START"), AppTheme.accent("error"), AppTheme.SIZE_TITLE_SMALL)
+	var crew := _assign_crew(dept_id)
+	var arrival := 0.0
+	for index in crew.size():
+		var member: Dictionary = crew[index]
+		var station := game.state.station(str(member.key))
+		arrival = maxf(arrival, _staff_walk(station, int(member.desk), _desk_seat(str(member.key), int(member.desk)), _crew_spot(dept_id, index)))
+	if arrival > 0.0:
+		_leaving[_dispute_id(dept_id)] = {"left": arrival, "point": layout.dispute_point(dept_id)}
 
 
 func _on_dispute_ended(_kind: String, dept_id: String, by_player: bool) -> void:
 	_float(layout.dispute_point(dept_id) + Vector2(0, -90), tr("FLOAT_DISPUTE_PEACE" if by_player else "FLOAT_DISPUTE_OVER"), AppTheme.accent("success"), AppTheme.SIZE_TITLE_SMALL)
+	_leaving.erase(_dispute_id(dept_id))
+	var crew: Array = _dispute_crews.get(dept_id, [])
+	_dispute_crews.erase(dept_id)
+	for index in crew.size():
+		var member: Dictionary = crew[index]
+		var key := str(member.key)
+		var desk := int(member.desk)
+		var id := desk_key(key, desk)
+		if not _crew_desks.has(id):
+			continue
+		_release_crew_desk(id)
+		var station := game.state.station(key)
+		if station == null or desk >= station.moods.size() or not station.is_staffed(desk) or station.moods[desk].is_absent():
+			continue
+		var to := _desk_seat(key, desk)
+		_returning[id] = {"left": _staff_walk(station, desk, _crew_spot(dept_id, index), to), "point": to}
+
+
+func _dispute_id(dept_id: String) -> String:
+	return "dispute#" + dept_id
+
+
+func _crew_spot(dept_id: String, index: int) -> Vector2:
+	return layout.dispute_point(dept_id) + Vector2(-DISPUTE_OFFSET if index == 0 else DISPUTE_OFFSET, 0)
+
+
+func dispute_crew(dept_id: String) -> Array:
+	if not _dispute_crews.has(dept_id):
+		_assign_crew(dept_id)
+	return _dispute_crews[dept_id]
+
+
+func _assign_crew(dept_id: String) -> Array:
+	var crew: Array = []
+	for key in GameConfig.department_station_keys(dept_id):
+		var station := game.state.station(key)
+		if station == null or station.machine:
+			continue
+		for desk in station.moods.size():
+			if crew.size() >= 2:
+				break
+			var id := desk_key(key, desk)
+			if station.is_staffed(desk) and not station.moods[desk].is_absent() and not _crew_desks.has(id) and not _returning.has(id):
+				crew.append({"key": key, "desk": desk})
+				_crew_desks[id] = _crew_spot(dept_id, crew.size() - 1)
+				_redraw_at(layout.desk_position(key, desk))
+	_dispute_crews[dept_id] = crew
+	return crew
+
+
+func _release_crew_desk(id: String) -> void:
+	_crew_desks.erase(id)
+	for dept_id in _dispute_crews:
+		var crew: Array = _dispute_crews[dept_id]
+		for index in range(crew.size() - 1, -1, -1):
+			if desk_key(str(crew[index].key), int(crew[index].desk)) == id:
+				crew.remove_at(index)
+
+
+func _on_ticket_called(number: int) -> void:
+	_float(layout.ticket_display_rect().get_center() + Vector2(0, 30), tr("FMT_TICKET_CALL") % number, AppTheme.accent("primary"), AppTheme.SIZE_TITLE_SMALL)
 
 
 func _on_case_piped(from_key: String, to_key: String, dept_id: String) -> void:
@@ -513,7 +653,6 @@ func _on_citizen_left(dept_id: String) -> void:
 	if GameConfig.is_customs(dept_id):
 		return
 	_float(layout.queue_point(0) + Vector2(0, -30), tr("FLOAT_CITIZEN_LEFT"), AppTheme.accent("error"))
-	_walker(layout.queue_point(0), layout.door_out(), "angry", dept_id, 1.6)
 
 
 func _style(color: Color, radius: int, border: Color = Color.TRANSPARENT, width: int = 0, lifted: bool = false, top_only: bool = false) -> StyleBoxFlat:
@@ -683,12 +822,96 @@ func _draw_crowd() -> void:
 		ItemPainter.draw_person(_canvas, collector.position, AppTheme.accent("neutral"), 1.0, Color.TRANSPARENT, index + 5, AppTheme.accent("error"))
 		if collector.loaded > 0:
 			OfficePainter.complaint_pile(_canvas, collector.position + Vector2(-24, -8), collector.loaded)
+	_draw_citizens(state, view)
 	_draw_visitors(state, view)
 	_draw_complaint_intern(state, view)
 	_draw_coffee_interns(state, view)
 	_draw_disputes(state, view)
 	_draw_effects()
 	_canvas = self
+
+
+func citizen_placements(state: GameState) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for index in state.ticket_line.size():
+		result.append({"case": state.ticket_line[index], "target": layout.ticket_line_point(index), "stage": STAGE_TICKET})
+	var queued := 0
+	var reception := state.station(GameConfig.RECEPTION)
+	if reception != null:
+		for case_file in reception.inbox:
+			result.append({"case": case_file, "target": layout.queue_point(mini(queued, GameConfig.MAX_LOBBY_SLOTS - 1)), "stage": STAGE_CALLED})
+			queued += 1
+	for case_file in state.ticket_waiting:
+		result.append({"case": case_file, "target": layout.queue_point(mini(queued, GameConfig.MAX_LOBBY_SLOTS - 1)), "stage": STAGE_WAITING})
+		queued += 1
+	var standing := layout.waiting_area.position + Vector2(layout.waiting_area.size.x + 18.0, 20.0)
+	for key in state.ordered_station_keys():
+		var station := state.station(key)
+		if key == GameConfig.MAILROOM or key.begins_with("customs/"):
+			continue
+		var entry := key == GameConfig.RECEPTION
+		if not entry:
+			for case_file in station.inbox:
+				_add_seated(result, case_file, standing)
+		for case_file in station.outbox:
+			_add_seated(result, case_file, standing)
+		for desk in station.jobs.size():
+			var job := station.jobs[desk]
+			if job == null or not job.case_file.takes_seat():
+				continue
+			if entry or key == GameConfig.COUNTER:
+				result.append({"case": job.case_file, "target": layout.desk_position(key, desk) + COUNTER_STEP, "stage": STAGE_DESK if entry else STAGE_COUNTER})
+			else:
+				_add_seated(result, job.case_file, standing)
+	for case_file in state.carried_cases():
+		_add_seated(result, case_file, standing)
+	return result
+
+
+func _add_seated(result: Array[Dictionary], case_file: CaseFile, standing: Vector2) -> void:
+	if case_file.takes_seat():
+		result.append({"case": case_file, "target": standing, "seat": true, "stage": STAGE_SEATED})
+
+
+func _sync_citizens(state: GameState) -> void:
+	var gone := _citizens.sync(citizen_placements(state), _citizen_clock, layout.door_in(), layout.waiting_seat, state.seat_capacity())
+	_citizen_clock = 0.0
+	for entry in gone:
+		var from: Vector2 = entry.pos
+		var duration := clampf(from.distance_to(layout.door_out()) / CitizenTracker.SPEED, 0.4, 8.0)
+		var kind := "leave" if str(entry.stage) == STAGE_COUNTER else "exit"
+		if _walkers.size() <= MAX_WALKERS:
+			_walkers.append({"from": from, "to": layout.door_out(), "kind": kind, "dept": entry.dept, "t": 0.0, "duration": duration, "look": int(entry.look), "color": citizen_color(int(entry.look)), "linear": true})
+
+
+static func citizen_color(look: int) -> Color:
+	return AppTheme.CITIZEN_COLORS[look % AppTheme.CITIZEN_COLORS.size()]
+
+
+func _draw_citizens(state: GameState, view: Rect2) -> void:
+	_sync_citizens(state)
+	var quipped := false
+	for case_file: CaseFile in _citizens.entries:
+		var entry: Dictionary = _citizens.entries[case_file]
+		var pos: Vector2 = entry.pos
+		if not view.has_point(pos):
+			continue
+		var walking := CitizenTracker.is_walking(entry)
+		var bob := -absf(sin(_time * 9.0 + int(entry.look))) * 3.0 if walking else 0.0
+		var stage := str(entry.stage)
+		var seated := stage == STAGE_SEATED and not walking
+		ItemPainter.draw_person_lite(_canvas, pos + Vector2(0, bob), citizen_color(int(entry.look)), 0.8 if seated else 0.9, int(entry.look))
+		if walking or seated or stage == STAGE_DESK or stage == STAGE_COUNTER:
+			continue
+		var mood := clampf(case_file.waited / Formulas.citizen_patience(state, case_file), 0.0, 1.0)
+		_canvas.draw_arc(pos + Vector2(0, 7), 12, -PI * 0.5, -PI * 0.5 + TAU * (1.0 - mood), 16, AppTheme.accent("success").lerp(AppTheme.accent("error"), mood), 2.0)
+		if stage == STAGE_WAITING:
+			_icon(pos + Vector2(0, -26), Icons.TICKET, 16, AppTheme.accent("primary"))
+		elif stage == STAGE_CALLED:
+			_bubble(pos + Vector2(0, -26), case_file.dept_id, case_file.urgent)
+			if not quipped and (entry.target as Vector2) == layout.queue_point(0):
+				quipped = true
+				_speech(pos + Vector2(0, -30), Flavor.quip(int(_time / 5.0)))
 
 
 func _clerk_tip() -> Vector2:
@@ -713,16 +936,18 @@ func _draw_stopped_visitor(visitor: ComplaintVisitor, pos: Vector2) -> void:
 func _draw_visitors(state: GameState, view: Rect2) -> void:
 	_draw_guards(state, view)
 	var spoke := false
+	var venter: ComplaintVisitor = null
 	var stopped := false
 	for visitor in state.visitors:
 		if not view.has_point(visitor.position):
 			continue
 		var talking := visitor.phase == ComplaintVisitor.Phase.TALKING
+		var venting := visitor.phase == ComplaintVisitor.Phase.VENTING
 		if visitor.phase == ComplaintVisitor.Phase.STOPPED and not stopped:
 			stopped = true
 			_draw_stopped_visitor(visitor, visitor.position)
-		var bob := 0.0 if talking or visitor.phase == ComplaintVisitor.Phase.STOPPED else -absf(sin(_time * 9.0 + visitor.slot)) * 3.0
-		var shake := sin(_time * 40.0) * 1.5 if visitor.angry and talking else 0.0
+		var bob := 0.0 if talking or venting or visitor.phase == ComplaintVisitor.Phase.STOPPED else -absf(sin(_time * 9.0 + visitor.slot)) * 3.0
+		var shake := sin(_time * 40.0) * 1.5 if visitor.angry and (talking or venting) else 0.0
 		var pos := visitor.position + Vector2(shake, bob)
 		var body: Color = AppTheme.accent("error") if visitor.angry else AppTheme.CITIZEN_COLORS[visitor.look % AppTheme.CITIZEN_COLORS.size()]
 		ItemPainter.draw_person(_canvas, pos, body, 1.0, Color.TRANSPARENT, visitor.look)
@@ -732,11 +957,25 @@ func _draw_visitors(state: GameState, view: Rect2) -> void:
 			spoke = true
 			var tip := pos + Vector2(0, -28) if visitor.visitor_speaks() else _clerk_tip()
 			_speech(tip, Flavor.visit_line(visitor.angry, visitor.dialog, visitor.line()))
+		if venting and venter == null:
+			venter = visitor
+	if venter != null and not spoke:
+		_draw_vent_dialogue(state, venter)
+
+
+func _draw_vent_dialogue(state: GameState, visitor: ComplaintVisitor) -> void:
+	if visitor.vent_speaks():
+		_speech(visitor.position + Vector2(0, -28), Flavor.vent(visitor.dialog + visitor.look))
+		return
+	for unit in state.all_interns():
+		if unit.is_at_desk():
+			_speech(unit.position + Vector2(0, -44), Flavor.intern_nervous(visitor.dialog + visitor.look))
+			return
 
 
 func _visitor_speaking(state: GameState) -> bool:
 	for visitor in state.visitors:
-		if visitor.phase == ComplaintVisitor.Phase.TALKING:
+		if visitor.phase == ComplaintVisitor.Phase.TALKING or visitor.phase == ComplaintVisitor.Phase.VENTING:
 			return true
 	return false
 
@@ -801,10 +1040,8 @@ func _draw_disputes(state: GameState, view: Rect2) -> void:
 		var point := layout.dispute_point(dispute.dept_id)
 		if not view.has_point(point):
 			continue
-		var look := absi(dispute.dept_id.hash()) % 12
-		var shake := sin(_time * 22.0) * 1.2
-		ItemPainter.draw_person(_canvas, point + Vector2(-26 + shake, 0), AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, look, AppTheme.TIE)
-		ItemPainter.draw_person(_canvas, point + Vector2(26 - shake, 0), AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, look + 5, AppTheme.TIE)
+		if not _leaving.has(_dispute_id(dispute.dept_id)):
+			_draw_dispute_crew(dispute.dept_id)
 		var pulse := 0.5 + 0.5 * sin(_time * 5.0)
 		_canvas.draw_arc(point, 44.0 + pulse * 3.0, 0, TAU, 32, Color(AppTheme.accent("error"), 0.5 + pulse * 0.4), 3.0)
 		_canvas.draw_circle(point + Vector2(0, -6), 14, AppTheme.accent("error"))
@@ -814,6 +1051,20 @@ func _draw_disputes(state: GameState, view: Rect2) -> void:
 		_speech(point + Vector2(-26 if turn % 2 == 0 else 26, -28), Flavor.dispute_line(dispute.kind, turn))
 		var label := tr("FMT_DISPUTE") % [tr("DISPUTE_" + dispute.kind.to_upper()), roundi((1.0 - dispute.speed()) * 100.0)]
 		_text_centered_outlined(point + Vector2(0, 50), label, AppTheme.SIZE_LABEL_SMALL, AppTheme.accent("error"), AppTheme.SURFACE, _bold)
+
+
+func _draw_dispute_crew(dept_id: String) -> void:
+	var crew := dispute_crew(dept_id)
+	var shake := sin(_time * 22.0) * 1.2
+	for index in 2:
+		var pos := _crew_spot(dept_id, index) + Vector2(shake if index == 0 else -shake, 0)
+		if index >= crew.size():
+			ItemPainter.draw_person(_canvas, pos, AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, absi(dept_id.hash()) % 12 + index * 5, AppTheme.TIE)
+			continue
+		var station := game.state.station(str(crew[index].key))
+		var desk := int(crew[index].desk)
+		var expert := station.is_specialist_desk(desk)
+		ItemPainter.draw_person(_canvas, pos, AppTheme.SPECIALIST_COAT if expert else AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, staff_look(station, desk), AppTheme.SPECIALIST if expert else AppTheme.TIE, false, expert)
 
 
 func _draw_actors() -> void:
@@ -863,7 +1114,7 @@ func _draw_hall_static() -> void:
 
 
 func _draw_waiting_sign(state: GameState) -> void:
-	_draw_hall_sign(layout.queue_sign_rect(), "FMT_WAITING_SIGN", state.station(GameConfig.RECEPTION).inbox.size(), state.lobby_capacity())
+	_draw_hall_sign(layout.queue_sign_rect(), "FMT_WAITING_SIGN", state.lobby_used(), state.lobby_capacity())
 	_draw_hall_sign(layout.seating_sign_rect(), "FMT_SEATING_SIGN", state.seated_citizens(), state.seat_capacity())
 
 
@@ -879,22 +1130,23 @@ func _draw_hall(state: GameState, view: Rect2) -> void:
 	_draw_station(state, GameConfig.RECEPTION, "")
 	_draw_station(state, GameConfig.COUNTER, "")
 	_draw_hall_furnishing(state, view)
-	var reception := state.station(GameConfig.RECEPTION)
-	for i in mini(reception.inbox.size(), GameConfig.MAX_LOBBY_SLOTS):
-		var case_file := reception.inbox[i]
-		var pos := layout.queue_point(i)
-		if not view.has_point(pos):
-			continue
-		var mood := clampf(case_file.waited / Formulas.citizen_patience(state, case_file), 0.0, 1.0)
-		ItemPainter.draw_person_lite(_canvas, pos, AppTheme.CITIZEN_COLORS[i % AppTheme.CITIZEN_COLORS.size()], 0.9, i)
-		_canvas.draw_arc(pos + Vector2(0, 7), 12, -PI * 0.5, -PI * 0.5 + TAU * (1.0 - mood), 16, AppTheme.accent("success").lerp(AppTheme.accent("error"), mood), 2.0)
-		if i < 12:
-			_bubble(pos + Vector2(0, -26), case_file.dept_id, case_file.urgent)
-	for i in mini(state.seated_citizens(), state.seat_capacity()):
-		if view.has_point(layout.waiting_seat(i)):
-			ItemPainter.draw_person_lite(_canvas, layout.waiting_seat(i), AppTheme.CITIZEN_COLORS[(i + 3) % AppTheme.CITIZEN_COLORS.size()], 0.8, i + 3)
-	if not reception.inbox.is_empty():
-		_speech(layout.queue_point(0) + Vector2(0, -30), Flavor.quip(int(_time / 5.0)))
+	if state.tickets_unlocked():
+		_draw_ticket_corner(state)
+
+
+func _draw_ticket_corner(state: GameState) -> void:
+	var machine := layout.ticket_machine_point()
+	OfficePainter.ticket_dispenser(_canvas, machine)
+	_canvas.draw_multiline_string(_bold, machine + Vector2(-46, -58), tr("SIGN_TICKET"), HORIZONTAL_ALIGNMENT_CENTER, 92.0, AppTheme.SIZE_LABEL_SMALL - 1, 2, AppTheme.ON_SURFACE)
+	var draw_ratio := func() -> float: return state.ticket_progress / Formulas.ticket_draw_time(state.ticket_machine_level) if not state.ticket_line.is_empty() else 0.0
+	var draw_color := func() -> Color: return AppTheme.accent("success") if layout.near(state.player.position, machine) else AppTheme.accent("primary")
+	_progress_ring(machine + Vector2(0, 6), 30.0, 4.0, draw_color, draw_ratio)
+	var display := layout.ticket_display_rect()
+	OfficePainter.call_display(_canvas, display)
+	_text_centered(display.get_center(), tr("FMT_TICKET_NUMBER") % state.tickets_called, AppTheme.SIZE_LABEL_SMALL + 2, AppTheme.CALL_DISPLAY_TEXT, _bold)
+	var call_ratio := func() -> float: return state.ticket_call_progress / Formulas.ticket_call_time(state.ticket_display_level) if not state.ticket_waiting.is_empty() else 0.0
+	var call_color := func() -> Color: return AppTheme.accent("success") if layout.near(state.player.position, layout.ticket_display_point()) else AppTheme.accent("primary")
+	_progress_ring(layout.ticket_display_point(), 22.0, 4.0, call_color, call_ratio)
 
 
 func _draw_hall_furnishing(state: GameState, view: Rect2) -> void:
@@ -1121,8 +1373,10 @@ func _draw_kitchen_guest(station: Station, desk: int, mood: DeskMood, with_quip:
 	if mood.state == DeskMood.LOO:
 		_draw_loo_guest(pos, mood, with_quip)
 		return
+	if is_guest_arriving(station.key, desk):
+		return
 	var expert := station.is_specialist_desk(desk)
-	ItemPainter.draw_person(_canvas, pos, AppTheme.SPECIALIST_COAT if expert else AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, desk + mood.slot, AppTheme.SPECIALIST if expert else AppTheme.TIE, false, expert)
+	ItemPainter.draw_person(_canvas, pos, AppTheme.SPECIALIST_COAT if expert else AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, staff_look(station, desk), AppTheme.SPECIALIST if expert else AppTheme.TIE, false, expert)
 	var cup := pos + Vector2(14, 2)
 	_canvas.draw_rect(Rect2(cup + Vector2(-4, -4), Vector2(8, 8)), AppTheme.SURFACE)
 	_canvas.draw_rect(Rect2(cup + Vector2(-4, -4), Vector2(8, 8)), AppTheme.METAL_DARK, false, 1.0)
@@ -1161,10 +1415,8 @@ func _draw_hall_decor(hall: Rect2) -> void:
 	_text_centered(board.position + Vector2(44, 18), tr("SIGN_HOURS_TITLE"), AppTheme.SIZE_LABEL_SMALL - 1, AppTheme.FLAG_GOLD, _bold)
 	_canvas.draw_multiline_string(_bold, board.position + Vector2(4, 42), tr("SIGN_HOURS_TEXT"), HORIZONTAL_ALIGNMENT_CENTER, board.size.x - 8, AppTheme.SIZE_LABEL_SMALL - 1, 3, AppTheme.SIGN_TEXT)
 	OfficePainter.flag(_canvas, Vector2(hall.end.x - 96.0, hall.position.y + 160.0), 120.0, _time)
-	OfficePainter.ticket_dispenser(_canvas, Vector2(hall.end.x - 56.0, hall.position.y + 216.0))
-	_canvas.draw_multiline_string(_bold, Vector2(hall.end.x - 100.0, hall.position.y + 270.0), tr("SIGN_TICKET"), HORIZONTAL_ALIGNMENT_CENTER, 90.0, AppTheme.SIZE_LABEL_SMALL - 1, 2, AppTheme.ON_SURFACE)
 	OfficePainter.plant(_canvas, Vector2(hall.position.x + 50.0, hall.end.y - 30.0), 1.2)
-	OfficePainter.plant(_canvas, Vector2(hall.end.x - 40.0, hall.position.y + 380.0), 1.2)
+	OfficePainter.plant(_canvas, Vector2(hall.end.x - 30.0, hall.end.y - 26.0), 1.0)
 	_draw_closed_sign(layout.closed_sign_rect())
 
 
@@ -1338,7 +1590,7 @@ func _draw_desk(station: Station, desk: int, pos: Vector2, color: Color) -> void
 		var occupied := specialist or station.is_staffed(desk)
 		var mood := station.moods[desk]
 		var asleep := occupied and mood.state == DeskMood.ASLEEP
-		var present := occupied and not mood.is_absent() and not _returning.has("%s#%d" % [station.key, desk])
+		var present := occupied and not mood.is_absent() and not is_desk_hidden(station.key, desk)
 		OfficePainter.desk(_canvas, pos, present, active and not mood.is_resting(), _time, specialist)
 		if specialist and present:
 			ItemPainter.draw_person(_canvas, pos + Vector2(0, -24), AppTheme.SPECIALIST_COAT, 0.85, Color.TRANSPARENT, desk + 3, AppTheme.SPECIALIST, asleep, true)
@@ -1526,7 +1778,7 @@ func _draw_effects() -> void:
 	_draw_capsules(view)
 	for walker in _walkers:
 		var t: float = walker.t / walker.duration
-		var eased := t * t * (3.0 - 2.0 * t)
+		var eased := t if bool(walker.get("linear", false)) or str(walker.kind) == "staff" else t * t * (3.0 - 2.0 * t)
 		var pos: Vector2 = (walker.from as Vector2).lerp(walker.to, eased)
 		if not view.has_point(pos):
 			continue
@@ -1536,12 +1788,12 @@ func _draw_effects() -> void:
 			"truck":
 				ItemPainter.draw_truck(_canvas, pos)
 			"leave":
-				ItemPainter.draw_person_lite(_canvas, pos, walker.color, 1.0, int(walker.look))
+				ItemPainter.draw_person_lite(_canvas, pos, walker.color, 0.9, int(walker.look))
 				ItemPainter.draw_output(_canvas, pos + Vector2(14, -4), walker.dept)
-			"return":
-				ItemPainter.draw_person(_canvas, pos + Vector2(0, -absf(sin(t * walker.duration * 7.0)) * 3.0), walker.color, 1.0, Color.TRANSPARENT, int(walker.look), AppTheme.TIE)
-			"angry":
-				ItemPainter.draw_person(_canvas, pos, AppTheme.accent("error"), 1.0, Color.TRANSPARENT, int(walker.look))
+			"staff":
+				ItemPainter.draw_person(_canvas, pos + Vector2(0, -absf(sin(t * walker.duration * 7.0)) * 3.0), walker.color, 1.0, Color.TRANSPARENT, int(walker.look), walker.tie, false, walker.expert)
+			"exit":
+				ItemPainter.draw_person_lite(_canvas, pos + Vector2(0, -absf(sin(t * walker.duration * 9.0)) * 3.0), walker.color, 0.9, int(walker.look))
 			"postman":
 				ItemPainter.draw_person(_canvas, pos, AppTheme.POST_YELLOW, 1.0, AppTheme.POST_YELLOW.darkened(0.3), int(walker.look))
 				ItemPainter.draw_letter(_canvas, pos + Vector2(16, 0), AppTheme.POST_YELLOW)

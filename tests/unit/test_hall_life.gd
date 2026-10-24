@@ -56,11 +56,147 @@ func test_complaint_arrives_with_a_visitor() -> void:
 	var visitor := state.visitors[0]
 	assert_true(visitor.files_complaint)
 	assert_eq(state.complaints, 0)
-	_run(10.0)
-	assert_eq(state.complaints, 1)
+	_run(4.0)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.TALKING)
+	assert_eq(state.complaints + state.complaints_fended, 0)
+	_run(15.0)
+	assert_eq(state.complaints + state.complaints_fended, 1)
 	assert_false(visitor.files_complaint)
 	_run(20.0)
 	assert_true(state.visitors.is_empty())
+
+
+func _visitor_past_the_clerk(angry: bool, files_complaint: bool) -> ComplaintVisitor:
+	for attempt in 200:
+		state.visitors.clear()
+		var visitor := sim.spawn_visitor(angry, files_complaint)
+		visitor.position = layout.visitor_spot(visitor.slot)
+		sim.tick(0.05)
+		visitor.timer = 0.0
+		var fended := state.complaints_fended
+		sim.tick(0.05)
+		if state.complaints_fended == fended:
+			return visitor
+	return null
+
+
+func test_unfended_visitor_complains_to_the_interns_then_uses_the_box() -> void:
+	state.research["shredder_service"] = 1
+	var visitor := _visitor_past_the_clerk(false, true)
+	assert_not_null(visitor)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.TO_INTERNS)
+	assert_true(visitor.files_complaint)
+	assert_eq(state.complaints, 0)
+	visitor.position = layout.vent_spot(visitor.slot)
+	sim.tick(0.05)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.VENTING)
+	assert_almost_eq(visitor.duration, GameConfig.VISITOR_VENT_SECONDS, 0.001)
+	assert_true(visitor.vent_speaks())
+	_run(GameConfig.VISITOR_VENT_SECONDS - 0.5)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.VENTING)
+	assert_false(visitor.vent_speaks())
+	assert_gt(state.intern.stress, 0.0)
+	assert_eq(state.complaints, 0)
+	_run(1.0)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.TO_BOX)
+	visitor.position = layout.complaint_drop_spot()
+	watch_signals(sim)
+	sim.tick(0.05)
+	assert_eq(state.complaints, 1)
+	assert_false(visitor.files_complaint)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.LEAVING)
+	assert_signal_emitted_with_parameters(sim, "complaint_filed", [false])
+
+
+func test_normal_venting_stresses_the_intern_less_than_shouting() -> void:
+	state.research["shredder_service"] = 1
+	var visitor := _visitor_past_the_clerk(false, true)
+	visitor.position = layout.vent_spot(visitor.slot)
+	sim.tick(0.05)
+	_run(2.0)
+	var calm := state.intern.stress
+	assert_almost_eq(calm, (GameConfig.INTERN_VENT_RATE - GameConfig.INTERN_CALM_RATE) * 2.0, 0.001)
+	assert_gt(calm, 0.0)
+	state.intern.stress = 0.0
+	visitor.angry = true
+	_run(2.0)
+	assert_gt(state.intern.stress, calm)
+
+
+func test_fended_visitor_leaves_without_visiting_the_interns() -> void:
+	state.research["shredder_service"] = 1
+	var fended := 0
+	for attempt in 200:
+		state.visitors.clear()
+		var visitor := sim.spawn_visitor(false, true)
+		visitor.position = layout.visitor_spot(visitor.slot)
+		sim.tick(0.05)
+		visitor.timer = 0.0
+		var before := state.complaints_fended
+		sim.tick(0.05)
+		if state.complaints_fended > before:
+			fended += 1
+			assert_eq(visitor.phase, ComplaintVisitor.Phase.LEAVING)
+			assert_false(visitor.files_complaint)
+		else:
+			assert_eq(visitor.phase, ComplaintVisitor.Phase.TO_INTERNS)
+	assert_between(fended, 10, 60)
+	assert_eq(state.complaints, 0)
+
+
+func test_without_interns_the_visitor_walks_straight_to_the_box() -> void:
+	var visitor := _visitor_past_the_clerk(false, true)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.TO_BOX)
+	_run(5.0)
+	assert_eq(state.complaints, 1)
+	assert_eq(state.intern.stress, 0.0)
+
+
+func test_angry_visitor_without_interns_just_leaves() -> void:
+	var visitor := _visitor_past_the_clerk(true, false)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.LEAVING)
+
+
+func test_angry_visitor_vents_but_files_nothing() -> void:
+	state.research["shredder_service"] = 1
+	var visitor := _visitor_past_the_clerk(true, false)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.TO_INTERNS)
+	visitor.position = layout.vent_spot(visitor.slot)
+	_run(GameConfig.VISITOR_VENT_SECONDS + 0.5)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.LEAVING)
+	assert_eq(state.complaints, 0)
+
+
+func test_amnesty_sends_the_visitor_home_after_the_clerk() -> void:
+	state.research["shredder_service"] = 1
+	state.seals = 10
+	assert_true(Boosts.new(state, sim).use("complaint_amnesty", Boosts.SEALS))
+	var visitor := sim.spawn_visitor(false, true)
+	visitor.position = layout.visitor_spot(visitor.slot)
+	sim.tick(0.05)
+	visitor.timer = 0.0
+	sim.tick(0.05)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.LEAVING)
+	assert_false(visitor.files_complaint)
+	assert_eq(state.complaints_fended, 0)
+
+
+func test_visitor_frees_the_clerk_slot_once_past_the_desk() -> void:
+	var first := sim.spawn_visitor(false, false)
+	for i in GameConfig.VISITOR_SLOTS - 1:
+		sim.spawn_visitor(false, false)
+	assert_true(first.is_at_clerk())
+	first.phase = ComplaintVisitor.Phase.TO_INTERNS
+	assert_false(first.is_at_clerk())
+	var next := sim.spawn_visitor(false, false)
+	assert_not_null(next)
+	assert_eq(next.slot, first.slot)
+	for phase in [ComplaintVisitor.Phase.VENTING, ComplaintVisitor.Phase.TO_BOX, ComplaintVisitor.Phase.LEAVING, ComplaintVisitor.Phase.STOPPED]:
+		first.phase = phase
+		assert_false(first.is_at_clerk(), str(phase))
+	first.phase = ComplaintVisitor.Phase.ARRIVING
+	first.guard = 0
+	assert_false(first.is_at_clerk())
 
 
 func test_complaint_is_filed_directly_without_free_slot() -> void:
@@ -137,7 +273,7 @@ func test_visitor_walks_in_talks_and_leaves() -> void:
 	assert_true(state.visitors.is_empty())
 
 
-func test_walkout_costs_reputation_and_brings_an_angry_complaint() -> void:
+func test_walkout_costs_reputation_but_newcomers_do_not_complain() -> void:
 	state.reputation = 5.0
 	_fill_lobby()
 	watch_signals(sim)
@@ -145,20 +281,56 @@ func test_walkout_costs_reputation_and_brings_an_angry_complaint() -> void:
 	assert_eq(state.walkouts, 1)
 	assert_eq(state.citizens_lost, 1)
 	assert_almost_eq(state.reputation, 5.0 + GameConfig.REP_WALKED_OUT * GameConfig.REP_LOSS_FACTOR, 0.001)
+	assert_true(state.visitors.is_empty())
+	assert_eq(state.complaints, 0)
+	assert_signal_emitted(sim, "citizen_left")
+
+
+func test_some_walkouts_come_back_as_angry_complainers() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	_fill_lobby()
+	var dept := state.department("general_services")
+	var attempts := 400
+	var complainers := 0
+	for i in attempts:
+		state.leave_complaint_cooldown = 0.0
+		state.visitors.clear()
+		assert_null(sim.spawn_case(dept))
+		if not state.visitors.is_empty():
+			complainers += 1
+			assert_true(state.visitors[0].angry)
+			assert_true(state.visitors[0].files_complaint)
+	assert_eq(state.walkouts, attempts)
+	assert_eq(state.complaints, 0)
+	var expected := attempts * GameConfig.WALKOUT_COMPLAINT_CHANCE
+	assert_between(complainers, int(expected * 0.5), int(expected * 1.8))
+
+
+func test_complaint_after_leaving_respects_experience_and_cooldown() -> void:
+	assert_false(sim.complain_after_leaving(1.0, true))
+	assert_true(state.visitors.is_empty())
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	assert_false(sim.complain_after_leaving(0.0, true))
+	assert_eq(state.leave_complaint_cooldown, 0.0)
+	assert_true(sim.complain_after_leaving(1.0, true))
 	assert_eq(state.visitors.size(), 1)
 	assert_true(state.visitors[0].angry)
 	assert_true(state.visitors[0].files_complaint)
-	assert_signal_emitted(sim, "citizen_left")
-	_run(10.0)
-	assert_eq(state.complaints, 1)
+	assert_eq(state.leave_complaint_cooldown, GameConfig.LEAVE_COMPLAINT_COOLDOWN)
+	assert_false(sim.complain_after_leaving(1.0, true))
+	assert_eq(state.visitors.size(), 1)
+	_run(GameConfig.LEAVE_COMPLAINT_COOLDOWN + 0.5, 0.5)
+	assert_eq(state.leave_complaint_cooldown, 0.0)
+	assert_true(sim.complain_after_leaving(1.0, false))
 
 
-func test_walkout_files_complaint_directly_without_free_slot() -> void:
+func test_leaver_complaint_is_filed_directly_without_free_slot() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
 	for i in GameConfig.VISITOR_SLOTS:
 		sim.spawn_visitor(false, false)
-	_fill_lobby()
-	assert_null(sim.spawn_case(state.department("general_services")))
-	assert_eq(state.complaints, 1)
+	assert_true(sim.complain_after_leaving(1.0, true))
+	assert_eq(state.complaints + state.complaints_fended, 1)
+	assert_eq(state.visitors.size(), GameConfig.VISITOR_SLOTS)
 
 
 func test_angry_visitors_come_when_complaints_pile_up() -> void:
@@ -181,21 +353,33 @@ func test_no_angry_visitors_below_threshold() -> void:
 
 func test_angry_visitor_stresses_the_intern() -> void:
 	state.research["shredder_service"] = 1
-	sim.spawn_visitor(true, false)
+	var visitor := sim.spawn_visitor(true, false)
+	visitor.phase = ComplaintVisitor.Phase.TO_INTERNS
+	visitor.position = layout.vent_spot(visitor.slot)
 	_run(3.0)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.VENTING)
 	assert_gt(state.intern.stress, 0.0)
+
+
+func test_angry_visitor_at_the_clerk_does_not_stress_the_intern() -> void:
+	state.research["shredder_service"] = 1
+	var visitor := sim.spawn_visitor(true, false)
+	visitor.position = layout.visitor_spot(visitor.slot)
+	_run(3.0)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.TALKING)
+	assert_eq(state.intern.stress, 0.0)
 
 
 func test_angry_visitor_does_not_stress_without_intern_research() -> void:
 	sim.spawn_visitor(true, false)
-	_run(3.0)
+	_run(15.0)
 	assert_eq(state.intern.stress, 0.0)
 
 
-func test_normal_visitor_does_not_stress_the_intern() -> void:
+func test_normal_visitor_without_complaint_does_not_stress_the_intern() -> void:
 	state.research["shredder_service"] = 1
 	sim.spawn_visitor(false, false)
-	_run(3.0)
+	_run(15.0)
 	assert_eq(state.intern.stress, 0.0)
 
 
@@ -209,7 +393,7 @@ func test_intern_stress_builds_up_with_many_complaints() -> void:
 
 func test_intern_survives_several_shredder_trips_with_a_full_box() -> void:
 	var full_box := float(GameConfig.COMPLAINT_BOX_CAPACITY - GameConfig.INTERN_STRESS_FREE) * GameConfig.INTERN_STRESS_RATE
-	var shouting := GameConfig.INTERN_YELL_RATE * GameConfig.VISITOR_ANGRY_TALK_SECONDS / GameConfig.YELL_INTERVAL
+	var shouting := GameConfig.INTERN_YELL_RATE * GameConfig.VISITOR_VENT_SECONDS / GameConfig.YELL_INTERVAL
 	var seconds_until_breakdown := (1.0 - GameConfig.INTERN_RECOVERED_STRESS) / (full_box + shouting)
 	var trip: float = GameConfig.SHREDDER_DELAYS[1] + GameConfig.INTERN_TRIP_ESTIMATE
 	assert_gt(seconds_until_breakdown / trip, 2.0)
@@ -232,12 +416,13 @@ func test_training_softens_the_shouting() -> void:
 	state.research["intern_training"] = 2
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	var visitor := sim.spawn_visitor(true, false)
-	visitor.position = layout.visitor_spot(visitor.slot)
+	visitor.phase = ComplaintVisitor.Phase.TO_INTERNS
+	visitor.position = layout.vent_spot(visitor.slot)
 	_run(4.0)
 	var factor := pow(GameConfig.INTERN_TRAINING_STRESS_FACTOR, 2)
 	var from_box := (GameConfig.COMPLAINT_BOX_CAPACITY - Formulas.intern_stress_free(state)) * GameConfig.INTERN_STRESS_RATE * 4.0
 	var from_shouting := GameConfig.INTERN_YELL_RATE * (4.0 - 0.05)
-	assert_eq(visitor.phase, ComplaintVisitor.Phase.TALKING)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.VENTING)
 	assert_almost_eq(state.intern.stress, factor * (from_box + from_shouting), 0.002)
 
 
@@ -1004,6 +1189,8 @@ func test_new_content_is_translated_and_has_icons() -> void:
 		keys.append("INTERN_CRY_%d" % (i + 1))
 	for i in Flavor.INTERN_NERVOUS_COUNT:
 		keys.append("INTERN_NERVOUS_%d" % (i + 1))
+	for i in GameConfig.VENT_DIALOGS:
+		keys.append("VENT_%d" % (i + 1))
 	for i in Flavor.COFFEE_SERVED_COUNT:
 		keys.append("COFFEE_SERVED_%d" % (i + 1))
 	var previous := TranslationServer.get_locale()
@@ -1061,6 +1248,16 @@ func test_world_view_draws_the_hall_life() -> void:
 	coffee_intern.carrying = true
 	coffee_intern.position = layout.complaint_desk_point() + Vector2(-200, 0)
 	await _look_at(game, world, layout.complaint_desk_point())
+	for visitor in hall_state.visitors:
+		visitor.phase = ComplaintVisitor.Phase.VENTING
+		visitor.position = layout.vent_spot(visitor.slot)
+		visitor.duration = GameConfig.VISITOR_VENT_SECONDS
+		visitor.timer = GameConfig.VISITOR_VENT_SECONDS
+	await _look_at(game, world, layout.complaint_desk_point())
+	for visitor in hall_state.visitors:
+		visitor.timer = 0.5
+	await _look_at(game, world, layout.complaint_desk_point())
+	assert_true(world._visitor_speaking(hall_state))
 	for visitor in hall_state.visitors:
 		visitor.timer = 3.0
 		visitor.phase = ComplaintVisitor.Phase.LEAVING

@@ -295,6 +295,8 @@ func test_speech_and_floater_flavor_fits_on_one_line() -> void:
 			speech.append(Flavor.intern_cry(i))
 		for i in Flavor.INTERN_NERVOUS_COUNT:
 			speech.append(Flavor.intern_nervous(i))
+		for i in GameConfig.VENT_DIALOGS:
+			speech.append(Flavor.vent(i))
 		for i in Flavor.CHAT_COUNT:
 			speech.append(Flavor.chat(i))
 		for i in Flavor.SLOW_COUNT:

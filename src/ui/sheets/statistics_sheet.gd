@@ -37,6 +37,9 @@ func build(container: VBoxContainer) -> void:
 	container.add_child(_phone_card())
 	container.add_child(_hall_card(ThroughputReport.SEATING, Icons.SEAT))
 	container.add_child(_hall_card(ThroughputReport.WAITING, Icons.HOURGLASS))
+	if game.state.tickets_unlocked():
+		container.add_child(_ticket_card(ThroughputReport.TICKETS, Icons.TICKET))
+		container.add_child(_ticket_card(ThroughputReport.CALLS, Icons.CALL_DISPLAY))
 	container.add_child(UiKit.label(tr("STATS_SECTION_ABSENCES"), "TitleMedium"))
 	container.add_child(_absence_card())
 	container.add_child(UiKit.label(tr("STATS_SECTION_OFFICIALS"), "TitleMedium"))
@@ -94,7 +97,7 @@ static func upgrade_target(state: GameState, entry: Dictionary, upgrade: Diction
 			return ["research", ""]
 		ThroughputReport.RUNNER, ThroughputReport.HELPER, ThroughputReport.COLLECTOR, ThroughputReport.HR, ThroughputReport.GUARD:
 			return ["team", ""]
-		ThroughputReport.SEATS, ThroughputReport.WAITING_SEATS, ThroughputReport.CLERK:
+		ThroughputReport.SEATS, ThroughputReport.WAITING_SEATS, ThroughputReport.CLERK, ThroughputReport.TICKET_MACHINE, ThroughputReport.TICKET_DISPLAY:
 			return ["building", ""]
 	var station := state.station(str(entry.key))
 	if station == null:
@@ -463,6 +466,17 @@ func _reject_card() -> Control:
 		measured.text = _rate(ProductionStats.REJECT_SHREDDED)
 		var extra: Array[String] = [tr("FMT_STATS_HANDLED_BY") % [_rate(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_PLAYER), _rate(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF)]]
 		extra.append(tr("FMT_STATS_REJECT_STATE") % [state.rejects_waiting(), state.collectors.size()])
+		footer.call(extra)
+	)
+	return parts.card
+
+
+func _ticket_card(kind: String, icon_code: String) -> Control:
+	var parts := _area_card(kind, icon_code)
+	var footer := _area_footer(parts.column, kind)
+	track(func() -> void:
+		var state := game.state
+		var extra: Array[String] = [tr("FMT_STATS_TICKETS") % [state.ticket_line.size(), state.ticket_waiting.size(), state.tickets_called]]
 		footer.call(extra)
 	)
 	return parts.card

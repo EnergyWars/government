@@ -1,5 +1,7 @@
 extends GutTest
 
+const ALWAYS_COMPLAINS := 4.0
+
 var state: GameState
 var sim: Simulation
 var layout: WorldLayout
@@ -974,25 +976,35 @@ func test_angry_visitor_stresses_the_calmest_intern() -> void:
 	state.research["shredder_service"] = 1
 	state.add_helper()
 	state.intern.stress = 0.5
-	sim.spawn_visitor(true, false)
+	var visitor := sim.spawn_visitor(true, false)
+	visitor.phase = ComplaintVisitor.Phase.TO_INTERNS
+	visitor.position = layout.vent_spot(visitor.slot)
 	_run(3.0, 0.5)
 	assert_gt(state.helpers[0].stress, 0.0)
 
 
-func test_leaving_citizen_files_a_complaint() -> void:
-	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+func _leaver(patience_factor: float = 1.0) -> CaseFile:
 	var waiting := _case("general_services")
-	waiting.waited = Formulas.patience(state)
+	waiting.patience_factor = patience_factor
+	waiting.waited = Formulas.citizen_patience(state, waiting)
 	state.station(GameConfig.RECEPTION).inbox.append(waiting)
+	return waiting
+
+
+func test_patient_leaver_files_a_complaint() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	_leaver(ALWAYS_COMPLAINS)
 	sim.tick(0.1)
-	assert_eq(state.visitors.size() + state.complaints, 1)
+	assert_eq(state.citizens_lost, 1)
+	assert_eq(state.visitors.size(), 1)
+	assert_false(state.visitors[0].angry)
+	assert_true(state.visitors[0].files_complaint)
 
 
 func test_leaving_citizen_without_experience_does_not_complain() -> void:
-	var waiting := _case("general_services")
-	waiting.waited = Formulas.patience(state)
-	state.station(GameConfig.RECEPTION).inbox.append(waiting)
+	_leaver(ALWAYS_COMPLAINS)
 	sim.tick(0.1)
+	assert_eq(state.citizens_lost, 1)
 	assert_eq(state.visitors.size() + state.complaints, 0)
 
 
@@ -1000,11 +1012,44 @@ func test_leaving_citizen_files_directly_when_no_slot_is_free() -> void:
 	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
 	for i in GameConfig.VISITOR_SLOTS:
 		sim.spawn_visitor(false, false)
-	var waiting := _case("general_services")
-	waiting.waited = Formulas.patience(state)
-	state.station(GameConfig.RECEPTION).inbox.append(waiting)
+	_leaver(ALWAYS_COMPLAINS)
 	sim.tick(0.1)
-	assert_eq(state.complaints, 1)
+	assert_eq(state.complaints + state.complaints_fended, 1)
+	assert_eq(state.visitors.size(), GameConfig.VISITOR_SLOTS)
+
+
+func test_complaints_of_leavers_are_bundled() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	for i in 5:
+		_leaver(ALWAYS_COMPLAINS)
+	sim.tick(0.1)
+	assert_eq(state.citizens_lost, 5)
+	assert_eq(state.visitors.size() + state.complaints, 1)
+	assert_almost_eq(state.leave_complaint_cooldown, GameConfig.LEAVE_COMPLAINT_COOLDOWN - 0.1, 0.0001)
+	state.leave_complaint_cooldown = 0.05
+	_leaver(ALWAYS_COMPLAINS)
+	sim.tick(0.1)
+	assert_eq(state.citizens_lost, 6)
+	assert_eq(state.visitors.size() + state.complaints, 1)
+	assert_eq(state.leave_complaint_cooldown, 0.0)
+	_leaver(ALWAYS_COMPLAINS)
+	sim.tick(0.1)
+	assert_eq(state.citizens_lost, 7)
+	assert_eq(state.visitors.size() + state.complaints, 2)
+
+
+func test_only_some_leavers_complain() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	var attempts := 400
+	var complained := 0
+	for i in attempts:
+		state.leave_complaint_cooldown = 0.0
+		state.visitors.clear()
+		if sim.complain_after_leaving(Formulas.leave_complaint_chance(_case("general_services")), false):
+			complained += 1
+	var expected := attempts * GameConfig.LEAVE_COMPLAINT_CHANCE
+	assert_between(complained, int(expected * 0.6), int(expected * 1.4))
+	assert_eq(state.complaints, 0)
 
 
 func test_complaint_box_level_raises_the_cap() -> void:

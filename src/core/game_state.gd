@@ -71,6 +71,14 @@ var dispute_timer := GameConfig.DISPUTE_FIRST_SECONDS
 var waiting_level := 0
 var walkouts := 0
 var seating_level := 0
+var ticket_machine_level := 0
+var ticket_display_level := 0
+var ticket_line: Array[CaseFile] = []
+var ticket_waiting: Array[CaseFile] = []
+var ticket_progress := 0.0
+var ticket_call_progress := 0.0
+var tickets_drawn := 0
+var tickets_called := 0
 var breakdowns := 0
 var coffees_served := 0
 var disputes_solved := 0
@@ -185,6 +193,26 @@ func seated_citizens() -> int:
 		if case_file.takes_seat():
 			count += 1
 	return count
+
+
+func tickets_unlocked() -> bool:
+	return building_stage >= GameConfig.TICKET_UNLOCK_STAGE
+
+
+func lobby_used() -> int:
+	var reception_station := station(GameConfig.RECEPTION)
+	var used := ticket_line.size() + ticket_waiting.size()
+	if reception_station != null:
+		used += reception_station.inbox.size()
+	return used
+
+
+func lobby_has_space() -> bool:
+	return lobby_used() < lobby_capacity()
+
+
+func ticket_line_has_space() -> bool:
+	return ticket_line.size() < GameConfig.TICKET_LINE_SLOTS and lobby_has_space()
 
 
 func has_free_seat() -> bool:
@@ -697,6 +725,14 @@ func to_dict() -> Dictionary:
 		"dispute_timer": dispute_timer,
 		"waiting_level": waiting_level,
 		"seating_level": seating_level,
+		"ticket_machine_level": ticket_machine_level,
+		"ticket_display_level": ticket_display_level,
+		"ticket_line": ticket_line.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
+		"ticket_waiting": ticket_waiting.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
+		"ticket_progress": ticket_progress,
+		"ticket_call_progress": ticket_call_progress,
+		"tickets_drawn": tickets_drawn,
+		"tickets_called": tickets_called,
 		"complaint_clerk_level": complaint_clerk_level,
 		"complaint_box_level": complaint_box_level,
 		"walkouts": walkouts,
@@ -810,6 +846,12 @@ static func from_dict(data: Dictionary) -> GameState:
 			state.helpers.append(ComplaintIntern.from_dict(entry, layout.intern_home(state.helpers.size() + 1), state.helpers.size() + 1))
 	state.waiting_level = clampi(int(data.get("waiting_level", 0)), 0, GameConfig.WAITING_MAX_LEVEL)
 	state.seating_level = clampi(int(data.get("seating_level", 0)), 0, GameConfig.SEATING_MAX_LEVEL)
+	state.ticket_machine_level = clampi(int(data.get("ticket_machine_level", 0)), 0, GameConfig.TICKET_MAX_LEVEL)
+	state.ticket_display_level = clampi(int(data.get("ticket_display_level", 0)), 0, GameConfig.TICKET_MAX_LEVEL)
+	state.ticket_progress = clampf(float(data.get("ticket_progress", 0.0)), 0.0, GameConfig.TICKET_DRAW_SECONDS)
+	state.ticket_call_progress = clampf(float(data.get("ticket_call_progress", 0.0)), 0.0, GameConfig.TICKET_CALL_SECONDS)
+	state.tickets_drawn = maxi(0, int(data.get("tickets_drawn", 0)))
+	state.tickets_called = clampi(int(data.get("tickets_called", 0)), 0, state.tickets_drawn)
 	state.complaint_clerk_level = clampi(int(data.get("complaint_clerk_level", 0)), 0, GameConfig.COMPLAINT_CLERK_MAX_LEVEL)
 	var legacy_box := int(research_data.get("complaint_desk", 0))
 	state.complaint_box_level = clampi(maxi(int(data.get("complaint_box_level", 0)), legacy_box), 0, GameConfig.COMPLAINT_BOX_MAX_LEVEL)
@@ -864,8 +906,33 @@ static func from_dict(data: Dictionary) -> GameState:
 	state._ensure_stations()
 	state.ensure_mailroom()
 	state._restore_disputes(data.get("disputes", []))
+	state._restore_tickets(data.get("ticket_line", []), data.get("ticket_waiting", []))
 	state._repair_kitchen_slots()
 	return state
+
+
+func _restore_tickets(line_data: Variant, waiting_data: Variant) -> void:
+	ticket_line.clear()
+	ticket_waiting.clear()
+	if not tickets_unlocked():
+		return
+	_restore_ticket_cases(ticket_line, line_data, GameConfig.TICKET_LINE_SLOTS)
+	_restore_ticket_cases(ticket_waiting, waiting_data, lobby_capacity())
+	while lobby_used() > lobby_capacity() and not ticket_waiting.is_empty():
+		ticket_waiting.pop_back()
+	while lobby_used() > lobby_capacity() and not ticket_line.is_empty():
+		ticket_line.pop_back()
+
+
+func _restore_ticket_cases(target: Array[CaseFile], entries: Variant, limit: int) -> void:
+	if not entries is Array:
+		return
+	for entry in entries:
+		if target.size() >= limit or not entry is Dictionary:
+			continue
+		var case_file := CaseFile.from_dict(entry)
+		if departments.has(case_file.dept_id) and departments[case_file.dept_id].unlocked and not case_file.route.is_empty() and case_file.route[0] == GameConfig.RECEPTION and case_file.takes_seat():
+			target.append(case_file)
 
 
 func _restore_boost_timers(target: Dictionary[String, float], entries: Variant, limit_key: String) -> void:

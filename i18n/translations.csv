@@ -100,13 +100,13 @@ LABEL_CURRENT,Current,Aktuell
 SECTION_STATISTICS,Statistics,Statistik
 FMT_STATISTICS,"Cases completed: %s
 Accuracy: %s
-Citizens lost: %s (they come back to complain)
+Citizens lost: %s (some come back to complain)
 Officials woken up: %s
 Employees: %s
 Total earned: %s
 Time in office (excluding breaks): %s","Erledigte Fälle: %s
 Genauigkeit: %s
-Verlorene Bürger: %s (kommen zum Beschweren wieder)
+Verlorene Bürger: %s (manche kommen zum Beschweren wieder)
 Aufgeweckte Beamte: %s
 Mitarbeitende: %s
 Gesamteinnahmen: %s
@@ -254,7 +254,7 @@ TUTORIAL_ARROW_TEXT,"The arrow always points to the most useful job: deliver a f
 TUTORIAL_FIRST_CASE_TITLE,Your first citizen,Dein erster Bürger
 TUTORIAL_FIRST_CASE_TEXT,"Every citizen takes the same path: reception, case review, approval, collection counter. Follow the arrow. Near a tray you pick up or drop folders automatically, at a pulsing spot you work. Handwork pays: every step you do yourself raises the fee, up to 2.5 times. Finish one citizen. Do not say 'that is not my department'.","Jeder Bürger durchläuft denselben Weg: Empfang, Sachbearbeitung, Freigabe, Ausgabeschalter. Folge dem Pfeil. In der Nähe eines Fachs nimmst du Akten automatisch auf oder legst sie ab, an einem pulsierenden Platz arbeitest du. Handarbeit lohnt sich: Jeder Schritt, den du selbst erledigst, erhöht die Gebühr, bis zum 2,5-Fachen. Schließe einen Bürger ab. Sage bitte nicht „Dafür bin ich nicht zuständig“."
 TUTORIAL_QUEUE_TITLE,Queue and patience,Warteschlange und Geduld
-TUTORIAL_QUEUE_TEXT,"Waiting citizens show a bubble with their department and a patience ring. If it runs out they leave and you lose reputation. If the lobby is full, newcomers are turned away. A red tray is full: empty it first. Yes, people really do queue for this.","Wartende Bürger zeigen eine Sprechblase mit ihrer Abteilung und einen Geduldsring. Läuft er ab, gehen sie und du verlierst Ansehen. Ist die Lobby voll, werden Neuankömmlinge abgewiesen. Ein rotes Fach ist voll: leere es zuerst. Ja, dafür stellen sich Leute wirklich an."
+TUTORIAL_QUEUE_TEXT,"Waiting citizens show a bubble with their department and a patience ring. Everyone has their own patience: some leave after a short while, others wait a long time. If the ring runs out they leave and you lose reputation. If the lobby is full, newcomers are turned away. A red tray is full: empty it first. Yes, people really do queue for this.","Wartende Bürger zeigen eine Sprechblase mit ihrer Abteilung und einen Geduldsring. Jeder hat seine eigene Geduld: Manche gehen schon nach kurzer Zeit, andere warten lange. Läuft der Ring ab, gehen sie und du verlierst Ansehen. Ist die Lobby voll, werden Neuankömmlinge abgewiesen. Ein rotes Fach ist voll: leere es zuerst. Ja, dafür stellen sich Leute wirklich an."
 TUTORIAL_GOAL_TITLE,Goals,Ziele
 TUTORIAL_GOAL_TEXT,"The goal card at the top shows your current task. Serve citizens until it reaches 3 cases, then tap Claim on the flashing card. Every goal pays money and reputation, and the next goal builds on it. Think of it as a performance review, only with a bonus.","Die Zielkarte oben zeigt deine aktuelle Aufgabe. Bediene Bürger, bis 3 Fälle erreicht sind, und tippe dann auf die blinkende Karte auf Abholen. Jedes Ziel bringt Geld und Ansehen, das nächste Ziel baut darauf auf. Stell dir ein Mitarbeitergespräch vor, nur mit Bonus."
 TUTORIAL_TASKS_TITLE,Task panel,Aufgaben-Panel
@@ -368,7 +368,7 @@ GO_KITCHEN_3,Quick catch-up about colleagues.,Kurzer Austausch über Kollegen.
 FETCH_1,If you want something done… Coffee run!,Selbst ist der Beamte. Kaffee holen!
 FETCH_2,Caffeine levels critical!,Koffeinspiegel kritisch!
 FETCH_3,Quick caffeine refill.,Kurz Koffein tanken.
-SIGN_COMPLAINTS,Complaints (unread),Beschwerdestelle (ungelesen)
+SIGN_COMPLAINTS,Complaints,Beschwerdestelle
 SIGN_SHREDDER,Document shredder,Aktenschredder
 FLOAT_COMPLAINT_OVERFLOW,Complaint box full! Off to the internet.,Beschwerde-Briefkasten voll! Ab ins Internet.
 RESEARCH_SHREDDER_SERVICE,Shredder intern,Schredder-Praktikant
@@ -608,7 +608,7 @@ RESEARCH_MEDIATION,Mediation board,Schlichtungsstelle
 RESEARCH_DESC_MEDIATION,"A mediation board ends every office quarrel on its own after 120, 60 or 25 s, and quarrels break out less often.","Eine Schlichtungsstelle beendet jeden Bürostreit nach 120, 60 bzw. 25 Sek. von selbst, und es wird seltener gestritten."
 SECTION_WAITING,Waiting area,Wartebereich
 WAITING_TITLE,Waiting area,Wartebereich
-WAITING_DESC,"Visitors queue here when every seat is taken. Only when the waiting area is full too, they storm off, complain at the complaints office and cost reputation.","Besucher warten hier, wenn alle Sitzplätze belegt sind. Erst wenn auch der Wartebereich voll ist, stürmen sie davon, beschweren sich an der Beschwerdestelle und kosten Ansehen."
+WAITING_DESC,"Visitors queue here when every seat is taken. Only when the waiting area is full too, they storm off and cost reputation. Now and then one of them complains at the complaints office.","Besucher warten hier, wenn alle Sitzplätze belegt sind. Erst wenn auch der Wartebereich voll ist, stürmen sie davon und kosten Ansehen. Ab und zu beschwert sich einer davon an der Beschwerdestelle."
 FMT_WAITING_INFO,Seats: %d · +%d per extension · walk-outs so far: %d,Sitzplätze: %d · +%d pro Ausbau · bisher abgehauen: %d
 FMT_WAITING_LEVEL,%s %d/%d,%s %d/%d
 ACTION_BUILD_SEATS,Add seats,Sitzplätze ausbauen
@@ -696,7 +696,7 @@ VISIT_13_1,I've been passed on three times!,Ich wurde dreimal weitergeleitet!
 VISIT_13_2,Then you're almost through.,Dann haben Sie es ja fast geschafft.
 VISIT_13_3,I'm through with this place!,Geschafft bin ich schon lange!
 VISIT_14_1,The toilets have been occupied for an hour!,Die Toiletten sind seit einer Stunde besetzt!
-VISIT_14_2,"By our staff, I'm afraid.",Leider vom Personal.
+VISIT_14_2,By staff. We were here first.,Vom Personal. Wir waren zuerst da.
 VISIT_14_3,Then who is working?!,Und wer arbeitet dann?!
 VISIT_15_1,My file is gone!,Meine Akte ist weg!
 VISIT_15_2,Not gone. Just misfiled.,Nicht weg. Nur falsch abgelegt.
@@ -747,35 +747,35 @@ VISIT_30_1,This office is hopeless!,Dieses Amt ist hoffnungslos!
 VISIT_30_2,Hope is handled in room 4.,Für Hoffnung ist Zimmer 4 zuständig.
 VISIT_30_3,Room 4 sent me here!,Zimmer 4 hat mich hergeschickt!
 YELL_1_1,THIS IS AN OUTRAGE!,DAS IST EINE UNVERSCHÄMTHEIT!
-YELL_1_2,P-please lower your voice…,B-bitte etwas leiser …
-YELL_1_3,I AM LOWERING IT!!!,ICH BIN LEISE!!!
+YELL_1_2,"No, this is Tuesday.","Nein, das ist Dienstag."
+YELL_1_3,I KNOW IT'S TUESDAY!!!,"ICH WEISS, DASS DIENSTAG IST!!!"
 YELL_2_1,I'M GIVING YOU ONE STAR!,ICH GEBE IHNEN EINEN STERN!
-YELL_2_2,J-just one?,N-nur einen?
-YELL_2_3,ZERO! BUT THAT'S NOT ALLOWED!,NULL! ABER DAS GEHT JA NICHT!
+YELL_2_2,Keep it. You need it more than we do.,Behalten Sie ihn. Sie haben ja sonst nichts.
+YELL_2_3,HOW DARE YOU!,WAS ERLAUBEN SIE SICH!
 YELL_3_1,YOUR COMPLAINT DESK IS A JOKE!,IHRE BESCHWERDESTELLE IST EIN WITZ!
-YELL_3_2,"J-jokes go in the box, please…",W-Witze bitte in den Briefkasten …
-YELL_3_3,THE BOX IS FULL ALREADY!,DER IST DOCH SCHON VOLL!
+YELL_3_2,And you're the punchline.,Und Sie sind die Pointe.
+YELL_3_3,THAT WASN'T FUNNY!,DAS WAR NICHT LUSTIG!
 YELL_4_1,I'VE BEEN WAITING FOR HOURS!,ICH WARTE SEIT STUNDEN!
-YELL_4_2,H-have you tried sitting down?,H-haben Sie es mit Hinsetzen versucht?
-YELL_4_3,THERE ARE NO FREE CHAIRS!,ES GIBT KEINEN FREIEN STUHL!
+YELL_4_2,Splendid. Then you're warmed up.,Prima. Dann sind Sie ja schon eingewartet.
+YELL_4_3,WARMED UP FOR WHAT?!,EINGEWARTET WOFÜR?!
 YELL_5_1,THE MAYOR IS MY BROTHER-IN-LAW!,DER BÜRGERMEISTER IST MEIN SCHWAGER!
-YELL_5_2,H-he has a shredder too…,D-der hat auch einen Schredder …
-YELL_5_3,THEN I'LL WRITE TO HIS WIFE!,DANN SCHREIBE ICH SEINER FRAU!
+YELL_5_2,My condolences. To him.,"Mein Beileid. Ihm, nicht Ihnen."
+YELL_5_3,I'M TELLING HIM THAT!,DAS SAGE ICH IHM!
 YELL_6_1,I WANT TO SEE THE MANAGER!,ICH WILL DEN VORGESETZTEN SPRECHEN!
-YELL_6_2,H-he's crying in the toilets…,D-der weint gerade auf der Toilette …
-YELL_6_3,THEN I'LL WAIT OUTSIDE!,DANN WARTE ICH DAVOR!
+YELL_6_2,The manager doesn't want to see you.,Der Vorgesetzte will Sie aber nicht sprechen.
+YELL_6_3,HE CAN TELL ME HIMSELF!,DAS SOLL ER MIR INS GESICHT SAGEN!
 YELL_7_1,MY CASE IS URGENT!!!,MEIN FALL IST DRINGEND!!!
-YELL_7_2,E-every case is urgent…,A-alle Fälle sind dringend …
-YELL_7_3,MINE IS MORE URGENT!,MEINER IST DRINGENDER!
+YELL_7_2,Your case is file 4711. Nothing more.,Ihr Fall ist Akte 4711. Mehr nicht.
+YELL_7_3,I AM NOT A NUMBER!,ICH BIN KEINE NUMMER!
 YELL_8_1,I PAY YOUR SALARY!,ICH ZAHLE IHR GEHALT!
-YELL_8_2,"C-can I ask you for a raise, then…?",D-darf ich bei Ihnen eine Erhöhung beantragen …?
-YELL_8_3,ONLY IN WRITING!,NUR SCHRIFTLICH!
+YELL_8_2,Then kindly pay a bit more.,Dann zahlen Sie gefälligst mehr.
+YELL_8_3,UNBELIEVABLE!,UNGLAUBLICH!
 YELL_9_1,THIS IS THE THIRD TIME TODAY!,DAS IST HEUTE DAS DRITTE MAL!
-YELL_9_2,A-actually it's the fourth…,E-eigentlich das vierte …
+YELL_9_2,"Fourth. Counting is hard, I know.","Das vierte. Zählen ist schwer, ich weiß."
 YELL_9_3,DON'T CORRECT ME!,KORRIGIEREN SIE MICH NICHT!
 YELL_10_1,I'M CALLING THE PAPERS!,ICH RUFE DIE ZEITUNG AN!
-YELL_10_2,Th-they complained here last week too…,D-die hat sich letzte Woche auch beschwert …
-YELL_10_3,GOOD! THEN THEY KNOW!,GUT! DANN WISSEN DIE JA BESCHEID!
+YELL_10_2,Go ahead. We use it as scrap paper.,Nur zu. Die nehmen wir als Schmierpapier.
+YELL_10_3,THEN I'LL CALL THE TV!,DANN EBEN DAS FERNSEHEN!
 INTERN_CRY_1,Sniff… I wanted to work in media.,Schnief … ich wollte doch was mit Medien machen.
 INTERN_CRY_2,The contract said 'varied tasks'…,Im Vertrag stand ‚abwechslungsreich‘ …
 INTERN_CRY_3,Waaah! And all for zero pay!,Buhuuu! Und das für null Euro!
@@ -783,6 +783,19 @@ INTERN_CRY_4,I'm only the intern…,Ich bin doch nur Praktikant …
 INTERN_NERVOUS_1,I can do this… I can do this… no.,Ich schaffe das … ich schaffe das … nein.
 INTERN_NERVOUS_2,My eye twitches in time with the stamps.,Mein Auge zuckt im Takt der Stempel.
 INTERN_NERVOUS_3,Does this count as work experience?,Zählt das hier als Berufserfahrung?
+VENT_1,The man at the desk was rude to me!,Der da vorne war unverschämt zu mir!
+VENT_2,"You're in charge here, aren't you?!","Sie sind doch hier zuständig, oder?!"
+VENT_3,Write this down! Word for word!,Schreiben Sie das auf! Wort für Wort!
+VENT_4,I want this in writing. Now!,Ich will das schriftlich. Sofort!
+VENT_5,Stop shaking and listen to me!,Hören Sie auf zu zittern und hören Sie zu!
+VENT_6,And they pay you for this?!,Und dafür werden Sie auch noch bezahlt?!
+VENT_7,Your colleague laughed at me!,Ihr Kollege hat mich ausgelacht!
+VENT_8,"Right, from the top. Again!","So, und jetzt nochmal von vorne!"
+VENT_9,Where is the complaint box?!,Wo ist hier der Beschwerde-Briefkasten?!
+VENT_10,"This cannot go on, young man!","So geht das nicht weiter, junger Mann!"
+INTERN_NERVOUS_4,"Y-yes, I'm writing it all down…","J-ja, ich schreibe alles mit …"
+INTERN_NERVOUS_5,Th-the box is just to the right…,D-der Kasten ist gleich rechts …
+INTERN_NERVOUS_6,May I go and cry for a minute?,Darf ich kurz weinen gehen?
 COFFEE_SERVED_1,"Your coffee. Milk, sugar, zero appreciation.","Ihr Kaffee. Milch, Zucker, null Wertschätzung."
 COFFEE_SERVED_2,Freshly brewed. Please don't nod off again.,Frisch gebrüht. Bitte nicht wieder einschlafen.
 COFFEE_SERVED_3,"Black, like my soul.","Schwarz, wie meine Seele."
@@ -1350,3 +1363,19 @@ CLERK_FEND_9,Did you try waiting a bit longer?,Haben Sie es schon mit noch läng
 CLERK_FEND_10,Your number has expired. Please draw a new one.,Ihre Nummer ist abgelaufen. Bitte ziehen Sie eine neue.
 CLERK_FEND_11,"Wow, a complaint. Nobody has ever had that idea.","Oh, eine Beschwerde. Auf die Idee ist ja noch keiner gekommen."
 CLERK_FEND_12,"The citizen leaves, persuaded and confused.",Bürger zieht überzeugt und verwirrt wieder ab.
+TICKET_MACHINE_TITLE,Ticket machine,Wartemarkenautomat
+TICKET_MACHINE_DESC,"Every citizen first draws a number here before handing in an application. The machine takes its time. Stand next to it to help, or upgrade it.","Jeder Bürger zieht hier zuerst eine Nummer, bevor er seinen Antrag abgeben darf. Der Automat lässt sich Zeit. Stell dich daneben, um zu helfen, oder rüste ihn auf."
+ACTION_UPGRADE_TICKET_MACHINE,Upgrade machine,Automat aufrüsten
+FMT_TICKET_MACHINE_INFO,%s s per number · queue at the machine: %d/%d,%s s pro Nummer · Schlange am Automaten: %d/%d
+TICKET_DISPLAY_TITLE,Call display,Aufrufanzeige
+TICKET_DISPLAY_DESC,"Citizens with a number wait in the waiting area until it is called. Only then may they go to the reception. Stand next to the display to call faster, or upgrade it.","Bürger mit Nummer warten im Wartebereich, bis sie aufgerufen wird. Erst dann dürfen sie zum Empfang. Stell dich an die Anzeige, um schneller aufzurufen, oder rüste sie auf."
+ACTION_UPGRADE_TICKET_DISPLAY,Upgrade display,Anzeige aufrüsten
+FMT_TICKET_DISPLAY_INFO,%s s per call · waiting with a number: %d · last called: no. %d,%s s pro Aufruf · warten mit Nummer: %d · zuletzt aufgerufen: Nr. %d
+FMT_TICKETS_LOCKED,Opens with building stage %d.,Öffnet mit Ausbaustufe %d.
+AREA_TICKETS,Ticket machine,Wartemarkenautomat
+AREA_CALLS,Call display,Aufrufanzeige
+UPGRADE_TICKET_MACHINE,Upgrade ticket machine,Wartemarkenautomat aufrüsten
+UPGRADE_TICKET_DISPLAY,Upgrade call display,Aufrufanzeige aufrüsten
+FMT_STATS_TICKETS,At the machine: %d · waiting with a number: %d · called so far: %d,Am Automaten: %d · warten mit Nummer: %d · bisher aufgerufen: %d
+FMT_TICKET_NUMBER,No. %d,Nr. %d
+FMT_TICKET_CALL,"Number %d, please.","Nummer %d, bitte."

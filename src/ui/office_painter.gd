@@ -403,3 +403,9 @@ static func mailbox(canvas: CanvasItem, base: Vector2) -> void:
 	canvas.draw_rect(box, AppTheme.POST_YELLOW.darkened(0.35), false, 2.0)
 	canvas.draw_rect(Rect2(box.position + Vector2(8, 8), Vector2(28, 4)), AppTheme.POST_HORN)
 	canvas.draw_arc(box.get_center() + Vector2(0, 6), 7.0, 0, PI, 10, AppTheme.POST_HORN, 2.0)
+
+
+static func call_display(canvas: CanvasItem, rect: Rect2) -> void:
+	canvas.draw_rect(Rect2(rect.position + Vector2(2, 3), rect.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(rect, AppTheme.CALL_DISPLAY_BG)
+	canvas.draw_rect(rect, AppTheme.METAL_DARK, false, 2.0)

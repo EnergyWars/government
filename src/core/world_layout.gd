@@ -235,6 +235,23 @@ func waiting_seat(index: int) -> Vector2:
 	return waiting_area.position + Vector2(22.0 + col * SEAT_SPACING.x, 22.0 + row * SEAT_SPACING.y)
 
 
+func ticket_machine_point() -> Vector2:
+	return Vector2(hall.end.x - 56.0, hall.position.y + 236.0)
+
+
+func ticket_line_point(index: int) -> Vector2:
+	var slot := clampi(index, 0, GameConfig.TICKET_LINE_SLOTS - 1)
+	return Vector2(hall.end.x - 70.0 + (slot % 2) * 42.0, hall.position.y + 290.0 + floori(slot / 2.0) * 28.0)
+
+
+func ticket_display_rect() -> Rect2:
+	return Rect2(hall.position + Vector2(400.0, 4.0), Vector2(150.0, 30.0))
+
+
+func ticket_display_point() -> Vector2:
+	return ticket_display_rect().get_center() + Vector2(0.0, 46.0)
+
+
 func queue_sign_rect() -> Rect2:
 	return Rect2(waiting_area.position + Vector2(10, waiting_area.size.y + 6), Vector2(200, 24))
 
@@ -248,7 +265,7 @@ func complaint_desk_point() -> Vector2:
 
 
 func complaint_box_point() -> Vector2:
-	return complaint_desk_point() + Vector2(64.0, 0.0)
+	return complaint_desk_point() + Vector2(176.0, 0.0)
 
 
 func complaint_clerk_point() -> Vector2:
@@ -257,11 +274,11 @@ func complaint_clerk_point() -> Vector2:
 
 func complaint_read_rect() -> Rect2:
 	var desk := complaint_desk_point()
-	return Rect2(desk + Vector2(-120.0, -80.0), Vector2(240.0, 120.0))
+	return Rect2(desk + Vector2(-120.0, -80.0), Vector2(complaint_box_point().x - desk.x + 160.0, 120.0))
 
 
 func closed_sign_rect() -> Rect2:
-	return Rect2(Vector2(hall.end.x - 262.0, hall.end.y - 60.0), Vector2(176.0, 52.0))
+	return Rect2(Vector2(hall.end.x - 150.0, hall.end.y - 58.0), Vector2(140.0, 54.0))
 
 
 func shredder_point() -> Vector2:
@@ -270,14 +287,14 @@ func shredder_point() -> Vector2:
 
 func complaint_tube_path() -> PackedVector2Array:
 	if _complaint_tube.is_empty():
-		var desk := complaint_desk_point()
+		var box := complaint_box_point()
 		var shredder := shredder_point()
-		_complaint_tube = PackedVector2Array([desk + Vector2(64.0, -50.0), desk + Vector2(64.0, -100.0), Vector2(shredder.x, desk.y - 100.0), shredder + Vector2(0.0, -56.0)])
+		_complaint_tube = PackedVector2Array([box + Vector2(0.0, -50.0), box + Vector2(0.0, -100.0), Vector2(shredder.x, box.y - 100.0), shredder + Vector2(0.0, -56.0)])
 	return _complaint_tube
 
 
 func intern_home(slot: int = 0) -> Vector2:
-	return complaint_desk_point() + Vector2(104.0 + slot * 36.0, -4.0 + (slot % 2) * 14.0)
+	return complaint_desk_point() + Vector2(84.0 + slot * 28.0, -4.0 + (slot % 2) * 14.0)
 
 
 func intern_cry_point(slot: int = 0) -> Vector2:
@@ -285,12 +302,21 @@ func intern_cry_point(slot: int = 0) -> Vector2:
 
 
 func intern_shred_point(slot: int = 0) -> Vector2:
-	return shredder_point() + Vector2(-56.0 - slot * 24.0, 10.0)
+	return shredder_point() + Vector2(-46.0 - slot * 18.0, 12.0 + (slot % 2) * 10.0)
 
 
 func visitor_spot(slot: int) -> Vector2:
 	var index := clampi(slot, 0, GameConfig.VISITOR_SLOTS - 1)
 	return complaint_desk_point() + Vector2(-70.0 - index * 44.0, 30.0 + (index % 2) * 18.0)
+
+
+func vent_spot(slot: int) -> Vector2:
+	var index := clampi(slot, 0, GameConfig.VISITOR_SLOTS - 1)
+	return intern_home(index) + Vector2(-4.0, 44.0 - (index % 2) * 10.0)
+
+
+func complaint_drop_spot() -> Vector2:
+	return complaint_box_point() + Vector2(34.0, 20.0)
 
 
 func guard_post(index: int) -> Vector2:

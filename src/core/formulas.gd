@@ -177,6 +177,34 @@ static func seating_area_cost(state: GameState) -> float:
 	return GameConfig.SEATING_COST * pow(GameConfig.SEATING_GROWTH, state.seating_level)
 
 
+static func ticket_machine_cost(state: GameState) -> float:
+	return GameConfig.TICKET_MACHINE_COST * pow(GameConfig.TICKET_MACHINE_GROWTH, state.ticket_machine_level)
+
+
+static func ticket_display_cost(state: GameState) -> float:
+	return GameConfig.TICKET_DISPLAY_COST * pow(GameConfig.TICKET_DISPLAY_GROWTH, state.ticket_display_level)
+
+
+static func ticket_draw_time(level: int) -> float:
+	return GameConfig.TICKET_DRAW_SECONDS * pow(GameConfig.TICKET_LEVEL_FACTOR, clampi(level, 0, GameConfig.TICKET_MAX_LEVEL))
+
+
+static func ticket_call_time(level: int) -> float:
+	return GameConfig.TICKET_CALL_SECONDS * pow(GameConfig.TICKET_LEVEL_FACTOR, clampi(level, 0, GameConfig.TICKET_MAX_LEVEL))
+
+
+static func ticket_speed(by_hand: bool) -> float:
+	return GameConfig.TICKET_HAND_FACTOR if by_hand else 1.0
+
+
+static func ticket_draw_rate(state: GameState) -> float:
+	return 1.0 / ticket_draw_time(state.ticket_machine_level)
+
+
+static func ticket_call_rate(state: GameState) -> float:
+	return 1.0 / ticket_call_time(state.ticket_display_level)
+
+
 static func coffee_alert(state: GameState) -> float:
 	return alert_duration(state) * GameConfig.COFFEE_SERVE_BONUS
 
@@ -899,4 +927,9 @@ static func waiting_count(state: GameState, dept: Department) -> int:
 	for case_file in entry.inbox:
 		if case_file.dept_id == dept.id:
 			count += 1
+	if not dept.is_customs():
+		for holders: Array[CaseFile] in [state.ticket_line, state.ticket_waiting]:
+			for case_file in holders:
+				if case_file.dept_id == dept.id:
+					count += 1
 	return count

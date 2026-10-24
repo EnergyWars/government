@@ -23,7 +23,7 @@ const REJECT_COUNT := 4
 const GO_KITCHEN_COUNT := 3
 const FETCH_COUNT := 3
 const INTERN_CRY_COUNT := 4
-const INTERN_NERVOUS_COUNT := 3
+const INTERN_NERVOUS_COUNT := 6
 const COFFEE_SERVED_COUNT := 3
 const DISPUTE_LINES := 4
 const SECONDS_PER_DAY := 86400
@@ -120,6 +120,10 @@ static func fetch(index: int) -> String:
 static func visit_line(angry: bool, dialog: int, line: int) -> String:
 	var prefix := "YELL" if angry else "VISIT"
 	return TranslationServer.translate("%s_%d_%d" % [prefix, dialog + 1, line + 1])
+
+
+static func vent(index: int) -> String:
+	return TranslationServer.translate("VENT_%d" % (posmod(index, GameConfig.VENT_DIALOGS) + 1))
 
 
 static func guard_line(dialog: int, line: int) -> String:

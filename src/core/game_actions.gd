@@ -238,6 +238,30 @@ func upgrade_seating_area() -> bool:
 	return true
 
 
+func can_upgrade_ticket_machine() -> bool:
+	return state.tickets_unlocked() and state.ticket_machine_level < GameConfig.TICKET_MAX_LEVEL and state.can_afford(Formulas.ticket_machine_cost(state))
+
+
+func upgrade_ticket_machine() -> bool:
+	if not can_upgrade_ticket_machine():
+		return false
+	state.spend(Formulas.ticket_machine_cost(state))
+	state.ticket_machine_level += 1
+	return true
+
+
+func can_upgrade_ticket_display() -> bool:
+	return state.tickets_unlocked() and state.ticket_display_level < GameConfig.TICKET_MAX_LEVEL and state.can_afford(Formulas.ticket_display_cost(state))
+
+
+func upgrade_ticket_display() -> bool:
+	if not can_upgrade_ticket_display():
+		return false
+	state.spend(Formulas.ticket_display_cost(state))
+	state.ticket_display_level += 1
+	return true
+
+
 func can_upgrade_complaint_clerk() -> bool:
 	return state.complaint_clerk_level < GameConfig.COMPLAINT_CLERK_MAX_LEVEL and state.can_afford(Formulas.complaint_clerk_cost(state))
 

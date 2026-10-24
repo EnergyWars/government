@@ -171,16 +171,33 @@ func test_hall_offers_clerk_and_box_upgrades() -> void:
 	assert_false(GameConfig.RESEARCH_ORDER.has("complaint_desk"))
 
 
-func test_layout_places_box_next_to_the_staffed_desk() -> void:
+func test_layout_places_box_apart_from_the_desk_with_the_interns_beside_it() -> void:
 	var desk := layout.complaint_desk_point()
 	var box := layout.complaint_box_point()
 	assert_true(layout.hall.has_point(box))
-	assert_true(layout.near(desk, box))
+	assert_false(layout.near(desk, box))
 	assert_false(layout.near(box, layout.shredder_point()))
 	assert_true(layout.complaint_read_rect().has_point(box))
+	assert_true(layout.complaint_read_rect().has_point(desk))
+	assert_false(layout.complaint_read_rect().has_point(layout.shredder_point()))
 	assert_lt(layout.complaint_clerk_point().y, desk.y)
 	for slot in GameConfig.MAX_HELPERS + 1:
-		assert_gt(layout.intern_home(slot).x - box.x, 30.0)
+		var home := layout.intern_home(slot)
+		assert_between(home.x, desk.x + 60.0, box.x - 30.0, str(slot))
+		assert_lt(layout.intern_shred_point(slot).x, layout.shredder_point().x)
+		assert_gt(layout.intern_shred_point(slot).x - box.x, 30.0)
+	assert_true(layout.near(layout.intern_home(GameConfig.MAX_HELPERS), box))
+	for slot in GameConfig.VISITOR_SLOTS:
+		var spot := layout.vent_spot(slot)
+		assert_true(layout.hall.has_point(spot), str(slot))
+		assert_gt(spot.x, desk.x + 40.0)
+		assert_lt(spot.x, box.x)
+	assert_eq(layout.vent_spot(99), layout.vent_spot(GameConfig.VISITOR_SLOTS - 1))
+	assert_true(layout.hall.has_point(layout.complaint_drop_spot()))
+	assert_true(layout.near(layout.complaint_drop_spot(), box))
+	var tube := layout.complaint_tube_path()
+	assert_eq(tube[0].x, box.x)
+	assert_eq(tube[tube.size() - 1].x, layout.shredder_point().x)
 
 
 func test_closed_sign_replaces_the_desk_inside_the_hall() -> void:
@@ -189,6 +206,10 @@ func test_closed_sign_replaces_the_desk_inside_the_hall() -> void:
 	assert_false(sign.has_point(layout.complaint_box_point()))
 	assert_false(sign.has_point(layout.shredder_point()))
 	assert_false(sign.has_point(layout.complaint_desk_point()))
+	assert_false(sign.has_point(layout.complaint_drop_spot()))
+	for slot in GameConfig.MAX_HELPERS + 1:
+		assert_false(sign.has_point(layout.intern_shred_point(slot)), str(slot))
+		assert_false(sign.has_point(layout.intern_home(slot)), str(slot))
 
 
 func test_clerk_and_box_texts_exist_in_both_languages() -> void:
