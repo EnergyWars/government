@@ -1,0 +1,574 @@
+extends GutTest
+
+var state: GameState
+var sim: Simulation
+var layout: WorldLayout
+
+
+func before_each() -> void:
+	state = GameState.create_new(11)
+	sim = Simulation.new(state)
+	layout = WorldLayout.get_default()
+	for dept_id in state.departments:
+		state.departments[dept_id].arrival_timer = -1e9
+	state.player.position = Vector2(50, 50)
+
+
+func _run(seconds: float, step: float = 0.5) -> void:
+	var elapsed := 0.0
+	while elapsed < seconds:
+		sim.tick(step)
+		elapsed += step
+
+
+func _unlock_all() -> void:
+	for dept_id in GameConfig.department_ids():
+		state.unlock_department(dept_id)
+
+
+func _case(dept_id: String, step: int = 0) -> CaseFile:
+	var case_file := CaseFile.new(dept_id)
+	case_file.route = RouteBuilder.build(case_file)
+	case_file.step = step
+	return case_file
+
+
+func test_goal_reward_does_not_count_as_income() -> void:
+	var goals := GoalTracker.new(state)
+	state.cases_completed = 3
+	var earned := state.money_earned
+	var money := state.money
+	assert_true(goals.claim())
+	assert_eq(state.money_earned, earned)
+	assert_almost_eq(state.money, money + float(GameConfig.GOALS[0].money), 0.001)
+
+
+func test_grant_adds_money_without_income() -> void:
+	state.grant(50.0)
+	assert_eq(state.money, GameConfig.START_MONEY + 50.0)
+	assert_eq(state.money_earned, 0.0)
+
+
+func test_documents_know_their_next_special_stations() -> void:
+	var licence := _case("business_licences")
+	assert_true(licence.needs_inspection())
+	licence.step = licence.route.find(GameConfig.INSPECTION)
+	assert_false(licence.needs_inspection())
+	var housing := _case("housing")
+	assert_true(housing.needs_referral())
+	housing.step = housing.route.find("general_services/review")
+	assert_false(housing.needs_referral())
+	var plain := _case("general_services")
+	assert_false(plain.needs_inspection())
+	assert_false(plain.needs_referral())
+	assert_false(CaseFile.new().needs_referral())
+
+
+func test_case_file_roundtrip_keeps_new_flags() -> void:
+	var case_file := _case("general_services")
+	case_file.invalid = true
+	case_file.big = true
+	var loaded := CaseFile.from_dict(case_file.to_dict())
+	assert_true(loaded.invalid)
+	assert_true(loaded.big)
+	var legacy := CaseFile.from_dict({"dept": "general_services"})
+	assert_false(legacy.invalid)
+	assert_false(legacy.big)
+
+
+func test_full_boxes_report_side_and_station() -> void:
+	var dept := state.department("general_services")
+	assert_true(Formulas.full_boxes(state, dept).is_empty())
+	var review := state.station("general_services/review")
+	for i in review.outbox_capacity():
+		review.outbox.append(CaseFile.new("general_services"))
+	var boxes := Formulas.full_boxes(state, dept)
+	assert_eq(boxes.size(), 1)
+	assert_eq(boxes[0].key, "general_services/review")
+	assert_eq(boxes[0].side, "out")
+	var reception := state.station(GameConfig.RECEPTION)
+	for i in state.lobby_capacity():
+		reception.inbox.append(CaseFile.new("general_services"))
+	review.rejects = GameConfig.REJECT_CAPACITY
+	var sides: Array[String] = []
+	for box in Formulas.full_boxes(state, dept):
+		sides.append("%s:%s" % [box.key, box.side])
+	assert_true(sides.has("shared/reception:in"))
+	assert_true(sides.has("general_services/review:rejects"))
+	assert_true(sides.has("general_services/review:out"))
+
+
+func test_final_station_outbox_is_never_a_jam() -> void:
+	var counter := state.station(GameConfig.COUNTER)
+	for i in counter.outbox_capacity():
+		counter.outbox.append(CaseFile.new("general_services"))
+	assert_true(Formulas.full_boxes(state, state.department("general_services")).is_empty())
+
+
+func test_population_follows_served_and_lost_citizens() -> void:
+	assert_eq(Formulas.population(state), GameConfig.POPULATION_BASE)
+	state.cases_completed = 100
+	assert_eq(Formulas.population(state), GameConfig.POPULATION_BASE + 100 * GameConfig.POPULATION_PER_CASE)
+	state.cases_completed = 0
+	state.citizens_lost = 500
+	assert_eq(Formulas.population(state), GameConfig.POPULATION_BASE)
+
+
+func test_settlement_ranks_rise_with_population() -> void:
+	assert_eq(Formulas.settlement(state), "village")
+	var expectations := {500: "small_town", 3000: "town", 10000: "city", 60000: "metropolis"}
+	for cases in expectations:
+		state.cases_completed = cases
+		assert_eq(Formulas.settlement(state), expectations[cases], str(cases))
+
+
+func test_demand_grows_with_success() -> void:
+	assert_eq(Formulas.demand_growth(state), 1.0)
+	state.cases_completed = 200
+	assert_almost_eq(Formulas.demand_growth(state), 1.0 + GameConfig.DEMAND_GROWTH_SCALE * log(2.0) / log(10.0), 0.0001)
+	var dept := state.department("general_services")
+	var before := Formulas.arrival_interval(state, dept)
+	state.cases_completed = 5000
+	assert_lt(Formulas.arrival_interval(state, dept), before)
+
+
+func test_invalid_cases_start_after_minimum_and_are_deterministic() -> void:
+	assert_false(Formulas.is_invalid_case(state, 3))
+	state.cases_completed = GameConfig.REJECT_MIN_CASES
+	var hits := 0
+	for serial in 2000:
+		if Formulas.is_invalid_case(state, serial):
+			hits += 1
+	assert_between(hits, 100, 300)
+	assert_eq(Formulas.is_invalid_case(state, 7), Formulas.is_invalid_case(state, 7))
+
+
+func test_created_cases_count_serials_and_skip_follow_ups_and_customs() -> void:
+	state.cases_completed = 1000
+	_unlock_all()
+	var general := state.department("general_services")
+	var before := state.cases_spawned
+	var invalid := 0
+	for i in 400:
+		if sim.create_case(general).invalid:
+			invalid += 1
+	assert_eq(state.cases_spawned, before + 400)
+	assert_gt(invalid, 0)
+	for i in 100:
+		assert_false(sim.create_case(general, true).invalid)
+		assert_false(sim.create_case(state.department("customs")).invalid)
+
+
+func test_invalid_case_is_rejected_at_the_review() -> void:
+	var review := state.station("general_services/review")
+	var case_file := _case("general_services", 1)
+	case_file.invalid = true
+	var job := StationJob.new(case_file, 1.0)
+	job.progress = 1.0
+	review.jobs[0] = job
+	watch_signals(sim)
+	var money := state.money
+	assert_true(sim.finish_job(review, 0))
+	assert_eq(review.rejects, 1)
+	assert_eq(state.cases_rejected, 1)
+	assert_eq(state.cases_completed, 0)
+	assert_true(review.outbox.is_empty())
+	assert_null(review.jobs[0])
+	assert_gt(state.money, money)
+	assert_signal_emitted_with_parameters(sim, "case_rejected", ["general_services"])
+
+
+func test_full_reject_pile_blocks_the_review() -> void:
+	var review := state.station("general_services/review")
+	review.rejects = GameConfig.REJECT_CAPACITY
+	var case_file := _case("general_services", 1)
+	case_file.invalid = true
+	var job := StationJob.new(case_file, 1.0)
+	job.progress = 1.0
+	review.jobs[0] = job
+	assert_false(sim.finish_job(review, 0))
+	assert_eq(review.jobs[0], job)
+	assert_eq(review.rejects, GameConfig.REJECT_CAPACITY)
+
+
+func test_invalid_flag_only_rejects_at_the_own_review() -> void:
+	var counter := state.station(GameConfig.COUNTER)
+	assert_false(counter.has_reject_pile())
+	assert_false(state.station("general_services/signature").has_reject_pile())
+	_unlock_all()
+	assert_false(state.station("customs/review").has_reject_pile())
+	assert_true(state.station("tax_services/review").has_reject_pile())
+
+
+func test_player_carries_rejects_to_the_shredder() -> void:
+	var review := state.station("general_services/review")
+	review.rejects = 2
+	state.player.position = layout.reject_point("general_services/review")
+	assert_true(sim.move_complaints())
+	assert_eq(state.player.rejects, 1)
+	assert_eq(review.rejects, 1)
+	state.player.position = layout.shredder_point()
+	var money := state.money
+	watch_signals(sim)
+	assert_true(sim.move_complaints())
+	assert_eq(state.player.rejects, 0)
+	assert_almost_eq(state.money, money + GameConfig.REJECT_SHRED_REWARD, 0.001)
+	assert_signal_emitted_with_parameters(sim, "complaint_shredded", [true])
+	assert_false(sim.move_complaints())
+
+
+func test_player_cannot_overload_with_rejects() -> void:
+	var review := state.station("general_services/review")
+	review.rejects = 3
+	state.player.rejects = Formulas.carry_capacity(state)
+	state.player.position = layout.reject_point("general_services/review")
+	assert_false(sim.move_complaints())
+	assert_eq(review.rejects, 3)
+
+
+func test_shred_rejects_without_stock_does_nothing() -> void:
+	assert_eq(sim.shred_rejects(3, true), 0)
+	assert_eq(sim.shred_rejects(3, false), 0)
+
+
+func test_shredder_intern_also_shreds_rejects() -> void:
+	state.research["shredder_service"] = 1
+	var review := state.station("general_services/review")
+	review.rejects = 2
+	_run(GameConfig.SHREDDER_DELAYS[1] + 1.0)
+	assert_eq(review.rejects, 1)
+	assert_eq(state.rejects_waiting(), 1)
+
+
+func test_rejects_survive_saving() -> void:
+	state.station("general_services/review").rejects = 4
+	state.player.rejects = 2
+	state.cases_rejected = 9
+	state.cases_spawned = 77
+	var loaded := GameState.from_dict(state.to_dict())
+	assert_eq(loaded.station("general_services/review").rejects, 4)
+	assert_eq(loaded.player.rejects, 2)
+	assert_eq(loaded.cases_rejected, 9)
+	assert_eq(loaded.cases_spawned, 77)
+	var data := state.to_dict()
+	data.stations["general_services/review"].rejects = 99
+	assert_eq(GameState.from_dict(data).station("general_services/review").rejects, GameConfig.REJECT_CAPACITY)
+	data.stations["shared/counter"].rejects = 3
+	assert_eq(GameState.from_dict(data).station(GameConfig.COUNTER).rejects, 0)
+
+
+func test_guidance_points_to_rejects_and_shredder() -> void:
+	var review := state.station("general_services/review")
+	review.rejects = 1
+	var task := Guidance.next_task(state)
+	assert_eq(task.action, Guidance.REJECT)
+	assert_eq(task.point, layout.reject_point("general_services/review"))
+	state.player.rejects = 1
+	review.rejects = 0
+	assert_eq(Guidance.next_task(state).action, Guidance.SHRED)
+
+
+func test_layout_doors_are_on_both_sides_of_the_entrance() -> void:
+	assert_lt(layout.door_in().x, layout.entrance.x)
+	assert_gt(layout.door_out().x, layout.entrance.x)
+	assert_eq(layout.door_in().y, layout.door_out().y)
+
+
+func test_reject_point_sits_beside_the_output() -> void:
+	var key := "general_services/review"
+	assert_lt(layout.reject_point(key).x, layout.output_point(key).x)
+	assert_eq(layout.reject_point(key).y, layout.output_point(key).y)
+
+
+func test_tube_paths_connect_the_trays() -> void:
+	var same_room := layout.tube_path("general_services/review", "general_services/signature")
+	assert_eq(same_room.size(), 4)
+	assert_eq(same_room[0], layout.output_point("general_services/review"))
+	assert_eq(same_room[same_room.size() - 1], layout.input_point("general_services/signature"))
+	var across := layout.tube_path(GameConfig.RECEPTION, "tax_services/review")
+	assert_eq(across.size(), 6)
+	assert_eq(across[across.size() - 1], layout.input_point("tax_services/review"))
+	assert_eq(across[2].x, WorldLayout.SHAFT_X)
+	assert_same(layout.tube_path(GameConfig.RECEPTION, "tax_services/review"), across)
+
+
+func test_tube_gaps_lie_between_rooms() -> void:
+	assert_eq(layout.room_slot(GameConfig.INSPECTION), "inspection")
+	assert_eq(layout.room_slot(GameConfig.COUNTER), "")
+	assert_eq(layout.room_slot("tax_services/review"), "tax_services")
+	assert_eq(layout.tube_gap(GameConfig.COUNTER), layout.hall.position.y - WorldLayout.GAP * 0.5)
+	assert_gt(layout.tube_gap("tax_services/review"), layout.room("tax_services").end.y)
+
+
+func test_path_helpers_measure_and_interpolate() -> void:
+	var path := PackedVector2Array([Vector2(0, 0), Vector2(100, 0), Vector2(100, 50)])
+	assert_eq(WorldLayout.path_length(path), 150.0)
+	assert_eq(WorldLayout.path_point(path, 0.0), Vector2(0, 0))
+	assert_eq(WorldLayout.path_point(path, 50.0), Vector2(50, 0))
+	assert_eq(WorldLayout.path_point(path, 125.0), Vector2(100, 25))
+	assert_eq(WorldLayout.path_point(path, 999.0), Vector2(100, 50))
+	assert_eq(WorldLayout.path_point(path, -5.0), Vector2(0, 0))
+	assert_eq(WorldLayout.path_length(PackedVector2Array([Vector2(1, 1)])), 0.0)
+	assert_eq(WorldLayout.path_point(PackedVector2Array([Vector2(3, 3), Vector2(3, 3)]), 4.0), Vector2(3, 3))
+
+
+func test_pneumatic_transport_announces_each_capsule() -> void:
+	state.research["pneumatic_tubes"] = 1
+	var review := state.station("general_services/review")
+	review.outbox.append(_case("general_services", 1))
+	watch_signals(sim)
+	sim.tick(0.05)
+	assert_signal_emitted_with_parameters(sim, "case_piped", ["general_services/review", "general_services/signature", "general_services"])
+	assert_true(review.outbox.is_empty())
+
+
+func test_every_event_is_well_formed() -> void:
+	for event_id in GameConfig.EVENTS:
+		var event: Dictionary = GameConfig.EVENTS[event_id]
+		assert_true(event.has("arrival") and event.has("department") and event.has("min_cases"), event_id)
+		var mitigation := str(event.get("mitigation", ""))
+		if not mitigation.is_empty():
+			assert_true(GameConfig.RESEARCH.has(mitigation), event_id)
+		assert_gt(Formulas.event_duration(state, event_id), 0.0, event_id)
+	assert_gte(GameConfig.EVENTS.size(), 15)
+
+
+func test_every_event_can_start() -> void:
+	for event_id in GameConfig.EVENTS:
+		var fresh := GameState.create_new(5)
+		for dept_id in GameConfig.department_ids():
+			fresh.unlock_department(dept_id)
+		var simulation := Simulation.new(fresh)
+		watch_signals(simulation)
+		simulation.start_event(event_id)
+		assert_eq(fresh.event_id, event_id)
+		assert_gt(fresh.event_time_left, 0.0, event_id)
+		assert_ne(fresh.event_scope, "random", event_id)
+		assert_signal_emitted(simulation, "event_started")
+
+
+func test_eligibility_depends_on_cases_departments_and_inspection() -> void:
+	state.cases_completed = 500
+	var events := sim.eligible_events()
+	assert_true(events.has("printer_jam"))
+	assert_false(events.has("inspector_audit"))
+	assert_false(events.has("rubber_ducks"))
+	assert_false(events.has("garden_shed"))
+	state.unlock_department("business_licences")
+	assert_true(sim.eligible_events().has("inspector_audit"))
+	state.unlock_department("building_permits")
+	assert_true(sim.eligible_events().has("garden_shed"))
+	state.unlock_department("customs")
+	assert_true(sim.eligible_events().has("rubber_ducks"))
+
+
+func test_event_speed_respects_scope_and_pending_choice() -> void:
+	_unlock_all()
+	var general := state.station("general_services/review")
+	var tax := state.station("tax_services/review")
+	state.event_id = "printer_jam"
+	assert_eq(Formulas.event_speed(state, general), 0.55)
+	assert_eq(Formulas.event_speed(state, tax), 0.55)
+	state.event_id = "system_crash"
+	state.event_scope = "general_services"
+	assert_eq(Formulas.event_speed(state, general), 0.4)
+	assert_eq(Formulas.event_speed(state, tax), 1.0)
+	assert_eq(Formulas.event_speed(state, state.station(GameConfig.RECEPTION)), 1.0)
+	state.event_id = "inspector_audit"
+	state.event_scope = GameConfig.INSPECTION
+	assert_eq(Formulas.event_speed(state, state.station(GameConfig.INSPECTION)), 0.35)
+	assert_eq(Formulas.event_speed(state, general), 1.0)
+	state.event_id = "authority_comparison"
+	state.event_scope = ""
+	assert_eq(Formulas.event_speed(state, general), 1.0)
+	state.event_choice = "prepare"
+	assert_eq(Formulas.event_speed(state, general), 0.5)
+	state.event_id = "rush_hour"
+	assert_eq(Formulas.event_speed(state, general), 1.0)
+	state.event_id = ""
+	assert_eq(Formulas.event_speed(state, general), 1.0)
+
+
+func test_events_change_work_speed_in_the_simulation() -> void:
+	var review := state.station("general_services/review")
+	review.staff = 1
+	var job := StationJob.new(_case("general_services", 1), 100.0)
+	review.jobs[0] = job
+	state.event_id = "printer_jam"
+	state.event_time_left = 100.0
+	sim.tick(1.0)
+	assert_almost_eq(job.progress, 0.55, 0.01)
+	state.event_id = "fire_drill"
+	var before := job.progress
+	sim.tick(1.0)
+	assert_eq(job.progress, before)
+
+
+func test_events_change_drowsiness_and_patience() -> void:
+	var review := state.station("general_services/review")
+	var base_rate := Formulas.drowsiness_rate(state, review)
+	var base_patience := Formulas.patience(state)
+	state.event_id = "coffee_escalation"
+	assert_eq(Formulas.drowsiness_rate(state, review), base_rate * 3.0)
+	state.event_id = "monday_rush"
+	assert_almost_eq(Formulas.patience(state), base_patience * 0.6, 0.0001)
+	assert_eq(Formulas.event_arrival_multiplier(state, "general_services"), 2.5)
+	state.event_id = ""
+	assert_eq(Formulas.event_drowsy(state), 1.0)
+	assert_eq(Formulas.event_patience(state), 1.0)
+
+
+func test_renovation_and_ducks_affect_only_their_department() -> void:
+	state.event_id = "renovation"
+	state.event_scope = "housing"
+	assert_eq(Formulas.event_arrival_multiplier(state, "housing"), 0.5)
+	assert_eq(Formulas.event_arrival_multiplier(state, "general_services"), 1.0)
+	state.event_id = "rubber_ducks"
+	state.event_scope = "customs"
+	assert_eq(Formulas.event_arrival_multiplier(state, "customs"), 1.0)
+
+
+func test_research_shortens_mitigated_events() -> void:
+	assert_eq(Formulas.event_duration(state, "printer_jam"), GameConfig.EVENT_DURATION)
+	state.research["it_support"] = 2
+	assert_almost_eq(Formulas.event_duration(state, "printer_jam"), GameConfig.EVENT_DURATION * 0.7, 0.001)
+	assert_almost_eq(Formulas.event_duration(state, "fire_drill"), 20.0 * 0.7, 0.001)
+	state.research["it_support"] = 3
+	assert_almost_eq(Formulas.event_duration(state, "printer_jam"), GameConfig.EVENT_DURATION * 0.55, 0.001)
+	assert_eq(Formulas.event_duration(state, "garden_shed"), 90.0)
+	assert_eq(Formulas.event_duration(state, "authority_comparison"), GameConfig.EVENT_CHOICE_SECONDS)
+	state.research["it_support"] = 0
+	state.research["coffee_machine"] = 4
+	assert_almost_eq(Formulas.event_duration(state, "coffee_escalation"), GameConfig.EVENT_DURATION * 0.4, 0.001)
+
+
+func test_paperwork_mountain_fills_a_review_inbox() -> void:
+	sim.start_event("paperwork_mountain")
+	var review := state.station("general_services/review")
+	assert_eq(review.inbox.size(), GameConfig.BACKLOG_CASES)
+	for case_file in review.inbox:
+		assert_eq(case_file.step, 1)
+		assert_eq(case_file.current_key(), "general_services/review")
+
+
+func test_paperwork_mountain_respects_inbox_space() -> void:
+	var review := state.station("general_services/review")
+	while review.has_inbox_space(state.lobby_capacity()):
+		review.inbox.append(CaseFile.new("general_services"))
+	var size := review.inbox.size()
+	sim.start_event("paperwork_mountain")
+	assert_eq(review.inbox.size(), size)
+
+
+func test_garden_shed_adds_one_big_complex_case() -> void:
+	_unlock_all()
+	sim.start_event("garden_shed")
+	var review := state.station("building_permits/review")
+	assert_eq(review.inbox.size(), 1)
+	var shed := review.inbox[0]
+	assert_true(shed.big)
+	assert_true(shed.complex)
+	assert_false(shed.invalid)
+	assert_false(shed.urgent)
+	var normal := _case("building_permits", 1)
+	normal.complex = true
+	assert_almost_eq(Formulas.required_time(state, review, shed) / Formulas.required_time(state, review, normal), GameConfig.BIG_CASE_TIME_FACTOR, 0.001)
+	assert_almost_eq(float(Formulas.case_outcome(state, shed).money) / float(Formulas.case_outcome(state, normal).money), GameConfig.BIG_CASE_REWARD_FACTOR, 0.001)
+
+
+func test_authority_comparison_prepare_pays_reputation() -> void:
+	sim.start_event("authority_comparison")
+	assert_eq(state.event_time_left, GameConfig.EVENT_CHOICE_SECONDS)
+	assert_true(sim.resolve_event("prepare"))
+	assert_eq(state.event_choice, "prepare")
+	assert_eq(state.event_time_left, GameConfig.EVENT_PREPARE_SECONDS)
+	assert_false(sim.resolve_event("prepare"))
+	var reputation := state.reputation
+	watch_signals(sim)
+	_run(GameConfig.EVENT_PREPARE_SECONDS + 1.0)
+	assert_eq(state.event_id, "")
+	assert_eq(state.event_choice, "")
+	assert_almost_eq(state.reputation, reputation + GameConfig.EVENT_PREPARE_REPUTATION, 0.5)
+	assert_signal_emitted_with_parameters(sim, "event_ended", ["authority_comparison"])
+
+
+func test_authority_comparison_ignore_ends_without_reward() -> void:
+	sim.start_event("authority_comparison")
+	var reputation := state.reputation
+	assert_true(sim.resolve_event("ignore"))
+	assert_eq(state.event_id, "")
+	assert_eq(state.reputation, reputation)
+	assert_gt(state.event_cooldown, 0.0)
+
+
+func test_unanswered_comparison_runs_out_quietly() -> void:
+	sim.start_event("authority_comparison")
+	var reputation := state.reputation
+	_run(GameConfig.EVENT_CHOICE_SECONDS + 1.0)
+	assert_eq(state.event_id, "")
+	assert_eq(state.reputation, reputation)
+
+
+func test_cancelling_the_meeting_costs_reputation() -> void:
+	state.reputation = 10.0
+	sim.start_event("staff_meeting")
+	assert_true(sim.resolve_event("cancel"))
+	assert_eq(state.event_id, "")
+	assert_almost_eq(state.reputation, 10.0 - GameConfig.EVENT_CANCEL_PENALTY, 0.001)
+
+
+func test_resolve_event_rejects_invalid_requests() -> void:
+	assert_false(sim.resolve_event("cancel"))
+	sim.start_event("printer_jam")
+	assert_false(sim.resolve_event("cancel"))
+	sim.start_event("staff_meeting")
+	assert_false(sim.resolve_event("prepare"))
+	assert_eq(state.event_id, "staff_meeting")
+
+
+func test_event_scope_is_cleared_when_it_ends() -> void:
+	_unlock_all()
+	sim.start_event("system_crash")
+	assert_true(state.unlocked_departments().any(func(dept: Department) -> bool: return dept.id == state.event_scope))
+	state.event_time_left = 0.1
+	sim.tick(0.5)
+	assert_eq(state.event_id, "")
+	assert_eq(state.event_scope, "")
+
+
+func test_event_state_survives_saving() -> void:
+	_unlock_all()
+	sim.start_event("authority_comparison")
+	sim.resolve_event("prepare")
+	var loaded := GameState.from_dict(state.to_dict())
+	assert_eq(loaded.event_id, "authority_comparison")
+	assert_eq(loaded.event_choice, "prepare")
+	sim.start_event("system_crash")
+	loaded = GameState.from_dict(state.to_dict())
+	assert_eq(loaded.event_scope, state.event_scope)
+	var idle := GameState.create_new(1)
+	var data := idle.to_dict()
+	data.event_scope = "general_services"
+	data.event_choice = "prepare"
+	var restored := GameState.from_dict(data)
+	assert_eq(restored.event_scope, "")
+	assert_eq(restored.event_choice, "")
+
+
+func test_new_research_is_registered() -> void:
+	assert_true(GameConfig.RESEARCH_ORDER.has("it_support"))
+	assert_eq(GameConfig.RESEARCH_ORDER.size(), GameConfig.RESEARCH.size())
+	assert_true(Icons.RESEARCH.has("it_support"))
+	for event_id in GameConfig.EVENTS:
+		assert_true(Icons.EVENTS.has(event_id), event_id)
+
+
+func test_translations_exist_for_new_texts() -> void:
+	var keys: Array[String] = ["FMT_JAM", "JAM_SIDE_IN", "JAM_SIDE_OUT", "JAM_SIDE_REJECTS", "LEGEND_MARKERS", "FMT_POPULATION", "EVENT_CHOICE_PREPARE", "EVENT_CHOICE_IGNORE", "EVENT_CHOICE_CANCEL", "RESEARCH_IT_SUPPORT", "RESEARCH_DESC_IT_SUPPORT"]
+	for rank in GameConfig.SETTLEMENT_RANKS:
+		keys.append("SETTLEMENT_" + str(rank.id).to_upper())
+	for index in Flavor.REJECT_COUNT:
+		keys.append("REJECT_%d" % (index + 1))
+	for key in keys:
+		assert_ne(TranslationServer.translate(key), key, key)
+	assert_ne(Flavor.reject(0), Flavor.reject(1))

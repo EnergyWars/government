@@ -1,0 +1,14 @@
+.godot/
+.import/
+build/
+android/
+*.apk
+*.aab
+*.idsig
+export_credentials.cfg
+.mono/
+*.tmp
+*.translation
+.DS_Store
+.idea/
+*.iml

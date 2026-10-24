@@ -1,0 +1,332 @@
+Public Services Department Tycoon: Game plan
+I'd build this around a simple fantasy: start with a tiny government benefits office and grow it into a huge public services department that helps thousands of citizens every day.
+
+Compared with Customs Authority, this game is less about moving cargo and more about moving applications through a network of services. Citizens arrive with requests, the player carries files between workstations, clerks process applications, and approved cases produce funding and reputation.
+
+The main design challenge is making different public services feel distinct. A pension application, a housing benefit, and an unemployment claim could otherwise become three identical folders travelling between identical desks. So each service needs its own recognizable objects, machines, workflow, and outcome.
+1. The core gameplay loop
+
+
+
+
+
+
+
+
+
+1. Citizens arrive with requests
+
+Citizens enter the office carrying folders or displaying request icons. One needs housing assistance, another needs unemployment support, and another needs pension paperwork.
+
+
+
+
+
+
+
+
+
+
+
+2. Collect and route applications
+
+Pick up the application and carry it to the correct department. Early on, you personally deliver every file and retrieve completed cases.
+
+
+
+
+
+
+
+
+
+
+
+3. Process applications
+
+Staff check eligibility, scan supporting documents, calculate payments, and approve routine cases. Incomplete applications go to a separate review desk.
+
+
+
+
+
+
+
+
+
+
+
+4. Deliver the outcome
+
+Return an approval letter, benefit card, payment voucher, or other recognizable result to the citizen. Earn operating funds, reputation, and progression rewards.
+
+
+
+
+
+
+
+
+
+
+
+5. Expand and automate
+
+Hire caseworkers, install scanners, open specialist departments, add service counters, and eventually automate routine applications while you manage capacity and difficult cases.
+
+
+
+The satisfying part is watching the office evolve from one person carrying every file to a coordinated operation where citizens, workers, and documents move through the building almost automatically.
+2. Making different services instantly recognizable
+I'd give each service a distinct combination of icon, colour, document, workstation, and final result. That way, the player can identify an application from its appearance instead of having to read a label.
+
+
+
+
+
+
+
+
+
+Residence registration
+
+Blue · House and ID-card icon
+
+Citizens update their address or register a new residence. The workstation verifies identity and proof of address, then prints a residence certificate.
+
+
+
+
+
+
+
+
+
+
+
+
+Housing assistance
+
+Teal · House and document icon
+
+Citizens submit housing support applications. Staff check income and eligibility, then issue an approval letter or payment voucher. Complex cases go to a specialist.
+
+
+
+
+
+
+
+
+
+
+
+
+Social benefits
+
+Yellow · People icon
+
+Process unemployment support and other benefits. A calculator desk handles payment amounts, while a review station checks incomplete applications.
+
+
+
+
+
+
+
+
+
+
+
+
+Tax and payments
+
+Red · Coins and calculator icon
+
+Citizens submit payment requests, tax forms, and refund claims. The desk calculates amounts and produces a receipt or refund confirmation.
+
+
+
+
+
+
+
+
+
+
+
+
+Business support
+
+Orange · Storefront icon
+
+New businesses apply for licences, renew registrations, and request certificates. A dedicated printer produces the final business licence.
+
+
+
+
+
+
+
+
+
+
+
+
+Vehicle registration
+
+Green · Car icon
+
+Verify vehicle ownership, process registrations, and issue number plates. This department has a physical inspection bay rather than just office desks.
+
+
+
+
+
+
+
+
+
+
+
+
+Building permits
+
+Purple · Building and blueprint icon
+
+Staff review construction applications, check plans, and stamp approvals. Large blueprints and a review table make the department visually different.
+
+
+
+One important distinction: residence registration, housing assistance, and social benefits should not all have the same workflow. Registration is primarily an identity check; housing assistance involves eligibility and payment; social benefits involve ongoing claims and periodic reviews.
+
+They can share underlying mechanics, but each needs at least one unique action or object.
+3. A useful way to structure the building
+I'd organize the office into three layers.
+
+Public-facing area
+
+Reception, queue management, service counters, and citizen collection points. Citizens enter and leave here, making the flow of people easy to understand.
+
+
+
+
+Processing area
+
+Department desks, scanners, printers, payment stations, and specialist review rooms. This is where the player does most of the physical work.
+
+
+
+
+Back office
+
+Archives, storage, staff rooms, central document sorting, and eventually automated processing systems. These support the whole building rather than just one service.
+
+
+
+This creates interesting spatial decisions. Should you put the most popular service near reception? Should two departments share a scanner? Is a second printer more useful than hiring another clerk?
+
+Those decisions give the player something to manage beyond simply buying the next upgrade.
+4. Staff and their jobs
+Each employee should have a visible, understandable responsibility.
+Role	Function
+Receptionist	Directs citizens to the correct service
+Document runner	Carries applications between departments
+Clerk	Processes routine applications
+Specialist caseworker	Handles complex or incomplete cases
+Payment officer	Processes benefit payments, fees, and refunds
+Supervisor	Improves nearby staff efficiency and resolves bottlenecks
+
+Early on, the player performs all of these jobs. Later, hiring staff removes specific chores. A document runner eliminates repetitive carrying; a receptionist reduces misrouted applications; a specialist prevents difficult cases from clogging ordinary desks.
+
+I would avoid making every employee simply increase a percentage. Their roles should change what happens in the world.
+5. Progression and expansion
+
+
+
+
+
+
+
+
+
+Stage 1: Local service counter
+
+One service, one clerk, a small queue, and manual document delivery. The player learns the basic loop.
+
+
+
+
+
+
+
+
+
+
+
+Stage 2: Multi-service office
+
+Unlock residence registration, taxes, and business services. Hire a receptionist and a document runner.
+
+
+
+
+
+
+
+
+
+
+
+Stage 3: Regional administration
+
+Add housing assistance, social benefits, specialist caseworkers, and dedicated processing rooms.
+
+
+
+
+
+
+
+
+
+
+
+Stage 4: Public services centre
+
+Multiple floors, shared infrastructure, automated document routing, and interdepartmental referrals.
+
+
+
+
+
+
+
+
+
+
+
+Stage 5: City-wide administration
+
+Operate several service centres, balance their budgets, and introduce advanced automation and city-wide service targets.
+
+
+
+The later stages should introduce new management problems, not just longer queues. For example, housing assistance might depend on residence records being correct, while benefit payments depend on an approved claim. This creates a reason for departments to interact.
+6. Monetization
+The natural options are:
+- Rewarded ads: Temporarily speed up processing, receive an extra batch of office supplies, or earn a bonus for completing a service target.
+- Permanent upgrades: Faster scanners, more desks, additional storage, and improved staff capacity.
+- Premium expansions: Optional new office wings, specialist departments, and visual themes.
+- Remove ads: A one-time purchase that removes forced ads while keeping optional rewarded ads available.
+I'd avoid monetizing basic citizen services too aggressively. The player should feel rewarded for building an efficient office, not punished for failing to pay.
+7. What I'd build first
+For a prototype, I'd start with just three services:
+1. Residence registration, for a simple identity-check workflow.
+2. Tax and payments, for calculations and a distinct output.
+3. Housing assistance, for eligibility checks and specialist review.
+That gives you three different kinds of work without requiring a huge amount of content.
+
+Build one reception area, three workstations, one printer, and a small team of citizens. Test whether routing files, completing requests, and hiring staff feels satisfying before adding more departments.
+
+The central design principle is that citizens' needs create the work, the documents make it tangible, and the growing organization provides the long-term progression. If those three pieces work together, the game can feel both like a hands-on tycoon and a management simulator.

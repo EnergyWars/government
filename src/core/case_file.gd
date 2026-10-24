@@ -1,0 +1,110 @@
+class_name CaseFile
+extends RefCounted
+
+var dept_id: String
+var complex: bool
+var urgent: bool
+var suspicious: bool
+var variant := ""
+var follow_up := false
+var route: Array[String] = []
+var step := 0
+var flawed := false
+var flagged := false
+var scanned := false
+var contraband := false
+var produced := false
+var invalid := false
+var big := false
+var age := 0.0
+var waited := 0.0
+
+
+func _init(p_dept_id: String = "", p_complex: bool = false, p_urgent: bool = false, p_suspicious: bool = false) -> void:
+	dept_id = p_dept_id
+	complex = p_complex
+	urgent = p_urgent
+	suspicious = p_suspicious
+
+
+func current_key() -> String:
+	return route[step] if step < route.size() else ""
+
+
+func next_key() -> String:
+	return route[step + 1] if step + 1 < route.size() else ""
+
+
+func is_final_step() -> bool:
+	return step >= route.size() - 1
+
+
+func needs_inspection() -> bool:
+	return route.find(GameConfig.INSPECTION, step + 1) > step
+
+
+func needs_referral() -> bool:
+	var referral := str(GameConfig.department(dept_id).get("referral", ""))
+	return not referral.is_empty() and route.find(referral, step + 1) > step
+
+
+func is_overdue() -> bool:
+	return urgent and age > GameConfig.URGENT_DEADLINE
+
+
+func remove_from_route(key: String) -> void:
+	var index := route.find(key, step + 1)
+	if index > step:
+		route.remove_at(index)
+
+
+func insert_before(key: String, before: String) -> void:
+	var index := route.find(before, step + 1)
+	if index > step and not route.slice(step + 1).has(key):
+		route.insert(index, key)
+
+
+func to_dict() -> Dictionary:
+	return {
+		"dept": dept_id,
+		"complex": complex,
+		"urgent": urgent,
+		"suspicious": suspicious,
+		"variant": variant,
+		"follow_up": follow_up,
+		"route": route.duplicate(),
+		"step": step,
+		"flawed": flawed,
+		"flagged": flagged,
+		"scanned": scanned,
+		"contraband": contraband,
+		"produced": produced,
+		"invalid": invalid,
+		"big": big,
+		"age": age,
+		"waited": waited,
+	}
+
+
+static func from_dict(data: Dictionary) -> CaseFile:
+	var case_file := CaseFile.new(
+		str(data.get("dept", "")),
+		bool(data.get("complex", false)),
+		bool(data.get("urgent", false)),
+		bool(data.get("suspicious", false)),
+	)
+	case_file.variant = str(data.get("variant", ""))
+	case_file.follow_up = bool(data.get("follow_up", false))
+	for key in data.get("route", []):
+		case_file.route.append(str(key))
+	case_file.step = clampi(int(data.get("step", 0)), 0, maxi(0, case_file.route.size() - 1))
+	case_file.flawed = bool(data.get("flawed", false))
+	case_file.flagged = bool(data.get("flagged", false))
+	case_file.scanned = bool(data.get("scanned", false))
+	case_file.contraband = bool(data.get("contraband", false))
+	case_file.produced = bool(data.get("produced", false))
+	case_file.invalid = bool(data.get("invalid", false))
+	case_file.big = bool(data.get("big", false))
+	case_file.age = float(data.get("age", 0.0))
+	case_file.waited = float(data.get("waited", 0.0))
+	return case_file

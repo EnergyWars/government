@@ -1,0 +1,482 @@
+keys,en,de
+ACTION_CLOSE,Close,Schließen
+ACTION_CLAIM,Claim,Abholen
+ACTION_UNLOCK,Open,Eröffnen
+ACTION_ADD_DESK,+ Desk,+ Tisch
+ACTION_HIRE,Hire,Einstellen
+ACTION_UPGRADE,Upgrade,Ausbauen
+ACTION_RESEARCH,Introduce,Einführen
+ACTION_EXPAND,Expand,Erweitern
+ACTION_RESET,Shred everything,Alle Akten schreddern
+ACTION_CANCEL,Cancel,Abbrechen
+ACTION_OK,Fine,Na gut
+FMT_MONEY,$%s,%s €
+DECIMAL_SEPARATOR,.,","
+FMT_PERCENT,%s%%,%s %%
+FMT_HOURS_MINUTES,%d h %d min,%d Std. %d Min.
+FMT_MINUTES,%d min,%d Min.
+FMT_SECONDS,%d s,%d Sek.
+FMT_ACTION_COST,%s · %s,%s · %s
+SHEET_DEPARTMENTS,Departments,Abteilungen
+SHEET_RESEARCH,Technology,Technik
+SHEET_BUILDING,Building,Gebäude
+SHEET_GOALS,Goals,Ziele
+SHEET_SETTINGS,Settings,Einstellungen
+NAV_DEPARTMENTS,Departments,Abteilungen
+NAV_RESEARCH,Technology,Technik
+NAV_BUILDING,Building,Gebäude
+NAV_GOALS,Goals,Ziele
+FMT_DEPARTMENT_SLOTS,%d of %d department rooms in use. For more space you need an extension permit (and money).,%d von %d Abteilungsräumen belegt. Für mehr Platz brauchst du einen Anbau-Antrag (und Geld).
+DEPT_GENERAL_SERVICES,Citizen services,Bürgerservice
+DEPT_TAX_SERVICES,Tax office,Finanzamt
+DEPT_BUSINESS_LICENCES,Business licences,Gewerbeamt
+DEPT_VEHICLE_REGISTRATION,Vehicle registration,Kfz-Zulassung
+DEPT_BUILDING_PERMITS,Building permits,Bauamt
+DEPT_SOCIAL_BENEFITS,Social benefits,Sozialamt
+DEPT_CUSTOMS,Customs,Zollamt
+DEPT_DESC_GENERAL_SERVICES,"Residence registrations and ID cards. Quick cases, until someone finds their photo 'too cheerful'.","Wohnsitzanmeldungen und Ausweise. Schnelle Fälle, bis jemand sein Passfoto „zu fröhlich“ findet."
+DEPT_DESC_TAX_SERVICES,Tax returns and refunds. The calculator turns forms into notices and citizens into back-payers.,Steuererklärungen und Erstattungen. Die Rechenmaschine macht aus Formularen Bescheide und aus Bürgern Nachzahler.
+DEPT_DESC_BUSINESS_LICENCES,"Trade licences. Every application needs an on-site inspection, because a stamp without a site visit is just a smudge.","Gewerbeanmeldungen. Jeder Antrag braucht einen Ortstermin, denn ein Stempel ohne Ortstermin ist nur ein Fleck."
+DEPT_DESC_VEHICLE_REGISTRATION,"Registrations and number plates. The plate printer makes your personalised plate, from whatever is still free.","Zulassungen und Kennzeichen. Der Schilderdrucker fertigt das Wunschkennzeichen, natürlich nur aus dem, was noch frei ist."
+DEPT_DESC_BUILDING_PERMITS,"Blueprints and building applications. Always complicated, always with a site visit, and the architect answers everything with 'fire safety' first.","Bauanträge und Baupläne. Immer kompliziert, immer mit Ortstermin, und die Architektin antwortet auf alles zuerst mit „Brandschutz“."
+DEPT_DESC_SOCIAL_BENEFITS,"Benefit applications, many of them urgent. Approved cases come back later for a review. Resubmission is a way of life.","Leistungsanträge, viele davon dringend. Bewilligte Fälle kommen später zur Überprüfung wieder. Wiedervorlage ist ein Lebensgefühl."
+DEPT_DESC_CUSTOMS,"Trucks deliver cargo. Declarations are checked, suspicious goods go through the scanner, contraband is held. Customs rarely has humour, but always a stamp.","Lkw liefern Fracht. Anmeldungen werden geprüft, verdächtiges Gut geht durch den Scanner, Schmuggelware wird festgehalten. Der Zoll hat selten Humor, aber immer einen Stempel."
+LABEL_BOTTLENECK,Bottleneck,Engpass
+FMT_DEPT_SUMMARY,%s cases/min · %d waiting,%s Fälle/Min. · %d wartend
+REQ_MORE_SPACE,"No room left. Expand the building first. There is no form for that, only money.","Kein Raum frei. Erweitere zuerst das Gebäude. Dafür gibt es kein Formular, nur Geld."
+FMT_REQ_REPUTATION,Requires %d reputation,Benötigt %d Ansehen
+SECTION_WORK_MODE,Way of working,Arbeitsweise
+SECTION_STATIONS,Workflow,Arbeitsablauf
+SECTION_TEAM,Team,Team
+FMT_DEPT_DETAIL,"Throughput %s/min · Demand %s/min
+Error rate %s · Avg. fee %s","Durchsatz %s/Min. · Nachfrage %s/Min.
+Fehlerquote %s · Ø Gebühr %s"
+BOTTLENECK_DEMAND,"No bottleneck. More reputation brings more citizens, and with them more paper.","Kein Engpass. Mehr Ansehen lockt mehr Bürger an, und damit mehr Papier."
+BOTTLENECK_TRANSPORT,Bottleneck: files are not carried fast enough. Hire runners or carry them yourself. The official channel goes on foot.,Engpass: Akten werden zu langsam getragen. Stelle Boten ein oder trage selbst. Der Dienstweg läuft nun mal zu Fuß.
+FMT_BOTTLENECK_STATION,Bottleneck: %s. This is where the red tape piles up. Expand this step first.,Engpass: %s. Hier staut sich der Amtsschimmel. Baue diesen Schritt zuerst aus.
+STATION_INSPECTION,Inspection service,Prüfdienst
+STATION_SHORT_INSPECTION,Inspection,Prüfdienst
+MODE_FAST,Rushed,Husch-husch
+MODE_NORMAL,By the book,Nach Vorschrift
+MODE_THOROUGH,Triple-checked,Dreifach geprüft
+MODE_HINT,Flawed cases only pay 40% and cost reputation. Reputation raises every fee. Whoever stamps fast also stamps wrong fast.,"Fehlerhafte Fälle bringen nur 40 % und kosten Ansehen. Ansehen erhöht jede Gebühr. Wer schnell stempelt, stempelt auch schnell falsch."
+SWITCH_URGENT_FIRST,Process urgent cases first (just this once),Dringende Fälle zuerst bearbeiten (ausnahmsweise)
+FMT_MODE_EFFECT,Processing time %s · Error rate %s,Bearbeitungszeit %s · Fehlerquote %s
+FMT_STEP,%d. %s,%d. %s
+LABEL_SHARED_STATION,"Shared with other departments (responsible: everyone, so nobody)","Wird mit anderen Abteilungen geteilt (zuständig: alle, also keiner)"
+HINT_UNSTAFFED,"Unstaffed desks only work while you stand at the marked spot. No staff, no service, just like Friday afternoon.","Unbesetzte Tische arbeiten nur, solange du am markierten Platz stehst. Ohne Personal kein Dienst, wie am Freitagnachmittag."
+LABEL_DESKS_FULL,No room for desks. Zoning says no.,Kein Platz für Tische. Die Raumordnung sagt nein.
+LABEL_NEED_DESK,Get a desk first,Erst einen Tisch anschaffen
+LABEL_MAX_LEVEL,Maximum reached,Maximum erreicht
+STAFF_SPECIALISTS,Specialists,Fachkräfte
+STAFF_SUPERVISORS,Supervisors,Teamleitung
+STAFF_DESC_SPECIALISTS,"Specialists take complex cases at their own desk so they do not clog regular desks. Fewer errors, more small talk.","Fachkräfte übernehmen komplexe Fälle an einem eigenen Tisch, damit normale Tische frei bleiben. Weniger Fehler, mehr Fachsimpelei."
+STAFF_DESC_SUPERVISORS,"Make every desk and machine of this department 20% faster, and colleagues doze off 30% slower. Purely by looking sternly.","Machen jeden Tisch und jede Maschine dieser Abteilung 20 % schneller, und Kollegen nicken 30 % langsamer ein. Allein durch strenges Hinsehen."
+FMT_STAFF_COUNT,%s %d/%d,%s %d/%d
+RESEARCH_INTRO,Technology is shared by all departments and stays forever. Like the fax machine in the basement.,Technik gilt für alle Abteilungen und bleibt dauerhaft erhalten. Wie das Faxgerät im Keller.
+RESEARCH_BRIEFCASE,Bigger briefcase,Größere Aktentasche
+RESEARCH_WORK_ETHIC,Work ethic,Arbeitseifer
+RESEARCH_SCANNERS,Document scanners,Dokumentenscanner
+RESEARCH_COMFORTABLE_LOBBY,Comfortable waiting room,Bequemer Warteraum
+RESEARCH_DIGITAL_RECORDS,Digital records,Digitale Akte
+RESEARCH_QUALITY_TRAINING,Quality training,Qualitätsschulung
+RESEARCH_DIGITAL_SIGNATURES,Digital signatures,Digitale Signatur
+RESEARCH_ONLINE_PORTAL,Online portal,Online-Portal
+RESEARCH_AI_CLASSIFICATION,AI case classification,KI-Fallklassifizierung
+RESEARCH_DESC_BRIEFCASE,You carry 2 more files. Your back files a complaint with the company doctor.,Du trägst 2 Akten mehr. Dein Rücken legt Beschwerde beim Betriebsarzt ein.
+RESEARCH_DESC_WORK_ETHIC,"You work 50% faster at unstaffed desks. Yes, that is possible.","Du arbeitest an unbesetzten Tischen 50 % schneller. Ja, das geht."
+RESEARCH_DESC_SCANNERS,"Reception and loading dock work 30% faster. Reads any handwriting, except the boss's.","Empfang und Laderampe arbeiten 30 % schneller. Liest jede Handschrift, nur nicht die vom Chef."
+RESEARCH_DESC_COMFORTABLE_LOBBY,Citizens wait 40% longer before leaving. Thanks to chairs with backrests and a coffee machine that works sometimes.,"Bürger warten 40 % länger, bevor sie gehen. Dank Stühlen mit Lehne und einem Kaffeeautomaten, der manchmal funktioniert."
+RESEARCH_DESC_DIGITAL_RECORDS,Case review and approval 20% faster. The file is digital now. Printed out anyway.,Sachbearbeitung und Freigabe 20 % schneller. Die Akte ist jetzt digital. Ausgedruckt wird trotzdem.
+RESEARCH_DESC_QUALITY_TRAINING,"25% fewer errors in every department. The training took three days, the content fits on a note.","25 % weniger Fehler in jeder Abteilung. Die Schulung dauerte drei Tage, der Inhalt passt auf einen Zettel."
+RESEARCH_DESC_DIGITAL_SIGNATURES,Collection counter and clearance 40% faster. Sign with a click. The stamp stays out of respect.,Ausgabeschalter und Zollfreigabe 40 % schneller. Unterschrift per Klick. Der Stempel bleibt aus Respekt.
+RESEARCH_DESC_ONLINE_PORTAL,"25% more citizens per level. Now they can fail to get anywhere from home, too.",25 % mehr Bürger pro Stufe. Sie können jetzt auch von zu Hause aus nicht weiterkommen.
+RESEARCH_DESC_AI_CLASSIFICATION,"Halves errors and the extra time of complex cases. Sorts files until it says ""form not provided for"".","Halbiert Fehler und die Mehrarbeit komplexer Fälle. Sortiert Akten, bis sie „Formular nicht vorgesehen“ sagt."
+FMT_RESEARCH_LEVEL,%s %d/%d,%s %d/%d
+LABEL_RESEARCHED,"Fully introduced, never to be abolished","Vollständig eingeführt, nie wieder abgeschafft"
+FMT_STAGE_TITLE,%d. %s,%d. %s
+FMT_STAGE_INFO,Up to %d departments · %d desks per step · %d waiting places,Bis zu %d Abteilungen · %d Tische pro Schritt · %d Warteplätze
+LABEL_CURRENT,Current,Aktuell
+SECTION_STATISTICS,Statistics,Statistik
+FMT_STATISTICS,"Cases completed: %s
+Accuracy: %s
+Citizens lost: %s (they come back to complain)
+Officials woken up: %s
+Employees: %s
+Total earned: %s
+Time in office (excluding breaks): %s","Erledigte Fälle: %s
+Genauigkeit: %s
+Verlorene Bürger: %s (kommen zum Beschweren wieder)
+Aufgeweckte Beamte: %s
+Mitarbeitende: %s
+Gesamteinnahmen: %s
+Dienstzeit (ohne Pausen): %s"
+GOALS_ALL_DONE,Tenure for life!,Beamtung auf Lebenszeit!
+GOALS_ALL_DONE_TEXT,"Your city hall runs like clockwork. The clock is five minutes slow, though. Keep growing as you like.","Dein Rathaus läuft wie ein Uhrwerk. Die Uhr geht allerdings fünf Minuten nach. Wachse weiter, wie du möchtest."
+FMT_GOAL_CASES,Complete %s cases,Erledige %s Fälle
+FMT_GOAL_STAFF_HIRED,Hire %d employee,Stelle %d Person ein
+FMT_GOAL_STATION_LEVEL,Upgrade a station to level %d,Baue eine Station auf Stufe %d aus
+FMT_GOAL_RESEARCH,Introduce %d technology,Führe %d Technik ein
+FMT_GOAL_REPUTATION,Reach %d reputation,Erreiche %d Ansehen
+FMT_GOAL_DEPARTMENT,Open the %s,Eröffne: %s
+FMT_GOAL_RESEARCH_LEVEL,Introduce %s,Führe ein: %s
+FMT_GOAL_BUILDING_STAGE,Expand to: %s,Erweitere zu: %s
+FMT_REWARD_BOTH,Reward: %s and %d reputation,Belohnung: %s und %d Ansehen
+FMT_REWARD_MONEY,Reward: %s,Belohnung: %s
+FMT_GOAL_PROGRESS,%s (%s/%s),%s (%s/%s)
+SECTION_LANGUAGE,Language,Sprache
+LANGUAGE_SYSTEM,System,System
+LANGUAGE_DE,Deutsch,Deutsch
+LANGUAGE_EN,English,English
+SECTION_GAME,Game,Spielstand
+RESET_HINT,Your progress is filed automatically on this device.,Dein Fortschritt wird automatisch auf diesem Gerät abgeheftet.
+SECTION_ABOUT,About,Über
+ABOUT_TEXT,"Department Tycoon · made with Godot Engine (MIT).
+Font: Geist (SIL Open Font License 1.1).
+Icons: Material Icons by Google (Apache 2.0).
+All graphics are drawn by the game itself. Without a permit, but with a stamp.
+Any resemblance to real offices is purely coincidental. Probably.","Amts-Tycoon · erstellt mit der Godot Engine (MIT).
+Schrift: Geist (SIL Open Font License 1.1).
+Icons: Material Icons von Google (Apache 2.0).
+Alle Grafiken zeichnet das Spiel selbst. Ohne Genehmigung, aber mit Stempel.
+Ähnlichkeiten mit echten Ämtern sind rein zufällig. Vermutlich."
+FLOAT_CITIZEN_LEFT,Had enough!,Reicht mir!
+FMT_FLOAT_CARRIED,+%d files,+%d Akten
+FMT_LOBBY_WAITING,"%d citizens waiting, all with a number","%d Bürger warten, alle mit Nummer"
+FMT_PER_MINUTE,%s/min,%s/Min.
+PLACEHOLDER_EXPAND,More departments need an extension (and a permit),Mehr Abteilungen brauchen einen Anbau (und eine Genehmigung)
+PLACEHOLDER_UNLOCK,Create a new area of responsibility,Neue Zuständigkeit schaffen
+FMT_INCOME,%s/min,%s/Min.
+FMT_EVENT_TITLE,%s · %d s,%s · %d Sek.
+EVENT_RUSH_HOUR,Rush hour,Stoßzeit
+EVENT_AUDIT_VISIT,Audit visit,Rechnungsprüfung
+EVENT_TAX_DEADLINE,Tax deadline,Steuerfrist
+EVENT_DESC_RUSH_HOUR,Twice as many citizens arrive in every department. Everyone only has one quick question.,In jede Abteilung kommen doppelt so viele Bürger. Alle haben nur eine kurze Frage.
+EVENT_DESC_AUDIT_VISIT,Auditors are watching: errors and correct cases count double for reputation. Suddenly everyone works exemplarily.,Prüfer schauen zu: Fehler und korrekte Fälle zählen doppelt fürs Ansehen. Plötzlich arbeiten alle vorbildlich.
+EVENT_DESC_TAX_DEADLINE,"Three times as many tax returns arrive at the tax office. All on the last day, at 23:58.","Beim Finanzamt gehen dreimal so viele Steuererklärungen ein. Alle am letzten Tag, um 23:58 Uhr."
+OFFLINE_TITLE,Nice of you to return,"Schön, dass Sie wieder da sind"
+FMT_OFFLINE_TEXT,"While you were away (%s), your team earned %s. Nobody noticed you were gone.","Während du weg warst (%s), hat dein Team %s verdient. Aufgefallen ist deine Abwesenheit niemandem."
+RESET_TITLE,Shred all files?,Alle Akten schreddern?
+RESET_TEXT,All progress will be shredded. There is no form to get it back.,Der gesamte Fortschritt wird geschreddert. Ein Formular zur Wiederherstellung gibt es nicht.
+DEPT_HOUSING,Housing office,Wohnungsamt
+DEPT_INSPECTION,Inspection service,Prüfdienst
+DEPT_DESC_HOUSING,"Housing applications. Whoever moves in must also register the new address: after the housing review the file therefore goes to the registration desk of citizen services, and only then to approval.","Wohnungsanträge. Wer einzieht, muss sich auch ummelden: Nach der Wohnungsprüfung geht die Akte deshalb zur Meldestelle des Bürgerservice und erst danach in die Freigabe."
+STATION_RECEPTION,Reception,Empfang
+STATION_REVIEW,Case review,Sachbearbeitung
+STATION_SIGNATURE,Approval,Freigabe
+STATION_COUNTER,Collection counter,Ausgabeschalter
+STATION_DOCK,Loading dock,Laderampe
+STATION_CLEARANCE,Clearance,Freigabe-Schalter
+STATION_SHORT_RECEPTION,Reception,Empfang
+STATION_SHORT_REVIEW,Review,Prüfung
+STATION_SHORT_SIGNATURE,Approval,Freigabe
+STATION_SHORT_COUNTER,Counter,Ausgabe
+STATION_SHORT_DOCK,Dock,Rampe
+STATION_SHORT_CLEARANCE,Clearance,Freigabe
+STATION_GENERAL_SERVICES_REVIEW,Registration desk,Meldestelle
+STATION_GENERAL_SERVICES_SIGNATURE,ID photo,Passfoto
+STATION_TAX_SERVICES_REVIEW,Tax review,Steuerprüfung
+STATION_TAX_SERVICES_SIGNATURE,Calculator,Rechenmaschine
+STATION_BUSINESS_LICENCES_REVIEW,Licence review,Antragsprüfung
+STATION_BUSINESS_LICENCES_SIGNATURE,Licence stamp,Gewerbestempel
+STATION_VEHICLE_REGISTRATION_REVIEW,Registration review,Zulassungsprüfung
+STATION_VEHICLE_REGISTRATION_SIGNATURE,Plate printer,Schilderdrucker
+STATION_BUILDING_PERMITS_REVIEW,Plan review,Planprüfung
+STATION_BUILDING_PERMITS_SIGNATURE,Architect,Architektin
+STATION_HOUSING_REVIEW,Housing review,Wohnungsprüfung
+STATION_HOUSING_SIGNATURE,Voucher printer,Gutscheindrucker
+STATION_SOCIAL_BENEFITS_REVIEW,Benefit review,Leistungsprüfung
+STATION_SOCIAL_BENEFITS_SIGNATURE,Payment officer,Zahlstelle
+STATION_CUSTOMS_REVIEW,Declaration check,Anmeldeprüfung
+STATION_CUSTOMS_SIGNATURE,Cargo scanner,Frachtscanner
+STAFF_RUNNERS,Runners,Boten
+STAFF_DESC_RUNNERS,"Walk through the building and carry files from output trays to the next intake tray. The official channel, now in trainers.","Laufen durchs Gebäude und tragen Akten aus den Ablagen zum nächsten Eingangsfach. Der Dienstweg, jetzt in Turnschuhen."
+RESEARCH_TROLLEYS,File trolleys,Aktenwagen
+RESEARCH_PNEUMATIC_TUBES,Pneumatic tubes,Rohrpost
+RESEARCH_DESC_TROLLEYS,"Runners carry one more file per trip. It squeaks, but it rolls.","Boten tragen eine Akte mehr pro Gang. Quietscht, rollt aber."
+RESEARCH_DESC_PNEUMATIC_TUBES,"Files are routed automatically to the next station. No more carrying, just a gentle ""fump"".","Akten werden automatisch zur nächsten Station geschickt. Kein Tragen mehr, nur noch ein sanftes „Fump“."
+STAGE_SERVICE_COUNTER,Service counter,Service-Schalter
+STAGE_MULTI_SERVICE_OFFICE,Multi-service office,Bürgeramt
+STAGE_REGIONAL_ADMINISTRATION,Regional administration,Kreisverwaltung
+STAGE_PUBLIC_SERVICES_CENTRE,Public services centre,Dienstleistungszentrum
+STAGE_CITYWIDE_ADMINISTRATION,Citywide administration,Stadtverwaltung
+FMT_GOAL_RUNNERS,Hire %d runner,Stelle %d Boten ein
+NAV_TEAM,Team,Team
+SHEET_TEAM,Team,Team
+TEAM_INTRO,"Every hire takes one chore off your hands, and one meeting off the staff council.","Jede Einstellung nimmt dir eine Aufgabe ab, und dem Personalrat eine Sitzung."
+SECTION_TRANSPORT,Transport,Transport
+SECTION_PUBLIC_AREA,Public area,Publikumsbereich
+AREA_PUBLIC,Public hours area,Publikumsverkehr
+ACTION_ADD_MACHINE,+ Machine,+ Maschine
+ACTION_HIRE_SPECIALIST,Hire specialist,Fachkraft einstellen
+LABEL_MACHINE,"Machine: works without staff, breaks or works council","Maschine: arbeitet ohne Personal, Pause und Betriebsrat"
+LABEL_TUBES_ACTIVE,Pneumatic tubes route every file. Runners are no longer needed. (They may stay anyway.),Die Rohrpost verteilt alle Akten. Boten werden nicht mehr gebraucht. (Sie dürfen trotzdem bleiben.)
+LABEL_HANDS_FULL,Hands full!,Hände voll!
+FMT_RUNNER_INFO,%d files per trip · about %s files/min,%d Akten pro Gang · etwa %s Akten/Min.
+FMT_INBOX,Intake tray: %d/%d,Eingangsfach: %d/%d
+FMT_QUEUE,Waiting: %d/%d,Wartend: %d/%d
+FMT_OUTBOX,Output tray: %d/%d,Ablage: %d/%d
+FMT_STAFFING,Staff %d/%d desks · max %d · level %d,Personal %d/%d Tische · max. %d · Stufe %d
+FMT_MACHINES,%d/%d machines · level %d,%d/%d Maschinen · Stufe %d
+FMT_SPECIALISTS,Specialist desks: %d/%d,Fachkraft-Tische: %d/%d
+FMT_THROUGHPUT,Capacity: %s cases/min,Kapazität: %s Fälle/Min.
+FMT_ROUTE,Route: %s,Ablauf: %s
+FMT_TASK_ROW,%d waiting · %s,%d wartend · %s
+TASKS_TITLE,Departments,Abteilungen
+SWITCH_SCAN_ALL,Scan every shipment,Jede Sendung scannen
+SCAN_ALL_HINT,Off: only flagged shipments go through the scanner (fast lane). Missed contraband costs a lot of reputation and the customs chief's nerves.,Aus: Nur markierte Sendungen gehen durch den Scanner (Schnellspur). Übersehene Schmuggelware kostet viel Ansehen und die Nerven des Zollchefs.
+FLOAT_SEIZED,Seized! Very suspicious.,Beschlagnahmt! Sehr verdächtig.
+FLOAT_SMUGGLED,Something slipped through,Da ist was durchgerutscht
+INSPECTION_LOCKED,Opens with business licences (site visit!),Öffnet mit dem Gewerbeamt (Ortstermin!)
+LOCKED_LATER,Responsibility not yet clarified,Zuständigkeit noch ungeklärt
+PAD_NEED_MONEY,Budget funds still missing,Haushaltsmittel fehlen noch
+PAD_STAND_HERE,Stand on the circle to open,Stell dich auf den Kreis zum Eröffnen
+PAD_OPENING,Being processed …,Wird bearbeitet …
+HINT_UNLOCK_PAD,Or walk onto the circle in the locked room. No application needed. This time.,Oder lauf auf den Kreis im gesperrten Raum. Ein Antrag ist nicht nötig. Diesmal.
+TUTORIAL_SKIP,Skip tutorial,Tutorial beenden
+TUTORIAL_NEXT,Next,Weiter
+TUTORIAL_FINISH,Clocking out!,Feierabend!
+TUTORIAL_WAITING,"Next, please","Der Nächste, bitte"
+FMT_TUTORIAL_STEP,Step %d of %d,Schritt %d von %d
+TUTORIAL_SKIP_TITLE,Cut the induction short?,Einarbeitung abbrechen?
+TUTORIAL_SKIP_TEXT,You can replay it any time in the settings. Your probation period continues.,Du kannst sie jederzeit in den Einstellungen wiederholen. Deine Probezeit läuft weiter.
+TUTORIAL_SKIP_CONFIRM,End tutorial,Beenden
+TUTORIAL_REPLAY,Replay tutorial,Tutorial wiederholen
+TUTORIAL_REPLAY_HINT,"A guided tour through all functions, with as little red tape as possible. Your progress is kept.","Eine geführte Tour durch alle Funktionen, mit möglichst wenig Amtsschimmel. Dein Fortschritt bleibt erhalten."
+TUTORIAL_WELCOME_TITLE,Welcome to the office,Willkommen im Amt
+TUTORIAL_WELCOME_TEXT,"Congratulations on your appointment! You are the only employee, the head of department, the porter and the coffee machine. This induction explains every function. End it any time and replay it in the settings. Tap Next.","Herzlichen Glückwunsch zur Verbeamtung! Du bist die einzige Angestellte, Amtsleiter, Pförtner und Kaffeemaschine in einem. Diese Einarbeitung erklärt jede Funktion. Du kannst sie jederzeit beenden und in den Einstellungen wiederholen. Tippe auf Weiter."
+TUTORIAL_MOVE_TITLE,Walk around,Laufen
+TUTORIAL_MOVE_TEXT,Press anywhere on the map and drag: a joystick appears under your finger. On a desktop WASD or the arrow keys work. Walk a few steps. Brisk walking counts as overtime.,Drücke irgendwo auf die Karte und ziehe: Unter deinem Finger erscheint ein Joystick. Am Desktop gehen auch WASD oder die Pfeiltasten. Laufe ein paar Schritte. Zügiges Gehen gilt hier schon als Überstunde.
+TUTORIAL_RESOURCES_TITLE,Money and reputation,Geld und Ansehen
+TUTORIAL_RESOURCES_TEXT,"At the top: your money (from fees), your reputation (the star) and your income per minute. Reputation raises every fee and brings more citizens, so guard it like a stamp pad. The cog opens the settings.","Oben siehst du dein Geld (aus Gebühren), dein Ansehen (der Stern) und die Einnahmen pro Minute. Ansehen erhöht jede Gebühr und lockt mehr Bürger an, hüte es also wie das Stempelkissen. Das Zahnrad öffnet die Einstellungen."
+TUTORIAL_ARROW_TITLE,The guide arrow,Der Leit-Pfeil
+TUTORIAL_ARROW_TEXT,"The arrow always points to the most useful job: deliver a folder, work at a desk, pick up a folder or open a department. Off screen it sits at the edge. You can only carry a few folders at once; technology raises that. No, a trolley is not in your job description.","Der Pfeil zeigt immer auf die sinnvollste Aufgabe: Akte abliefern, an einem Tisch arbeiten, Akte aufnehmen oder Abteilung eröffnen. Außerhalb des Bildes sitzt er am Rand. Du kannst nur wenige Akten gleichzeitig tragen, Technik erhöht das. Nein, ein Rollwagen steht nicht in deiner Stellenbeschreibung."
+TUTORIAL_FIRST_CASE_TITLE,Your first citizen,Dein erster Bürger
+TUTORIAL_FIRST_CASE_TEXT,"Every citizen takes the same path: reception, case review, approval, collection counter. Follow the arrow. Near a tray you pick up or drop folders automatically, at a pulsing spot you work. Finish one citizen. Do not say 'that is not my department'.","Jeder Bürger durchläuft denselben Weg: Empfang, Sachbearbeitung, Freigabe, Ausgabeschalter. Folge dem Pfeil. In der Nähe eines Fachs nimmst du Akten automatisch auf oder legst sie ab, an einem pulsierenden Platz arbeitest du. Schließe einen Bürger ab. Sage bitte nicht „Dafür bin ich nicht zuständig“."
+TUTORIAL_QUEUE_TITLE,Queue and patience,Warteschlange und Geduld
+TUTORIAL_QUEUE_TEXT,"Waiting citizens show a bubble with their department and a patience ring. If it runs out they leave and you lose reputation. If the lobby is full, newcomers are turned away. A red tray is full: empty it first. Yes, people really do queue for this.","Wartende Bürger zeigen eine Sprechblase mit ihrer Abteilung und einen Geduldsring. Läuft er ab, gehen sie und du verlierst Ansehen. Ist die Lobby voll, werden Neuankömmlinge abgewiesen. Ein rotes Fach ist voll: leere es zuerst. Ja, dafür stellen sich Leute wirklich an."
+TUTORIAL_GOAL_TITLE,Goals,Ziele
+TUTORIAL_GOAL_TEXT,"The goal card at the top shows your current task. Serve citizens until it reaches 3 cases, then tap Claim on the flashing card. Every goal pays money and reputation, and the next goal builds on it. Think of it as a performance review, only with a bonus.","Die Zielkarte oben zeigt deine aktuelle Aufgabe. Bediene Bürger, bis 3 Fälle erreicht sind, und tippe dann auf die blinkende Karte auf Abholen. Jedes Ziel bringt Geld und Ansehen, das nächste Ziel baut darauf auf. Stell dir ein Mitarbeitergespräch vor, nur mit Bonus."
+TUTORIAL_TASKS_TITLE,Task panel,Aufgaben-Panel
+TUTORIAL_TASKS_TEXT,"The panel at the top left lists waiting citizens and the workload of each department in percent. Tap a row to move the camera to the room, tap the arrow to manage it. The title folds the panel away, like a file into the drawer.","Das Panel oben links zeigt je Abteilung die wartenden Bürger und die Auslastung in Prozent. Tippe auf eine Zeile, um die Kamera zum Raum zu bewegen, tippe auf den Pfeil, um ihn zu verwalten. Der Titel klappt das Panel ein, wie eine Akte in die Schublade."
+TUTORIAL_TEAM_OPEN_TITLE,Open the team,Team öffnen
+TUTORIAL_TEAM_OPEN_TEXT,Every hire takes a chore off your hands. Tap Team in the bottom bar.,Jede Einstellung nimmt dir eine Aufgabe ab. Tippe unten auf Team.
+TUTORIAL_HIRE_TITLE,Hire staff,Personal einstellen
+TUTORIAL_HIRE_TEXT,"Hire an employee for the reception desk so you no longer have to work there. Not enough money? Close the window, serve more citizens and come back. The budget will not be approved sooner by asking.","Stelle am Empfang eine Angestellte oder einen Angestellten ein, damit du dort nicht mehr selbst arbeiten musst. Zu wenig Geld? Schließe das Fenster, bediene weitere Bürger und komme wieder. Durch Nachfragen wird der Haushalt auch nicht schneller genehmigt."
+TUTORIAL_RUNNER_TITLE,Hire a runner,Boten einstellen
+TUTORIAL_RUNNER_TEXT,"Runners carry folders from tray to tray, so you no longer have to. You can employ up to 12, and each reserves its own folders. They take the official channel literally. Hire your first one.","Boten tragen Akten von Fach zu Fach, sodass du das nicht mehr tun musst. Du kannst bis zu 12 beschäftigen, jeder reserviert seine eigenen Akten. Sie nehmen den Dienstweg wörtlich. Stelle den ersten ein."
+TUTORIAL_UPGRADE_TITLE,Upgrade a station,Station ausbauen
+TUTORIAL_UPGRADE_TEXT,"Upgrade a station: each level makes it 15% faster. Extra desks and machines add capacity, but how many you can have depends on your building. Upgrade the reception once. A promotion without a raise does not count.","Baue eine Station aus: Jede Stufe macht sie 15 % schneller. Zusätzliche Tische und Maschinen schaffen Kapazität, wie viele es sein dürfen, hängt von deinem Gebäude ab. Baue den Empfang einmal aus. Eine Beförderung ohne Gehaltserhöhung zählt nicht."
+TUTORIAL_DEPARTMENT_OPEN_TITLE,Manage a department,Abteilung verwalten
+TUTORIAL_DEPARTMENT_OPEN_TEXT,"Close this window, then briefly tap the department room on the map, or the arrow in the task panel. Do not drag, or you will walk off. Leaving your post is frowned upon.","Schließe dieses Fenster und tippe dann kurz auf den Abteilungsraum in der Karte oder auf den Pfeil im Aufgaben-Panel. Ziehe nicht, sonst läufst du los. Den Dienstposten zu verlassen, sieht man hier ungern."
+TUTORIAL_WORK_MODES_TITLE,Work mode and specialists,Arbeitsmodus und Fachkräfte
+TUTORIAL_WORK_MODES_TEXT,"Rushed, by the book or triple-checked trades speed for errors (time x0.7 / 1.0 / 1.5, errors 30 / 12 / 3%). Specialists handle complex cases with 70% fewer errors, team leads give the whole department +20% speed. The bottleneck line shows what slows you down.","Husch-husch, nach Vorschrift oder dreifach geprüft tauscht Tempo gegen Fehler (Zeit ×0,7 / 1,0 / 1,5, Fehler 30 / 12 / 3 %). Fachkräfte bearbeiten komplexe Fälle mit 70 % weniger Fehlern, Teamleitungen geben der ganzen Abteilung +20 % Tempo. Die Engpass-Zeile zeigt, was dich bremst."
+TUTORIAL_RESEARCH_OPEN_TITLE,Open technology,Technik öffnen
+TUTORIAL_RESEARCH_OPEN_TEXT,Close this window and tap Technology in the bottom bar.,Schließe dieses Fenster und tippe unten auf Technik.
+TUTORIAL_RESEARCH_INFO_TITLE,Technology,Technik
+TUTORIAL_RESEARCH_INFO_TEXT,"Technology is permanent and applies everywhere: bigger briefcase, more work drive, coffee quality, scanners, waiting room, trolleys, digital records, training, wake-up service, pneumatic tubes that move folders on their own, online portal and AI. Some need reputation first. Digitalisation is not a threat, merely a long project.","Technik gilt dauerhaft und überall: größere Aktentasche, mehr Arbeitseifer, Kaffeequalität, Scanner, Warteraum, Aktenwagen, digitale Akte, Schulungen, Weckdienst, Rohrpost, die Akten von selbst weiterbefördert, Online-Portal und KI. Manches braucht zuerst Ansehen. Digitalisierung ist keine Drohung, nur ein sehr langes Projekt."
+TUTORIAL_BUILDING_OPEN_TITLE,Open the building,Gebäude öffnen
+TUTORIAL_BUILDING_OPEN_TEXT,Close this window and tap Building in the bottom bar.,Schließe dieses Fenster und tippe unten auf Gebäude.
+TUTORIAL_BUILDING_INFO_TITLE,Building stages,Gebäudestufen
+TUTORIAL_BUILDING_INFO_TEXT,"Your office grows from a service counter to a city administration in five stages. Each stage allows more departments, more desks and more lobby places. Expanding costs money and needs enough reputation. Planning permission has already been granted. Retroactively.","Dein Amt wächst in fünf Stufen vom Service-Schalter zur Stadtverwaltung. Jede Stufe erlaubt mehr Abteilungen, mehr Tische und mehr Lobbyplätze. Erweitern kostet Geld und verlangt genug Ansehen. Die Baugenehmigung wurde bereits erteilt. Rückwirkend."
+TUTORIAL_DEPARTMENTS_OPEN_TITLE,Open departments,Abteilungen öffnen
+TUTORIAL_DEPARTMENTS_OPEN_TEXT,Close this window and tap Departments in the bottom bar.,Schließe dieses Fenster und tippe unten auf Abteilungen.
+TUTORIAL_DEPARTMENTS_INFO_TITLE,Eight departments,Acht Abteilungen
+TUTORIAL_DEPARTMENTS_INFO_TEXT,"Open a department with the button here, or by standing on the circle in its locked room. You need space, reputation and money. Later ones add twists: inspection service, housing referrals, follow-ups at social benefits and the customs office with its own flow. Every one of them is exclusively responsible for something else.","Eröffne eine Abteilung hier per Button oder indem du im gesperrten Raum auf dem Kreis stehst. Du brauchst Platz, Ansehen und Geld. Spätere bringen Besonderheiten: Prüfdienst, Verweise beim Wohnungsamt, Wiedervorlagen im Sozialamt und das Zollamt mit eigenem Ablauf. Jede ist ausschließlich für etwas anderes zuständig."
+TUTORIAL_EVENTS_TITLE,Events,Ereignisse
+TUTORIAL_EVENTS_TEXT,"From time to time a banner at the top announces an event: rush hour (twice the citizens), audit visit (reputation effects count double) or tax deadline (three times the returns). Prepare your team and cash in. Or hide under the desk, that is also a tradition.","Ab und zu kündigt ein Banner oben ein Ereignis an: Stoßzeit (doppelt so viele Bürger), Rechnungsprüfung (Ansehenseffekte zählen doppelt) oder Steuerfrist (dreimal so viele Erklärungen). Bereite dein Team vor und profitiere davon. Oder verstecke dich unter dem Schreibtisch, auch das hat Tradition."
+TUTORIAL_OFFLINE_TITLE,While you are away,Wenn du weg bist
+TUTORIAL_OFFLINE_TEXT,"The game saves itself every 20 seconds. While you are away, your team keeps earning 50% of what it handles automatically, for up to 4 hours. The more you automate with staff, runners and tubes, the more you earn. Nobody will notice you are gone. That is the whole point.","Das Spiel speichert alle 20 Sekunden selbst. Während du weg bist, verdient dein Team weiter: 50 % dessen, was es automatisch schafft, bis zu 4 Stunden. Je mehr du mit Personal, Boten und Rohrpost automatisierst, desto mehr verdienst du. Niemand merkt, dass du weg bist. Das ist der ganze Sinn."
+TUTORIAL_GOALS_OPEN_TITLE,All goals,Alle Ziele
+TUTORIAL_GOALS_OPEN_TEXT,"There are 21 goals that build on each other, up to 20,000 cases. Tap Goals in the bottom bar to see them all. Every one was approved in triplicate.","Es gibt 21 aufeinander aufbauende Ziele bis zu 20 000 Fällen. Tippe unten auf Ziele, um alle zu sehen. Jedes davon wurde dreifach genehmigt."
+TUTORIAL_SETTINGS_OPEN_TITLE,Settings,Einstellungen
+TUTORIAL_SETTINGS_OPEN_TEXT,"Close this window and tap the cog at the top right. There you switch the language, replay this tutorial or shred the game.","Schließe dieses Fenster und tippe oben rechts auf das Zahnrad. Dort stellst du die Sprache um, wiederholst dieses Tutorial oder schredderst das Spiel."
+TUTORIAL_FINISH_TITLE,You are ready,Du bist bereit
+TUTORIAL_FINISH_TEXT,"Three tips: fix the bottleneck of each department first, automate with staff and runners before opening new departments, and avoid errors to keep your reputation high. Follow the goals and remember: it is not slacking, it is processing time.","Drei Tipps: Behebe zuerst den Engpass jeder Abteilung, automatisiere mit Personal und Boten, bevor du neue Abteilungen eröffnest, und vermeide Fehler, damit dein Ansehen hoch bleibt. Folge den Zielen und denke daran: Das ist kein Trödeln, das ist Bearbeitungszeit."
+SIGN_BUILDING,OFFICE OF OFFICIAL AFFAIRS,AMT FÜR AMTLICHES
+SIGN_HOURS_TITLE,Opening hours,Sprechzeiten
+SIGN_HOURS_TEXT,Tue 9:00–9:07,Di 9:00–9:07 Uhr
+SIGN_LUNCH,Lunch break 8am–5pm,Mittagspause 8–17 Uhr
+SIGN_TICKET,Please take a number,Bitte Nummer ziehen
+SIGN_CLOSED,Not my department,Nicht zuständig
+FLOAT_STAMPED,Stamped!,Gestempelt!
+WISDOM_TITLE,Official wisdom of the day,Amtsweisheit des Tages
+WISDOM_1,What is not in writing does not exist. What is in writing exists three times.,"Was nicht schriftlich vorliegt, existiert nicht. Was schriftlich vorliegt, existiert dreimal."
+WISDOM_2,"Every problem has a solution. It is called ""not responsible"".",Jedes Problem hat eine Lösung. Sie heißt „Nicht zuständig“.
+WISDOM_3,Good things come to those who wait. Even better things come to those who file the application.,Gut Ding will Weile haben. Besser Ding will einen Antrag.
+WISDOM_4,A stamp a day keeps the audit away.,Ein Stempel am Tag hält den Rechnungshof fern.
+WISDOM_5,Do not postpone until tomorrow what can be forwarded to a colleague today.,"Verschiebe nichts auf morgen, was du heute an einen Kollegen weiterleiten kannst."
+WISDOM_6,The shortest path between two points is the official channel. It just takes longer.,Der kürzeste Weg zwischen zwei Punkten ist der Dienstweg. Er dauert nur länger.
+WISDOM_7,"Coffee is not a break, it is a work-related fluid intake.","Kaffee ist keine Pause, sondern dienstliche Flüssigkeitsaufnahme."
+WISDOM_8,We have always done it this way. That is why it works so well.,Das haben wir schon immer so gemacht. Deshalb funktioniert es so gut.
+WISDOM_9,Whoever has the form has the power. Whoever has the stamp has all of it.,"Wer das Formular hat, hat die Macht. Wer den Stempel hat, hat alles."
+WISDOM_10,Processing time: six to eight weeks. Urgent processing: eight to ten.,Bearbeitungszeit: sechs bis acht Wochen. Eilbearbeitung: acht bis zehn.
+WISDOM_11,A good official does not slam the door. He closes it politely at 12:00 sharp.,Ein guter Beamter knallt keine Türen. Er schließt sie höflich Punkt 12 Uhr.
+WISDOM_12,Please come back tomorrow. Bring the form we did not tell you about.,"Kommen Sie morgen wieder. Und bringen Sie das Formular mit, von dem wir Ihnen nichts gesagt haben."
+QUIP_1,I have time. Lots of it.,Ich habe Zeit. Viel Zeit.
+QUIP_2,Just one quick question …,Nur eine kurze Frage …
+QUIP_3,Is this counter 4?,Ist das hier Schalter 4?
+QUIP_4,"Today is Tuesday, right?",Heute ist doch Dienstag?
+QUIP_5,I am only looking for room 112.,Ich suche nur Zimmer 112.
+QUIP_6,I already filled it in. Thrice.,Hab ich schon. Dreifach.
+QUIP_7,My parking ticket is expiring!,Mein Parkschein läuft ab!
+QUIP_8,"Number 47, please!",Die Nummer 47 bitte!
+QUIP_9,Where do I get the form?,Wo gibt es das Formular?
+QUIP_10,Back in 5 minutes? Since 1998?,Gleich zurück? Seit 1998?
+QUIP_11,I need a form for forms.,Ich brauche ein Formular für Formulare.
+QUIP_12,Is the boss in?,Ist der Chef da?
+FLOAT_DONE_1,Stamped!,Gestempelt!
+FLOAT_DONE_2,Approved!,Genehmigt!
+FLOAT_DONE_3,File number issued,Aktenzeichen vergeben
+FLOAT_DONE_4,Filed away,Ab in den Ordner
+FLOAT_DONE_5,Notice issued,Bescheid erteilt
+FLOAT_DONE_6,Duty done,Dienstlich erledigt
+FLOAT_FLAWED_1,Formal error!,Formfehler!
+FLOAT_FLAWED_2,Filled in wrong,Falsch ausgefüllt
+FLOAT_FLAWED_3,Please resubmit,Bitte nachreichen
+SECTION_SHARED_STATIONS,Shared stations on the route,Gemeinsame Stationen auf dem Weg
+RESEARCH_COFFEE,Coffee quality,Kaffeequalität
+RESEARCH_DESC_COFFEE,"Coffee keeps employees awake 35% longer per level, also what they fetch themselves. Shown as lamps on the kitchen machine.","Der Kaffee hält Beamte pro Stufe 35 % länger wach, auch den, den sie sich selbst holen. Als Lämpchen an der Küchenmaschine zu sehen."
+RESEARCH_WAKE_SERVICE,Wake-up service,Weckdienst
+RESEARCH_DESC_WAKE_SERVICE,"Dozing employees wake up on their own, chatterers return from the kitchen and coffee breaks end sooner: after 45, 28, 16, 8 and 3 s. Without it they sleep on.","Eingenickte Beamte wachen von selbst auf, Tratschende kehren aus der Küche zurück und Kaffeepausen enden früher: nach 45, 28, 16, 8 bzw. 3 Sek. Ohne Weckdienst bleiben sie liegen."
+FMT_TASK_ROW_RESTING,%d waiting · %s · Break %d,%d wartend · %s · Pause %d
+FMT_RESTING,"Not at work: %d (wake them up, fetch them from the kitchen, encourage them at the WC or call the sick ones)","Nicht bei der Arbeit: %d (aufwecken, aus der Küche holen, am WC ermutigen oder Kranke anrufen)"
+TUTORIAL_WAKE_TITLE,Wake them up,Beamte aufwecken
+TUTORIAL_WAKE_TEXT,"Officials are lazy: after a while they doze off (Zzz), vanish into an endless coffee break (cup) or wander off to the kitchen. Some fetch their own coffee there and come back fresher. Others get lost in conversation and stay until you fetch them: walk to them in the kitchen and stay close for a moment. Sleepers are woken at their desk the same way. Technology helps: coffee quality keeps them awake longer and fresher, the wake-up service calls everyone back by itself, and team leads slow down the dozing. Machines never sleep.","Beamte sind faul: Nach einer Weile nicken sie ein (Zzz), verschwinden in eine endlose Kaffeepause (Tasse) oder gehen in die Küche. Manche holen sich dort selbst Kaffee und kommen frischer zurück. Andere verquatschen sich und bleiben, bis du sie holst: Laufe in der Küche zu ihnen und bleibe kurz daneben stehen. Schläfer weckst du genauso an ihrem Tisch. Technik hilft: Kaffeequalität hält sie länger wach und macht den Kaffee frischer, der Weckdienst ruft alle von selbst zurück und Teamleitungen bremsen das Einnicken. Maschinen schlafen nie."
+NAP_1,Just resting my eyes.,Nur kurz die Augen zu.
+NAP_2,I am thinking.,Ich denke nach.
+NAP_3,Zzz … file number …,Zzz … Aktenzeichen …
+NAP_4,Lunch break (brought forward).,Mittagspause (vorgezogen).
+COFFEE_BREAK_1,Coffee break! Indefinite.,Kaffeepause! Unbefristet.
+COFFEE_BREAK_2,The coffee needs to brew.,Der Kaffee muss ziehen.
+COFFEE_BREAK_3,Important talk at the machine.,Wichtiges Gespräch am Automaten.
+COFFEE_BREAK_4,Back in a minute.,Bin gleich zurück.
+WOKE_1,I saw everything!,Ich habe alles gesehen!
+WOKE_2,I was only thinking!,Ich hab nur nachgedacht!
+WOKE_3,Who is disturbing me?,Wer stört?
+WOKE_4,Awake! For hours.,Bin wach! Seit Stunden.
+AREA_KITCHEN,Kitchen,Küche
+SIGN_COFFEE_FUND,Coffee fund: 50 cents,Kaffeekasse: 50 Cent
+SIGN_KITCHEN_RULES,Please wash your own cups,Tassen bitte selbst spülen
+CHAT_1,New service regulation! Heard?,Neue Dienstvorschrift! Gehört?
+CHAT_2,And then the boss says …,Und dann sagt der Chef …
+CHAT_3,My leave is almost approved.,Mein Urlaub ist fast genehmigt.
+CHAT_4,Know the one about the clerk?,Kennt ihr den vom Beamten?
+GO_KITCHEN_1,Off to a meeting (kitchen).,Besprechung (Küche).
+GO_KITCHEN_2,Just fetching a form. Kitchen.,Hol nur ein Formular. Küche.
+GO_KITCHEN_3,Back soon. Probably.,Bin gleich zurück. Vermutlich.
+FETCH_1,Fetching my own coffee!,Ich hol mir einen Kaffee!
+FETCH_2,Coffee time!,Kaffee fassen!
+FETCH_3,Quick caffeine refill.,Kurz Koffein tanken.
+SIGN_COMPLAINTS,Complaints (unread),Beschwerdestelle (ungelesen)
+SIGN_SHREDDER,Document shredder,Aktenschredder
+FLOAT_COMPLAINT_OVERFLOW,Complaint box overflowing!,Beschwerdekasten quillt über!
+RESEARCH_SHREDDER_SERVICE,Shredder intern,Schredder-Praktikant
+RESEARCH_DESC_SHREDDER_SERVICE,"An intern shreds one complaint automatically every 40, 20 or 8 s per level. Naturally unread.","Ein Praktikant schreddert pro Stufe alle 40, 20 bzw. 8 Sek. selbstständig eine Beschwerde. Natürlich ungelesen."
+COMPLAINT_1,A new complaint! About what? Irrelevant.,Neue Beschwerde! Worüber? Egal.
+COMPLAINT_2,Someone complains about the waiting time.,Jemand beschwert sich über die Wartezeit.
+COMPLAINT_3,Complaint about the complaint office.,Beschwerde über die Beschwerdestelle.
+COMPLAINT_4,Strongly worded letter received.,Geharnischter Brief eingegangen.
+SHRED_1,Shredded. Unread.,Geschreddert. Ungelesen.
+SHRED_2,Problem solved!,Problem gelöst!
+SHRED_3,Case closed. Forever.,Vorgang erledigt. Für immer.
+SHRED_4,Zzzrrrt – gone.,Ratter – weg.
+SIGN_KRANZ,Coffee circle! Break it up!,Kaffeekränzchen! Auflösen!
+RESEARCH_COFFEE_MACHINE,Coffee machine,Kaffeemaschine
+RESEARCH_DESC_COFFEE_MACHINE,Faster machine: fetching coffee takes 20% less time per level and fetchers come back even fresher (shown as gold stripes).,Schnellere Maschine: Kaffeeholen dauert pro Stufe 20 % kürzer und Holer kommen noch frischer zurück (goldene Streifen an der Maschine).
+RESEARCH_KITCHEN,Kitchen,Küche
+RESEARCH_DESC_KITCHEN,A tidier kitchen: per level fewer employees get lost in chatter and more simply fetch their coffee. Plants make it cosy.,Eine aufgeräumte Küche: pro Stufe verquatschen sich weniger Beamte und mehr holen sich einfach ihren Kaffee. Pflanzen machen es gemütlich.
+KRANZ_1,Coffee circle called! Attendance is mandatory.,Kaffeekränzchen ausgerufen! Anwesenheitspflicht.
+KRANZ_2,Cake in the kitchen! Everybody come!,Kuchen in der Küche! Alle mal herhören!
+KRANZ_3,Birthday of someone. Probably.,Irgendwer hat Geburtstag. Vermutlich.
+SLOW_1,"I am walking, I am walking …",Ich geh ja schon … ganz langsam.
+SLOW_2,Haste makes waste.,Eile mit Weile.
+SLOW_3,Why run? The coffee is hot.,Wozu hetzen? Der Kaffee ist heiß.
+SIGN_SICK_PHONE,Sick line,Krankentelefon
+FMT_SICK_COUNT,%d on sick leave – call them!,%d krankgemeldet – anrufen!
+FMT_COMPLAINT_MALUS,-%s reputation/min.,-%s Ansehen/Min.
+SECTION_ABSENCE,Absences,Fehlzeiten
+STAFF_HR,Sick-line clerks,Krankentelefonisten
+STAFF_DESC_HR,"Call sick colleagues and ask what is wrong, until they come back to work. More clerks call in parallel.","Rufen krankgemeldete Kollegen an und fragen, was los ist, bis sie wieder zur Arbeit kommen. Mehrere Telefonisten rufen gleichzeitig an."
+FMT_HR_INFO,Currently sick: %d · about %s calls/min.,Aktuell krank: %d · etwa %s Anrufe/Min.
+SICK_NOTE_1,Sick note: back pain. Since Monday. Always Monday.,Krankmeldung: Rücken. Seit Montag. Immer Montag.
+SICK_NOTE_2,Called in sick: sudden allergy to Tuesdays.,Krank: plötzliche Dienstag-Allergie.
+SICK_NOTE_3,Calls in sick – the weather is too good for the office.,Meldet sich krank – das Wetter ist zu schön fürs Amt.
+SICK_NOTE_4,"Sick leave: ""Mysterious weakness.""",Krankgemeldet: „Rätselhafte Schwäche.“
+SICK_EXCUSE_1,Hello? I cannot come in. My cat has a cold.,Hallo? Ich kann nicht kommen. Meine Katze hat Schnupfen.
+SICK_EXCUSE_2,"Cough, cough … I am dying. Slightly.","Hust, hust … ich sterbe. Ein bisschen."
+SICK_EXCUSE_3,My back has filed an objection.,Mein Rücken hat Widerspruch eingelegt.
+SICK_EXCUSE_4,I have a doctor appointment. For the whole week.,Ich hab einen Arzttermin. Die ganze Woche.
+SICK_EXCUSE_5,"The fever is only 36.6, but it feels so high.","Das Fieber ist nur 36,6, aber es fühlt sich so hoch an."
+SICK_EXCUSE_6,Not at the desk! Left my courage at home.,Nicht am Platz! Meinen Mut hab ich zuhause gelassen.
+SICK_REPLY_1,Your cat has no sick note. Come!,Ihre Katze hat keinen Krankenschein. Kommen!
+SICK_REPLY_2,Dying is not a valid reason. Form 7a.,Sterben ist kein Grund. Formular 7a.
+SICK_REPLY_3,"Objection denied. Desk, now.","Widerspruch abgelehnt. Platz, sofort."
+SICK_REPLY_4,Doctors are open on weekends too.,Ärzte haben auch am Wochenende auf.
+SICK_REPLY_5,36.6 is perfectly fine. Welcome back!,"36,6 ist top. Willkommen zurück!"
+SICK_REPLY_6,Courage is in the cafeteria. Go get it.,Mut gibt es in der Kantine. Holen.
+SIGN_LOO,WC · occupied for a long time,WC · länger besetzt
+GO_LOO_1,Back in a minute. (Famous last words.),Bin gleich wieder da. (Letzte Worte.)
+GO_LOO_2,Nature calls. For a while.,Die Natur ruft. Und zwar länger.
+GO_LOO_3,Quick WC break – with newspaper.,Kurz aufs WC – mit Zeitung.
+LOO_VOICE_1,Occupied! Come back in half an hour!,Besetzt! Kommen Sie in einer halben Stunde wieder!
+LOO_VOICE_2,You can do it! Come out and work!,Du schaffst das! Komm raus und arbeite!
+LOO_VOICE_3,Is there a form for this in here?,Gibt es dafür hier drin ein Formular?
+LOO_VOICE_4,Still reading the paper. Go away.,Lese noch Zeitung. Gehen Sie weg.
+AREA_TOILETS,Restrooms & sick line,Sanitär & Krankentelefon
+SICK_EXCUSE_7,I overslept. By three days.,Ich hab verschlafen. Um drei Tage.
+SICK_EXCUSE_8,"My plant is ill, I must nurse it.","Meine Zimmerpflanze ist krank, ich muss sie pflegen."
+SICK_EXCUSE_9,The stairs are too steep today.,Die Treppe ist heute zu steil.
+SICK_EXCUSE_10,I am allergic to Mondays and meetings.,Ich bin allergisch gegen Montage und Besprechungen.
+SICK_EXCUSE_11,My horoscope says: stay at home.,Mein Horoskop sagt: Zuhause bleiben.
+SICK_EXCUSE_12,I lost my stapler. I am devastated.,Ich hab meinen Tacker verloren. Ich bin am Boden zerstört.
+SICK_REPLY_7,Three days? Then the form is due in triplicate.,Drei Tage? Dann das Formular dreifach.
+SICK_REPLY_8,Plants have no sick notes either!,Pflanzen haben auch keinen Krankenschein!
+SICK_REPLY_9,There is an elevator. Since 1987.,Es gibt einen Aufzug. Seit 1987.
+SICK_REPLY_10,Meetings are on Thursday. Come on Thursday.,Besprechungen sind donnerstags. Kommen Sie donnerstags.
+SICK_REPLY_11,The stars are not your supervisor.,Die Sterne sind nicht Ihr Vorgesetzter.
+SICK_REPLY_12,Staplers are in cabinet 3. Desk. Now.,Tacker sind in Schrank 3. Platz. Sofort.
+FMT_JAM,Jam: %s,Stau: %s
+JAM_SIDE_IN,inbox full,Eingang voll
+JAM_SIDE_OUT,outbox full,Ausgang voll
+JAM_SIDE_REJECTS,rejects full,Ablehnungen voll
+LEGEND_MARKERS,"File markers: magnifier = still has to go to the inspection service · house = needs a registration at the registration desk · cross = invalid application, will be rejected · dot = special case.","Markierungen an Akten: Lupe = muss noch zum Prüfdienst · Haus = braucht noch eine Meldung bei der Meldestelle · Kreuz = ungültiger Antrag, wird abgelehnt · Punkt = Sonderfall."
+FMT_POPULATION,Inhabitants: %s · %s,Einwohner: %s · %s
+SETTLEMENT_VILLAGE,Village,Dorf
+SETTLEMENT_SMALL_TOWN,Small town,Kleinstadt
+SETTLEMENT_TOWN,Town,Mittelstadt
+SETTLEMENT_CITY,City,Großstadt
+SETTLEMENT_METROPOLIS,Metropolitan region,Metropolregion
+REJECT_1,Rejected. Form 27b is missing.,Abgelehnt. Formular 27b fehlt.
+REJECT_2,Wrong stamp. Wrong office.,Falscher Stempel. Falsches Amt.
+REJECT_3,"Denied, with kind regards.","Abgelehnt, mit freundlichen Grüßen."
+REJECT_4,Application invalid. Try again in 2031.,Antrag ungültig. Versuchen Sie es 2031 erneut.
+RESEARCH_IT_SUPPORT,IT support,IT-Wartung
+RESEARCH_DESC_IT_SUPPORT,"A maintenance contract: printer jams, system crashes and fire drills last 15% shorter per level. Turning it off and on again is included.","Ein Wartungsvertrag: Druckerstreik, Systemabsturz und Feueralarm dauern pro Stufe 15 % kürzer. Aus- und wieder Einschalten inklusive."
+EVENT_CHOICE_PREPARE,Prepare presentation,Präsentation vorbereiten
+EVENT_CHOICE_IGNORE,Ignore,Ignorieren
+EVENT_CHOICE_CANCEL,Cancel meeting,Besprechung abbrechen
+EVENT_PRINTER_JAM,Printer strike,Druckerstreik
+EVENT_DESC_PRINTER_JAM,The office printer is jammed and a queue forms around it. Everybody works slower until it runs again.,"Der Bürodrucker klemmt und eine Schlange bildet sich davor. Alle arbeiten langsamer, bis er wieder läuft."
+EVENT_SYSTEM_CRASH,System crash,Das System ist abgestürzt
+EVENT_DESC_SYSTEM_CRASH,One department switches to paper forms. Its desks work much slower.,Eine Abteilung muss auf Papierformulare umsteigen. Ihre Schreibtische arbeiten deutlich langsamer.
+EVENT_MONDAY_RUSH,Monday after a holiday,Montag nach dem Feiertag
+EVENT_DESC_MONDAY_RUSH,Far more citizens arrive and are in a bad mood. Their patience is much shorter.,Deutlich mehr Bürger kommen und haben schlechte Laune. Ihre Geduld ist viel kürzer.
+EVENT_COFFEE_ESCALATION,Coffee break escalation,Kaffeepause eskaliert
+EVENT_DESC_COFFEE_ESCALATION,"Everyone is at the coffee machine. More people doze off, but the awake ones work in a great mood.","Alle stehen an der Kaffeemaschine. Es nicken mehr Beamte ein, die Wachen arbeiten aber bestens gelaunt."
+EVENT_PAPERWORK_MOUNTAIN,The paperwork mountain,Der Aktenberg
+EVENT_DESC_PAPERWORK_MOUNTAIN,Old cases pile up in one department. The inboxes fill up until they are worked off.,"In einer Abteilung stapeln sich alte Fälle. Die Eingänge füllen sich, bis alles abgearbeitet ist."
+EVENT_STAFF_MEETING,The staff meeting,Die Dienstbesprechung
+EVENT_DESC_STAFF_MEETING,Many employees sit in a meeting and work much slower. Cancelling it costs reputation.,Viele Beamte sitzen in einer Besprechung und arbeiten viel langsamer. Abbrechen kostet Ansehen.
+EVENT_RUBBER_DUCKS,Truck full of rubber ducks,Der LKW voller Gummienten
+EVENT_DESC_RUBBER_DUCKS,An absurd shipment blocks the loading bay. Customs works at a crawl while the classification is argued about.,"Eine absurde Lieferung blockiert die Laderampe. Der Zoll kommt kaum voran, während über die Einstufung gestritten wird."
+EVENT_FIRE_DRILL,Fire alarm – false alarm,Feueralarm – Fehlalarm
+EVENT_DESC_FIRE_DRILL,The whole building is evacuated because someone burnt toast. Nobody works.,"Das ganze Gebäude wird evakuiert, weil jemand Toast verbrannt hat. Niemand arbeitet."
+EVENT_RENOVATION,Renovation without a backup plan,Renovierung ohne Ausweichplan
+EVENT_DESC_RENOVATION,A department is blocked by construction work. Fewer citizens find it and its desks work slower.,"Eine Abteilung ist durch Bauarbeiten blockiert. Weniger Bürger finden hin, die Schreibtische arbeiten langsamer."
+EVENT_GARDEN_SHED,The garden shed,Der Geräteschuppen
+EVENT_DESC_GARDEN_SHED,"The building authority gets an enormous application for a tiny shed. It pays well, but takes a long time and needs a specialist.","Das Bauamt bekommt einen riesigen Antrag für einen winzigen Schuppen. Er bringt viel Geld, dauert aber lange und braucht eine Fachkraft."
+EVENT_INSPECTOR_AUDIT,The inspector gets audited,Der Prüfer wird geprüft
+EVENT_DESC_INSPECTOR_AUDIT,The inspection service has to audit its own procedures first and works very slowly.,Der Prüfdienst muss zuerst seine eigenen Abläufe prüfen und arbeitet sehr langsam.
+EVENT_AUTHORITY_COMPARISON,The authority comparison,Der Behördenvergleich
+EVENT_DESC_AUTHORITY_COMPARISON,A neighbouring authority boasts about its numbers. Prepare a presentation for reputation (everyone works slower for a while) or ignore it.,Eine Nachbarbehörde prahlt mit ihren Zahlen. Bereite eine Präsentation für Ansehen vor (alle arbeiten eine Weile langsamer) oder ignoriere sie.

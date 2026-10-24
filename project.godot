@@ -1,0 +1,49 @@
+; Engine configuration file.
+
+config_version=5
+
+[application]
+
+config/name="Department Tycoon"
+config/name_localized={
+"de": "Amts-Tycoon",
+"en": "Department Tycoon"
+}
+config/description="Grow a tiny civil service office into a sprawling, automated government complex."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://assets/icon.svg"
+config/quit_on_go_back=false
+run/low_processor_mode=false
+run/max_fps=60
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/size/window_width_override=405
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[gui]
+
+common/drop_mouse_on_gui_input_disabled=true
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
+pointing/emulate_touch_from_mouse=false
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://i18n/translations.en.translation", "res://i18n/translations.de.translation")
+locale/fallback="en"
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_2d=0
+2d/snap/snap_2d_transforms_to_pixel=true
