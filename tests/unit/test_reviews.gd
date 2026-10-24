@@ -301,7 +301,9 @@ func test_lawsuit_win_forces_praise_and_scares_authors() -> void:
 	assert_eq(review.author_index, original_author)
 	assert_eq(state.negative_review_count(), 0)
 	assert_eq(state.review_fear, GameConfig.REVIEW_FEAR_SECONDS)
-	assert_almost_eq(state.money - 5000.0, cost * GameConfig.REVIEW_LAWSUIT_PAYOUT_FACTOR - cost, 0.001)
+	assert_gt(cost, 0.0)
+	assert_eq(GameConfig.REVIEW_LAWSUIT_REFUND_FACTOR, 1.0)
+	assert_almost_eq(state.money, 5000.0, 0.001)
 	assert_almost_eq(state.reputation, 10.0 + GameConfig.REVIEW_LAWSUIT_REPUTATION, 0.001)
 	assert_eq(state.review_drain(), 0.0)
 
@@ -357,6 +359,90 @@ func test_every_unforced_review_can_be_sued() -> void:
 	var praise := state.add_review(4)
 	assert_true(sim.can_sue_for_defamation(praise.id))
 	assert_true(sim.sue_for_defamation(praise.id))
+
+
+func test_lawsuits_start_likelier_and_are_limited_to_three() -> void:
+	assert_eq(GameConfig.MAX_REVIEW_LAWSUITS, 3)
+	assert_gte(GameConfig.REVIEW_LAWSUIT_CHANCE, 0.5)
+	var review := Review.new(0, 2)
+	assert_eq(review.lawsuits_left(), 3)
+	assert_true(review.can_be_sued())
+	assert_false(review.needs_ad_lawsuit())
+	for attempt in GameConfig.MAX_REVIEW_LAWSUITS:
+		assert_true(review.can_be_sued(), "attempt %d" % attempt)
+		assert_lte(Formulas.review_lawsuit_chance(review), GameConfig.REVIEW_LAWSUIT_MAX_CHANCE)
+		review.downgrade(0)
+	assert_eq(review.lawsuits_left(), 0)
+	assert_false(review.can_be_sued())
+	assert_true(review.needs_ad_lawsuit())
+	review.force_praise(0)
+	assert_false(review.needs_ad_lawsuit())
+
+
+func test_delete_gets_dearer_with_each_failed_lawsuit() -> void:
+	var review := Review.new(0, 1)
+	var base := Formulas.review_delete_cost(state, review)
+	review.lawsuits = 1
+	assert_almost_eq(Formulas.review_delete_cost(state, review), base * GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH, 0.001)
+	review.lawsuits = GameConfig.MAX_REVIEW_LAWSUITS
+	assert_almost_eq(Formulas.review_delete_cost(state, review), base * pow(GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH, GameConfig.MAX_REVIEW_LAWSUITS), 0.001)
+	assert_gt(GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH, 1.0)
+	review.force_praise(0)
+	assert_eq(Formulas.review_delete_cost(state, review), 0.0)
+
+
+func test_lost_lawsuit_raises_the_delete_price() -> void:
+	var review := state.add_review(1)
+	var outcome := [""]
+	sim.review_removed.connect(func(result: String) -> void: outcome[0] = result)
+	var before := 0.0
+	var tries := 0
+	while outcome[0] != "lost" and tries < 200:
+		tries += 1
+		state.money = 1.0e6
+		outcome[0] = ""
+		review.stars = 1
+		review.lawsuits = 0
+		review.forced = false
+		before = Formulas.review_delete_cost(state, review)
+		sim.sue_for_defamation(review.id)
+	assert_eq(outcome[0], "lost")
+	assert_almost_eq(Formulas.review_delete_cost(state, review), before * GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH, 0.001)
+
+
+func test_ad_lawsuit_wins_only_after_all_attempts_failed() -> void:
+	var boosts := game.boosts
+	var review := state.add_review(1)
+	state.money = 1000.0
+	state.reputation = 10.0
+	assert_false(boosts.can_sue_by_ad(review.id))
+	assert_false(boosts.sue_by_ad(review.id))
+	assert_false(boosts.can_sue_by_ad(999))
+	review.lawsuits = GameConfig.MAX_REVIEW_LAWSUITS
+	assert_false(game.simulation.can_sue_for_defamation(review.id))
+	assert_true(boosts.can_sue_by_ad(review.id))
+	var ads := state.ads_watched
+	watch_signals(game.simulation)
+	assert_true(boosts.sue_by_ad(review.id))
+	assert_signal_emitted_with_parameters(game.simulation, "review_removed", ["won"])
+	assert_true(review.forced)
+	assert_eq(review.stars, 5)
+	assert_eq(state.money, 1000.0)
+	assert_almost_eq(state.reputation, 10.0 + GameConfig.REVIEW_LAWSUIT_REPUTATION, 0.001)
+	assert_eq(state.review_fear, GameConfig.REVIEW_FEAR_SECONDS)
+	assert_eq(state.ads_watched, ads + 1)
+	assert_false(boosts.can_sue_by_ad(review.id))
+	assert_false(boosts.sue_by_ad(review.id))
+	assert_eq(state.ads_watched, ads + 1)
+
+
+func test_exhausted_review_can_still_be_deleted() -> void:
+	var review := state.add_review(1)
+	review.lawsuits = GameConfig.MAX_REVIEW_LAWSUITS
+	state.money = 1.0e9
+	assert_true(sim.can_delete_review(review.id))
+	assert_true(sim.delete_review(review.id))
+	assert_null(state.find_review(review.id))
 
 
 func test_forced_review_cannot_be_sued_again_but_deleted_for_free() -> void:
@@ -497,7 +583,7 @@ func test_legacy_counter_save_becomes_negative_reviews() -> void:
 
 
 func test_review_texts_exist_in_both_languages() -> void:
-	var keys: Array[String] = ["SHEET_REVIEWS", "SHEET_REVIEW_DETAIL", "ACTION_BACK", "ACTION_REVIEW_READ", "ACTION_REVIEWS_OPEN", "ACTION_REVIEWS_MORE", "REVIEW_FILTER_ALL", "REVIEWS_EMPTY", "REVIEWS_FILTER_EMPTY", "FMT_REVIEW_COUNT", "FMT_REVIEW_AGE", "FMT_REVIEW_POSITION", "FMT_REVIEW_DRAIN", "REVIEW_COSTS_TITLE", "REVIEW_TAG_CORRECTED", "REVIEW_CORRECTED_TITLE", "REVIEW_CORRECTED_TEXT", "REVIEW_FEAR_TITLE", "FMT_REVIEW_FEAR", "REVIEW_DELETE_HINT", "REVIEW_SUE_HINT", "REVIEW_OUTCOME_DELETED", "REVIEW_OUTCOME_WON", "REVIEW_OUTCOME_LOST", "FMT_REVIEW_BANNER", "FMT_RATING_CHIP", "ACTION_REVIEW_DELETE_FREE", "FMT_REVIEW_LAWSUIT_INFO"]
+	var keys: Array[String] = ["SHEET_REVIEWS", "SHEET_REVIEW_DETAIL", "ACTION_BACK", "ACTION_REVIEW_READ", "ACTION_REVIEWS_OPEN", "ACTION_REVIEWS_MORE", "REVIEW_FILTER_ALL", "REVIEWS_EMPTY", "REVIEWS_FILTER_EMPTY", "FMT_REVIEW_COUNT", "FMT_REVIEW_AGE", "FMT_REVIEW_POSITION", "FMT_REVIEW_DRAIN", "REVIEW_COSTS_TITLE", "REVIEW_TAG_CORRECTED", "REVIEW_CORRECTED_TITLE", "REVIEW_CORRECTED_TEXT", "REVIEW_FEAR_TITLE", "FMT_REVIEW_FEAR", "REVIEW_DELETE_HINT", "REVIEW_SUE_HINT", "REVIEW_OUTCOME_DELETED", "REVIEW_OUTCOME_WON", "REVIEW_OUTCOME_LOST", "FMT_REVIEW_BANNER", "FMT_RATING_CHIP", "ACTION_REVIEW_DELETE_FREE", "FMT_REVIEW_LAWSUIT_INFO", "ACTION_REVIEW_SUE_AD", "REVIEW_SUE_AD_HINT"]
 	for stars in range(1, 6):
 		for index in GameConfig.review_texts(stars):
 			keys.append("REVIEW_TEXT_%d_%d" % [stars, index + 1])
@@ -663,7 +749,7 @@ func test_sheet_offers_free_deletion_and_lawsuit_for_praise() -> void:
 	for button in _buttons(sheet.content):
 		labels.append(button.text)
 	assert_true(labels.has(sheet.tr("ACTION_REVIEW_DELETE_FREE")))
-	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_LAWSUIT_INFO") % [UiKit.percent(GameConfig.REVIEW_LAWSUIT_CHANCE), 0]))
+	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_LAWSUIT_INFO") % [UiKit.percent(GameConfig.REVIEW_LAWSUIT_CHANCE), GameConfig.MAX_REVIEW_LAWSUITS]))
 	assert_false(_has_label(sheet.content, sheet.tr("REVIEW_COSTS_TITLE")))
 	state.money = 0.0
 	for button in _buttons(sheet.content):
@@ -694,6 +780,40 @@ func test_sheet_lost_lawsuit_stays_on_detail_with_fewer_stars() -> void:
 	assert_eq(review.stars, 2)
 	assert_eq(sheet.title(), sheet.tr("SHEET_REVIEW_DETAIL"))
 	assert_true(_has_label(sheet.content, sheet.tr("FLOAT_REVIEW_LOST")))
+	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_LAWSUIT_INFO") % [UiKit.percent(Formulas.review_lawsuit_chance(review)), GameConfig.MAX_REVIEW_LAWSUITS - 1]))
+
+
+func test_sheet_offers_ad_lawsuit_after_three_failures() -> void:
+	var review := state.add_review(1)
+	review.lawsuits = GameConfig.MAX_REVIEW_LAWSUITS
+	var sheet := _sheet(str(review.id))
+	assert_true(_has_label(sheet.content, sheet.tr("REVIEW_SUE_AD_HINT")))
+	assert_false(_has_label(sheet.content, sheet.tr("REVIEW_SUE_HINT")))
+	var ad_button: Button
+	for button in _buttons(sheet.content):
+		assert_false(button.text.begins_with(sheet.tr("ACTION_REVIEW_SUE")))
+		if button.text == sheet.tr("ACTION_REVIEW_SUE_AD"):
+			ad_button = button
+	assert_not_null(ad_button)
+	ad_button.pressed.emit()
+	var ad: AdPlaceholder
+	for child in get_children():
+		if child is AdPlaceholder:
+			ad = child
+	assert_not_null(ad)
+	assert_false(review.forced)
+	ad.advance(GameConfig.AD_SECONDS)
+	assert_true(review.forced)
+	assert_true(_has_label(sheet.content, sheet.tr("FLOAT_REVIEW_WON")))
+	assert_false(_has_label(sheet.content, sheet.tr("REVIEW_SUE_AD_HINT")))
+	await wait_physics_frames(2)
+
+
+func test_sheet_hides_ad_lawsuit_while_attempts_remain() -> void:
+	var review := state.add_review(1)
+	review.lawsuits = GameConfig.MAX_REVIEW_LAWSUITS - 1
+	var sheet := _sheet(str(review.id))
+	assert_false(_has_label(sheet.content, sheet.tr("REVIEW_SUE_AD_HINT")))
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_LAWSUIT_INFO") % [UiKit.percent(Formulas.review_lawsuit_chance(review)), 1]))
 
 

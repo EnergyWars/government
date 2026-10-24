@@ -61,7 +61,7 @@ static func review_base_cost(state: GameState) -> float:
 
 static func review_delete_cost(state: GameState, review: Review) -> float:
 	var stars := 5 if review.forced else review.stars
-	return review_base_cost(state) * GameConfig.REVIEW_DELETE_STAR_FACTORS[clampi(stars, 1, 5) - 1]
+	return review_base_cost(state) * GameConfig.REVIEW_DELETE_STAR_FACTORS[clampi(stars, 1, 5) - 1] * pow(GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH, review.lawsuits)
 
 
 static func income_per_second(state: GameState) -> float:
@@ -135,6 +135,10 @@ static func intern_capacity(state: GameState) -> int:
 
 static func intern_stress_free(state: GameState) -> int:
 	return GameConfig.INTERN_STRESS_FREE + state.research_level("intern_training")
+
+
+static func intern_stress_factor(state: GameState) -> float:
+	return pow(GameConfig.INTERN_TRAINING_STRESS_FACTOR, state.research_level("intern_training"))
 
 
 static func intern_cry_seconds(state: GameState) -> float:
@@ -531,6 +535,26 @@ static func downstream_keys(state: GameState, key: String) -> Array[String]:
 
 static func patience(state: GameState) -> float:
 	return GameConfig.BASE_PATIENCE * (1.0 + GameConfig.PATIENCE_PER_LOBBY_LEVEL * state.research_level("comfortable_lobby")) * event_patience(state)
+
+
+static func patience_factor(state: GameState, serial: int) -> float:
+	if state.cases_completed < GameConfig.PATIENCE_SPREAD_MIN_CASES:
+		return 1.0
+	var roll := float(posmod(hash([state.rng.seed, serial, GameConfig.PATIENCE_HASH_SALT]), 1000)) / 1000.0
+	return lerpf(GameConfig.PATIENCE_MIN_FACTOR, GameConfig.PATIENCE_MAX_FACTOR, roll)
+
+
+static func citizen_patience(state: GameState, case_file: CaseFile) -> float:
+	return patience(state) * case_file.patience_factor
+
+
+static func leave_complaint_chance(case_file: CaseFile) -> float:
+	return clampf(GameConfig.LEAVE_COMPLAINT_CHANCE * case_file.patience_factor, 0.0, 1.0)
+
+
+static func leave_complaint_rate(state: GameState) -> float:
+	var lost := state.production.per_minute(ProductionStats.LOST, "", state.play_time) / 60.0
+	return minf(lost * GameConfig.LEAVE_COMPLAINT_CHANCE, 1.0 / GameConfig.LEAVE_COMPLAINT_COOLDOWN)
 
 
 static func carry_capacity(state: GameState) -> int:

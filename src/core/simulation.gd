@@ -28,8 +28,8 @@ signal review_removed(outcome: String)
 signal employee_woke(key: String, desk: int, by_player: bool)
 signal visitor_arrived(angry: bool)
 signal visitor_stopped(angry: bool)
-signal intern_broke_down
-signal intern_recovered(by_player: bool)
+signal intern_broke_down(slot: int)
+signal intern_recovered(slot: int, by_player: bool)
 signal coffee_served(key: String, desk: int)
 signal dispute_started(kind: String, dept_id: String)
 signal dispute_ended(kind: String, dept_id: String, by_player: bool)
@@ -201,20 +201,24 @@ func _age_cases(delta: float) -> void:
 		while index >= 0:
 			var waiting := station.inbox[index]
 			waiting.waited += delta
-			if waiting.waited > limit:
+			if waiting.waited > limit * waiting.patience_factor:
 				station.inbox.remove_at(index)
 				_lose_citizen(waiting.dept_id, GameConfig.REP_CITIZEN_LEFT)
-				_complain_about_wait()
+				complain_after_leaving(Formulas.leave_complaint_chance(waiting), false)
 			index -= 1
 	for case_file in state.carried_cases():
 		case_file.age += delta
 
 
-func _complain_about_wait() -> void:
-	if state.cases_completed < GameConfig.COMPLAINT_MIN_CASES:
-		return
-	if spawn_visitor(false, true) == null:
+func complain_after_leaving(chance: float, angry: bool) -> bool:
+	if state.cases_completed < GameConfig.COMPLAINT_MIN_CASES or state.leave_complaint_cooldown > 0.0:
+		return false
+	if state.life_rng.randf() >= chance:
+		return false
+	state.leave_complaint_cooldown = GameConfig.LEAVE_COMPLAINT_COOLDOWN
+	if spawn_visitor(angry, true) == null:
 		submit_complaint()
+	return true
 
 
 func _spawn_citizens(delta: float) -> void:
@@ -247,6 +251,7 @@ func create_case(dept: Department, follow_up: bool = false) -> CaseFile:
 	case_file.route = RouteBuilder.build(case_file)
 	state.cases_spawned += 1
 	case_file.invalid = not follow_up and not dept.is_customs() and Formulas.is_invalid_case(state, state.cases_spawned)
+	case_file.patience_factor = Formulas.patience_factor(state, state.cases_spawned)
 	return case_file
 
 
@@ -263,8 +268,7 @@ func spawn_case(dept: Department, follow_up: bool = false) -> CaseFile:
 	state.production.record(ProductionStats.ARRIVED, dept.id, state.play_time)
 	_lose_citizen(dept.id, GameConfig.REP_WALKED_OUT)
 	state.walkouts += 1
-	if spawn_visitor(true, true) == null:
-		submit_complaint()
+	complain_after_leaving(GameConfig.WALKOUT_COMPLAINT_CHANCE, true)
 	return null
 
 
@@ -420,6 +424,7 @@ func wake_up(station: Station, desk: int, by_player: bool) -> bool:
 
 
 func _update_complaints(delta: float) -> void:
+	state.leave_complaint_cooldown = maxf(0.0, state.leave_complaint_cooldown - delta)
 	if state.cases_completed >= GameConfig.COMPLAINT_MIN_CASES:
 		state.complaint_timer -= delta
 		if state.complaint_timer <= 0.0:
@@ -515,7 +520,7 @@ func _update_visitors(delta: float) -> void:
 				if visitor.angry and state.has_research("shredder_service"):
 					var target := _calmest_intern_at_desk()
 					if target != null:
-						target.stress = minf(1.0, target.stress + GameConfig.INTERN_YELL_RATE * delta)
+						target.stress = minf(1.0, target.stress + GameConfig.INTERN_YELL_RATE * Formulas.intern_stress_factor(state) * delta)
 				if visitor.timer <= 0.0:
 					visitor.phase = ComplaintVisitor.Phase.LEAVING
 			ComplaintVisitor.Phase.LEAVING:
@@ -563,7 +568,7 @@ func _update_intern_unit(intern: ComplaintIntern, team_size: int, delta: float) 
 			intern.move_towards(layout.intern_home(intern.slot), GameConfig.INTERN_SPEED, delta)
 			var over := float(state.complaints) / team_size - Formulas.intern_stress_free(state)
 			if over > 0.0:
-				intern.stress += over * GameConfig.INTERN_STRESS_RATE * delta
+				intern.stress += over * GameConfig.INTERN_STRESS_RATE * Formulas.intern_stress_factor(state) * delta
 			else:
 				intern.stress -= GameConfig.INTERN_CALM_RATE * delta
 			intern.stress = clampf(intern.stress, 0.0, 1.0)
@@ -571,7 +576,7 @@ func _update_intern_unit(intern: ComplaintIntern, team_size: int, delta: float) 
 				intern.mood = ComplaintIntern.Mood.TO_LOO
 				intern.comfort_progress = 0.0
 				state.breakdowns += 1
-				intern_broke_down.emit()
+				intern_broke_down.emit(intern.slot)
 				return
 			_tick_shred_clock(intern, delta)
 		ComplaintIntern.Mood.TO_SHREDDER:
@@ -625,7 +630,7 @@ func _recover_intern(intern: ComplaintIntern, stress: float, by_player: bool) ->
 	intern.stress = stress
 	intern.timer = 0.0
 	intern.comfort_progress = 0.0
-	intern_recovered.emit(by_player)
+	intern_recovered.emit(intern.slot, by_player)
 
 
 func _update_coffee_interns(delta: float) -> void:
@@ -877,16 +882,20 @@ func sue_for_defamation(review_id: int) -> bool:
 	var cost := Formulas.review_lawsuit_cost(state, review)
 	state.spend(cost)
 	if state.review_rng.randf() < Formulas.review_lawsuit_chance(review):
-		review.force_praise(state.review_rng.randi_range(0, GameConfig.REVIEW_FORCED_TEXTS - 1))
-		state.review_fear = GameConfig.REVIEW_FEAR_SECONDS
-		state.earn(cost * GameConfig.REVIEW_LAWSUIT_PAYOUT_FACTOR)
-		state.add_reputation(GameConfig.REVIEW_LAWSUIT_REPUTATION)
-		review_removed.emit("won")
+		win_lawsuit(review, cost * GameConfig.REVIEW_LAWSUIT_REFUND_FACTOR)
 	else:
 		review.downgrade(state.review_rng.randi_range(0, GameConfig.review_texts(maxi(1, review.stars - 1)) - 1))
 		state.add_reputation(-GameConfig.REVIEW_LAWSUIT_LOSS)
 		review_removed.emit("lost")
 	return true
+
+
+func win_lawsuit(review: Review, refund: float) -> void:
+	review.force_praise(state.review_rng.randi_range(0, GameConfig.REVIEW_FORCED_TEXTS - 1))
+	state.review_fear = GameConfig.REVIEW_FEAR_SECONDS
+	state.earn(refund)
+	state.add_reputation(GameConfig.REVIEW_LAWSUIT_REPUTATION)
+	review_removed.emit("won")
 
 
 func shred_complaints(count: int, by_player: bool) -> int:

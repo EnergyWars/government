@@ -472,12 +472,18 @@ func _on_case_shredded(_dept_id: String) -> void:
 	_shred_time = SHRED_ANIMATION
 
 
-func _on_intern_broke_down() -> void:
-	_float(game.state.intern.position + Vector2(0, -60), tr("FLOAT_INTERN_BREAKDOWN"), AppTheme.accent("error"), AppTheme.SIZE_TITLE_SMALL)
+func _on_intern_broke_down(slot: int) -> void:
+	_float(_intern_position(slot) + Vector2(0, -60), tr("FLOAT_INTERN_BREAKDOWN"), AppTheme.accent("error"), AppTheme.SIZE_TITLE_SMALL)
 
 
-func _on_intern_recovered(by_player: bool) -> void:
-	_float(layout.intern_home() + Vector2(0, -60), tr("FLOAT_INTERN_COMFORTED" if by_player else "FLOAT_INTERN_BACK"), AppTheme.accent("success"), AppTheme.SIZE_TITLE_SMALL)
+func _on_intern_recovered(slot: int, by_player: bool) -> void:
+	var anchor := _intern_position(slot) if by_player else layout.intern_home(slot)
+	_float(anchor + Vector2(0, -60), tr("FLOAT_INTERN_COMFORTED" if by_player else "FLOAT_INTERN_BACK"), AppTheme.accent("success"), AppTheme.SIZE_TITLE_SMALL)
+
+
+func _intern_position(slot: int) -> Vector2:
+	var units := game.state.all_interns()
+	return units[slot].position if slot >= 0 and slot < units.size() else layout.intern_home(slot)
 
 
 func _on_coffee_served(key: String, desk: int) -> void:
@@ -874,13 +880,12 @@ func _draw_hall(state: GameState, view: Rect2) -> void:
 	_draw_station(state, GameConfig.COUNTER, "")
 	_draw_hall_furnishing(state, view)
 	var reception := state.station(GameConfig.RECEPTION)
-	var patience := Formulas.patience(state)
 	for i in mini(reception.inbox.size(), GameConfig.MAX_LOBBY_SLOTS):
 		var case_file := reception.inbox[i]
 		var pos := layout.queue_point(i)
 		if not view.has_point(pos):
 			continue
-		var mood := clampf(case_file.waited / patience, 0.0, 1.0)
+		var mood := clampf(case_file.waited / Formulas.citizen_patience(state, case_file), 0.0, 1.0)
 		ItemPainter.draw_person_lite(_canvas, pos, AppTheme.CITIZEN_COLORS[i % AppTheme.CITIZEN_COLORS.size()], 0.9, i)
 		_canvas.draw_arc(pos + Vector2(0, 7), 12, -PI * 0.5, -PI * 0.5 + TAU * (1.0 - mood), 16, AppTheme.accent("success").lerp(AppTheme.accent("error"), mood), 2.0)
 		if i < 12:

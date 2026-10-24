@@ -56,6 +56,7 @@ var review_fear := 0.0
 var complaint_tube_timer := 0.0
 var complaints_shredded := 0
 var complaint_timer := GameConfig.COMPLAINT_INTERVAL
+var leave_complaint_cooldown := 0.0
 var complaints_filed := 0
 var complaints_fended := 0
 var complaint_clerk_level := 0

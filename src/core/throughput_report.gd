@@ -118,7 +118,8 @@ static func complaint_demand(state: GameState, guards: int, clerk_level: int = -
 		return 0.0
 	var level := state.complaint_clerk_level if clerk_level < 0 else clerk_level
 	var interval := GameConfig.COMPLAINT_INTERVAL * (1.0 + GameConfig.COMPLAINT_STAFF_RELIEF * (guards + state.helpers.size()))
-	return pow(1.0 - GameConfig.GUARD_BLOCK_CHANCE, guards) * (1.0 - Formulas.complaint_fend_chance(level)) / interval
+	var incoming := 1.0 / interval + Formulas.leave_complaint_rate(state)
+	return pow(1.0 - GameConfig.GUARD_BLOCK_CHANCE, guards) * (1.0 - Formulas.complaint_fend_chance(level)) * incoming
 
 
 static func intern_rate(level: int, per_trip: int) -> float:

@@ -207,6 +207,61 @@ func test_intern_stress_builds_up_with_many_complaints() -> void:
 	assert_almost_eq(state.intern.stress, expected, 0.01)
 
 
+func test_intern_survives_several_shredder_trips_with_a_full_box() -> void:
+	var full_box := float(GameConfig.COMPLAINT_BOX_CAPACITY - GameConfig.INTERN_STRESS_FREE) * GameConfig.INTERN_STRESS_RATE
+	var shouting := GameConfig.INTERN_YELL_RATE * GameConfig.VISITOR_ANGRY_TALK_SECONDS / GameConfig.YELL_INTERVAL
+	var seconds_until_breakdown := (1.0 - GameConfig.INTERN_RECOVERED_STRESS) / (full_box + shouting)
+	var trip: float = GameConfig.SHREDDER_DELAYS[1] + GameConfig.INTERN_TRIP_ESTIMATE
+	assert_gt(seconds_until_breakdown / trip, 2.0)
+
+
+func test_training_reduces_stress_from_a_full_box() -> void:
+	state.research["shredder_service"] = 1
+	state.research["intern_training"] = 2
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
+	_run(10.0)
+	var over := GameConfig.COMPLAINT_BOX_CAPACITY - Formulas.intern_stress_free(state)
+	var expected := over * GameConfig.INTERN_STRESS_RATE * pow(GameConfig.INTERN_TRAINING_STRESS_FACTOR, 2) * 10.0
+	assert_almost_eq(state.intern.stress, expected, 0.002)
+	var untrained := (GameConfig.COMPLAINT_BOX_CAPACITY - GameConfig.INTERN_STRESS_FREE) * GameConfig.INTERN_STRESS_RATE * 10.0
+	assert_lt(state.intern.stress, untrained * 0.6)
+
+
+func test_training_softens_the_shouting() -> void:
+	state.research["shredder_service"] = 1
+	state.research["intern_training"] = 2
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
+	var visitor := sim.spawn_visitor(true, false)
+	visitor.position = layout.visitor_spot(visitor.slot)
+	_run(4.0)
+	var factor := pow(GameConfig.INTERN_TRAINING_STRESS_FACTOR, 2)
+	var from_box := (GameConfig.COMPLAINT_BOX_CAPACITY - Formulas.intern_stress_free(state)) * GameConfig.INTERN_STRESS_RATE * 4.0
+	var from_shouting := GameConfig.INTERN_YELL_RATE * (4.0 - 0.05)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.TALKING)
+	assert_almost_eq(state.intern.stress, factor * (from_box + from_shouting), 0.002)
+
+
+func test_fully_trained_intern_barely_notices_a_full_box() -> void:
+	state.research["shredder_service"] = 1
+	state.research["intern_training"] = int(GameConfig.RESEARCH.intern_training.max_level)
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
+	_run(10.0)
+	assert_lt(state.intern.stress, 0.01)
+	assert_eq(state.intern.mood, ComplaintIntern.Mood.DESK)
+
+
+func test_helper_breakdown_reports_its_slot() -> void:
+	state.research["shredder_service"] = 1
+	var helper := state.add_helper()
+	helper.stress = 0.9999
+	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
+	watch_signals(sim)
+	sim.tick(0.1)
+	assert_signal_emitted_with_parameters(sim, "intern_broke_down", [helper.slot])
+	assert_eq(helper.mood, ComplaintIntern.Mood.TO_LOO)
+	assert_eq(state.intern.mood, ComplaintIntern.Mood.DESK)
+
+
 func test_intern_calms_down_with_few_complaints() -> void:
 	state.research["shredder_service"] = 1
 	state.intern.stress = 0.5
@@ -227,12 +282,12 @@ func test_intern_stays_calm_without_research() -> void:
 func test_intern_breaks_down_and_runs_to_the_toilet() -> void:
 	state.research["shredder_service"] = 1
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
-	state.intern.stress = 0.999
+	state.intern.stress = 0.9999
 	watch_signals(sim)
 	sim.tick(0.1)
 	assert_eq(state.intern.mood, ComplaintIntern.Mood.TO_LOO)
 	assert_eq(state.breakdowns, 1)
-	assert_signal_emitted(sim, "intern_broke_down")
+	assert_signal_emitted_with_parameters(sim, "intern_broke_down", [0])
 	assert_true(state.intern.is_away())
 	_run(15.0)
 	assert_eq(state.intern.mood, ComplaintIntern.Mood.CRYING)
@@ -257,7 +312,7 @@ func test_intern_returns_and_shreds_again() -> void:
 	watch_signals(sim)
 	_run(GameConfig.INTERN_CRY_SECONDS + 1.0, 0.5)
 	assert_eq(state.intern.mood, ComplaintIntern.Mood.RETURNING)
-	assert_signal_emitted_with_parameters(sim, "intern_recovered", [false])
+	assert_signal_emitted_with_parameters(sim, "intern_recovered", [0, false])
 	_run(45.0, 0.5)
 	assert_eq(state.intern.mood, ComplaintIntern.Mood.DESK)
 	assert_lte(state.intern.stress, GameConfig.INTERN_RECOVERED_STRESS)
@@ -274,7 +329,7 @@ func test_player_comforts_the_crying_intern() -> void:
 	_run(GameConfig.INTERN_COMFORT_TIME + 0.5)
 	assert_eq(state.intern.mood, ComplaintIntern.Mood.RETURNING)
 	assert_almost_eq(state.intern.stress, GameConfig.INTERN_COMFORT_STRESS, 0.001)
-	assert_signal_emitted_with_parameters(sim, "intern_recovered", [true])
+	assert_signal_emitted_with_parameters(sim, "intern_recovered", [0, true])
 
 
 func test_player_can_comfort_the_intern_while_running_away() -> void:
@@ -1048,9 +1103,9 @@ func test_world_view_reacts_to_hall_life_signals() -> void:
 	var game := Game.new(GameState.create_new(4))
 	var world := _hall_world(game)
 	var sim_signals := game.simulation
-	sim_signals.intern_broke_down.emit()
-	sim_signals.intern_recovered.emit(true)
-	sim_signals.intern_recovered.emit(false)
+	sim_signals.intern_broke_down.emit(0)
+	sim_signals.intern_recovered.emit(0, true)
+	sim_signals.intern_recovered.emit(0, false)
 	sim_signals.coffee_served.emit(REVIEW, 0)
 	sim_signals.dispute_started.emit("window", "general_services")
 	sim_signals.dispute_ended.emit("window", "general_services", true)
@@ -1061,6 +1116,22 @@ func test_world_view_reacts_to_hall_life_signals() -> void:
 	for i in 12:
 		sim_signals.coffee_served.emit(REVIEW, 0)
 	assert_lte(world._floaters.size(), WorldView.MAX_FLAVOR_FLOATERS + 1)
+
+
+func test_world_view_floats_above_the_intern_concerned() -> void:
+	var game := Game.new(GameState.create_new(4))
+	var world := _hall_world(game)
+	var helper := game.state.add_helper()
+	helper.position = layout.intern_cry_point(helper.slot)
+	var above := Vector2(0, -60)
+	game.simulation.intern_broke_down.emit(helper.slot)
+	assert_eq(world._floaters[-1].pos, helper.position + above)
+	game.simulation.intern_recovered.emit(helper.slot, true)
+	assert_eq(world._floaters[-1].pos, helper.position + above)
+	game.simulation.intern_recovered.emit(helper.slot, false)
+	assert_eq(world._floaters[-1].pos, layout.intern_home(helper.slot) + above)
+	game.simulation.intern_broke_down.emit(GameConfig.MAX_HELPERS + 1)
+	assert_eq(world._floaters[-1].pos, layout.intern_home(GameConfig.MAX_HELPERS + 1) + above)
 
 
 func test_sheets_offer_the_new_upgrades() -> void:

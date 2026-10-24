@@ -166,7 +166,7 @@ Fachkraft: 5 × Einstellkosten × 2,4^n, nur komplexe Fälle (10–35 %) ohne Ze
 
 ### 4.4 [M] Prozess-Klage ist ab dem zweiten Versuch ein Geldautomat
 Erwartungswert Geld = Chance × 2,5 − 1 ≥ 0 schon bei 40 %; Chance steigt +8 % je Klage bis 85 %, Kosten nur ×1,25. Ab Klage 2 positiver Erwartungswert, bis 20 Klagen je Bewertung.
-- [x] `REVIEW_LAWSUIT_GROWTH` 1,25 → 1,6 oder Auszahlung 2,5 → 1,8; Chance-Zuwachs nur bis 65 %. **Umgesetzt:** Wachstum 1,6, Chance höchstens 65 %.
+- [x] `REVIEW_LAWSUIT_GROWTH` 1,25 → 1,6 oder Auszahlung 2,5 → 1,8. **Umgesetzt:** Wachstum 1,6; höchstens 3 Klagen je Bewertung (Chance 50/58/66 %), danach nur Werbung oder Löschen (×1,5 je gescheiterter Klage). Kein Schadenersatz mehr: Sieg erstattet nur die Klagekosten (1,0-fach), Klagen bringen also nie Gewinn.
 - [x] Löschen und Krank-Bonus teurer: Bewertung löschen Grundpreis 25 s Einkommen (min. 40) statt 8 s (min. 10), 1 Stern damit ≈ 75 s Einkommen; Klage 1,2 × Grundpreis (≈ 30 s statt 12 s, bleibt günstiger als 1-Stern-Löschen, Risiko dafür). Krank-Bonus 0,3/0,6/1,0 Einkommensminuten statt 0,1/0,25/0,6, Mindesteinkommen 50/min; Obergrenze 1 Minute bleibt (Test `test_bonus_stays_cheap_compared_to_income`).
 - [ ] Verlorene Klage: zusätzlich eine neue 1-Sterne-Bewertung („Amt verklagt Bürger“), damit Spam riskant bleibt.
 
@@ -196,6 +196,24 @@ Erstes Ereignis nach 240 s, dann alle 180–360 s für 45 s; Störereignisse (Dr
 Sozialamt-Wiedervorlage ×0,6 Gebühr, aber voller Durchlauf Empfang/Sachbearbeitung/Ausgabe; Wohnungsamt-Verweis durchläuft zusätzlich die Meldestelle und belastet deren Kapazität ohne eigene Gebühr.
 - [ ] Wiedervorlage ×0,6 → ×0,9 (sie ist „halbe Arbeit“: kein Unterschriftsschritt) und +0,1 Ansehen zusätzlich.
 - [ ] Verwiesene Fälle zahlen der Meldestelle anteilig (20 % der Gebühr) und erscheinen in deren Statistik.
+
+### 4.9 [H] Beschwerde-Praktikanten brechen zusammen, bevor sie arbeiten
+**Befund (Spieler-Feedback, nachgerechnet).** Der Praktikant braucht auf Schredder-Stufe 1 je Gang 40 s am Platz, war bei vollem Briefkasten aber nach ~15 s gestresst (17 × 0,4 %/s); jeder wütende Besucher brachte +36 %, und die Schulung half gegen Geschrei gar nicht. Unter Last schaffte er 0,2–0,4 Gänge je Zusammenbruch und nur 20 % seiner Nennleistung; sobald der Kasten 8 Beschwerden erreichte, kippte das System dauerhaft.
+- [x] Stress je Beschwerde über der Grenze 0,4 → 0,02 %/s, Geschrei 6 → 0,6 %/s, Erholung 1,2 → 0,4 %/s (bleibt unter dem Geschrei, damit ein Schreihals sichtbar stresst).
+- [x] Praktikanten-Schulung senkt jeden Stresszuwachs (Kasten und Geschrei) um 25 % je Stufe (`INTERN_TRAINING_STRESS_FACTOR`); 3 → 8 Stufen, Wachstum ×4 → ×3 (3 000 bis 6,6 Mio.), damit es bis ins Spätspiel kleine Praktikanten-Upgrades gibt.
+- [x] Test `test_intern_survives_several_shredder_trips_with_a_full_box` sichert ab, dass ein ungeschulter Praktikant auf Stufe 1 bei vollem Kasten und regelmäßigem Geschrei mehr als zwei Gänge schafft.
+
+Modellrechnung (eigenes Python-Modell der Praktikanten-Logik, 60 min, 6 Seeds; „Last“ = 3 Beschwerden/min, die Hälfte wütend; „Stau“ = 6/min, 70 % wütend; S = Schredder-Stufe, T = Schulungsstufe):
+| Szenario | Vorher: geschreddert/min | Vorher: Gänge je Zusammenbruch | Nachher: geschreddert/min | Nachher: Gänge je Zusammenbruch |
+|---|---|---|---|---|
+| Last S1 T0 | 0,27 | 0,2 | 1,10 | 3,1 |
+| Last S1 T1 | 0,73 | 0,3 | 2,48 | 26 |
+| Stau S1 T0 | 0,24 | 0,2 | 1,05 | 2,5 |
+| Stau S1 T1 | 0,61 | 0,2 | 2,35 | 3,6 |
+| Stau S2 T1 | 1,21 | 0,4 | 4,71 | 31 |
+| Stau S2 T3 | 4,90 | 11 | 4,91 | kein Zusammenbruch |
+
+Offen, falls es weiterhin zu wenig ist: mehr zusätzliche Praktikanten (2 → 4, Platz an der Beschwerdestelle vorher im Screenshot prüfen) oder Schreddern beruhigt („Schreddern ist Therapie“).
 
 ---
 

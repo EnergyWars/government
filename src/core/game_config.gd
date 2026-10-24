@@ -45,6 +45,10 @@ const POPULARITY_DIVISOR := 8.0
 const MAX_POPULARITY := 8.0
 const BASE_PATIENCE := 90.0
 const PATIENCE_PER_LOBBY_LEVEL := 0.4
+const PATIENCE_MIN_FACTOR := 0.3
+const PATIENCE_MAX_FACTOR := 1.7
+const PATIENCE_SPREAD_MIN_CASES := 10
+const PATIENCE_HASH_SALT := 7919
 const INBOX_BASE := 6
 const INBOX_PER_DESK := 2
 const OUTBOX_BASE := 6
@@ -101,9 +105,12 @@ const HR_CALL_SECONDS := 12.0
 const HR_ANSWER_SECONDS := 4.0
 const SICK_RING_SECONDS := 30.0
 const SICK_TALK_CHANCE := 0.3
-const COMPLAINT_INTERVAL := 120.0
+const COMPLAINT_INTERVAL := 150.0
 const COMPLAINT_STAFF_RELIEF := 0.3
 const COMPLAINT_MIN_CASES := 10
+const LEAVE_COMPLAINT_CHANCE := 0.3
+const WALKOUT_COMPLAINT_CHANCE := 0.1
+const LEAVE_COMPLAINT_COOLDOWN := 45.0
 const COMPLAINT_BOX_CAPACITY := 20
 const COMPLAINT_BOX_PER_LEVEL := 10
 const COMPLAINT_BOX_MAX_LEVEL := 4
@@ -131,13 +138,14 @@ const REVIEW_DRAIN := 0.0006
 const REVIEW_DELETE_BASE := 40.0
 const REVIEW_DELETE_INCOME_SECONDS := 25.0
 const REVIEW_DELETE_STAR_FACTORS: Array[float] = [3.0, 1.5, 0.6, 0.2, 0.0]
+const REVIEW_DELETE_LAWSUIT_GROWTH := 1.5
 const REVIEW_LAWSUIT_FACTOR := 1.2
 const REVIEW_LAWSUIT_GROWTH := 1.6
-const REVIEW_LAWSUIT_CHANCE := 0.4
+const REVIEW_LAWSUIT_CHANCE := 0.5
 const REVIEW_LAWSUIT_CHANCE_STEP := 0.08
-const REVIEW_LAWSUIT_MAX_CHANCE := 0.65
-const MAX_REVIEW_LAWSUITS := 20
-const REVIEW_LAWSUIT_PAYOUT_FACTOR := 2.5
+const REVIEW_LAWSUIT_MAX_CHANCE := 0.7
+const MAX_REVIEW_LAWSUITS := 3
+const REVIEW_LAWSUIT_REFUND_FACTOR := 1.0
 const REVIEW_LAWSUIT_REPUTATION := 0.5
 const REVIEW_LAWSUIT_LOSS := 0.2
 const REVIEW_TEXTS: Array[int] = [40, 35, 30, 25, 30]
@@ -253,13 +261,14 @@ const GUARD_STOP_SECONDS := 4.0
 const GUARD_DIALOGS := 5
 const GUARD_LINES := 2
 const INTERN_STRESS_FREE := 3
-const INTERN_STRESS_RATE := 0.004
-const INTERN_CALM_RATE := 0.012
-const INTERN_YELL_RATE := 0.06
+const INTERN_STRESS_RATE := 0.0002
+const INTERN_CALM_RATE := 0.004
+const INTERN_YELL_RATE := 0.006
 const INTERN_SPEED := 150.0
 const INTERN_TRIP_ESTIMATE := 8.0
 const INTERN_CRY_SECONDS := 20.0
 const INTERN_TRAINING_CRY_FACTOR := 0.7
+const INTERN_TRAINING_STRESS_FACTOR := 0.75
 const MAX_HELPERS := 2
 const HELPER_COST := 1300.0
 const HELPER_GROWTH := 2.5
@@ -427,7 +436,7 @@ const RESEARCH := {
 	"digital_signatures": {"max_level": 2, "cost": 25000.0, "growth": 6.0, "reputation": 80.0},
 	"pneumatic_tubes": {"max_level": 1, "cost": 250000.0, "growth": 1.0, "reputation": 250.0},
 	"complaint_tube": {"max_level": 3, "cost": 6000.0, "growth": 4.0, "reputation": 50.0, "requires": "shredder_service"},
-	"intern_training": {"max_level": 3, "cost": 3000.0, "growth": 4.0, "reputation": 40.0, "requires": "shredder_service"},
+	"intern_training": {"max_level": 8, "cost": 3000.0, "growth": 3.0, "reputation": 40.0, "requires": "shredder_service"},
 	"tube_capacity": {"max_level": 3, "cost": 120000.0, "growth": 3.0, "reputation": 300.0, "requires": "pneumatic_tubes"},
 	"online_portal": {"max_level": 2, "cost": 1000000.0, "growth": 8.0, "reputation": 500.0},
 	"ai_classification": {"max_level": 1, "cost": 20000000.0, "growth": 1.0, "reputation": 1000.0},

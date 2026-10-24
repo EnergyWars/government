@@ -237,8 +237,13 @@ func _build_actions(container: VBoxContainer, review: Review) -> void:
 		sue = UiKit.button(UiKit.cost_text("ACTION_REVIEW_SUE", Formulas.review_lawsuit_cost(game.state, review)), "error")
 		sue.pressed.connect(func() -> void: act(game.simulation.sue_for_defamation.bind(review.id)))
 		container.add_child(sue)
-		container.add_child(UiKit.label(tr("FMT_REVIEW_LAWSUIT_INFO") % [UiKit.percent(Formulas.review_lawsuit_chance(review)), review.lawsuits], "TitleSmall", true))
+		container.add_child(UiKit.label(tr("FMT_REVIEW_LAWSUIT_INFO") % [UiKit.percent(Formulas.review_lawsuit_chance(review)), review.lawsuits_left()], "TitleSmall", true))
 		container.add_child(UiKit.label(tr("REVIEW_SUE_HINT"), "BodySmall", true))
+	elif review.needs_ad_lawsuit():
+		var ad := UiKit.button(tr("ACTION_REVIEW_SUE_AD"), "primary", "Outlined")
+		ad.pressed.connect(func() -> void: watch_ad(game.boosts.sue_by_ad.bind(review.id)))
+		container.add_child(ad)
+		container.add_child(UiKit.label(tr("REVIEW_SUE_AD_HINT"), "BodySmall", true))
 	track(func() -> void:
 		delete.disabled = not game.simulation.can_delete_review(review.id)
 		if sue != null:

@@ -21,6 +21,7 @@ var companion := false
 var extras: Array[String] = []
 var age := 0.0
 var waited := 0.0
+var patience_factor := 1.0
 var handled := 0
 
 
@@ -94,6 +95,7 @@ func to_dict() -> Dictionary:
 		"extras": extras.duplicate(),
 		"age": age,
 		"waited": waited,
+		"patience_factor": patience_factor,
 		"handled": handled,
 	}
 
@@ -125,5 +127,6 @@ static func from_dict(data: Dictionary) -> CaseFile:
 			case_file.extras.append(extra_id)
 	case_file.age = float(data.get("age", 0.0))
 	case_file.waited = float(data.get("waited", 0.0))
+	case_file.patience_factor = clampf(float(data.get("patience_factor", 1.0)), GameConfig.PATIENCE_MIN_FACTOR, GameConfig.PATIENCE_MAX_FACTOR)
 	case_file.handled = maxi(0, int(data.get("handled", 0)))
 	return case_file

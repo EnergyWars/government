@@ -92,3 +92,16 @@ func cure_by_ad(key: String, desk: int) -> bool:
 	state.boost_cooldowns[SICK_NOTE] = GameConfig.AD_SICK_COOLDOWN
 	state.ads_watched += 1
 	return true
+
+
+func can_sue_by_ad(review_id: int) -> bool:
+	var review := state.find_review(review_id)
+	return review != null and review.needs_ad_lawsuit()
+
+
+func sue_by_ad(review_id: int) -> bool:
+	if not can_sue_by_ad(review_id):
+		return false
+	simulation.win_lawsuit(state.find_review(review_id), 0.0)
+	state.ads_watched += 1
+	return true

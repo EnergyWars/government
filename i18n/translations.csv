@@ -797,12 +797,12 @@ LABEL_NEEDS_SHREDDER_SERVICE,Needs the shredder intern first.,Benötigt zuerst d
 RESEARCH_COMPLAINT_TUBE,Complaint tube,Beschwerde-Rohrpost
 RESEARCH_DESC_COMPLAINT_TUBE,"A slow pneumatic tube from the complaint desk to the shredder. Each level sends a complaint faster, but the intern still has plenty to do. Needs the shredder intern.","Eine langsame Rohrpost vom Beschwerdetisch zum Schredder. Jede Stufe schickt schneller eine Beschwerde los, dem Praktikanten bleibt trotzdem genug zu tun. Benötigt den Schredder-Praktikanten."
 RESEARCH_INTERN_TRAINING,Intern training,Praktikanten-Schulung
-RESEARCH_DESC_INTERN_TRAINING,"Interns shred one more item per trip, tolerate one more complaint and stop crying 30% sooner per level. Needs the shredder intern.","Praktikanten schreddern pro Gang ein Stück mehr, halten eine Beschwerde mehr aus und hören pro Stufe 30 % früher auf zu weinen. Benötigt den Schredder-Praktikanten."
+RESEARCH_DESC_INTERN_TRAINING,"Per level, interns get 25% less stressed by full boxes and shouting, shred one more item per trip, tolerate one more complaint and stop crying 30% sooner. Needs the shredder intern.","Pro Stufe stressen volle Briefkästen und Geschrei die Praktikanten 25 % weniger, sie schreddern pro Gang ein Stück mehr, halten eine Beschwerde mehr aus und hören 30 % früher auf zu weinen. Benötigt den Schredder-Praktikanten."
 FMT_REVIEWS_TITLE,Bad online reviews: %d,Schlechte Online-Bewertungen: %d
 ACTION_REVIEW_SUE,Report for defamation,Wegen Verleumdung anzeigen
 FLOAT_REVIEW_POSTED,One star: 'Never again!',Ein Stern: „Nie wieder!“
 FLOAT_REVIEW_DELETED,Review deleted,Bewertung gelöscht
-FLOAT_REVIEW_WON,Defamation proven. Damages paid.,Verleumdung bewiesen. Schadenersatz gezahlt.
+FLOAT_REVIEW_WON,Defamation proven. Costs refunded.,Verleumdung bewiesen. Kosten erstattet.
 FLOAT_REVIEW_LOST,Case dismissed. One star less.,Klage abgewiesen. Ein Stern weniger.
 SHEET_REVIEWS,Online reviews,Online-Bewertungen
 SHEET_REVIEW_DETAIL,Review,Bewertung
@@ -825,11 +825,11 @@ REVIEW_CORRECTED_TITLE,Corrected after a lawsuit,Nach Klage berichtigt
 REVIEW_CORRECTED_TEXT,The author was obliged to replace the review. It no longer costs reputation.,Der Verfasser musste die Bewertung ersetzen. Sie kostet kein Ansehen mehr.
 REVIEW_FEAR_TITLE,Chilling effect,Abschreckung
 FMT_REVIEW_FEAR,The lawsuit is still talked about. Bad reviews are rare for another %s.,Die Klage spricht sich herum. Schlechte Bewertungen bleiben noch %s selten.
-REVIEW_DELETE_HINT,"The worse the review, the more the platform charges. Five stars are deleted for free. Deleting a bad review also gives back a little reputation.","Je schlechter die Bewertung, desto teurer verlangt die Plattform. Fünf Sterne löscht sie kostenlos. Eine schlechte Bewertung zu löschen gibt außerdem etwas Ansehen zurück."
-REVIEW_SUE_HINT,"A lawsuit always costs the same at first. If it works, the author must replace the review with five stars and a bad taste, which deters others for a while. If it fails, the review loses another star, the next lawsuit costs more and the chances rise a little.","Eine Klage kostet anfangs immer gleich viel. Klappt es, muss der Verfasser die Bewertung durch fünf Sterne mit Beigeschmack ersetzen. Das schreckt andere eine Weile ab. Scheitert sie, verliert die Bewertung noch einen Stern, die nächste Klage wird teurer und die Chance steigt etwas."
+REVIEW_DELETE_HINT,"The worse the review, the more the platform charges. Every failed lawsuit makes deleting dearer. Five stars are deleted for free. Deleting a bad review also gives back a little reputation.","Je schlechter die Bewertung, desto teurer verlangt die Plattform. Jede gescheiterte Klage macht das Löschen teurer. Fünf Sterne löscht sie kostenlos. Eine schlechte Bewertung zu löschen gibt außerdem etwas Ansehen zurück."
+REVIEW_SUE_HINT,"A lawsuit always costs the same at first, and there are three attempts per review. If it works, the author must replace the review with five stars and a bad taste, which deters others for a while. If it fails, the review loses another star, the next lawsuit and deleting cost more and the chances rise a little.","Eine Klage kostet anfangs immer gleich viel, pro Bewertung gibt es drei Versuche. Klappt es, muss der Verfasser die Bewertung durch fünf Sterne mit Beigeschmack ersetzen. Das schreckt andere eine Weile ab. Scheitert sie, verliert die Bewertung noch einen Stern, die nächste Klage und das Löschen werden teurer und die Chance steigt etwas."
 REVIEW_OUTCOME_DELETED,The review is gone.,Die Bewertung ist weg.
 REVIEW_OUTCOME_WON,The review now has five stars. Read it. Carefully.,Die Bewertung hat jetzt fünf Sterne. Lies sie. Gründlich.
-REVIEW_OUTCOME_LOST,The court sided with the internet. The review now has one star less. Try again?,Das Gericht stand auf der Seite des Internets. Die Bewertung hat jetzt einen Stern weniger. Noch einmal klagen?
+REVIEW_OUTCOME_LOST,The court sided with the internet. The review now has one star less and deleting it costs more.,Das Gericht stand auf der Seite des Internets. Die Bewertung hat jetzt einen Stern weniger und das Löschen wird teurer.
 ACTION_REVIEW_DELETE,Delete,Löschen lassen
 FMT_REVIEW_BANNER,Latest: %s,Neueste: %s
 FMT_RATING_CHIP,Average rating,Durchschnittsbewertung
@@ -1055,7 +1055,9 @@ Genieße die Ruhe."
 FMT_COMPLAINTS_PILE,%d of %d complaints in the box,%d von %d Beschwerden im Briefkasten
 FMT_COMPLAINTS_MORE,… and %d more underneath,… und %d weitere darunter
 ACTION_REVIEW_DELETE_FREE,Delete for free,Kostenlos löschen lassen
-FMT_REVIEW_LAWSUIT_INFO,Chance of success: %s · lawsuits so far: %d,Erfolgschance: %s · bisherige Klagen: %d
+FMT_REVIEW_LAWSUIT_INFO,Chance of success: %s · attempts left: %d,Erfolgschance: %s · verbleibende Versuche: %d
+ACTION_REVIEW_SUE_AD,Win the lawsuit via ad,Klage per Werbung gewinnen
+REVIEW_SUE_AD_HINT,"Three lawsuits have failed and the court no longer listens. An ad pays for a better lawyer who wins for sure. Otherwise only deleting is left.","Drei Klagen sind gescheitert, das Gericht hört nicht mehr zu. Eine Werbung bezahlt einen besseren Anwalt, der sicher gewinnt. Sonst bleibt nur das Löschen."
 NAV_STATISTICS,Statistics,Statistik
 SHEET_STATISTICS,Statistics,Statistik
 STATS_INTRO,Measured over the last minute. Compare what arrives with what each step manages to find bottlenecks.,"Gemessen über die letzte Minute. Vergleiche, was ankommt, mit dem, was jeder Schritt schafft, um Engpässe zu finden."

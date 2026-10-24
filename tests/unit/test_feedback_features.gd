@@ -892,14 +892,38 @@ func test_intern_training_formulas_and_gate() -> void:
 	assert_eq(Formulas.intern_capacity(state), 1)
 	assert_eq(Formulas.intern_stress_free(state), GameConfig.INTERN_STRESS_FREE)
 	assert_almost_eq(Formulas.intern_cry_seconds(state), GameConfig.INTERN_CRY_SECONDS, 0.001)
+	assert_eq(Formulas.intern_stress_factor(state), 1.0)
 	state.research["intern_training"] = 2
 	assert_eq(Formulas.intern_capacity(state), 3)
 	assert_eq(Formulas.intern_stress_free(state), GameConfig.INTERN_STRESS_FREE + 2)
 	assert_almost_eq(Formulas.intern_cry_seconds(state), GameConfig.INTERN_CRY_SECONDS * 0.49, 0.001)
+	assert_almost_eq(Formulas.intern_stress_factor(state), 0.5625, 0.0001)
 	state.research["intern_training"] = 0
 	state.money = 1.0e9
 	state.reputation = 1.0e6
 	assert_eq(Progression.research_block_reason(state, "intern_training"), "requires")
+
+
+func test_intern_training_offers_many_levels() -> void:
+	var max_level := int(GameConfig.RESEARCH.intern_training.max_level)
+	assert_gte(max_level, 8)
+	state.research["shredder_service"] = 1
+	state.money = 1.0e12
+	state.reputation = 1.0e6
+	var actions := game_actions()
+	var previous := 0.0
+	for level in max_level:
+		var cost := Formulas.research_cost("intern_training", level)
+		assert_gt(cost, previous)
+		previous = cost
+		var money := state.money
+		assert_true(actions.buy_research("intern_training"), str(level))
+		assert_almost_eq(state.money, money - cost, 0.01)
+	assert_eq(state.research_level("intern_training"), max_level)
+	assert_eq(Progression.research_block_reason(state, "intern_training"), "max")
+	assert_false(actions.buy_research("intern_training"))
+	assert_eq(Formulas.intern_capacity(state), 1 + max_level)
+	assert_lt(Formulas.intern_stress_factor(state), 0.15)
 
 
 func test_trained_intern_shreds_several_per_trip() -> void:

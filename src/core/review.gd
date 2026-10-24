@@ -38,6 +38,14 @@ func can_be_sued() -> bool:
 	return not forced and lawsuits < GameConfig.MAX_REVIEW_LAWSUITS
 
 
+func lawsuits_left() -> int:
+	return maxi(0, GameConfig.MAX_REVIEW_LAWSUITS - lawsuits)
+
+
+func needs_ad_lawsuit() -> bool:
+	return not forced and lawsuits >= GameConfig.MAX_REVIEW_LAWSUITS
+
+
 func downgrade(p_text_index: int) -> void:
 	lawsuits += 1
 	stars = maxi(1, stars - 1)
