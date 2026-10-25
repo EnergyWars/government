@@ -39,6 +39,15 @@ Empfang → Sachbearbeitung der Abteilung → (optional: Verweis/Prüfdienst) �
 
 Eröffnet wird eine Abteilung durch Stehen auf dem Kreis im gesperrten Raum (1,2 s) oder per Tipp auf seine Namensleiste („Abteilung eröffnen“; auch in der Upgrade-Übersicht), sofern Platz (Gebäudestufe), Ansehen und Geld reichen. Jede neue Abteilung startet ohne Personal (nur Maschinen laufen von selbst), der Spieler arbeitet dort also zunächst selbst.
 
+## Amtsstufen
+- Jede eröffnete Abteilung lässt sich über ihre Namensleiste (Eintrag „Amtsstufe: …“, Thema „Gebäude und Ausbau“) Schritt für Schritt von Stufe 1 bis 10 aufwerten: Provisorium → Außenstelle → Dienststelle → Amt → Oberamt → Hauptamt → Landesamt → Bundesamt → Oberste Bundesbehörde → Behörde der Behörden. Gekauft wird immer genau eine Stufe.
+- **Wirkung:** Die Gebühren der Abteilung steigen je Stufe ×2,5 (Stufe 10: ×3 815). Das gilt für erledigte Fälle, Post-Antworten, die Ablehnungsgebühr und die Einarbeitungsprämie und damit auch für Einnahmen/Min., Offline-Ertrag und Statistik. Andrang, Tische und Personal bleiben gleich: Eine Aufwertung braucht weder Platz in der Gebäudestufe noch neues Personal.
+- **Preis und Ansehen** folgen der Eröffnungsleiter: Der Aufstieg der Abteilung Nr. i auf Stufe r+1 kostet so viel Geld und Ansehen wie die Eröffnung der Abteilung Nr. i+r (Bürgerservice auf Stufe 2 = Finanzamt: 800 €, Ansehen 15; Bürgerservice auf Stufe 4 = Kfz-Zulassung: 60 000 €, Ansehen 150; Finanzamt auf Stufe 2 = Gewerbeamt: 8 000 €). Jenseits des Zollamts wächst der Preis ×5 je Stufe, das Ansehen bleibt bei 1 300.
+- **Abwägen:** Ein Aufstieg bringt 46–107 % dessen, was die gleich teure Abteilung bei voller Besetzung einbringt, wirkt aber sofort und ohne neues Personal; neue Abteilungen bringen dafür neue Räume, Abläufe und zusätzliche Kapazität. Die Amortisation jeder weiteren Stufe ist länger als die der vorigen.
+- Die Upgrade-Karte zeigt „Provisorium → Außenstelle · Gebühren ×1 → ×2,5“ und „Bis zu +…/Min. · rechnet sich in etwa …“ (möglicher Mehrertrag bei voller Auslastung und Amortisationszeit); die Eröffnungskarte einer Abteilung zeigt entsprechend „Bis zu +…/Min. bei voller Besetzung · rechnet sich in etwa …“.
+- Auf der Karte trägt die Namensleiste ab Stufe 2 ein goldenes Stufen-Abzeichen mit der Stufenzahl; beim Aufstieg erscheint „Neue Amtsstufe: …“ über dem Raum. Die Statistik zeigt je Abteilung Amtsstufe und Gebührenfaktor.
+- Die Amtsstufe wird im Spielstand gespeichert (fehlend = 1, auf 1–10 begrenzt, gesperrte Abteilungen immer 1).
+
 ## Zollamt
 - Lkw liefern Fracht an die **Laderampe**; Frachtarten: Stückgut, Elektronik (höhere Verdachtsquote), Fahrzeuge.
 - **Anmeldeprüfung** markiert verdächtige Sendungen (60 % + 12 % je Fachkraft).
@@ -240,7 +249,7 @@ Wer einzieht, muss sich ummelden: Nach der Wohnungsprüfung geht die Akte zur Me
 Bürger betreten das Amt durch die linke Türhälfte und verlassen es durch die rechte.
 
 ## Upgrades und Bereiche
-Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild, Möbelstück, Gerät, Aushang oder Platz). Ein Tipp öffnet das Bereichsfenster: Kurzbeschreibung, Statuszeilen (z. B. Füllstand, Takt, Kapazität, Belegung), alle Upgrades des Bereichs und bei Raum-Übersichten die passenden Boosts. Kein Upgrade ist ohne Ort; zusammen sind es 53 Upgrade-Spuren mit 9 325 Stufen (Spuren je Raum mehrfach gezählt), dazu Stationen, Personal, Botenstufen, Röhrenabschnitte, Briefregal, Abteilungen und Gebäudestufen.
+Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild, Möbelstück, Gerät, Aushang oder Platz). Ein Tipp öffnet das Bereichsfenster: Kurzbeschreibung, Statuszeilen (z. B. Füllstand, Takt, Kapazität, Belegung), alle Upgrades des Bereichs und bei Raum-Übersichten die passenden Boosts. Kein Upgrade ist ohne Ort; zusammen sind es 53 Upgrade-Spuren mit 9 325 Stufen (Spuren je Raum mehrfach gezählt), dazu Stationen, Personal, Botenstufen, Röhrenabschnitte, Briefregal, Abteilungen, Amtsstufen und Gebäudestufen.
 
 **Räume und ihre Bereiche**
 | Raum | Bereiche |
@@ -255,13 +264,14 @@ Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild,
 | Telefonzentrale | Telefonanlage, Krankenliste |
 | Poststelle | Briefregal, Postkasten, Poststelle, Rohrpost-Platz |
 | Prüfdienst | Prüfdienst-Station, Rohrpost-Platz |
-| Jede Abteilung | Namensleiste (Verwaltung, Teamleitung, Büroausstattung, Eröffnen), jede Station (Tische/Maschinen, Personal, Fachkräfte, Ausbau, Beamte schulen), Schredder-Platz, Rohrpost-Platz (Station und Röhrenabschnitte) |
+| Jede Abteilung | Namensleiste (Verwaltung, Amtsstufe als erster Eintrag, Teamleitung, Büroausstattung, Eröffnen), jede Station (Tische/Maschinen, Personal, Fachkräfte, Ausbau, Beamte schulen), Schredder-Platz, Rohrpost-Platz (Station und Röhrenabschnitte) |
 
-**Hauptpunkt „Upgrades“** (untere Navigation): Kopf mit gekauften Stufen, Zahl der Upgrade-Linien und jetzt kaufbaren Einträgen, darunter ein Segmentschalter mit vier Ansichten (Ansicht und aufgeklappte Gruppen bleiben erhalten):
+**Hauptpunkt „Upgrades“** (untere Navigation): Kopf mit gekauften Stufen, Zahl der Upgrade-Linien und jetzt kaufbaren Einträgen, darunter ein Segmentschalter mit fünf Ansichten (Ansicht und aufgeklappte Gruppen bleiben erhalten):
 - *Räume*: aufklappbare Gruppen je Raum, darin je Bereich eine Kopfzeile mit „Auf der Karte zeigen“ (Fenster schließt, Kamera fährt hin, Bereich pulsiert) und „Bereich öffnen“.
 - *Themen*: nach Wirkung gruppiert (Du selbst, Bürger und Warten, Arbeitstempo, Personal, Transport und Rohrpost, Pausen und Wohlbefinden, Beschwerden, Post, Qualität und IT, Gebäude und Ausbau), jeder Eintrag mit Ort.
 - *Kaufbar*: alles, was gerade bezahlbar ist, das Günstigste zuerst (höchstens 40, Hinweis auf weitere).
 - *Empfohlen*: die Vorschläge der Statistik, die die aktuellen Engpässe am meisten entlasten.
+- *Ausbau*: die großen Schritte im Vergleich – nächste Abteilung, alle noch offenen Amtsstufen und nächste Gebäudestufe –, sortiert nach Amortisation (Preis ÷ möglicher Mehrertrag pro Sekunde); die Gebäudestufe ohne direkten Ertrag steht am Ende. Ohne Kaufmengen-Schalter, da jeder Schritt einzeln gekauft wird. Ist alles erreicht, erscheint ein zweizeiliger Leerzustand.
 
 **Kaufen:** Jede Karte zeigt Symbol, Titel, Beschreibung, Stufe (Plakette und Fortschrittsbalken), aktuelle und nächste Wirkung und den Kaufknopf mit Preis bzw. Sperrgrund (Höchststufe, Raum geschlossen, Gebäudestufe, Voraussetzung, Ansehen – zählt das höchste je erreichte –, Geld, Personal braucht Tische, neue Abteilungen erst Einarbeitung). Die Kaufmenge ×1, ×10 oder Max (alle bezahlbaren Stufen) gilt für alle Karten; mehrere Stufen kosten die Summe der Einzelpreise. Preise wachsen je Spur geometrisch (meist ×1,04 bis ×1,2 je Stufe; wenige große Schritte wie Toilettenkabinen ×2,2 und Wartemarkenautomaten ×4).
 
@@ -337,11 +347,12 @@ Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild,
 | Röhrenabschnitt | Rohrpost-Platz der Abteilung | 0–100, +1 Kapsel, +2 % Tempo | 30 000 × 1,08 je Stufe |
 | Briefregal | Briefregal | 0–300, +1 Platz (Basis 12) | 600 × 1,04 je Stufe |
 | Abteilung eröffnen | Namensleiste der gesperrten Abteilung | in fester Reihenfolge | Eröffnungspreis, Ansehen, Platz |
+| Amtsstufe | Namensleiste der Abteilung | Stufe 1–10, Gebühren ×2,5 je Stufe | Eröffnungspreis und Ansehen der Abteilung Nr. i+r, danach ×5 je Stufe |
 | Gebäudestufe | Eingang | 5 Stufen | 2 500 / 50 000 / 1,5 Mio. / 40 Mio., Ansehen 10/100/400/1000 |
 
 ## Wirtschaft und Fortschritt
 - Ziel-Belohnungen zählen nicht in „Einnahmen/Min.“ und nicht in die Gesamteinnahmen.
-- Gebühr je Fall × Ansehensfaktor (1 + √Ansehen/20); komplexe Fälle ×2, dringende pünktlich ×1,5 (+0,3 Ansehen), verspätet −0,3; fehlerhafte ×0,4 (−0,5 Ansehen), korrekte +0,1.
+- Gebühr je Fall × Amtsstufen-Faktor (×2,5 je Stufe) × Ansehensfaktor (1 + √Ansehen/20); komplexe Fälle ×2, dringende pünktlich ×1,5 (+0,3 Ansehen), verspätet −0,3; fehlerhafte ×0,4 (−0,5 Ansehen), korrekte +0,1.
 - Ansehen erhöht den Bürgerandrang (1 + √Ansehen/8, höchstens ×8), dazu der Bewertungsschnitt (×0,85 bei 1 Stern bis ×1,25 bei 5 Sternen).
 - **Gebäudestufen**: Service-Schalter → Bürgeramt → Kreisverwaltung → Dienstleistungszentrum → Stadtverwaltung (mehr Abteilungsräume, Tische, Lobbyplätze); gekauft am Eingang der Halle, der auch Stufe, eröffnete Abteilungen und Einwohner zeigt.
 - **Ziele**: 21 aufeinander aufbauende Ziele mit Belohnung, letztes Ziel 20 000 Fälle. Die ersten führen über Handarbeit zur Automatisierung: 3 Fälle → Station ausbauen → 25 Fälle → erste Einstellung (250) → Gebäude erweitern → erster Bote (500).
@@ -357,7 +368,7 @@ Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild,
   - **Was ausbauen?** (hervorgehobene Karte ganz oben): die bis zu 4 vollsten Bereiche mit Auslastung ≥ 85 % (Stationen, Aktentransport, Beschwerden, Ablehnungen, Telefonzentrale, Sitz- und Wartebereich, Wartemarkenautomat, Aufrufanzeige), absteigend nach Auslastung, je mit den zwei wirksamsten Ausbauten und ihrem Gewinn pro Minute; Pfeil öffnet direkt den Bereich mit dem besten Ausbau (sonst den der Station bzw. die Upgrade-Übersicht). Ohne ausgelasteten Bereich ein Hinweis.
   - **Statistik** (Gesamtwerte, gespeichert): erledigte Fälle, Trefferquote, verlorene Bürger, aufgeweckte Beamte, Personal, Gesamteinnahmen, Spielzeit und Einwohner.
   - Gesamtes Amt (Einnahmen, ankommende Bürger, erledigte Fälle, Ablehnungen, verlorene Bürger je Minute, erwartete Kapazität), Link zu den Online-Bewertungen mit Durchschnitt, Anzahl und schlechten Bewertungen.
-  - Je Abteilung: Ankünfte gemessen/erwartet, Erledigt, Kapazität des langsamsten Schritts, Wartende, Deckungsbalken, **Kapazität je Schritt** (jeder Arbeitsschritt anteilig für diese Abteilung plus Aktentransport, der Engpass farbig hervorgehoben) und Engpass-Text.
+  - Je Abteilung: Amtsstufe mit Gebührenfaktor, Ankünfte gemessen/erwartet, Erledigt, Kapazität des langsamsten Schritts, Wartende, Deckungsbalken, **Kapazität je Schritt** (jeder Arbeitsschritt anteilig für diese Abteilung plus Aktentransport, der Engpass farbig hervorgehoben) und Engpass-Text.
   - Je Arbeitsschritt: erledigte Akten/Min. (gemessen), Kapazität, Bedarf, Auslastungsbalken (grün < 85 %, gelb, rot > 100 %), Ø Sekunden je Akte und Akten/Min. je Beamtem, Eingangs-/Ausgangsfach, arbeitende Beamte, Engpass-Markierung und **Ausbau-Wirkung** (zusätzliche Akten/Min. für +1 Beamter bzw. +1 Tisch mit Beamtem bzw. +1 Maschine, +1 Stufe, +1 Fachkraft, +1 Teamleitung und passende Upgrades wie Büroausstattung, Dokumentenscanner, Digitale Akte oder Digitale Signatur; „Voll ausgebaut“, wenn nichts mehr geht).
   - **Weitere Bereiche** mit Kapazität, Bedarf, Auslastung und Ausbau-Wirkung: Aktentransport (gemessene Übergaben gesamt und aufgeteilt nach dir, Boten und Rohrpost; Boten und Akten je Gang bzw. Kapseln je Röhre und unterwegs; Rohrpost unbegrenzt), Beschwerden (Zulauf und Geschreddertes gemessen, aufgeteilt nach dir/Personal, Kasten-Füllstand, Praktikanten, Wachen; Wachen senken den Zulauf), Abgelehnte Anträge (Zulauf und Geschreddertes, wartende Ablehnungen, Ablehnungs-Boten, Abteilungsschredder; Ausbau: weiterer Ablehnungs-Bote, Sammelwagen, Flinke Ablehnungs-Boten oder ein fehlender Abteilungsschredder), Telefonzentrale (Krankmeldungen, angenommene und verpasste Anrufe je Minute, Annahmequote, Telefonisten senken die Krankmeldungen), Sitz- und Wartebereich (belegte Plätze; Sitzbereich mit Stehplätzen, Ausbau +1 Sitzplatz bzw. +2 Stehplätze; Warteschlange +1 Platz).
   - Kapazitäten sind Schätzungen aus den Spielwerten (Boten 7 s je Gang, mit Botenschuhen entsprechend kürzer; Ablehnungs-Boten: nach Bedarf gewichteter Hin- und Rückweg zum nächsten Schredder mit ihrem Lauftempo, mindestens 12 s; Abteilungsschredder nach ihrem Takt; Praktikanten Schredder-Takt + 8 s je Gang; Aktentransport-Ausbau: weiterer Bote, Aktenwagen, Botenschuhe, Röhrenkapazität; Bedarf an Krankmeldungen aus dem mittleren Intervall, an Beschwerden aus dem mittleren Intervall plus gemessenem Zulauf durch gehende Bürger, höchstens eine je 45 s).
@@ -367,7 +378,7 @@ Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild,
 - Offline-Dialog nach Rückkehr, Autospeichern alle 20 s und beim Pausieren.
 
 ## Tutorial
-- Geführte Tour beim ersten Start (neues Spiel) durch alle Funktionen in 24 Schritten: Willkommen, Laufen, Geld und Ansehen, Leit-Pfeil, erster Bürger, Warteschlange und Geduld, Ziele, Aufgaben-Panel, Upgrades öffnen, die vier Ansichten, Personal einstellen, Boten einstellen, Station ausbauen, auf die Karte tippen (einen Bereich öffnen), alles ist antippbar, Arbeitsmodus und Fachkräfte, schwarze Bretter, Ausbauwege, Beamte aufwecken, Ereignisse, Offline-Ertrag, alle Ziele, Einstellungen, Abschluss mit Strategie-Tipps.
+- Geführte Tour beim ersten Start (neues Spiel) durch alle Funktionen in 24 Schritten: Willkommen, Laufen, Geld und Ansehen, Leit-Pfeil, erster Bürger, Warteschlange und Geduld, Ziele, Aufgaben-Panel, Upgrades öffnen, die fünf Ansichten, Personal einstellen, Boten einstellen, Station ausbauen, auf die Karte tippen (einen Bereich öffnen), alles ist antippbar, Arbeitsmodus und Fachkräfte, schwarze Bretter, Ausbauwege (Gebäude, neue Abteilung oder Amtsstufe), Beamte aufwecken, Ereignisse, Offline-Ertrag, alle Ziele, Einstellungen, Abschluss mit Strategie-Tipps.
 - Tutorial-Karte unten über der Navigation, bei geöffnetem Fenster oben; zeigt Schrittzähler, Titel, Text und Fortschrittsbalken.
 - Infoschritte werden mit „Weiter“ bestätigt; Aktionsschritte (Laufen, Bürger abschließen, Ziel abholen, Upgrades öffnen, einstellen, Bote, ausbauen, Bereich auf der Karte öffnen, Ziele und Einstellungen öffnen) schließen sich automatisch ab, sobald die Aktion erfolgt ist. Zählende Schritte messen ab Schrittbeginn.
 - Hängenbleiben ausgeschlossen: Aktionsschritte, die im aktuellen Spielstand nicht mehr erfüllbar sind (alle Ziele erledigt, maximale Botenzahl, alle Stationen auf Höchststufe, kein Platz für weiteres Personal), werden automatisch übersprungen. Nach 20 s in einem Aktionsschritt erscheint zusätzlich „Schritt überspringen“.

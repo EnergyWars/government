@@ -2,7 +2,7 @@ class_name UpgradesSheet
 extends Sheet
 
 const REFRESH_MSEC := 250
-const MODES: Array[String] = ["rooms", "topics", "buyable", "recommended"]
+const MODES: Array[String] = ["rooms", "topics", "buyable", "recommended", "expansion"]
 const LIST_LIMIT := 40
 
 static var mode_index := 0
@@ -76,7 +76,8 @@ func build(container: VBoxContainer) -> void:
 		rebuild()
 	))
 	container.add_child(UiKit.label(tr("UPGRADE_MODE_HINT_" + mode().to_upper()), "BodySmall", true))
-	container.add_child(UpgradeEntryCard.amount_selector(self))
+	if mode() != "expansion":
+		container.add_child(UpgradeEntryCard.amount_selector(self))
 	var entries := UpgradeCatalog.entries(state)
 	match mode():
 		"buyable":
@@ -88,6 +89,8 @@ func build(container: VBoxContainer) -> void:
 				if entry != null and not entry.is_maxed():
 					recommended.append(entry)
 			_add_list(container, recommended, "UPGRADES_NONE_RECOMMENDED")
+		"expansion":
+			_add_list(container, UpgradeCatalog.expansion_entries(state), "UPGRADES_NONE_EXPANSION")
 		_:
 			_add_groups(container, entries)
 	track(_update_details)

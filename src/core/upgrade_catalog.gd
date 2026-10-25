@@ -12,8 +12,9 @@ const RUNNER_LEVEL := "runner_level"
 const SEGMENT := "segment"
 const STORAGE := "storage"
 const UNLOCK := "unlock"
+const RANK := "rank"
 const STAGE := "stage"
-const SINGLE_KINDS: Array[String] = [UNLOCK, STAGE]
+const SINGLE_KINDS: Array[String] = [UNLOCK, RANK, STAGE]
 const STAFF_SPOTS := {
 	"runners": "runners",
 	"collectors": "collectors",
@@ -47,6 +48,8 @@ const STATION_PREFIX := "station:"
 
 static func entries(state: GameState) -> Array[UpgradeEntry]:
 	var result: Array[UpgradeEntry] = []
+	for dept in state.unlocked_departments():
+		result.append(rank(state, dept))
 	for upgrade_id in GameConfig.upgrade_ids():
 		if not GameConfig.is_room_upgrade(upgrade_id):
 			result.append(track(state, upgrade_id))
@@ -71,6 +74,46 @@ static func entries(state: GameState) -> Array[UpgradeEntry]:
 	if state.building_stage + 1 < GameConfig.BUILDING_STAGES.size():
 		result.append(stage(state))
 	return result
+
+
+static func expansion_entries(state: GameState) -> Array[UpgradeEntry]:
+	var result: Array[UpgradeEntry] = []
+	for entry in entries(state):
+		if is_expansion(entry):
+			result.append(entry)
+	var paybacks: Dictionary[String, float] = {}
+	for entry in result:
+		paybacks[entry.id] = payback(state, entry)
+	result.sort_custom(func(a: UpgradeEntry, b: UpgradeEntry) -> bool: return paybacks[a.id] < paybacks[b.id])
+	return result
+
+
+static func is_expansion(entry: UpgradeEntry) -> bool:
+	match entry.kind:
+		RANK:
+			return not entry.is_maxed()
+		UNLOCK:
+			return entry.reason != "later"
+		STAGE:
+			return true
+	return false
+
+
+static func income_gain(state: GameState, entry: UpgradeEntry) -> float:
+	var dept := state.department(entry.target)
+	if dept == null:
+		return 0.0
+	match entry.kind:
+		RANK:
+			return DepartmentRank.gain_per_second(state, dept)
+		UNLOCK:
+			return Formulas.potential_income(state, dept)
+	return 0.0
+
+
+static func payback(state: GameState, entry: UpgradeEntry) -> float:
+	var gain := income_gain(state, entry)
+	return entry.cost / gain if gain > 0.0 else INF
 
 
 static func entries_for_spot(state: GameState, spot: String) -> Array[UpgradeEntry]:
@@ -137,6 +180,9 @@ static func find(state: GameState, entry_id: String) -> UpgradeEntry:
 		UNLOCK:
 			var locked := state.department(target)
 			return unlock(state, target) if locked != null and not locked.unlocked else null
+		RANK:
+			var ranked := state.department(target)
+			return rank(state, ranked) if ranked != null and ranked.unlocked else null
 		STAGE:
 			return stage(state) if state.building_stage + 1 < GameConfig.BUILDING_STAGES.size() else null
 	return null
@@ -339,6 +385,16 @@ static func unlock(state: GameState, dept_id: String) -> UpgradeEntry:
 	return entry
 
 
+static func rank(state: GameState, dept: Department) -> UpgradeEntry:
+	var entry := _entry(RANK, dept.id, DEPT_PREFIX + dept.id, "building")
+	entry.level = dept.rank
+	entry.max_level = GameConfig.MAX_DEPARTMENT_RANK
+	entry.cost = DepartmentRank.next_cost(dept)
+	entry.single = true
+	entry.reason = DepartmentRank.block_reason(state, dept.id)
+	return entry
+
+
 static func stage(state: GameState) -> UpgradeEntry:
 	var entry := _entry(STAGE, "building", "entrance", "building")
 	entry.level = state.building_stage
@@ -387,6 +443,8 @@ static func _buy_once(actions: GameActions, kind: String, target: String) -> boo
 			return actions.upgrade_mail_storage()
 		UNLOCK:
 			return actions.unlock_department(target)
+		RANK:
+			return actions.rank_up_department(target)
 		STAGE:
 			return actions.expand_building()
 	return false

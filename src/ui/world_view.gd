@@ -42,6 +42,8 @@ const COMPLAINT_LAYER := "_complaint_office"
 const SHREDDER_LAYER := "_shredder_room"
 const TECH_LAYER := "_tech_room"
 const PLAYER_TAP_RADIUS := 36.0
+const RANK_BADGE_RADIUS := 11.0
+const RANK_BADGE_OFFSET := Vector2(47, 43)
 const COFFEE_TIERS := 4
 const KITCHEN_PLANTS := 4
 const CLERK_LOOKS := 6
@@ -173,6 +175,7 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	sim.ruckus_started.connect(_on_ruckus_started)
 	sim.ruckus_calmed.connect(_on_ruckus_calmed)
 	sim.department_unlocked.connect(func(dept_id: String) -> void: focus(dept_id))
+	sim.department_ranked_up.connect(_on_department_ranked_up)
 
 
 func focus(slot: String) -> void:
@@ -409,6 +412,10 @@ func _on_form_missing(dept_id: String) -> void:
 func _on_onboarding_completed(dept_id: String) -> void:
 	var dept_room := layout.room(dept_id)
 	_float(dept_room.get_center(), tr("FLOAT_ONBOARDED"), AppTheme.accent("success"))
+
+
+func _on_department_ranked_up(dept_id: String, rank: int) -> void:
+	_float(layout.room(dept_id).get_center(), tr("FMT_FLOAT_RANK") % UpgradeTexts.rank_name(rank), AppTheme.accent("success"))
 
 
 func _on_boost_used(boost_id: String, _source: String) -> void:
@@ -1695,6 +1702,7 @@ func _draw_room(state: GameState, slot: String) -> void:
 	_rounded(header, color, ROOM_RADIUS, color.darkened(0.15), 3, false, true)
 	_canvas.draw_circle(header.position + Vector2(32, 28), 20, on_band)
 	_icon(header.position + Vector2(32, 28), Icons.department(slot), 24, color.darkened(0.25))
+	_draw_rank_badge(state.department(slot), header.position + RANK_BADGE_OFFSET)
 	_text(header.position + Vector2(62, 36), tr("DEPT_" + slot.to_upper()), AppTheme.SIZE_TITLE_MEDIUM, on_band, _bold, header.size.x - 220)
 	_icon(Vector2(header.end.x - 24, header.position.y + 28), Icons.CHEVRON, 26, on_band)
 	var weakest := ""
@@ -1710,6 +1718,19 @@ func _draw_room(state: GameState, slot: String) -> void:
 	else:
 		_draw_station(state, GameConfig.INSPECTION, "")
 	_draw_tube_slot(state, slot)
+
+
+static func rank_badge_text(dept: Department) -> String:
+	return str(dept.rank) if dept != null and dept.rank > 1 else ""
+
+
+func _draw_rank_badge(dept: Department, center: Vector2) -> void:
+	var text := rank_badge_text(dept)
+	if text.is_empty():
+		return
+	_canvas.draw_circle(center, RANK_BADGE_RADIUS, AppTheme.SIGN_BOARD)
+	_canvas.draw_arc(center, RANK_BADGE_RADIUS, 0.0, TAU, 24, AppTheme.FLAG_GOLD, 2.0)
+	_text_centered(center, text, AppTheme.SIZE_LABEL_SMALL, AppTheme.FLAG_GOLD, _bold)
 
 
 func _draw_locked_room(state: GameState, slot: String, rect: Rect2) -> void:

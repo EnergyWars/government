@@ -7,6 +7,7 @@ signal citizen_left(dept_id: String)
 signal contraband_found(dept_id: String)
 signal smuggling_missed(dept_id: String)
 signal department_unlocked(dept_id: String)
+signal department_ranked_up(dept_id: String, rank: int)
 signal event_started(event_id: String)
 signal event_ended(event_id: String)
 signal case_rejected(dept_id: String)
@@ -1632,7 +1633,7 @@ func _reject_case(case_file: CaseFile) -> void:
 	var dept := state.department(case_file.dept_id)
 	state.cases_rejected += 1
 	state.production.record(ProductionStats.REJECTED, dept.id, state.play_time)
-	state.earn(float(dept.config().reward) * Formulas.reputation_multiplier(state) * GameConfig.REJECT_FEE_FACTOR)
+	state.earn(Formulas.reject_fee(state, dept))
 	case_rejected.emit(dept.id)
 
 
@@ -1820,6 +1821,16 @@ func unlock(dept_id: String) -> bool:
 	state.spend(float(GameConfig.department(dept_id).unlock_cost))
 	state.unlock_department(dept_id)
 	department_unlocked.emit(dept_id)
+	return true
+
+
+func rank_up(dept_id: String) -> bool:
+	if not DepartmentRank.block_reason(state, dept_id).is_empty():
+		return false
+	var dept := state.department(dept_id)
+	state.spend(DepartmentRank.next_cost(dept))
+	dept.rank += 1
+	department_ranked_up.emit(dept_id, dept.rank)
 	return true
 
 

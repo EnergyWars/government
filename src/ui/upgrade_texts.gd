@@ -1,6 +1,7 @@
 class_name UpgradeTexts
 extends RefCounted
 
+const FEE_DECIMAL_LIMIT := 10.0
 const BLOCK_KEYS := {
 	"max": "LABEL_MAX_LEVEL",
 	"requires": "LABEL_REQUIRES",
@@ -107,6 +108,8 @@ static func title(entry: UpgradeEntry) -> String:
 			return t("MAIL_STORAGE_TITLE")
 		UpgradeCatalog.UNLOCK:
 			return t("FMT_ENTRY_UNLOCK") % room_title(entry.target)
+		UpgradeCatalog.RANK:
+			return t("FMT_ENTRY_RANK") % room_title(entry.target)
 		UpgradeCatalog.STAGE:
 			return t("FMT_ENTRY_STAGE") % t("STAGE_" + str(GameConfig.building_stage(entry.level + 1).id).to_upper())
 	return entry.id
@@ -149,6 +152,8 @@ static func icon(entry: UpgradeEntry) -> String:
 			return Icons.STORAGE
 		UpgradeCatalog.UNLOCK:
 			return Icons.department(entry.target)
+		UpgradeCatalog.RANK:
+			return Icons.RANK
 		UpgradeCatalog.STAGE:
 			return Icons.DOMAIN
 	return Icons.UPGRADE
@@ -161,6 +166,8 @@ static func place(entry: UpgradeEntry) -> String:
 static func level_text(entry: UpgradeEntry) -> String:
 	if entry.kind == UpgradeCatalog.STAGE:
 		return t("FMT_LEVEL_OF") % [entry.level + 1, entry.max_level + 1]
+	if entry.kind == UpgradeCatalog.RANK:
+		return t("FMT_LEVEL_OF") % [entry.level, entry.max_level]
 	if entry.single:
 		return t("LABEL_ONCE")
 	return t("FMT_LEVEL_OF") % [entry.level, entry.max_level]
@@ -196,8 +203,38 @@ static func effect(state: GameState, entry: UpgradeEntry) -> String:
 			var next := GameConfig.building_stage(entry.level + 1)
 			return t("FMT_STAGE_INFO") % [int(next.max_departments), int(next.max_desks), int(next.lobby)]
 		UpgradeCatalog.UNLOCK:
-			return ""
+			return gain_text("FMT_EFFECT_UNLOCK_GAIN", UpgradeCatalog.income_gain(state, entry), entry.cost)
+		UpgradeCatalog.RANK:
+			return rank_effect(state, entry)
 	return _change("FMT_EFFECT_COUNT", entry, str(entry.level), str(entry.level + 1))
+
+
+static func rank_name(rank: int) -> String:
+	return t("DEPT_RANK_%d" % clampi(rank, 1, GameConfig.MAX_DEPARTMENT_RANK))
+
+
+static func fee_factor_text(rank: int) -> String:
+	var factor := DepartmentRank.fee_factor(rank)
+	if factor < FEE_DECIMAL_LIMIT and not is_equal_approx(factor, roundf(factor)):
+		return "×" + UiKit.decimal(factor)
+	return "×" + UiKit.number(factor)
+
+
+static func rank_effect(state: GameState, entry: UpgradeEntry) -> String:
+	var dept := state.department(entry.target)
+	if dept == null:
+		return ""
+	if entry.is_maxed():
+		return t("FMT_EFFECT_RANK_MAX") % [rank_name(dept.rank), fee_factor_text(dept.rank)]
+	var change := t("FMT_EFFECT_RANK") % [rank_name(dept.rank), rank_name(dept.rank + 1), fee_factor_text(dept.rank), fee_factor_text(dept.rank + 1)]
+	var gain := gain_text("FMT_EFFECT_RANK_GAIN", UpgradeCatalog.income_gain(state, entry), entry.cost)
+	return change if gain.is_empty() else change + "\n" + gain
+
+
+static func gain_text(format_key: String, per_second: float, cost: float) -> String:
+	if per_second <= 0.0:
+		return ""
+	return t(format_key) % [UiKit.money(per_second * 60.0), UiKit.duration(cost / per_second)]
 
 
 static func _change(format_key: String, entry: UpgradeEntry, now: String, next: String) -> String:
@@ -250,6 +287,8 @@ static func required_reputation(entry: UpgradeEntry) -> float:
 			return float(GameConfig.upgrade(entry.target).get("reputation", 0.0))
 		UpgradeCatalog.UNLOCK:
 			return float(GameConfig.department(entry.target).unlock_reputation)
+		UpgradeCatalog.RANK:
+			return DepartmentRank.ladder_reputation(DepartmentRank.tier(entry.target, entry.level) + 1)
 		UpgradeCatalog.STAGE:
 			return float(GameConfig.building_stage(entry.level + 1).reputation)
 	return 0.0

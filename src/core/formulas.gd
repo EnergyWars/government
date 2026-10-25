@@ -597,7 +597,15 @@ static func mail_storage_cost(station: Station) -> float:
 
 
 static func hands_on_reward(dept: Department) -> float:
-	return float(dept.config().reward) * GameConfig.HANDS_ON_REWARD_FACTOR
+	return department_fee(dept) * GameConfig.HANDS_ON_REWARD_FACTOR
+
+
+static func department_fee(dept: Department) -> float:
+	return float(dept.config().reward) * DepartmentRank.fee_factor(dept.rank)
+
+
+static func reject_fee(state: GameState, dept: Department) -> float:
+	return department_fee(dept) * reputation_multiplier(state) * GameConfig.REJECT_FEE_FACTOR
 
 
 static func budget_injection(state: GameState) -> float:
@@ -790,8 +798,7 @@ static func audit_factor(state: GameState) -> float:
 
 
 static func case_outcome(state: GameState, case_file: CaseFile, smuggled: bool = false) -> Dictionary:
-	var config := GameConfig.department(case_file.dept_id)
-	var money := float(config.reward) * reputation_multiplier(state)
+	var money := department_fee(state.department(case_file.dept_id)) * reputation_multiplier(state)
 	var rep := 0.0
 	if case_file.follow_up:
 		money *= GameConfig.FOLLOW_UP_REWARD_FACTOR
@@ -1007,11 +1014,14 @@ static func bottleneck(state: GameState, dept: Department) -> String:
 
 
 static func expected_case_value(state: GameState, dept: Department) -> float:
-	var config := dept.config()
-	var money := float(config.reward) * reputation_multiplier(state)
-	money *= 1.0 + float(config.complex_chance) * (GameConfig.COMPLEX_REWARD_FACTOR - 1.0)
+	var money := department_fee(dept) * reputation_multiplier(state)
+	money *= 1.0 + float(dept.config().complex_chance) * (GameConfig.COMPLEX_REWARD_FACTOR - 1.0)
 	var error := error_chance(state, dept)
 	return money * (1.0 - error + error * GameConfig.FLAWED_REWARD_FACTOR)
+
+
+static func potential_income(state: GameState, dept: Department) -> float:
+	return demand(state, dept) * expected_case_value(state, dept)
 
 
 static func workload(state: GameState, dept: Department) -> float:

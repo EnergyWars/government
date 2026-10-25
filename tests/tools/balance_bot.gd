@@ -53,6 +53,9 @@ func _buy(game: Game) -> void:
 			return
 	if actions.expand_building():
 		return
+	for entry in UpgradeCatalog.expansion_entries(state):
+		if entry.kind == UpgradeCatalog.RANK and entry.is_buyable() and actions.buy_entry(entry.id):
+			return
 	if game.goals.has_goal() and str(game.goals.current().type) == "station_level":
 		actions.upgrade(GameConfig.RECEPTION)
 	for dept in state.unlocked_departments():

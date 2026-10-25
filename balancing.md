@@ -1,6 +1,6 @@
 # Balancing – Review und Todos
 
-Stand: 25.10.2026 (Upgrade-Neugliederung in 4.13). Grundlage: Code-Review von `game_config.gd`, `formulas.gd`, `simulation.gd`, `progression.gd`, `goal_tracker.gd`, `offline_calculator.gd`, dazu Simulationen mit `tests/tools/balance_bot.gd` (8 h, 30 min bzw. 480 min aktiv) und einem Diagnose-Bot (Stationen alle 5 min, Varianten „ohne Krankheit“ / „ohne Ansehensverlust“).
+Stand: 25.10.2026 (Upgrade-Neugliederung in 4.13, Amtsstufen in 4.14). Grundlage: Code-Review von `game_config.gd`, `formulas.gd`, `simulation.gd`, `progression.gd`, `goal_tracker.gd`, `offline_calculator.gd`, dazu Simulationen mit `tests/tools/balance_bot.gd` (8 h, 30 min bzw. 480 min aktiv) und einem Diagnose-Bot (Stationen alle 5 min, Varianten „ohne Krankheit“ / „ohne Ansehensverlust“).
 
 Ziele des Balancings (Vorgabe):
 1. Bei jeder neuen Abteilung muss der Spieler erst viel selbst machen.
@@ -135,7 +135,7 @@ Schlussfolgerung: Es gibt **drei unabhängige Blocker**, die jeder für sich das
 - [x] Rückkehr-Dialog mit „Verdoppeln“-Option gegen eine kurze Hands-on-Aufgabe (z. B. 5 Akten selbst tragen) statt Werbung – passt zur Vorgabe „selbst machen“. **Umgesetzt:** per Werbung (3-Sekunden-Platzhalter), wie vom Nutzer gewünscht.
 
 ### 3.4 [H] Kein Prestige/Reset-Loop
-**Befund.** Spätspiel endet bei Zoll + Stufe 50. Klassische Langzeitmotivation (Neustart mit dauerhaftem Bonus) fehlt.
+**Befund.** Spätspiel endet bei Zoll + Stufe 50. Klassische Langzeitmotivation (Neustart mit dauerhaftem Bonus) fehlt. Die Amtsstufen (4.14) verlängern das Spätspiel deutlich, ersetzen aber keinen Neustart-Loop.
 **Todos.**
 - [ ] **„Versetzung“**: ab Stadtverwaltung + Zoll kann der Spieler in eine neue Stadt versetzt werden. Neustart mit `Dienstgrad`-Punkten (aus erreichtem Ansehen/Fällen), jeder Punkt +2 % Gebühren und +1 % Tempo dauerhaft; freigeschaltete Techniken starten auf Stufe 1 (Rohrpost bleibt gesperrt, sonst fehlt der Botenabschnitt).
 - [ ] Je Versetzung eine sichtbare Veränderung (neuer Stadtname aus Liste, anderes Amtsschild, Flaggenfarbe) – keine urheberrechtlich geschützten Namen.
@@ -267,6 +267,17 @@ Befund: Der Wartebereich-Ausbau änderte nichts am Durchsatz, allein der Sitzber
 - [x] Ausbau-Gewinn der Flinken Ablehnungs-Boten exakt über `ThroughputReport.collector_trip(state, speed_factor)`: Sobald die Mindestdauer von 12 s greift, bringt eine weitere Stufe rechnerisch nichts mehr.
 - [x] Röhrenkapazität-Gewinn aus dem Schritt der Spur (+1 Akte je Röhre und Stufe) statt fester Annahme.
 - [ ] Mit Balance-Bot (kauft bereits die günstigste Spur über `UpgradeCatalog` und `buy_entry`) prüfen, ob die feinen Spuren in jeder Phase ein „kleines Upgrade“ zu 1–2 min Einkommen bieten und die Max-Kaufmenge nicht zu schnell ganze Spuren leert.
+
+### 4.14 [H] Amtsstufen: Aufwerten statt Eröffnen
+**Befund (Spieler-Feedback).** Große Ausbauschritte gab es nur als nächste Abteilung oder Gebäudestufe; nach dem Zoll war Schluss. Gewünscht: Jedes Amt lässt sich für viel Geld aufwerten, sodass „4. Amt eröffnen“ und „1. Amt auf Stufe 2“ ähnlich viel kosten und einbringen und abgewogen werden müssen.
+- [x] Jede eröffnete Abteilung hat eine Amtsstufe 1–10 (`GameConfig.MAX_DEPARTMENT_RANK`). Jede Stufe multipliziert alle Gebühren der Abteilung mit `RANK_FEE_FACTOR` = 2,5 (Fälle, Post-Antworten, Ablehnungsgebühr, Einarbeitungsprämie und damit Einnahmen/Min. und Offline-Ertrag). Der Andrang bleibt gleich, damit keine zusätzliche Überlastung entsteht.
+- [x] Preisleiter: Stufe r+1 der Abteilung Nr. i kostet Geld und Ansehen der Eröffnung von Abteilung Nr. i+r (`DepartmentRank.tier`, `ladder_cost`, `ladder_reputation`); jenseits des Zolls ×`RANK_COST_GROWTH` = 5 je Stufe, das Ansehen bleibt bei 1 300. Wird `unlock_cost` nach 3.2 neu gesetzt, wandern die Amtsstufen-Preise automatisch mit.
+- [x] Abwägung: Der mögliche Mehrertrag einer Stufe liegt bei 46–107 % dessen, was die gleich teure Abteilung bei voller Besetzung bringt (Test erlaubt 40–125 %). Die Aufwertung braucht weder Platz noch Personal; die Eröffnung bringt dafür neue Kapazität und Abläufe. Jede weitere Stufe amortisiert sich langsamer als die vorige (ebenfalls per Test abgesichert).
+- [x] Ansicht „Ausbau“ sortiert Eröffnung, Amtsstufen und Gebäudestufe nach Amortisation; Karten zeigen „Bis zu +…/Min. · rechnet sich in etwa …“.
+- [x] Modellrechnung (vereinfachtes Python-Modell: Grundeinkommen ohne Ansehens- und Andrangs-Faktoren, Eröffnung mit Pauschalaufschlag ×2 für Tische und Personal, gekauft wird immer der Schritt mit der kürzesten Amortisation): Eröffnungen nach 0,4 / 0,8 / 2,1 / 6,3 / 13,7 / 23,9 / 72,2 h; ohne Amtsstufen im selben Modell nach 0,4 / 0,9 / 3,3 / 7,8 / 21,7 / 47,1 / 136,6 h – Amtsstufen bremsen die Eröffnungen also nicht, sondern finanzieren sie mit. 79 große Käufe (7 Eröffnungen, 72 Amtsstufen), davon 50 % nach 103 h, 75 % nach 656 h, alle nach rund 24 000 h. Eröffnungen und Amtsstufen wechseln sich zu gleichen Preisen ab. Mit den realen Multiplikatoren (Ansehen ×2–2,8, Andrang ×3–5,5) entsprechend schneller.
+- [ ] Mit dem Balance-Bot messen (kauft Amtsstufen nach Eröffnung und Gebäudestufe über `expansion_entries`): Abstand zwischen großen Käufen, Verhältnis Amtsstufen zu Eröffnungen, Einkommen nach 8 h.
+- [ ] Die Mehrertrags-Anzeige rechnet mit `expected_case_value` und unterschätzt dringende Fälle (siehe Abschnitt 5); wird das dort behoben, profitiert die Ausbau-Ansicht mit.
+- [ ] Prüfen, ob Amtsstufen in endlose Ziele bzw. Meilensteine (3.3) einfließen, z. B. „Erste Abteilung auf Stufe 5“.
 
 ---
 

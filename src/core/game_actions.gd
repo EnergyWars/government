@@ -327,6 +327,10 @@ func unlock_department(dept_id: String) -> bool:
 	return simulation.unlock(dept_id)
 
 
+func rank_up_department(dept_id: String) -> bool:
+	return simulation.rank_up(dept_id)
+
+
 func buy_upgrade(upgrade_id: String, room_id: String = "", count: int = 1) -> bool:
 	var level := state.upgrade_level(upgrade_id, room_id)
 	var amount := mini(count, int(GameConfig.upgrade(upgrade_id).get("max", 0)) - level)

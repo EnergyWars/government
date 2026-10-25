@@ -324,6 +324,7 @@ func _department_card(dept: Department) -> Control:
 	head.add_child(UiKit.icon_disc(Icons.department(dept.id), AppTheme.department_color(dept.id)))
 	head.add_child(UiKit.label(tr("DEPT_" + dept.id.to_upper()), "TitleSmall", true))
 	column.add_child(head)
+	var rank := _metric(column, "STATS_DEPT_RANK")
 	var arrived := _metric(column, "STATS_DEPT_ARRIVED")
 	var completed := _metric(column, "STATS_DEPT_COMPLETED")
 	var capacity := _metric(column, "STATS_DEPT_CAPACITY")
@@ -343,6 +344,7 @@ func _department_card(dept: Department) -> Control:
 		var state := game.state
 		var demand := Formulas.demand(state, dept)
 		var throughput := Formulas.department_throughput(state, dept)
+		rank.text = tr("FMT_STATS_RANK") % [UpgradeTexts.rank_name(dept.rank), UpgradeTexts.fee_factor_text(dept.rank)]
 		arrived.text = tr("FMT_STATS_MEASURED_EXPECTED") % [_rate(ProductionStats.ARRIVED, dept.id), UiKit.decimal(demand * 60.0)]
 		completed.text = _rate(ProductionStats.COMPLETED, dept.id)
 		capacity.text = _per_minute(throughput)

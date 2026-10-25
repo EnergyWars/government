@@ -981,6 +981,8 @@ FMT_STATS_MEASURED_EXPECTED,%s / %s,%s / %s
 STATS_DEPT_COMPLETED,Completed,Erledigt
 STATS_DEPT_CAPACITY,Capacity of the slowest step,Kapazität des langsamsten Schritts
 STATS_DEPT_WAITING,Waiting in the hall,Wartend in der Halle
+STATS_DEPT_RANK,Office rank,Amtsstufe
+FMT_STATS_RANK,%s · fees %s,%s · Gebühren %s
 STATS_SECTION_STATIONS,Work steps,Arbeitsschritte
 STATS_STATIONS_HINT,The bar shows the load: demand compared with capacity. Red means more arrives than this step can handle.,"Der Balken zeigt die Auslastung: Bedarf im Vergleich zur Kapazität. Rot heißt, es kommt mehr an, als dieser Schritt schafft."
 STATS_STATION_MEASURED,Files done (measured),Erledigte Akten (gemessen)
@@ -1111,6 +1113,7 @@ FMT_FLOAT_MAIL_RETURNED,%d returned to sender,%d zurück an Absender
 FMT_FLOAT_BUNDLE,%d applications at once!,%d Anträge auf einmal
 FLOAT_FORM_MISSING,Form missing – please send by post,Unterlagen fehlen – bitte per Post nachreichen
 FLOAT_ONBOARDED,Department onboarded,Abteilung eingearbeitet
+FMT_FLOAT_RANK,New office rank: %s,Neue Amtsstufe: %s
 LABEL_SWAMPED,Swamped,Land unter
 FMT_RUSH,Inauguration euphoria: %s,Einweihungs-Euphorie: %s
 FMT_MILESTONE,Milestone in %d levels (×%s),Meilenstein in %d Stufen (×%s)
@@ -1431,6 +1434,7 @@ ENTRY_DESC_SEGMENT,Upgrades this single tube: more files at once and faster caps
 ENTRY_DESC_STORAGE,One more slot on the shelf: more letters fit before mail is sent back.,"Ein Fach mehr im Regal: Es passen mehr Briefe hinein, bevor Post zurückgeht."
 ENTRY_DESC_UNLOCK,"Opens this department. You need space in the building stage, enough reputation and money. Or walk onto the circle in the locked room.","Eröffnet diese Abteilung. Du brauchst Platz in der Ausbaustufe, genug Ansehen und Geld. Oder lauf auf den Kreis im gesperrten Raum."
 ENTRY_DESC_STAGE,"Expands the building to the next stage: more departments, more desks and more waiting places. Planning permission was granted retroactively.","Baut das Gebäude zur nächsten Stufe aus: mehr Abteilungen, mehr Tische und mehr Warteplätze. Die Baugenehmigung wurde rückwirkend erteilt."
+ENTRY_DESC_RANK,"Promotes this department to the next office rank: much higher fees without new desks or staff. The price matches opening a department at that level, so weigh it against the next department.","Hebt das Amt auf die nächste Amtsstufe: deutlich höhere Gebühren, ohne neue Tische oder neues Personal. Der Preis entspricht der Eröffnung eines Amtes auf diesem Niveau – wäge ab, ob sich das nächste Amt oder die Aufwertung mehr lohnt."
 UPGRADE_MODE_ROOMS,Rooms,Räume
 UPGRADE_MODE_HINT_ROOMS,Every upgrade by room and spot. Tap a group to expand it.,"Alle Upgrades nach Raum und Bereich. Tippe auf eine Gruppe, um sie aufzuklappen."
 UPGRADE_MODE_TOPICS,Topics,Themen
@@ -1439,6 +1443,8 @@ UPGRADE_MODE_BUYABLE,Affordable,Kaufbar
 UPGRADE_MODE_HINT_BUYABLE,"Everything you can afford right now, cheapest first.","Alles, was du dir jetzt leisten kannst, das Günstigste zuerst."
 UPGRADE_MODE_RECOMMENDED,Suggested,Empfohlen
 UPGRADE_MODE_HINT_RECOMMENDED,What the statistics say relieves your bottlenecks the most.,Was laut Statistik deine Engpässe am meisten entlastet.
+UPGRADE_MODE_EXPANSION,Expansion,Ausbau
+UPGRADE_MODE_HINT_EXPANSION,"The big steps side by side: next department, office ranks and building stage. What pays off fastest comes first.","Die großen Schritte im Vergleich: nächstes Amt, Amtsstufen und Gebäudeausbau. Was sich am schnellsten rechnet, steht oben."
 COFFEE_TASK_IDLE,waiting for orders,wartet auf Bestellungen
 COFFEE_TASK_TO_MACHINE,heading to the machine,auf dem Weg zur Maschine
 COFFEE_TASK_BREWING,brewing,brüht Kaffee
@@ -1451,8 +1457,8 @@ INTERN_MOOD_TO_SHREDDER,heading to the shredder,auf dem Weg zum Schredder
 INTERN_MOOD_FROM_SHREDDER,back from the shredder,kommt vom Schredder
 TUTORIAL_UPGRADES_OPEN_TITLE,Open upgrades,Upgrades öffnen
 TUTORIAL_UPGRADES_OPEN_TEXT,Everything you can buy lives under Upgrades. Tap Upgrades in the bottom bar.,"Alles, was du kaufen kannst, findest du unter Upgrades. Tippe unten auf Upgrades."
-TUTORIAL_UPGRADE_GROUPS_TITLE,Four views,Vier Ansichten
-TUTORIAL_UPGRADE_GROUPS_TEXT,"At the top you pick a view: by room, by topic, everything affordable or the suggestions of the statistics. ×1, ×10 and Max buy several levels at once. The target icon shows you the spot on the map. Hundreds of levels are waiting, so take your time.","Oben wählst du die Ansicht: nach Räumen, nach Themen, alles Kaufbare oder die Empfehlungen der Statistik. Mit ×1, ×10 und Max kaufst du mehrere Stufen auf einmal. Die Zielscheibe zeigt dir den Ort auf der Karte. Es warten Hunderte Stufen, also nur keine Eile."
+TUTORIAL_UPGRADE_GROUPS_TITLE,Five views,Fünf Ansichten
+TUTORIAL_UPGRADE_GROUPS_TEXT,"At the top you pick a view: by room, by topic, everything affordable, the suggestions of the statistics or the big expansion steps side by side. ×1, ×10 and Max buy several levels at once. The target icon shows you the spot on the map. Hundreds of levels are waiting, so take your time.","Oben wählst du die Ansicht: nach Räumen, nach Themen, alles Kaufbare, die Empfehlungen der Statistik oder die großen Ausbauschritte im Vergleich. Mit ×1, ×10 und Max kaufst du mehrere Stufen auf einmal. Die Zielscheibe zeigt dir den Ort auf der Karte. Es warten Hunderte Stufen, also nur keine Eile."
 TUTORIAL_SPOT_OPEN_TITLE,Tap the map,Auf die Karte tippen
 TUTORIAL_SPOT_OPEN_TEXT,"Close this window and briefly tap something on the map, for example the reception. Do not drag, or you will walk off.","Schließe dieses Fenster und tippe kurz auf etwas auf der Karte, zum Beispiel auf den Empfang. Nicht ziehen, sonst läufst du los."
 TUTORIAL_SPOTS_INFO_TITLE,Everything is tappable,Alles ist antippbar
@@ -1460,7 +1466,7 @@ TUTORIAL_SPOTS_INFO_TEXT,"Every spot has its own window: stations, room signs, m
 TUTORIAL_BOARDS_INFO_TITLE,Notice boards,Schwarze Bretter
 TUTORIAL_BOARDS_INFO_TEXT,"Runners, reject collectors, interns, coffee interns, guards and phone clerks each have a notice board with their shift plan. Tap it to hire, assign and train them.","Boten, Ablehnungs-Boten, Praktikanten, Kaffee-Praktikanten, Wachleute und Telefonisten haben je ein schwarzes Brett mit ihrem Schichtplan. Tippe darauf, um sie einzustellen, einzuteilen und zu schulen."
 TUTORIAL_EXPAND_INFO_TITLE,Expanding,Ausbauen
-TUTORIAL_EXPAND_INFO_TEXT,"At the entrance you expand the building, via a room sign you open a department. Every department can get its own shredder and tube station: dashed outlines mark free slots.","Am Eingang baust du das Gebäude aus, über das Raumschild eröffnest du eine Abteilung. Jede Abteilung kann einen eigenen Schredder und eine Rohrpost-Station bekommen: Gestrichelte Felder zeigen freie Stellplätze."
+TUTORIAL_EXPAND_INFO_TEXT,"At the entrance you expand the building, via a room sign you open a department. Instead of opening the next department you can also promote an existing one to a higher office rank: tap its name sign. Every department can get its own shredder and tube station: dashed outlines mark free slots.","Am Eingang baust du das Gebäude aus, über das Raumschild eröffnest du eine Abteilung. Statt das nächste Amt zu eröffnen, kannst du auch ein bestehendes auf eine höhere Amtsstufe heben: Tippe dazu auf sein Namensschild. Jede Abteilung kann einen eigenen Schredder und eine Rohrpost-Station bekommen: Gestrichelte Felder zeigen freie Stellplätze."
 FMT_GOAL_UPGRADES,Buy %d upgrade level,Kaufe %d Upgrade-Stufe
 FMT_GOAL_UPGRADE_UNLOCK,Introduce %s,Führe ein: %s
 FMT_GOAL_UPGRADE_LEVEL,%s to level %d,%s auf Stufe %d
@@ -1472,6 +1478,10 @@ FMT_EFFECT_CAPACITY,Capacity %s → %s,Kapazität %s → %s
 FMT_EFFECT_CAPACITY_MAX,Capacity %s (maximum),Kapazität %s (Maximum)
 FMT_EFFECT_COUNT,Count %s → %s,Anzahl %s → %s
 FMT_EFFECT_COUNT_MAX,Count %s (maximum),Anzahl %s (Maximum)
+FMT_EFFECT_RANK,%s → %s · fees %s → %s,%s → %s · Gebühren %s → %s
+FMT_EFFECT_RANK_MAX,%s · fees %s (top rank),%s · Gebühren %s (höchste Stufe)
+FMT_EFFECT_RANK_GAIN,Up to +%s/min · pays off in about %s,Bis zu +%s/Min. · rechnet sich in etwa %s
+FMT_EFFECT_UNLOCK_GAIN,Up to +%s/min when fully staffed · pays off in about %s,Bis zu +%s/Min. bei voller Besetzung · rechnet sich in etwa %s
 FMT_EFFECT_SECONDS,%s s,%s s
 LABEL_OFF,off,aus
 LABEL_YES,installed,vorhanden
@@ -1485,6 +1495,17 @@ FMT_ENTRY_SPECIALIST,Specialist for %s,Fachkraft für %s
 FMT_ENTRY_SUPERVISOR,Supervisor: %s,Teamleitung: %s
 FMT_ENTRY_RUNNER_LEVEL,Train runner %d,Bote %d schulen
 FMT_ENTRY_UNLOCK,Open %s,%s eröffnen
+FMT_ENTRY_RANK,Office rank: %s,Amtsstufe: %s
+DEPT_RANK_1,Provisional office,Provisorium
+DEPT_RANK_2,Branch office,Außenstelle
+DEPT_RANK_3,Service unit,Dienststelle
+DEPT_RANK_4,Office,Amt
+DEPT_RANK_5,Senior office,Oberamt
+DEPT_RANK_6,Main office,Hauptamt
+DEPT_RANK_7,State office,Landesamt
+DEPT_RANK_8,Federal office,Bundesamt
+DEPT_RANK_9,Supreme federal authority,Oberste Bundesbehörde
+DEPT_RANK_10,Authority of authorities,Behörde der Behörden
 FMT_ENTRY_STAGE,Expand: %s,Ausbau: %s
 FMT_ENTRY_PLACE,%s · %s,%s · %s
 FMT_LEVEL_OF,Level %d/%d,Stufe %d/%d
@@ -1565,6 +1586,9 @@ Bediene weitere Bürger und schau wieder rein."
 UPGRADES_NONE_RECOMMENDED,"No suggestion right now.
 Your office is running smoothly.","Gerade keine Empfehlung.
 Dein Amt läuft rund."
+UPGRADES_NONE_EXPANSION,"Nothing left to expand.
+Every department holds the top rank.","Nichts mehr auszubauen.
+Jedes Amt hat die höchste Stufe erreicht."
 FMT_MORE_ENTRIES,… and %d more,… und %d weitere
 FMT_GROUP_DETAIL,%d affordable · levels %d/%d,%d kaufbar · Stufen %d/%d
 FMT_UPGRADES_SUMMARY,%d levels bought · %d upgrade lines · %d affordable now,%d Stufen gekauft · %d Upgrade-Linien · %d jetzt kaufbar

@@ -72,7 +72,7 @@ func test_every_content_id_is_translated() -> void:
 	for mode_id in UpgradesSheet.MODES:
 		keys.append("UPGRADE_MODE_" + mode_id.to_upper())
 		keys.append("UPGRADE_MODE_HINT_" + mode_id.to_upper())
-	for kind: String in [UpgradeCatalog.LEVEL, UpgradeCatalog.DESK, UpgradeCatalog.HIRE, UpgradeCatalog.RUNNER_LEVEL, UpgradeCatalog.SEGMENT, UpgradeCatalog.STORAGE, UpgradeCatalog.UNLOCK, UpgradeCatalog.STAGE]:
+	for kind: String in [UpgradeCatalog.LEVEL, UpgradeCatalog.DESK, UpgradeCatalog.HIRE, UpgradeCatalog.RUNNER_LEVEL, UpgradeCatalog.SEGMENT, UpgradeCatalog.STORAGE, UpgradeCatalog.UNLOCK, UpgradeCatalog.RANK, UpgradeCatalog.STAGE]:
 		keys.append("ENTRY_DESC_" + kind.to_upper())
 	for reason: String in UpgradeTexts.BLOCK_KEYS:
 		keys.append(str(UpgradeTexts.BLOCK_KEYS[reason]))

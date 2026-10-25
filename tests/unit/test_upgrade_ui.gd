@@ -251,7 +251,9 @@ func test_station_and_stage_effects() -> void:
 	assert_eq(UpgradeTexts.effect(state, level), _t("FMT_EFFECT_SPEED_MAX") % ("×%s" % UiKit.decimal(Formulas.level_speed(level.level), 2)))
 	var next: Dictionary = GameConfig.building_stage(1)
 	assert_eq(UpgradeTexts.effect(state, UpgradeCatalog.find(state, "stage:building")), _t("FMT_STAGE_INFO") % [int(next.max_departments), int(next.max_desks), int(next.lobby)])
-	assert_eq(UpgradeTexts.effect(state, UpgradeCatalog.find(state, "unlock:tax_services")), "")
+	var unlock := UpgradeCatalog.find(state, "unlock:tax_services")
+	assert_eq(UpgradeTexts.effect(state, unlock), UpgradeTexts.gain_text("FMT_EFFECT_UNLOCK_GAIN", Formulas.potential_income(state, state.department("tax_services")), unlock.cost))
+	assert_false(UpgradeTexts.effect(state, unlock).is_empty())
 	assert_eq(UpgradeTexts.effect(state, UpgradeCatalog.find(state, "staff:guards")), _t("FMT_EFFECT_COUNT") % ["0", "1"])
 
 
@@ -569,8 +571,10 @@ func test_upgrades_sheet_modes() -> void:
 	assert_eq(UpgradesSheet.mode(), "rooms")
 	UpgradesSheet.mode_index = 1
 	assert_eq(UpgradesSheet.mode(), "topics")
-	UpgradesSheet.mode_index = 99
+	UpgradesSheet.mode_index = 3
 	assert_eq(UpgradesSheet.mode(), "recommended")
+	UpgradesSheet.mode_index = 99
+	assert_eq(UpgradesSheet.mode(), "expansion")
 	UpgradesSheet.mode_index = -1
 	assert_eq(UpgradesSheet.mode(), "rooms")
 	assert_eq(UpgradesSheet.group_order("topics"), GameConfig.TOPICS)
