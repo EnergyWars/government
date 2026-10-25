@@ -141,6 +141,7 @@ const UPGRADES := {
 	"ticket_machines": "\ue8ad",
 	"ticket_line": "\uea5b",
 	"ticket_call_speed": "\ue333",
+	"ticket_displays": "\ue30c",
 	"online_portal": "\ue894",
 	"complaint_box": "\ue89b",
 	"complaint_tube": "\ue8f9",

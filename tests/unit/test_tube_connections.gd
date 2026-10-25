@@ -483,7 +483,7 @@ func test_tube_levels_are_saved_and_repaired() -> void:
 	var loaded := GameState.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))
 	assert_eq(loaded.tube_level(id), 3)
 	var data := state.to_dict()
-	data.tube_levels = {id: 99, "broken": 2, "a>b": -1}
+	data.tube_levels = {id: GameConfig.TUBE_SEGMENT_MAX_LEVEL + 99, "broken": 2, "a>b": -1}
 	var repaired := GameState.from_dict(data)
 	assert_eq(repaired.tube_level(id), GameConfig.TUBE_SEGMENT_MAX_LEVEL)
 	assert_false(repaired.tube_levels.has("broken"))

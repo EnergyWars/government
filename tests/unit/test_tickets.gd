@@ -94,7 +94,55 @@ func test_drawing_a_number_takes_time() -> void:
 	assert_true(state.ticket_waiting.has(case_file))
 	assert_true(state.ticket_line.is_empty())
 	assert_eq(state.tickets_drawn, 1)
+	assert_eq(case_file.ticket, 1)
 	assert_signal_emitted_with_parameters(sim, "ticket_drawn", [1])
+
+
+func test_every_drawn_ticket_gets_the_next_number() -> void:
+	var first := sim.spawn_case(dept)
+	var second := sim.spawn_case(dept)
+	state.tickets_drawn = 41
+	assert_true(sim.draw_ticket())
+	assert_true(sim.draw_ticket())
+	assert_eq(first.ticket, 42)
+	assert_eq(second.ticket, 43)
+	assert_eq(state.tickets_drawn, 43)
+
+
+func test_display_shows_the_number_of_the_called_citizen() -> void:
+	watch_signals(sim)
+	for i in 3:
+		sim.spawn_case(dept)
+		sim.draw_ticket()
+	var gone: CaseFile = state.ticket_waiting[0]
+	gone.waited = Formulas.patience(state) * gone.patience_factor
+	sim.tick(0.01)
+	assert_false(state.ticket_waiting.has(gone))
+	assert_eq(state.tickets_lapsed, 1)
+	assert_true(sim.call_ticket())
+	assert_eq(state.last_called_ticket, 2)
+	assert_eq(state.tickets_called, 1)
+	assert_signal_emitted_with_parameters(sim, "ticket_called", [2])
+	assert_true(sim.call_ticket())
+	assert_eq(state.last_called_ticket, 3)
+	assert_eq(state.tickets_called, 2)
+
+
+func test_citizens_leaving_before_drawing_do_not_lapse_a_ticket() -> void:
+	var in_line := sim.spawn_case(dept)
+	in_line.waited = Formulas.patience(state) * in_line.patience_factor
+	sim.tick(0.01)
+	assert_false(state.ticket_line.has(in_line))
+	assert_eq(state.tickets_lapsed, 0)
+
+
+func test_tickets_without_number_continue_the_display_count() -> void:
+	state.last_called_ticket = 7
+	state.tickets_drawn = 9
+	var case_file := _waiting_case()
+	assert_eq(case_file.ticket, 0)
+	assert_true(sim.call_ticket())
+	assert_eq(state.last_called_ticket, 8)
 
 
 func test_player_at_the_machine_speeds_up_drawing() -> void:
@@ -125,6 +173,43 @@ func test_waiting_citizen_is_called_to_the_reception() -> void:
 	assert_eq(state.tickets_called, 1)
 	assert_signal_emitted_with_parameters(sim, "ticket_called", [1])
 	assert_eq(state.ticket_call_progress, 0.0)
+
+
+func test_extra_display_panels_call_several_numbers_at_once() -> void:
+	watch_signals(sim)
+	_reception().staff = 0
+	assert_eq(Formulas.ticket_displays(state), 1)
+	assert_eq(Formulas.ticket_call_slots(state), GameConfig.TICKET_CALL_SLOTS)
+	state.set_upgrade("ticket_displays", 2)
+	assert_eq(Formulas.ticket_displays(state), 3)
+	assert_eq(Formulas.ticket_call_slots(state), GameConfig.TICKET_CALL_SLOTS * 3)
+	assert_almost_eq(Formulas.ticket_call_rate(state), 3.0 / Formulas.ticket_call_time(state), 0.0001)
+	for i in 5:
+		_waiting_case()
+	_run(Formulas.ticket_call_time(state) + 0.1)
+	assert_eq(_reception().inbox.size(), 3)
+	assert_eq(state.ticket_waiting.size(), 2)
+	assert_signal_emit_count(sim, "ticket_called", 3)
+
+
+func test_display_panels_respect_the_free_reception_places() -> void:
+	_reception().staff = 0
+	state.set_upgrade("ticket_displays", 4)
+	for i in Formulas.ticket_call_slots(state) - 2:
+		_reception().inbox.append(sim.create_case(dept))
+	for i in 5:
+		_waiting_case()
+	assert_true(sim.call_ticket())
+	assert_eq(_reception().inbox.size(), Formulas.ticket_call_slots(state))
+	assert_eq(state.ticket_waiting.size(), 3)
+	assert_true(sim.call_ticket())
+	assert_eq(state.ticket_waiting.size(), 2)
+
+
+func test_display_panels_are_capped() -> void:
+	state.set_upgrade("ticket_displays", _max_level("ticket_displays") + 5)
+	assert_eq(Formulas.ticket_displays(state), GameConfig.MAX_TICKET_DISPLAYS)
+	assert_eq(GameConfig.MAX_TICKET_DISPLAYS, 10)
 
 
 func test_player_at_the_display_speeds_up_calls() -> void:
@@ -259,7 +344,7 @@ func test_ticket_machine_and_display_can_be_upgraded() -> void:
 
 
 func test_ticket_upgrades_respect_lock_money_and_maximum() -> void:
-	var tracks: Array[String] = ["ticket_speed", "ticket_call_speed", "ticket_machines", "ticket_line"]
+	var tracks: Array[String] = ["ticket_speed", "ticket_call_speed", "ticket_machines", "ticket_line", "ticket_displays"]
 	state.money = 0.0
 	for upgrade_id in tracks:
 		assert_eq(Progression.upgrade_block_reason(state, upgrade_id), "money", upgrade_id)
@@ -290,6 +375,10 @@ func test_tickets_survive_saving_and_loading() -> void:
 	state.ticket_call_progress = 2.0
 	state.tickets_drawn = 12
 	state.tickets_called = 9
+	state.last_called_ticket = 11
+	state.tickets_lapsed = 2
+	state.set_upgrade("ticket_displays", 3)
+	waiting.ticket = 12
 	var loaded := GameState.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))
 	assert_eq(loaded.ticket_line.size(), 1)
 	assert_eq(loaded.ticket_line[0].dept_id, in_line.dept_id)
@@ -303,6 +392,10 @@ func test_tickets_survive_saving_and_loading() -> void:
 	assert_eq(loaded.ticket_call_progress, 2.0)
 	assert_eq(loaded.tickets_drawn, 12)
 	assert_eq(loaded.tickets_called, 9)
+	assert_eq(loaded.last_called_ticket, 11)
+	assert_eq(loaded.tickets_lapsed, 2)
+	assert_eq(loaded.ticket_waiting[0].ticket, 12)
+	assert_eq(Formulas.ticket_displays(loaded), 4)
 	assert_eq(JSON.stringify(loaded.to_dict()), JSON.stringify(GameState.from_dict(loaded.to_dict()).to_dict()))
 
 
@@ -321,6 +414,8 @@ func test_loading_sanitizes_ticket_data() -> void:
 	data.ticket_call_progress = -3.0
 	data.tickets_drawn = 5
 	data.tickets_called = 50
+	data.last_called_ticket = 80
+	data.tickets_lapsed = 9
 	var loaded := GameState.from_dict(data)
 	assert_eq(loaded.ticket_line_capacity(), GameConfig.TICKET_LINE_SLOTS)
 	assert_eq(loaded.ticket_line.size(), GameConfig.TICKET_LINE_SLOTS)
@@ -330,6 +425,19 @@ func test_loading_sanitizes_ticket_data() -> void:
 	assert_eq(loaded.ticket_progress, GameConfig.TICKET_DRAW_SECONDS)
 	assert_eq(loaded.ticket_call_progress, 0.0)
 	assert_eq(loaded.tickets_called, 5)
+	assert_eq(loaded.last_called_ticket, 5)
+	assert_eq(loaded.tickets_lapsed, 0)
+	data.tickets_called = 2
+	data.last_called_ticket = -4
+	data.tickets_lapsed = 99
+	var repaired := GameState.from_dict(data)
+	assert_eq(repaired.last_called_ticket, 0)
+	assert_eq(repaired.tickets_lapsed, 3)
+	var broken := sim.create_case(dept).to_dict()
+	broken.ticket = -3
+	assert_eq(CaseFile.from_dict(broken).ticket, 0)
+	broken.erase("ticket")
+	assert_eq(CaseFile.from_dict(broken).ticket, 0)
 
 
 func test_loading_trims_tickets_to_the_waiting_area() -> void:
@@ -357,6 +465,13 @@ func test_old_saves_and_locked_stages_drop_tickets() -> void:
 	var loaded := GameState.from_dict(data)
 	assert_true(loaded.ticket_line.is_empty())
 	assert_true(loaded.ticket_waiting.is_empty())
+	data.tickets_drawn = 6
+	data.tickets_called = 4
+	data.erase("last_called_ticket")
+	data.erase("tickets_lapsed")
+	var counted := GameState.from_dict(data)
+	assert_eq(counted.last_called_ticket, 4)
+	assert_eq(counted.tickets_lapsed, 0)
 	for key in ["ticket_line", "ticket_waiting", "upgrades", "ticket_progress", "ticket_call_progress", "tickets_drawn", "tickets_called"]:
 		data.erase(key)
 	data.building_stage = GameConfig.TICKET_UNLOCK_STAGE
@@ -383,11 +498,15 @@ func test_throughput_report_lists_ticket_bottlenecks_once_unlocked() -> void:
 	assert_true(machine_entries.has(_track_entry("ticket_speed")))
 	assert_true(machine_entries.has(_track_entry("ticket_machines")))
 	var calls := ThroughputReport.ticket_call_area(state)
-	assert_eq(calls.upgrades.size(), 1)
-	assert_eq(calls.upgrades[0].id, ThroughputReport.TRACK)
-	assert_eq(calls.upgrades[0].entry, _track_entry("ticket_call_speed"))
-	assert_gt(float(calls.upgrades[0].gain), 0.0)
-	for upgrade_id: String in ["ticket_speed", "ticket_call_speed", "ticket_machines"]:
+	assert_eq(calls.upgrades.size(), 2)
+	var call_gains := {}
+	for suggestion: Dictionary in calls.upgrades:
+		assert_eq(suggestion.id, ThroughputReport.TRACK)
+		call_gains[str(suggestion.entry)] = float(suggestion.gain)
+	assert_gt(float(call_gains[_track_entry("ticket_call_speed")]), 0.0)
+	assert_almost_eq(float(call_gains[_track_entry("ticket_displays")]), Formulas.ticket_call_rate(state), 0.0001)
+	assert_almost_eq(float(calls.capacity), Formulas.ticket_call_rate(state), 0.0001)
+	for upgrade_id: String in ["ticket_speed", "ticket_call_speed", "ticket_machines", "ticket_displays"]:
 		state.set_upgrade(upgrade_id, _max_level(upgrade_id))
 	assert_true(ThroughputReport.ticket_machine_area(state).upgrades.is_empty())
 	assert_true(ThroughputReport.ticket_call_area(state).upgrades.is_empty())
@@ -409,6 +528,8 @@ func test_guidance_points_to_long_ticket_queues() -> void:
 	for i in GameConfig.TICKET_CALL_SLOTS:
 		_reception().inbox.append(sim.create_case(dept))
 	assert_ne(Guidance.next_task(state).get("action", ""), Guidance.TICKET_CALL)
+	state.set_upgrade("ticket_displays", 1)
+	assert_eq(Guidance.next_task(state).get("action", ""), Guidance.TICKET_CALL)
 
 
 func test_ticket_layout_points_are_inside_the_hall() -> void:

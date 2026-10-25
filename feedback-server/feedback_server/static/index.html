@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{app_title}}</title>
+<link rel="stylesheet" href="/static/style.css">
+<script id="i18n" type="application/json">{{i18n_json}}</script>
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <h1>{{app_title}}</h1>
+  <form method="post" action="/logout">
+    <button class="btn text" type="submit">{{logout}}</button>
+  </form>
+</header>
+<main class="stack">
+  <section class="card highlight">
+    <a id="latest-apk" class="btn filled" href="/apk/latest" hidden></a>
+    <p id="no-apk" class="meta">{{no_apk}}</p>
+  </section>
+  <section class="card">
+    <form id="feedback-form" class="stack">
+      <label for="feedback">{{feedback_label}}</label>
+      <textarea id="feedback" rows="6" maxlength="{{max_feedback_length}}" placeholder="{{feedback_placeholder}}" required></textarea>
+      <label class="check"><input type="checkbox" id="resume"> {{resume_label}}</label>
+      <div class="actions">
+        <button class="btn tonal" type="submit" id="send">{{send}}</button>
+        <button class="btn outlined" type="button" id="build-only">{{build_only}}</button>
+      </div>
+      <p id="form-message" class="meta" role="status"></p>
+    </form>
+  </section>
+  <section class="stack">
+    <h2>{{jobs_title}}</h2>
+    <p id="jobs-empty" class="meta empty">{{jobs_empty}}</p>
+    <ul id="jobs" class="jobs stack"></ul>
+  </section>
+</main>
+</body>
+</html>

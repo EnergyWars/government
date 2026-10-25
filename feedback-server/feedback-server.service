@@ -1,0 +1,17 @@
+[Unit]
+Description=Feedback-Server (Claude setzt Feedback um und baut die APK)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/IdeaProjects/department/feedback-server
+ExecStart=/usr/bin/python3 -m feedback_server
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

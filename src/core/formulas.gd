@@ -266,8 +266,16 @@ static func ticket_draw_rate(state: GameState) -> float:
 	return 1.0 / ticket_draw_time(state)
 
 
+static func ticket_displays(state: GameState) -> int:
+	return int(upgrade_value(state, "ticket_displays"))
+
+
+static func ticket_call_slots(state: GameState) -> int:
+	return GameConfig.TICKET_CALL_SLOTS * ticket_displays(state)
+
+
 static func ticket_call_rate(state: GameState) -> float:
-	return 1.0 / ticket_call_time(state)
+	return ticket_displays(state) / ticket_call_time(state)
 
 
 static func coffee_alert(state: GameState) -> float:

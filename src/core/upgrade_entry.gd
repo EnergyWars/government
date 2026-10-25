@@ -14,11 +14,15 @@ var max_level := 1
 var cost := 0.0
 var growth := 1.0
 var single := false
+var cap := -1
 var reason := ""
 
 
 func remaining() -> int:
-	return 1 if single and level < max_level else maxi(0, max_level - level)
+	if single:
+		return 1 if level < max_level else 0
+	var top := max_level if cap < 0 else mini(max_level, cap)
+	return maxi(0, top - level)
 
 
 func is_maxed() -> bool:

@@ -68,7 +68,7 @@ static func tickets(state: GameState) -> String:
 static func ticket_display(state: GameState) -> String:
 	if not state.tickets_unlocked():
 		return t("FMT_TICKETS_LOCKED") % (GameConfig.TICKET_UNLOCK_STAGE + 1)
-	return t("FMT_STATUS_TICKET_DISPLAY") % [UiKit.decimal(Formulas.ticket_call_time(state)), state.ticket_waiting.size(), state.tickets_called]
+	return t("FMT_STATUS_TICKET_DISPLAY") % [Formulas.ticket_displays(state), UiKit.decimal(Formulas.ticket_call_time(state)), state.ticket_waiting.size(), state.last_called_ticket]
 
 
 static func interns(state: GameState) -> String:

@@ -49,6 +49,7 @@ func _build_scene() -> void:
 	root.add_child(joystick)
 	hud.open_sheet.connect(open_sheet)
 	hud.focus_department.connect(func(dept_id: String) -> void: office.focus(dept_id))
+	hud.locate_spot.connect(_locate)
 	root.add_child(hud)
 	overlay = Control.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

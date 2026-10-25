@@ -19,9 +19,13 @@ const SWAMPED_SICK_SHARE := 0.6
 const HANDS_ON_CASES := 5
 const HANDS_ON_REWARD_FACTOR := 10.0
 const HANDS_ON_REPUTATION := 1.0
-const MAX_DEPARTMENT_RANK := 10
-const RANK_FEE_FACTOR := 2.5
-const RANK_COST_GROWTH := 5.0
+const MAX_DEPARTMENT_RANK := 250
+const RANK_LEVEL_FEE_FACTOR := 1.02
+const RANK_MILESTONE_STEP := 25
+const RANK_MILESTONE_FACTORS: Array[float] = [1.5, 1.5, 2.0, 2.0, 2.0, 2.5, 2.5, 2.5, 3.0, 3.0]
+const RANK_LEVEL_COST_GROWTH := 1.07
+const RANK_LADDER_GROWTH := 5.0
+const RANK_TITLES := 11
 const MULTI_BASE_CHANCE := 0.12
 const MULTI_PER_DEPT := 0.06
 const MULTI_MAX_CHANCE := 0.45
@@ -235,6 +239,7 @@ const TICKET_RUSH := 4
 const TICKET_LINE_SLOTS := 10
 const MAX_TICKET_LINE_SLOTS := 50
 const MAX_TICKET_MACHINES := 5
+const MAX_TICKET_DISPLAYS := 10
 const REP_WALKED_OUT := -0.3
 const VISITOR_SPEED := 120.0
 const VISITOR_SLOTS := 3
@@ -491,6 +496,7 @@ const UPGRADES := {
 	"ticket_machines": {"spot": "tickets", "topic": "citizens", "max": MAX_TICKET_MACHINES - 1, "cost": 60000.0, "growth": 4.0, "curve": "linear", "base": 1.0, "step": 1.0, "unit": "count", "stage": TICKET_UNLOCK_STAGE},
 	"ticket_line": {"spot": "tickets", "topic": "citizens", "max": MAX_TICKET_LINE_SLOTS - TICKET_LINE_SLOTS, "cost": 20000.0, "growth": 1.15, "curve": "linear", "base": TICKET_LINE_SLOTS, "step": 1.0, "unit": "count", "stage": TICKET_UNLOCK_STAGE},
 	"ticket_call_speed": {"spot": "ticket_display", "topic": "citizens", "max": 200, "cost": 35000.0, "growth": 1.06, "curve": "decay", "base": TICKET_CALL_SECONDS, "rate": 0.985, "unit": "seconds", "stage": TICKET_UNLOCK_STAGE},
+	"ticket_displays": {"spot": "ticket_display", "topic": "citizens", "max": MAX_TICKET_DISPLAYS - 1, "cost": 80000.0, "growth": 3.0, "curve": "linear", "base": 1.0, "step": 1.0, "unit": "count", "stage": TICKET_UNLOCK_STAGE},
 	"online_portal": {"spot": "entrance", "topic": "citizens", "max": 100, "cost": 1000000.0, "growth": 1.1, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 500.0},
 	"complaint_box": {"spot": "complaint_box", "topic": "complaints", "max": 200, "cost": 900.0, "growth": 1.05, "curve": "linear", "base": COMPLAINT_BOX_CAPACITY, "step": 1.0, "unit": "count"},
 	"complaint_tube": {"spot": "complaint_box", "topic": "complaints", "max": 150, "cost": 6000.0, "growth": 1.08, "curve": "unlock_decay", "base": 60.0, "rate": 0.98, "unit": "seconds", "reputation": 50.0, "requires": {"shredder_service": 1}},

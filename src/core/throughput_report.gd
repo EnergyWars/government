@@ -302,8 +302,11 @@ static func ticket_machine_area(state: GameState) -> Dictionary:
 static func ticket_call_area(state: GameState) -> Dictionary:
 	var upgrades: Array[Dictionary] = []
 	var rate := Formulas.ticket_call_rate(state)
+	var displays := Formulas.ticket_displays(state)
 	if can_upgrade(state, "ticket_call_speed"):
-		upgrades.append(track("ticket_call_speed", 1.0 / Formulas.track_value("ticket_call_speed", state.upgrade_level("ticket_call_speed") + 1) - rate))
+		upgrades.append(track("ticket_call_speed", displays / Formulas.track_value("ticket_call_speed", state.upgrade_level("ticket_call_speed") + 1) - rate))
+	if can_upgrade(state, "ticket_displays"):
+		upgrades.append(track("ticket_displays", rate / displays))
 	return area(CALLS, "", ticket_demand(state), rate, upgrades)
 
 

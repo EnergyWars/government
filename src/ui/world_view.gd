@@ -44,6 +44,7 @@ const TECH_LAYER := "_tech_room"
 const PLAYER_TAP_RADIUS := 36.0
 const RANK_BADGE_RADIUS := 11.0
 const RANK_BADGE_OFFSET := Vector2(47, 43)
+const RANK_BADGE_PADDING := 6.0
 const COFFEE_TIERS := 4
 const KITCHEN_PLANTS := 4
 const CLERK_LOOKS := 6
@@ -57,6 +58,10 @@ const MAIL_FLOOR_VISIBLE := 12
 const CULL_MARGIN := 320.0
 const RING_POINTS := 40
 const RING_START := -PI * 0.5
+const DISPLAY_INTERVAL := 0.5
+const RUCKUS_VIBRATION_MS := 400
+const FLOAT_LEFT := "left"
+const FLOAT_BUNDLE := "bundle:%d"
 
 var game: Game
 var layout := WorldLayout.get_default()
@@ -75,6 +80,9 @@ var _press_time := 0
 var _stick_used := false
 var _walkers: Array[Dictionary] = []
 var _floaters: Array[Dictionary] = []
+var _float_batch := FloatBatcher.new()
+var display_number := 0
+var _display_clock := 0.0
 var _guidance := {}
 var _guidance_timer := 0.0
 var _time := 0.0
@@ -137,6 +145,7 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	game = p_game
 	joystick = p_joystick
 	camera = game.state.player.position
+	display_number = game.state.last_called_ticket
 	var sim := game.simulation
 	sim.case_completed.connect(_on_case_completed)
 	sim.citizen_left.connect(_on_citizen_left)
@@ -171,7 +180,6 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	sim.coffee_served.connect(_on_coffee_served)
 	sim.dispute_started.connect(_on_dispute_started)
 	sim.dispute_ended.connect(_on_dispute_ended)
-	sim.ticket_called.connect(_on_ticket_called)
 	sim.ruckus_started.connect(_on_ruckus_started)
 	sim.ruckus_calmed.connect(_on_ruckus_calmed)
 	sim.department_unlocked.connect(func(dept_id: String) -> void: focus(dept_id))
@@ -315,6 +323,9 @@ func tap_spot(point: Vector2) -> String:
 
 func _advance_effects(delta: float) -> void:
 	_shred_time = maxf(0.0, _shred_time - delta)
+	for batch in _float_batch.advance(delta):
+		_float(batch.pos, repeat_text(str(batch.text), int(batch.count)), batch.color, int(batch.size))
+	_update_display(delta)
 	_count_down(_returning, delta)
 	_count_down(_leaving, delta)
 	_count_down(_shredding, delta)
@@ -325,6 +336,17 @@ func _advance_effects(delta: float) -> void:
 			if list[index].t >= list[index].duration:
 				list.remove_at(index)
 			index -= 1
+
+
+func _update_display(delta: float) -> void:
+	_display_clock += delta
+	if _display_clock < DISPLAY_INTERVAL:
+		return
+	_display_clock = 0.0
+	var number := game.state.last_called_ticket
+	if number != display_number:
+		display_number = number
+		_redraw_at(layout.ticket_display_rect().get_center())
 
 
 func _count_down(walks: Dictionary, delta: float) -> void:
@@ -369,6 +391,15 @@ func _float(pos: Vector2, text: String, color: Color, size: int = 24) -> void:
 	_floaters.append({"pos": pos, "text": text, "color": color, "size": size, "t": 0.0, "duration": FLOAT_TIME})
 
 
+func _float_batched(key: String, pos: Vector2, text: String, color: Color, size: int = 24) -> void:
+	if _float_batch.add(key, {"pos": pos, "text": text, "color": color, "size": size}):
+		_float(pos, text, color, size)
+
+
+static func repeat_text(text: String, count: int) -> String:
+	return TranslationServer.translate("FMT_FLOAT_REPEAT") % [text, count] if count > 1 else text
+
+
 func _float_flavor(pos: Vector2, flawed: bool, color: Color) -> void:
 	_flavor_count += 1
 	if _floaters.size() > MAX_FLAVOR_FLOATERS:
@@ -400,7 +431,7 @@ func _on_mail_answered(_dept_id: String, money: float) -> void:
 
 
 func _on_applications_bundled(_dept_id: String, extras: int) -> void:
-	_float(layout.area(GameConfig.RECEPTION).get_center() + Vector2(0, -50), tr("FMT_FLOAT_BUNDLE") % (extras + 1), AppTheme.accent("tertiary"))
+	_float_batched(FLOAT_BUNDLE % (extras + 1), layout.area(GameConfig.RECEPTION).get_center() + Vector2(0, -50), tr("FMT_FLOAT_BUNDLE") % (extras + 1), AppTheme.accent("tertiary"))
 
 
 func _on_form_missing(dept_id: String) -> void:
@@ -415,7 +446,8 @@ func _on_onboarding_completed(dept_id: String) -> void:
 
 
 func _on_department_ranked_up(dept_id: String, rank: int) -> void:
-	_float(layout.room(dept_id).get_center(), tr("FMT_FLOAT_RANK") % UpgradeTexts.rank_name(rank), AppTheme.accent("success"))
+	if DepartmentRank.is_milestone(rank):
+		_float(layout.room(dept_id).get_center(), tr("FMT_FLOAT_RANK") % [UpgradeTexts.rank_name(rank), UpgradeTexts.factor_text(DepartmentRank.milestone_factor(rank))], AppTheme.accent("success"))
 
 
 func _on_boost_used(boost_id: String, _source: String) -> void:
@@ -621,6 +653,7 @@ func _on_coffee_served(key: String, desk: int) -> void:
 
 
 func _on_ruckus_started(desk: int) -> void:
+	Input.vibrate_handheld(RUCKUS_VIBRATION_MS)
 	_float(layout.ruckus_point(desk) + Vector2(0, -70), tr("FLOAT_RUCKUS_START"), AppTheme.accent("error"), AppTheme.SIZE_TITLE_SMALL)
 
 
@@ -701,10 +734,6 @@ func _release_crew_desk(id: String) -> void:
 				crew.remove_at(index)
 
 
-func _on_ticket_called(number: int) -> void:
-	_float(layout.ticket_display_rect().get_center() + Vector2(0, 30), tr("FMT_TICKET_CALL") % number, AppTheme.accent("primary"), AppTheme.SIZE_TITLE_SMALL)
-
-
 func _on_case_piped(from_key: String, to_key: String, dept_id: String) -> void:
 	if _capsules.size() >= MAX_CAPSULES or to_key.is_empty():
 		return
@@ -717,7 +746,7 @@ func _on_case_piped(from_key: String, to_key: String, dept_id: String) -> void:
 func _on_citizen_left(dept_id: String) -> void:
 	if GameConfig.is_customs(dept_id):
 		return
-	_float(layout.queue_point(0) + Vector2(0, -30), tr("FLOAT_CITIZEN_LEFT"), AppTheme.accent("error"))
+	_float_batched(FLOAT_LEFT, layout.queue_point(0) + Vector2(0, -30), tr("FLOAT_CITIZEN_LEFT"), AppTheme.accent("error"))
 
 
 func _style(color: Color, radius: int, border: Color = Color.TRANSPARENT, width: int = 0, lifted: bool = false, top_only: bool = false) -> StyleBoxFlat:
@@ -1240,7 +1269,7 @@ func _draw_ticket_corner(state: GameState) -> void:
 	_progress_ring(machine + Vector2(0, 6), 30.0, 4.0, draw_color, draw_ratio)
 	var display := layout.ticket_display_rect()
 	OfficePainter.call_display(_canvas, display)
-	_text_centered(display.get_center(), tr("FMT_TICKET_NUMBER") % state.tickets_called, AppTheme.SIZE_LABEL_SMALL + 2, AppTheme.CALL_DISPLAY_TEXT, _bold)
+	_text_centered(display.get_center(), tr("FMT_TICKET_NUMBER") % display_number, AppTheme.SIZE_LABEL_SMALL + 2, AppTheme.CALL_DISPLAY_TEXT, _bold)
 	var call_ratio := func() -> float: return state.ticket_call_progress / Formulas.ticket_call_time(state) if not state.ticket_waiting.is_empty() else 0.0
 	var call_color := func() -> Color: return AppTheme.accent("success") if layout.near(state.player.position, layout.ticket_display_point()) else AppTheme.accent("primary")
 	_progress_ring(layout.ticket_display_point(), 22.0, 4.0, call_color, call_ratio)
@@ -1728,8 +1757,9 @@ func _draw_rank_badge(dept: Department, center: Vector2) -> void:
 	var text := rank_badge_text(dept)
 	if text.is_empty():
 		return
-	_canvas.draw_circle(center, RANK_BADGE_RADIUS, AppTheme.SIGN_BOARD)
-	_canvas.draw_arc(center, RANK_BADGE_RADIUS, 0.0, TAU, 24, AppTheme.FLAG_GOLD, 2.0)
+	var text_width := _bold.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, AppTheme.SIZE_LABEL_SMALL).x
+	var size := Vector2(maxf(RANK_BADGE_RADIUS * 2.0, text_width + RANK_BADGE_PADDING * 2.0), RANK_BADGE_RADIUS * 2.0)
+	_rounded(Rect2(center - size * 0.5, size), AppTheme.SIGN_BOARD, int(RANK_BADGE_RADIUS), AppTheme.FLAG_GOLD, 2)
 	_text_centered(center, text, AppTheme.SIZE_LABEL_SMALL, AppTheme.FLAG_GOLD, _bold)
 
 

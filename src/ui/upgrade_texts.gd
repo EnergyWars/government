@@ -210,13 +210,16 @@ static func effect(state: GameState, entry: UpgradeEntry) -> String:
 
 
 static func rank_name(rank: int) -> String:
-	return t("DEPT_RANK_%d" % clampi(rank, 1, GameConfig.MAX_DEPARTMENT_RANK))
+	return t("DEPT_RANK_%d" % DepartmentRank.title_index(rank))
 
 
 static func fee_factor_text(rank: int) -> String:
-	var factor := DepartmentRank.fee_factor(rank)
+	return factor_text(DepartmentRank.fee_factor(rank))
+
+
+static func factor_text(factor: float) -> String:
 	if factor < FEE_DECIMAL_LIMIT and not is_equal_approx(factor, roundf(factor)):
-		return "×" + UiKit.decimal(factor)
+		return "×" + UiKit.decimal(factor, 2)
 	return "×" + UiKit.number(factor)
 
 
@@ -226,9 +229,21 @@ static func rank_effect(state: GameState, entry: UpgradeEntry) -> String:
 		return ""
 	if entry.is_maxed():
 		return t("FMT_EFFECT_RANK_MAX") % [rank_name(dept.rank), fee_factor_text(dept.rank)]
-	var change := t("FMT_EFFECT_RANK") % [rank_name(dept.rank), rank_name(dept.rank + 1), fee_factor_text(dept.rank), fee_factor_text(dept.rank + 1)]
+	var lines: Array[String] = [t("FMT_EFFECT_RANK") % [dept.rank, dept.rank + 1, fee_factor_text(dept.rank), fee_factor_text(dept.rank + 1)]]
+	lines.append(milestone_text(dept.rank))
 	var gain := gain_text("FMT_EFFECT_RANK_GAIN", UpgradeCatalog.income_gain(state, entry), entry.cost)
-	return change if gain.is_empty() else change + "\n" + gain
+	if not gain.is_empty():
+		lines.append(gain)
+	return "\n".join(lines)
+
+
+static func milestone_text(rank: int) -> String:
+	var next := DepartmentRank.next_milestone(rank)
+	return t("FMT_EFFECT_RANK_MILESTONE") % [next, rank_name(next), factor_text(DepartmentRank.milestone_factor(next))]
+
+
+static func rank_title(rank: int) -> String:
+	return t("FMT_RANK_TITLE") % [rank_name(rank), DepartmentRank.clamp_level(rank)]
 
 
 static func gain_text(format_key: String, per_second: float, cost: float) -> String:
@@ -288,7 +303,7 @@ static func required_reputation(entry: UpgradeEntry) -> float:
 		UpgradeCatalog.UNLOCK:
 			return float(GameConfig.department(entry.target).unlock_reputation)
 		UpgradeCatalog.RANK:
-			return DepartmentRank.ladder_reputation(DepartmentRank.tier(entry.target, entry.level) + 1)
+			return DepartmentRank.level_reputation(entry.target, entry.level)
 		UpgradeCatalog.STAGE:
 			return float(GameConfig.building_stage(entry.level + 1).reputation)
 	return 0.0

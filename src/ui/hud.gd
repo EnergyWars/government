@@ -3,6 +3,7 @@ extends Control
 
 signal open_sheet(sheet_id: String, argument: String)
 signal focus_department(dept_id: String)
+signal locate_spot(spot: String)
 
 const NAV_ITEMS := [
 	{"id": "upgrades", "icon": Icons.UPGRADE, "label": "NAV_UPGRADES"},
@@ -26,6 +27,7 @@ var _event_title: Label
 var _event_text: Label
 var _event_actions: HBoxContainer
 var _event_actions_key := ""
+var _ruckus_banner: PanelContainer
 var _review_banner: PanelContainer
 var _review_title: Label
 var _review_text: Label
@@ -143,6 +145,7 @@ func _build_top() -> void:
 	event_row.add_child(event_column)
 	_event_banner.add_child(event_row)
 	column.add_child(_event_banner)
+	_build_ruckus_banner(column)
 	_review_banner = UiKit.card("BannerError")
 	var review_column := UiKit.vbox(AppTheme.SPACING_XS)
 	_review_title = UiKit.label("", "TitleSmall", true)
@@ -157,6 +160,30 @@ func _build_top() -> void:
 	_review_banner.add_child(review_column)
 	column.add_child(_review_banner)
 	_build_bonus_card(column)
+
+
+func _build_ruckus_banner(column: VBoxContainer) -> void:
+	_ruckus_banner = UiKit.card("BannerError")
+	var row := UiKit.hbox(AppTheme.SPACING_MD)
+	row.add_child(UiKit.icon(Icons.ALARM, AppTheme.accent("error")))
+	var text_column := UiKit.vbox(AppTheme.SPACING_XS)
+	var title := UiKit.label(tr("RUCKUS_ALERT_TITLE"), "TitleSmall", true)
+	title.add_theme_color_override(&"font_color", AppTheme.accent("error"))
+	text_column.add_child(title)
+	var text := UiKit.label(tr("RUCKUS_ALERT_TEXT"), "BodySmall", true)
+	text.add_theme_color_override(&"font_color", AppTheme.on_container("error"))
+	text_column.add_child(text)
+	var locate := UiKit.button(tr("ACTION_LOCATE"), "error")
+	locate.pressed.connect(func() -> void: locate_spot.emit(ruckus_spot()))
+	text_column.add_child(locate)
+	row.add_child(text_column)
+	_ruckus_banner.add_child(row)
+	_ruckus_banner.visible = false
+	column.add_child(_ruckus_banner)
+
+
+static func ruckus_spot() -> String:
+	return WorldLayout.STATION_PREFIX + GameConfig.RECEPTION
 
 
 func _build_bonus_card(column: VBoxContainer) -> void:
@@ -359,6 +386,7 @@ func refresh() -> void:
 		_event_title.text = tr("FMT_EVENT_TITLE") % [tr("EVENT_" + state.event_id.to_upper()), int(ceilf(state.event_time_left))]
 		_event_text.text = tr("EVENT_DESC_" + state.event_id.to_upper())
 		_refresh_event_actions(state)
+	_ruckus_banner.visible = state.has_ruckus()
 	_rating_label.text = UiKit.decimal(state.average_rating()) if not state.reviews.is_empty() else "–"
 	var negative := state.negative_review_count()
 	_refresh_bonus_card(state)

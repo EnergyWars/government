@@ -82,6 +82,8 @@ var ticket_progress := 0.0
 var ticket_call_progress := 0.0
 var tickets_drawn := 0
 var tickets_called := 0
+var last_called_ticket := 0
+var tickets_lapsed := 0
 var breakdowns := 0
 var coffees_served := 0
 var disputes_solved := 0
@@ -636,6 +638,11 @@ func earn(amount: float) -> void:
 	money_earned += maxf(amount, 0.0)
 
 
+func earn_windfall(amount: float) -> void:
+	earn(amount)
+	income.exclude(amount)
+
+
 func grant(amount: float) -> void:
 	money += amount
 
@@ -786,6 +793,8 @@ func to_dict() -> Dictionary:
 		"ticket_call_progress": ticket_call_progress,
 		"tickets_drawn": tickets_drawn,
 		"tickets_called": tickets_called,
+		"last_called_ticket": last_called_ticket,
+		"tickets_lapsed": tickets_lapsed,
 		"walkouts": walkouts,
 		"breakdowns": breakdowns,
 		"coffees_served": coffees_served,
@@ -904,6 +913,8 @@ static func from_dict(data: Dictionary) -> GameState:
 	state.ticket_call_progress = clampf(float(data.get("ticket_call_progress", 0.0)), 0.0, GameConfig.TICKET_CALL_SECONDS)
 	state.tickets_drawn = maxi(0, int(data.get("tickets_drawn", 0)))
 	state.tickets_called = clampi(int(data.get("tickets_called", 0)), 0, state.tickets_drawn)
+	state.last_called_ticket = clampi(int(data.get("last_called_ticket", state.tickets_called)), 0, state.tickets_drawn)
+	state.tickets_lapsed = clampi(int(data.get("tickets_lapsed", 0)), 0, state.tickets_drawn - state.tickets_called)
 	state.walkouts = maxi(0, int(data.get("walkouts", 0)))
 	state.breakdowns = maxi(0, int(data.get("breakdowns", 0)))
 	state.coffees_served = maxi(0, int(data.get("coffees_served", 0)))

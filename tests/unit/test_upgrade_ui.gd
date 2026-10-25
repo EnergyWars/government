@@ -749,7 +749,7 @@ func test_spot_status_tickets_unlock_with_the_stage() -> void:
 	assert_eq(SpotStatus.ticket_display(state), locked)
 	state.building_stage = GameConfig.TICKET_UNLOCK_STAGE
 	assert_eq(SpotStatus.tickets(state), _t("FMT_STATUS_TICKETS") % [Formulas.ticket_machines(state), UiKit.decimal(Formulas.ticket_draw_time(state)), state.ticket_line.size(), state.ticket_line_capacity()])
-	assert_eq(SpotStatus.ticket_display(state), _t("FMT_STATUS_TICKET_DISPLAY") % [UiKit.decimal(Formulas.ticket_call_time(state)), state.ticket_waiting.size(), state.tickets_called])
+	assert_eq(SpotStatus.ticket_display(state), _t("FMT_STATUS_TICKET_DISPLAY") % [Formulas.ticket_displays(state), UiKit.decimal(Formulas.ticket_call_time(state)), state.ticket_waiting.size(), state.last_called_ticket])
 
 
 func test_spot_status_tubes() -> void:

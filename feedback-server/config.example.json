@@ -1,0 +1,35 @@
+{
+  "token": "HIER-EIN-LANGES-ZUFAELLIGES-TOKEN",
+  "host": "0.0.0.0",
+  "port": 8787,
+  "claude_bin": "~/.local/bin/claude",
+  "claude_args": [
+    "--permission-mode",
+    "acceptEdits"
+  ],
+  "router_model": "sonnet",
+  "router_effort": "low",
+  "model_choices": [
+    "haiku",
+    "sonnet",
+    "opus"
+  ],
+  "effort_choices": [
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max"
+  ],
+  "fallback_model": "opus",
+  "fallback_effort": "high",
+  "godot_bin": "~/.local/opt/godot-4.7.2/Godot_v4.7.2-stable_linux.x86_64",
+  "export_preset": "Android",
+  "apk_path": "build/idle-germany.apk",
+  "apk_name": "idle-germany",
+  "agent_timeout": 3600,
+  "build_timeout": 1800,
+  "keep_apks": 10,
+  "secure_cookie": false,
+  "trust_forwarded_for": false
+}

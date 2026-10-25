@@ -220,10 +220,11 @@ func _age_cases(delta: float) -> void:
 		case_file.age += delta
 	if not state.is_boost_active("mayor_speech"):
 		_age_ticket_holders(state.ticket_line, delta, limit)
-		_age_ticket_holders(state.ticket_waiting, delta, limit)
+		state.tickets_lapsed += _age_ticket_holders(state.ticket_waiting, delta, limit)
 
 
-func _age_ticket_holders(holders: Array[CaseFile], delta: float, limit: float) -> void:
+func _age_ticket_holders(holders: Array[CaseFile], delta: float, limit: float) -> int:
+	var left := 0
 	var index := holders.size() - 1
 	while index >= 0:
 		var waiting := holders[index]
@@ -231,9 +232,11 @@ func _age_ticket_holders(holders: Array[CaseFile], delta: float, limit: float) -
 		waiting.waited += delta
 		if waiting.waited > limit * waiting.patience_factor:
 			holders.remove_at(index)
+			left += 1
 			_lose_citizen(waiting.dept_id, GameConfig.REP_CITIZEN_LEFT)
 			complain_after_leaving(Formulas.leave_complaint_chance(waiting), false)
 		index -= 1
+	return left
 
 
 func complain_after_leaving(chance: float, angry: bool) -> bool:
@@ -317,7 +320,7 @@ func _update_tickets(delta: float) -> void:
 		if state.ticket_progress >= Formulas.ticket_draw_time(state):
 			draw_ticket()
 	var reception := state.station(GameConfig.RECEPTION)
-	if state.ticket_waiting.is_empty() or reception == null or reception.inbox.size() >= GameConfig.TICKET_CALL_SLOTS:
+	if state.ticket_waiting.is_empty() or reception == null or reception.inbox.size() >= Formulas.ticket_call_slots(state):
 		state.ticket_call_progress = 0.0
 		return
 	state.ticket_call_progress += delta * Formulas.ticket_speed(layout.near(state.player.position, layout.ticket_display_point()))
@@ -329,8 +332,10 @@ func draw_ticket() -> bool:
 	if state.ticket_line.is_empty():
 		return false
 	state.ticket_progress = 0.0
-	state.ticket_waiting.append(state.ticket_line.pop_front())
+	var case_file: CaseFile = state.ticket_line.pop_front()
 	state.tickets_drawn += 1
+	case_file.ticket = state.tickets_drawn
+	state.ticket_waiting.append(case_file)
 	ticket_drawn.emit(state.tickets_drawn)
 	return true
 
@@ -340,10 +345,19 @@ func call_ticket() -> bool:
 	if state.ticket_waiting.is_empty() or reception == null:
 		return false
 	state.ticket_call_progress = 0.0
-	reception.inbox.append(state.ticket_waiting.pop_front())
-	state.tickets_called = mini(state.tickets_called + 1, state.tickets_drawn)
-	ticket_called.emit(state.tickets_called)
+	var batch := mini(Formulas.ticket_displays(state), maxi(1, Formulas.ticket_call_slots(state) - reception.inbox.size()))
+	while batch > 0 and not state.ticket_waiting.is_empty():
+		_call_next(reception)
+		batch -= 1
 	return true
+
+
+func _call_next(reception: Station) -> void:
+	var case_file: CaseFile = state.ticket_waiting.pop_front()
+	reception.inbox.append(case_file)
+	state.tickets_called = mini(state.tickets_called + 1, state.tickets_drawn)
+	state.last_called_ticket = case_file.ticket if case_file.ticket > 0 else state.last_called_ticket + 1
+	ticket_called.emit(state.last_called_ticket)
 
 
 func roll_extras(dept: Department) -> Array[String]:

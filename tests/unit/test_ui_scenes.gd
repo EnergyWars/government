@@ -897,7 +897,10 @@ func test_world_view_draws_tubes_capsules_and_reject_piles() -> void:
 	assert_lte(world._capsules.size(), WorldView.MAX_CAPSULES)
 	game.simulation.case_piped.emit("general_services/review", "", "general_services")
 	assert_eq(world._capsules.size(), WorldView.MAX_CAPSULES)
-	for step in 30:
+	var longest := 0.0
+	for capsule in world._capsules:
+		longest = maxf(longest, float(capsule.duration))
+	for step in ceili(longest / 0.2) + 1:
 		world._process(0.2)
 	await wait_physics_frames(2)
 	assert_eq(world._capsules.size(), 0)

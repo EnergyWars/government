@@ -75,6 +75,53 @@ func test_income_tracker_keeps_window_and_ignores_spending() -> void:
 	assert_eq(tracker.samples.back(), 0.0)
 
 
+func test_income_tracker_excludes_windfalls() -> void:
+	var tracker := IncomeTracker.new()
+	tracker.exclude(500.0)
+	tracker.advance(1.0, 0.0)
+	tracker.advance(1.0, 2.0)
+	tracker.exclude(1000.0)
+	tracker.advance(1.0, 1004.0)
+	assert_eq(tracker.samples.size(), 2)
+	assert_eq(tracker.samples[0], 2.0)
+	assert_eq(tracker.samples[1], 2.0)
+	tracker.exclude(-50.0)
+	tracker.advance(1.0, 1006.0)
+	assert_eq(tracker.samples.back(), 2.0)
+	assert_almost_eq(tracker.per_minute(), 120.0, 0.001)
+
+
+func test_offline_earnings_do_not_inflate_the_income_per_minute() -> void:
+	for key in state.stations:
+		if not state.stations[key].machine:
+			state.stations[key].staff = maxi(1, state.stations[key].staff)
+	for role in Runner.ROLES:
+		state.add_runner(role)
+	assert_gt(OfflineCalculator.earnings_per_second(state), 0.0)
+	_fill_income(2.0, 5)
+	state.money_earned = 10.0
+	var before := state.income.per_minute()
+	state.saved_at = 1000
+	var result := OfflineCalculator.apply(state, 1000 + 3600)
+	assert_gt(float(result.money), 0.0)
+	state.earn(2.0)
+	state.income.advance(IncomeTracker.SAMPLE_SECONDS, state.money_earned)
+	assert_almost_eq(state.income.per_minute(), before, 0.001)
+	var bonus := OfflineCalculator.double_up(state, result)
+	assert_gt(bonus, 0.0)
+	state.earn(2.0)
+	state.income.advance(IncomeTracker.SAMPLE_SECONDS, state.money_earned)
+	assert_almost_eq(state.income.per_minute(), before, 0.001)
+
+
+func test_windfall_counts_as_earned_money() -> void:
+	var money := state.money
+	var earned := state.money_earned
+	state.earn_windfall(250.0)
+	assert_eq(state.money, money + 250.0)
+	assert_eq(state.money_earned, earned + 250.0)
+
+
 func test_simulation_feeds_income_tracker() -> void:
 	_run(1.2, 0.1)
 	state.earn(50.0)

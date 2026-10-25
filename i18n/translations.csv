@@ -1111,9 +1111,10 @@ SIGN_MAIL_3,Fax? Please post it,Fax? Bitte per Post
 FMT_FLOAT_MAIL,+%d letters,+%d Briefe
 FMT_FLOAT_MAIL_RETURNED,%d returned to sender,%d zurück an Absender
 FMT_FLOAT_BUNDLE,%d applications at once!,%d Anträge auf einmal
+FMT_FLOAT_REPEAT,%s ×%d,%s ×%d
 FLOAT_FORM_MISSING,Form missing – please send by post,Unterlagen fehlen – bitte per Post nachreichen
 FLOAT_ONBOARDED,Department onboarded,Abteilung eingearbeitet
-FMT_FLOAT_RANK,New office rank: %s,Neue Amtsstufe: %s
+FMT_FLOAT_RANK,New office rank: %s · fees %s,Neue Amtsstufe: %s · Gebühren %s
 LABEL_SWAMPED,Swamped,Land unter
 FMT_RUSH,Inauguration euphoria: %s,Einweihungs-Euphorie: %s
 FMT_MILESTONE,Milestone in %d levels (×%s),Meilenstein in %d Stufen (×%s)
@@ -1225,14 +1226,15 @@ CLERK_FEND_12,"The citizen leaves, persuaded and confused.",Bürger zieht überz
 FMT_TICKETS_LOCKED,Opens with building stage %d.,Öffnet mit Ausbaustufe %d.
 AREA_TICKETS,Ticket machine,Wartemarkenautomat
 AREA_CALLS,Call display,Aufrufanzeige
-FMT_STATS_TICKETS,At the machine: %d · waiting with a number: %d · called so far: %d,Am Automaten: %d · warten mit Nummer: %d · bisher aufgerufen: %d
+FMT_STATS_TICKETS,At the machine: %d · waiting with a number: %d · called so far: %d · lapsed: %d,Am Automaten: %d · warten mit Nummer: %d · bisher aufgerufen: %d · verfallen: %d
 FMT_TICKET_NUMBER,No. %d,Nr. %d
-FMT_TICKET_CALL,"Number %d, please.","Nummer %d, bitte."
 FMT_STANDING_SIGN,Standing %d/%d,Stehplätze %d/%d
 FMT_TUBE_SEGMENT,Tube %s → %s,Röhre %s → %s
 FLOAT_RUCKUS_START,Form lost – ruckus at the reception,Formular weg – Radau am Empfang
 FLOAT_RUCKUS_CALMED,Calmed down,Beruhigt
 LABEL_RUCKUS,Reception blocked,Empfang blockiert
+RUCKUS_ALERT_TITLE,Ruckus at the reception,Radau am Empfang
+RUCKUS_ALERT_TEXT,A citizen is holding up the reception – the whole office grinds to a halt. Go there now and calm things down.,Ein Bürger hält den Empfang auf – die ganze Behörde steht still. Geh sofort hin und sorge für Ruhe.
 RUCKUS_1,Where is my form?,Wo ist mein Formular?
 RUCKUS_2,I filled it in twice,Ich hab's zweimal ausgefüllt
 RUCKUS_3,It was right here,Es lag genau hier
@@ -1275,6 +1277,8 @@ TRACK_TICKET_LINE,Space at the machines,Platz vor den Automaten
 TRACK_DESC_TICKET_LINE,One more place in the line at the ticket machines.,Ein Platz mehr in der Schlange vor den Wartemarkenautomaten.
 TRACK_TICKET_CALL_SPEED,Faster call display,Schnellere Aufrufanzeige
 TRACK_DESC_TICKET_CALL_SPEED,The display calls the next number sooner.,Die Anzeige ruft die nächste Nummer schneller auf.
+TRACK_TICKET_DISPLAYS,Extra call panel,Weitere Anzeigetafel
+TRACK_DESC_TICKET_DISPLAYS,"One more panel: every call shows one more number at once, and more called citizens may queue at the reception.","Eine Tafel mehr: Jeder Aufruf zeigt eine Nummer mehr gleichzeitig, und mehr aufgerufene Bürger dürfen am Empfang anstehen."
 TRACK_ONLINE_PORTAL,Online portal,Online-Portal
 TRACK_DESC_ONLINE_PORTAL,"More citizens come to the office. Now they can fail to get anywhere from home, too.",Mehr Bürger kommen ins Amt. Sie können jetzt auch von zu Hause aus nicht weiterkommen.
 TRACK_COMPLAINT_BOX,Bigger complaint box,Größerer Beschwerdebriefkasten
@@ -1434,7 +1438,7 @@ ENTRY_DESC_SEGMENT,Upgrades this single tube: more files at once and faster caps
 ENTRY_DESC_STORAGE,One more slot on the shelf: more letters fit before mail is sent back.,"Ein Fach mehr im Regal: Es passen mehr Briefe hinein, bevor Post zurückgeht."
 ENTRY_DESC_UNLOCK,"Opens this department. You need space in the building stage, enough reputation and money. Or walk onto the circle in the locked room.","Eröffnet diese Abteilung. Du brauchst Platz in der Ausbaustufe, genug Ansehen und Geld. Oder lauf auf den Kreis im gesperrten Raum."
 ENTRY_DESC_STAGE,"Expands the building to the next stage: more departments, more desks and more waiting places. Planning permission was granted retroactively.","Baut das Gebäude zur nächsten Stufe aus: mehr Abteilungen, mehr Tische und mehr Warteplätze. Die Baugenehmigung wurde rückwirkend erteilt."
-ENTRY_DESC_RANK,"Promotes this department to the next office rank: much higher fees without new desks or staff. The price matches opening a department at that level, so weigh it against the next department.","Hebt das Amt auf die nächste Amtsstufe: deutlich höhere Gebühren, ohne neue Tische oder neues Personal. Der Preis entspricht der Eröffnung eines Amtes auf diesem Niveau – wäge ab, ob sich das nächste Amt oder die Aufwertung mehr lohnt."
+ENTRY_DESC_RANK,"Raises this department one office level (up to 250): every level brings slightly higher fees, every 25 levels a milestone multiplies all fees by 1.5 to 3 and awards a new office title. No new desks or staff needed. The first 24 levels together cost as much as opening the next department.","Hebt das Amt eine Stufe höher (bis 250): Jede Stufe bringt etwas höhere Gebühren, alle 25 Stufen vervielfacht ein Meilenstein alle Gebühren um 1,5 bis 3 und verleiht eine neue Amtsbezeichnung. Ohne neue Tische oder neues Personal. Die ersten 24 Stufen kosten zusammen so viel wie die Eröffnung des nächsten Amts."
 UPGRADE_MODE_ROOMS,Rooms,Räume
 UPGRADE_MODE_HINT_ROOMS,Every upgrade by room and spot. Tap a group to expand it.,"Alle Upgrades nach Raum und Bereich. Tippe auf eine Gruppe, um sie aufzuklappen."
 UPGRADE_MODE_TOPICS,Topics,Themen
@@ -1478,7 +1482,8 @@ FMT_EFFECT_CAPACITY,Capacity %s → %s,Kapazität %s → %s
 FMT_EFFECT_CAPACITY_MAX,Capacity %s (maximum),Kapazität %s (Maximum)
 FMT_EFFECT_COUNT,Count %s → %s,Anzahl %s → %s
 FMT_EFFECT_COUNT_MAX,Count %s (maximum),Anzahl %s (Maximum)
-FMT_EFFECT_RANK,%s → %s · fees %s → %s,%s → %s · Gebühren %s → %s
+FMT_EFFECT_RANK,Level %d → %d · fees %s → %s,Stufe %d → %d · Gebühren %s → %s
+FMT_EFFECT_RANK_MILESTONE,"Milestone at level %d: %s, fees %s","Meilenstein bei Stufe %d: %s, Gebühren %s"
 FMT_EFFECT_RANK_MAX,%s · fees %s (top rank),%s · Gebühren %s (höchste Stufe)
 FMT_EFFECT_RANK_GAIN,Up to +%s/min · pays off in about %s,Bis zu +%s/Min. · rechnet sich in etwa %s
 FMT_EFFECT_UNLOCK_GAIN,Up to +%s/min when fully staffed · pays off in about %s,Bis zu +%s/Min. bei voller Besetzung · rechnet sich in etwa %s
@@ -1496,16 +1501,18 @@ FMT_ENTRY_SUPERVISOR,Supervisor: %s,Teamleitung: %s
 FMT_ENTRY_RUNNER_LEVEL,Train runner %d,Bote %d schulen
 FMT_ENTRY_UNLOCK,Open %s,%s eröffnen
 FMT_ENTRY_RANK,Office rank: %s,Amtsstufe: %s
+FMT_RANK_TITLE,%s (level %d),%s (Stufe %d)
 DEPT_RANK_1,Provisional office,Provisorium
 DEPT_RANK_2,Branch office,Außenstelle
 DEPT_RANK_3,Service unit,Dienststelle
 DEPT_RANK_4,Office,Amt
-DEPT_RANK_5,Senior office,Oberamt
-DEPT_RANK_6,Main office,Hauptamt
-DEPT_RANK_7,State office,Landesamt
-DEPT_RANK_8,Federal office,Bundesamt
-DEPT_RANK_9,Supreme federal authority,Oberste Bundesbehörde
-DEPT_RANK_10,Authority of authorities,Behörde der Behörden
+DEPT_RANK_5,District office,Kreisamt
+DEPT_RANK_6,Senior office,Oberamt
+DEPT_RANK_7,Main office,Hauptamt
+DEPT_RANK_8,State office,Landesamt
+DEPT_RANK_9,Federal office,Bundesamt
+DEPT_RANK_10,Supreme federal authority,Oberste Bundesbehörde
+DEPT_RANK_11,Authority of authorities,Behörde der Behörden
 FMT_ENTRY_STAGE,Expand: %s,Ausbau: %s
 FMT_ENTRY_PLACE,%s · %s,%s · %s
 FMT_LEVEL_OF,Level %d/%d,Stufe %d/%d
@@ -1535,7 +1542,7 @@ FMT_STATUS_STAGE,Building stage %d of %d · departments %d/%d,Ausbaustufe %d von
 FMT_STATUS_WAITING,Queue places: %d · standing %d/%d · walked out: %d,Plätze in der Schlange: %d · stehend %d/%d · gegangen: %d
 FMT_STATUS_SEATING,Seats taken: %d/%d,Sitzplätze belegt: %d/%d
 FMT_STATUS_TICKETS,%d machines · %s s per ticket · line %d/%d,%d Automaten · %s s pro Marke · Schlange %d/%d
-FMT_STATUS_TICKET_DISPLAY,Call every %s s · waiting: %d · called: %d,Aufruf alle %s s · wartend: %d · aufgerufen: %d
+FMT_STATUS_TICKET_DISPLAY,Panels: %d · call every %s s · waiting: %d · last called: no. %d,Tafeln: %d · Aufruf alle %s s · wartend: %d · zuletzt: Nr. %d
 FMT_STATUS_COMPLAINT_BOX,Complaints in the box: %d/%d,Beschwerden im Kasten: %d/%d
 FMT_STATUS_COMPLAINT_DESK,Fends off %s · fended off so far: %d,Wimmelt %s ab · bisher abgewimmelt: %d
 FMT_STATUS_SHREDDER,Rejects waiting: %d · shredders in the building: %d,Wartende Ablehnungen: %d · Schredder im Haus: %d

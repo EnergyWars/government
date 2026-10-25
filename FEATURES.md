@@ -40,13 +40,15 @@ Empfang → Sachbearbeitung der Abteilung → (optional: Verweis/Prüfdienst) �
 Eröffnet wird eine Abteilung durch Stehen auf dem Kreis im gesperrten Raum (1,2 s) oder per Tipp auf seine Namensleiste („Abteilung eröffnen“; auch in der Upgrade-Übersicht), sofern Platz (Gebäudestufe), Ansehen und Geld reichen. Jede neue Abteilung startet ohne Personal (nur Maschinen laufen von selbst), der Spieler arbeitet dort also zunächst selbst.
 
 ## Amtsstufen
-- Jede eröffnete Abteilung lässt sich über ihre Namensleiste (Eintrag „Amtsstufe: …“, Thema „Gebäude und Ausbau“) Schritt für Schritt von Stufe 1 bis 10 aufwerten: Provisorium → Außenstelle → Dienststelle → Amt → Oberamt → Hauptamt → Landesamt → Bundesamt → Oberste Bundesbehörde → Behörde der Behörden. Gekauft wird immer genau eine Stufe.
-- **Wirkung:** Die Gebühren der Abteilung steigen je Stufe ×2,5 (Stufe 10: ×3 815). Das gilt für erledigte Fälle, Post-Antworten, die Ablehnungsgebühr und die Einarbeitungsprämie und damit auch für Einnahmen/Min., Offline-Ertrag und Statistik. Andrang, Tische und Personal bleiben gleich: Eine Aufwertung braucht weder Platz in der Gebäudestufe noch neues Personal.
-- **Preis und Ansehen** folgen der Eröffnungsleiter: Der Aufstieg der Abteilung Nr. i auf Stufe r+1 kostet so viel Geld und Ansehen wie die Eröffnung der Abteilung Nr. i+r (Bürgerservice auf Stufe 2 = Finanzamt: 800 €, Ansehen 15; Bürgerservice auf Stufe 4 = Kfz-Zulassung: 60 000 €, Ansehen 150; Finanzamt auf Stufe 2 = Gewerbeamt: 8 000 €). Jenseits des Zollamts wächst der Preis ×5 je Stufe, das Ansehen bleibt bei 1 300.
-- **Abwägen:** Ein Aufstieg bringt 46–107 % dessen, was die gleich teure Abteilung bei voller Besetzung einbringt, wirkt aber sofort und ohne neues Personal; neue Abteilungen bringen dafür neue Räume, Abläufe und zusätzliche Kapazität. Die Amortisation jeder weiteren Stufe ist länger als die der vorigen.
-- Die Upgrade-Karte zeigt „Provisorium → Außenstelle · Gebühren ×1 → ×2,5“ und „Bis zu +…/Min. · rechnet sich in etwa …“ (möglicher Mehrertrag bei voller Auslastung und Amortisationszeit); die Eröffnungskarte einer Abteilung zeigt entsprechend „Bis zu +…/Min. bei voller Besetzung · rechnet sich in etwa …“.
-- Auf der Karte trägt die Namensleiste ab Stufe 2 ein goldenes Stufen-Abzeichen mit der Stufenzahl; beim Aufstieg erscheint „Neue Amtsstufe: …“ über dem Raum. Die Statistik zeigt je Abteilung Amtsstufe und Gebührenfaktor.
-- Die Amtsstufe wird im Spielstand gespeichert (fehlend = 1, auf 1–10 begrenzt, gesperrte Abteilungen immer 1).
+- Jede eröffnete Abteilung lässt sich über ihre Namensleiste (Eintrag „Amtsstufe: …“, Thema „Gebäude und Ausbau“) von Stufe 1 bis 250 aufwerten. Alle 25 Stufen ist ein **Meilenstein** mit neuer Amtsbezeichnung: Provisorium (1–24) → Außenstelle (25) → Dienststelle (50) → Amt (75) → Kreisamt (100) → Oberamt (125) → Hauptamt (150) → Landesamt (175) → Bundesamt (200) → Oberste Bundesbehörde (225) → Behörde der Behörden (250).
+- **Wirkung:** Jede Stufe macht alle Gebühren der Abteilung um 2 % wertvoller (`RANK_LEVEL_FEE_FACTOR`), jeder Meilenstein multipliziert sie zusätzlich (`RANK_MILESTONE_FACTORS`: ×1,5 / ×1,5 / ×2 / ×2 / ×2 / ×2,5 / ×2,5 / ×2,5 / ×3 / ×3). Gesamtfaktor: Stufe 25 ×2,41, Stufe 50 ×5,94, Stufe 100 ×64, Stufe 150 ×860, Stufe 200 ×14 472, Stufe 250 ×350 572. Das gilt für erledigte Fälle, Post-Antworten, die Ablehnungsgebühr und die Einarbeitungsprämie und damit auch für Einnahmen/Min., Offline-Ertrag und Statistik. Andrang, Tische und Personal bleiben gleich: Eine Aufwertung braucht weder Platz in der Gebäudestufe noch neues Personal.
+- **Preis:** geometrisch ×1,07 je Stufe (`RANK_LEVEL_COST_GROWTH`). Die ersten 24 Stufen bis zum ersten Meilenstein kosten zusammen so viel wie die Eröffnung der nächsten Abteilung (Bürgerservice: Stufe 1 → 2 kostet 13,75 €, Stufe 1 → 25 zusammen 800 € = Finanzamt; beim Zollamt ist die Bezugsgröße 80 Mio. × 5).
+- **Ansehen:** je Meilenstein-Block eine Schwelle aus der Eröffnungsleiter: Abteilung Nr. i braucht bis Stufe 25 das Ansehen der Abteilung Nr. i+1, bis Stufe 50 das der Nr. i+2 usw.; ab dem Zollamt bleibt es bei 1 300.
+- **Kaufen:** Kaufmenge ×1, ×10 oder Max wie bei allen Spuren (Summe der Einzelpreise). Mehrfachkäufe enden an der nächsten Ansehensschwelle.
+- **Abwägen:** Der erste Meilenstein bringt etwa 43–101 % dessen, was die gleich teure nächste Abteilung bei voller Besetzung einbringt, wirkt aber sofort und ohne neues Personal. Innerhalb eines Blocks rechnet sich jede Stufe langsamer als die vorige; der Kauf, der einen Meilenstein erreicht, rechnet sich besonders schnell, und jeder neue Block rechnet sich langsamer als der vorige.
+- Die Upgrade-Karte zeigt „Stufe n → n+1 · Gebühren ×a → ×b“, den nächsten Meilenstein („Meilenstein bei Stufe 25: Außenstelle, Gebühren ×1,5“) und „Bis zu +…/Min. · rechnet sich in etwa …“; die Eröffnungskarte einer Abteilung zeigt entsprechend „Bis zu +…/Min. bei voller Besetzung · rechnet sich in etwa …“.
+- Auf der Karte trägt die Namensleiste ab Stufe 2 ein goldenes Stufen-Abzeichen mit der Stufenzahl (Pille, wächst mit der Ziffernzahl); nur beim Erreichen eines Meilensteins erscheint „Neue Amtsstufe: … · Gebühren ×…“ über dem Raum. Die Statistik zeigt je Abteilung Amtsbezeichnung, Stufe und Gebührenfaktor.
+- Gespeichert als `rank_level` (fehlend = 1, auf 1–250 begrenzt, gesperrte Abteilungen immer 1). Alte Stände mit `rank` 1–10 (früher ×2,5 je Stufe) werden beim Laden auf die kleinste Stufe mit mindestens gleichem Gebührenfaktor umgerechnet (1 → 1, 2 → 27, 3 → 53, 4 → 75, 5 → 100, 6 → 122, 7 → 133, 8 → 150, 9 → 175, 10 → 179).
 
 ## Zollamt
 - Lkw liefern Fracht an die **Laderampe**; Frachtarten: Stückgut, Elektronik (höhere Verdachtsquote), Fahrzeuge.
@@ -111,11 +113,11 @@ Beschwerden haben eigene Räume in der Servicezeile direkt über der Publikumsha
 
 ## Wartemarken (ab Ausbaustufe 3)
 - Ab Ausbaustufe 3 („Regionalverwaltung“) muss jeder Bürger, der zum Empfang will, zuerst an einem **Wartemarkenautomaten** (großer Wartemarkenbereich rechts unten in der Halle, Schild „Bitte Nummer ziehen“) eine Nummer ziehen und dann im Wartebereich warten, bis seine Nummer an der **Aufrufanzeige** (oben im Wartemarkenbereich) aufgerufen wird. Erst dann stellt er sich am Empfang an und gibt seinen Antrag wie bisher ab. Folgeanträge brauchen ebenfalls eine Nummer; Post und Zoll nicht.
-- Nummer ziehen dauert 3 s je Bürger und Automat (mehrere Automaten arbeiten gleichzeitig, die Zeit teilt sich durch ihre Zahl), in der Schlange vor den Automaten stehen anfangs höchstens 10. Aufrufen dauert 3,5 s je Nummer. Aufgerufen wird nur, solange am Empfang weniger als 4 Aufgerufene anstehen. Beides ist ein eigener Engpass.
-- **Beschleunigen:** Stellt sich der Spieler an den Automaten bzw. an die Anzeige, läuft es 2,5-mal so schnell (Fortschrittsring, grün solange der Spieler hilft). Upgrades im Bereich Wartemarkenautomaten: *Schnellerer Markendruck* (200 Stufen, −1,5 % Zeit je Stufe, 30 000 · ×1,06), *Weiterer Wartemarkenautomat* (bis 5 Automaten, 60 000 · ×4) und *Platz vor den Automaten* (+1 je Stufe, 40 Stufen, bis 50, 20 000 · ×1,15); im Bereich Aufrufanzeige *Schnellere Aufrufanzeige* (200 Stufen, −1,5 % je Stufe, 35 000 · ×1,06). Vor Stufe 3 sind sie gesperrt und nennen die nötige Gebäudestufe.
+- Nummer ziehen dauert 3 s je Bürger und Automat (mehrere Automaten arbeiten gleichzeitig, die Zeit teilt sich durch ihre Zahl), in der Schlange vor den Automaten stehen anfangs höchstens 10. Aufrufen dauert 3,5 s; jede Anzeigetafel ruft dabei eine Nummer gleichzeitig auf (1 Tafel anfangs, bis 10). Aufgerufen wird nur, solange am Empfang weniger als 4 Aufgerufene je Tafel anstehen, und höchstens so viele, wie dort Platz ist. Beides ist ein eigener Engpass.
+- **Beschleunigen:** Stellt sich der Spieler an den Automaten bzw. an die Anzeige, läuft es 2,5-mal so schnell (Fortschrittsring, grün solange der Spieler hilft). Upgrades im Bereich Wartemarkenautomaten: *Schnellerer Markendruck* (200 Stufen, −1,5 % Zeit je Stufe, 30 000 · ×1,06), *Weiterer Wartemarkenautomat* (bis 5 Automaten, 60 000 · ×4) und *Platz vor den Automaten* (+1 je Stufe, 40 Stufen, bis 50, 20 000 · ×1,15); im Bereich Aufrufanzeige *Schnellere Aufrufanzeige* (200 Stufen, −1,5 % je Stufe, 35 000 · ×1,06) und *Weitere Anzeigetafel* (bis 10 Tafeln, 80 000 · ×3; voll ausgebaut ruft die Anzeige 10-mal so viele Bürger auf). Vor Stufe 3 sind sie gesperrt und nennen die nötige Gebäudestufe.
 - Schlange am Automaten, Wartende mit Nummer und am Empfang Anstehende teilen sich die Plätze des Wartebereichs. Ist die Automatenschlange oder der Wartebereich voll, hauen Neuankömmlinge ab. Auch mit Nummer verlieren Bürger die Geduld und gehen (wie in der Warteschlange; „Rede des Bürgermeisters“ hält sie).
-- Die Anzeige zeigt die zuletzt aufgerufene Nummer, beim Aufruf schwebt „Nummer n, bitte.“ auf. Wartende mit Nummer tragen ein Wartemarken-Symbol, Aufgerufene die Sprechblase ihrer Abteilung. Der Leit-Pfeil zeigt zum Automaten bzw. zur Anzeige, sobald dort 4 oder mehr Bürger warten.
-- Statistik: eigene Bereiche „Wartemarkenautomat“ und „Aufrufanzeige“ (Kapazität, Bedarf, Auslastung, Ausbau-Wirkung, Schlange/Wartende/bisher aufgerufen) und Teil von „Was ausbauen?“. Das Aufgaben-Panel zählt Bürger mit und ohne Nummer als wartend. Alles wird gespeichert.
+- Jeder Bürger erhält beim Ziehen die nächste fortlaufende Nummer. Die Anzeige zeigt die Nummer des zuletzt aufgerufenen Bürgers und wird zweimal pro Sekunde aktualisiert (kein Floater). Wer mit Nummer die Geduld verliert, hinterlässt eine Lücke: Seine Nummer wird nie aufgerufen und zählt als „verfallen“. Wartende mit Nummer tragen ein Wartemarken-Symbol, Aufgerufene die Sprechblase ihrer Abteilung. Der Leit-Pfeil zeigt zum Automaten bzw. zur Anzeige, sobald dort 4 oder mehr Bürger warten.
+- Statistik: eigene Bereiche „Wartemarkenautomat“ und „Aufrufanzeige“ (Kapazität, Bedarf, Auslastung, Ausbau-Wirkung, Schlange/Wartende/bisher aufgerufen/verfallen; die Statuszeile der Anzeige nennt Tafeln, Takt, Wartende und die zuletzt aufgerufene Nummer) und Teil von „Was ausbauen?“. Das Aufgaben-Panel zählt Bürger mit und ohne Nummer als wartend. Alles wird gespeichert.
 
 ## Bürger und Beamte laufen sichtbar
 - Jeder Bürger behält vom Betreten bis zum Verlassen dieselbe Farbe und dasselbe Aussehen und läuft sichtbar von Station zu Station: Eingang → Automat → Wartebereich → Empfangsschlange → vor den Empfangsschalter → fester Stuhl im Sitzbereich (solange sein Antrag bearbeitet oder getragen wird) → vor den Ausgabeschalter → Ausgang (mit Ergebnis in der Hand). Wer vorher geht (Geduld, Ablehnung), läuft von seiner aktuellen Position zum Ausgang. Niemand springt oder wechselt die Farbe.
@@ -128,7 +130,7 @@ Beschwerden haben eigene Räume in der Servicezeile direkt über der Publikumsha
 
 ## Radau am Empfang
 - Ab 25 erledigten Fällen findet ab und zu ein Bürger am Empfang sein Formular nicht und macht Radau (alle 120–260 s, jede Wache verlängert den Abstand um 30 %; nur wenn gerade ein Bürger am Empfangsschalter bedient wird). Solange blockiert der ganze Empfang: keine Annahme, kein Fortschritt, auch nicht durch Handarbeit.
-- Der Spieler muss hingehen und den Bürger beruhigen: 2,5 s danebenstehen (grüner Fortschrittsring, setzt beim Weggehen zurück). Am Schalter pulsiert ein roter Ring mit Formular-Symbol, Schriftzug „Empfang blockiert“ und wechselnden Sprüchen (8 Stück); Floater beim Beginn und „Beruhigt“ am Ende. Der Leit-Pfeil zeigt hin. Zustand, Timer und Zahl der beruhigten Fälle werden gespeichert.
+- Der Spieler muss hingehen und den Bürger beruhigen: 2,5 s danebenstehen (grüner Fortschrittsring, setzt beim Weggehen zurück). Am Schalter pulsiert ein roter Ring mit Formular-Symbol, Schriftzug „Empfang blockiert“ und wechselnden Sprüchen (8 Stück); Floater beim Beginn und „Beruhigt“ am Ende. **Warnsignal:** Beim Beginn vibriert das Gerät (400 ms), und solange der Radau dauert, steht oben ein rotes Banner „Radau am Empfang“ („Ein Bürger hält den Empfang auf – die ganze Behörde steht still …“) mit „Auf der Karte zeigen“. Der Leit-Pfeil zeigt dann immer zuerst dorthin, vor allen anderen Aufgaben. Zustand, Timer und Zahl der beruhigten Fälle werden gespeichert.
 
 ## Bürostreits
 - Ab 15 erledigten Fällen brechen alle 90–200 Sekunden Streits in Abteilungen mit mindestens 2 Beschäftigten aus (max. 2 gleichzeitig, höchstens einer je Abteilung): Fensterkrieg, Thermostat-Krieg, Radio-Streit, Joghurt-Klau, Tacker-Streit und Fischbrötchen-Gestank. Zwei streitende Beamte stehen sichtbar im Raum (Sprechblasen im Wechsel mit je 4 witzigen Sätzen), das Etikett zeigt den Tempoverlust (−10 % bis −20 % für die Sachbearbeitungs-Stationen der Abteilung; Maschinen und gemeinsame Stationen sind nicht betroffen).
@@ -249,7 +251,7 @@ Wer einzieht, muss sich ummelden: Nach der Wohnungsprüfung geht die Akte zur Me
 Bürger betreten das Amt durch die linke Türhälfte und verlassen es durch die rechte.
 
 ## Upgrades und Bereiche
-Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild, Möbelstück, Gerät, Aushang oder Platz). Ein Tipp öffnet das Bereichsfenster: Kurzbeschreibung, Statuszeilen (z. B. Füllstand, Takt, Kapazität, Belegung), alle Upgrades des Bereichs und bei Raum-Übersichten die passenden Boosts. Kein Upgrade ist ohne Ort; zusammen sind es 53 Upgrade-Spuren mit 9 325 Stufen (Spuren je Raum mehrfach gezählt), dazu Stationen, Personal, Botenstufen, Röhrenabschnitte, Briefregal, Abteilungen, Amtsstufen und Gebäudestufen.
+Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild, Möbelstück, Gerät, Aushang oder Platz). Ein Tipp öffnet das Bereichsfenster: Kurzbeschreibung, Statuszeilen (z. B. Füllstand, Takt, Kapazität, Belegung), alle Upgrades des Bereichs und bei Raum-Übersichten die passenden Boosts. Kein Upgrade ist ohne Ort; zusammen sind es 54 Upgrade-Spuren mit 9 334 Stufen (Spuren je Raum mehrfach gezählt), dazu Stationen, Personal, Botenstufen, Röhrenabschnitte, Briefregal, Abteilungen, Amtsstufen und Gebäudestufen.
 
 **Räume und ihre Bereiche**
 | Raum | Bereiche |
@@ -271,7 +273,7 @@ Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild,
 - *Themen*: nach Wirkung gruppiert (Du selbst, Bürger und Warten, Arbeitstempo, Personal, Transport und Rohrpost, Pausen und Wohlbefinden, Beschwerden, Post, Qualität und IT, Gebäude und Ausbau), jeder Eintrag mit Ort.
 - *Kaufbar*: alles, was gerade bezahlbar ist, das Günstigste zuerst (höchstens 40, Hinweis auf weitere).
 - *Empfohlen*: die Vorschläge der Statistik, die die aktuellen Engpässe am meisten entlasten.
-- *Ausbau*: die großen Schritte im Vergleich – nächste Abteilung, alle noch offenen Amtsstufen und nächste Gebäudestufe –, sortiert nach Amortisation (Preis ÷ möglicher Mehrertrag pro Sekunde); die Gebäudestufe ohne direkten Ertrag steht am Ende. Ohne Kaufmengen-Schalter, da jeder Schritt einzeln gekauft wird. Ist alles erreicht, erscheint ein zweizeiliger Leerzustand.
+- *Ausbau*: die großen Schritte im Vergleich – nächste Abteilung, alle noch offenen Amtsstufen und nächste Gebäudestufe –, sortiert nach Amortisation (Preis ÷ möglicher Mehrertrag pro Sekunde); die Gebäudestufe ohne direkten Ertrag steht am Ende. Der Kaufmengen-Schalter gilt auch hier (für Amtsstufen; Eröffnung und Gebäudestufe sind Einzelschritte). Ist alles erreicht, erscheint ein zweizeiliger Leerzustand.
 
 **Kaufen:** Jede Karte zeigt Symbol, Titel, Beschreibung, Stufe (Plakette und Fortschrittsbalken), aktuelle und nächste Wirkung und den Kaufknopf mit Preis bzw. Sperrgrund (Höchststufe, Raum geschlossen, Gebäudestufe, Voraussetzung, Ansehen – zählt das höchste je erreichte –, Geld, Personal braucht Tische, neue Abteilungen erst Einarbeitung). Die Kaufmenge ×1, ×10 oder Max (alle bezahlbaren Stufen) gilt für alle Karten; mehrere Stufen kosten die Summe der Einzelpreise. Preise wachsen je Spur geometrisch (meist ×1,04 bis ×1,2 je Stufe; wenige große Schritte wie Toilettenkabinen ×2,2 und Wartemarkenautomaten ×4).
 
@@ -295,6 +297,7 @@ Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild,
 | Publikumshalle | Wartemarkenautomaten | Weiterer Wartemarkenautomat | 4 | 1 → 2 → 5 | 60.000 · ×4 | ab Gebäudestufe 3 |
 | Publikumshalle | Wartemarkenautomaten | Platz vor den Automaten | 40 | 10 → 11 → 50 | 20.000 · ×1,15 | ab Gebäudestufe 3 |
 | Publikumshalle | Aufrufanzeige | Schnellere Aufrufanzeige | 200 | 3,5 s → 3,45 s → 0,17 s | 35.000 · ×1,06 | ab Gebäudestufe 3 |
+| Publikumshalle | Aufrufanzeige | Weitere Anzeigetafel | 9 | 1 → 2 → 10 Nummern je Aufruf | 80.000 · ×3 | ab Gebäudestufe 3 |
 | Publikumshalle | Eingang | Online-Portal | 100 | 0 % → +1 % → +100 % | 1.000.000 · ×1,1 | Ansehen 500 |
 | Publikumshalle | Beschwerdebriefkasten | Größerer Beschwerdebriefkasten | 200 | 20 → 21 → 220 | 900 · ×1,05 | – |
 | Publikumshalle | Beschwerdebriefkasten | Beschwerde-Rohrpost | 150 | aus → 60 s → 2,96 s | 6.000 · ×1,08 | Ansehen 50, Schredder-Praktikant |
@@ -347,12 +350,12 @@ Alle Verbesserungen hängen an anklickbaren **Bereichen** auf der Karte (Schild,
 | Röhrenabschnitt | Rohrpost-Platz der Abteilung | 0–100, +1 Kapsel, +2 % Tempo | 30 000 × 1,08 je Stufe |
 | Briefregal | Briefregal | 0–300, +1 Platz (Basis 12) | 600 × 1,04 je Stufe |
 | Abteilung eröffnen | Namensleiste der gesperrten Abteilung | in fester Reihenfolge | Eröffnungspreis, Ansehen, Platz |
-| Amtsstufe | Namensleiste der Abteilung | Stufe 1–10, Gebühren ×2,5 je Stufe | Eröffnungspreis und Ansehen der Abteilung Nr. i+r, danach ×5 je Stufe |
+| Amtsstufe | Namensleiste der Abteilung | Stufe 1–250, Gebühren +2 % je Stufe, alle 25 Stufen ×1,5 bis ×3 | erste 24 Stufen zusammen = Eröffnung der nächsten Abteilung, ×1,07 je Stufe; Ansehen je Meilenstein-Block |
 | Gebäudestufe | Eingang | 5 Stufen | 2 500 / 50 000 / 1,5 Mio. / 40 Mio., Ansehen 10/100/400/1000 |
 
 ## Wirtschaft und Fortschritt
-- Ziel-Belohnungen zählen nicht in „Einnahmen/Min.“ und nicht in die Gesamteinnahmen.
-- Gebühr je Fall × Amtsstufen-Faktor (×2,5 je Stufe) × Ansehensfaktor (1 + √Ansehen/20); komplexe Fälle ×2, dringende pünktlich ×1,5 (+0,3 Ansehen), verspätet −0,3; fehlerhafte ×0,4 (−0,5 Ansehen), korrekte +0,1.
+- Ziel-Belohnungen zählen nicht in „Einnahmen/Min.“ und nicht in die Gesamteinnahmen. Offline-Ertrag und seine Werbe-Verdopplung zählen in die Gesamteinnahmen, aber nicht in „Einnahmen/Min.“ (Durchschnitt der letzten 30 s).
+- Gebühr je Fall × Amtsstufen-Faktor (siehe „Amtsstufen“) × Ansehensfaktor (1 + √Ansehen/20); komplexe Fälle ×2, dringende pünktlich ×1,5 (+0,3 Ansehen), verspätet −0,3; fehlerhafte ×0,4 (−0,5 Ansehen), korrekte +0,1.
 - Ansehen erhöht den Bürgerandrang (1 + √Ansehen/8, höchstens ×8), dazu der Bewertungsschnitt (×0,85 bei 1 Stern bis ×1,25 bei 5 Sternen).
 - **Gebäudestufen**: Service-Schalter → Bürgeramt → Kreisverwaltung → Dienstleistungszentrum → Stadtverwaltung (mehr Abteilungsräume, Tische, Lobbyplätze); gekauft am Eingang der Halle, der auch Stufe, eröffnete Abteilungen und Einwohner zeigt.
 - **Ziele**: 21 aufeinander aufbauende Ziele mit Belohnung, letztes Ziel 20 000 Fälle. Die ersten führen über Handarbeit zur Automatisierung: 3 Fälle → Station ausbauen → 25 Fälle → erste Einstellung (250) → Gebäude erweitern → erster Bote (500).
@@ -421,6 +424,7 @@ Krankmeldungen, Streits, Kaffeekränzchen und Beschwerden treten früh und häuf
 - Bürger bringen gelegentlich bis zu 2 weitere Anträge für andere eröffnete Abteilungen mit (12 % + 6 % je weitere Abteilung, höchstens 45 %; kein Zoll).
 - Der Empfang braucht je weiteren Antrag 50 % länger und teilt das Bündel in einzelne Akten auf, die dann parallel durch die Abteilungen laufen. Ist der Ausgang dafür zu voll, wartet der Empfang.
 - Die Zahl der Bündel wird gezählt und gespeichert.
+- Der Floater „n Anträge auf einmal“ erscheint je Bündelgröße höchstens einmal pro Sekunde; weitere Bündel in dieser Sekunde werden danach gesammelt angezeigt („2 Anträge auf einmal ×7“). Ebenso der Floater „Reicht mir!“ gehender Bürger („Reicht mir! ×5“).
 
 ## Poststelle
 - Ab der zweiten Gebäudestufe öffnet zwischen Telefonzentrale und Servicetrakt (Beschwerdebüro, Schredderraum, Technikraum) die **Poststelle**, ein zweiter Eingang. Der Briefträger liefert alle 45 s einen Stapel Briefe (3 + 1 je Abteilung). Am **Postkasten**: *Amtsblatt-Abo* (+1 Brief je Stapel und Stufe, 100 Stufen) und *Häufigere Zustellung* (−1 % Zustellabstand je Stufe, 150 Stufen, bis etwa 10 s).
@@ -461,6 +465,16 @@ Krankmeldungen, Streits, Kaffeekränzchen und Beschwerden treten früh und häuf
 - **Bürgermeister zu Besuch** (ab 30 Fällen): ×1,5 Bürger, ×2 Gebühren.
 - **Lob in der Zeitung** (ab 60 Fällen): ×2 Bürger, ×1,2 Gebühren.
 
+## Feedback-Server (Entwicklungswerkzeug, nicht Teil der App)
+- Unterordner `feedback-server/`: Weboberfläche und API, um von unterwegs Feedback zu senden. Claude Code (`claude -p`) setzt es im Projekt um, danach baut der Server per Godot die Debug-APK und bietet sie zum Download an.
+- Jedes Feedback analysiert zuerst ein Router-Agent (Sonnet, Effort low) auf Komplexität und wählt Modell (Haiku/Sonnet/Opus) und Effort; anschließend setzt ein neuer Agent mit dieser Wahl das Feedback um. Wahl und Begründung stehen am Auftrag; scheitert die Analyse, gilt Opus/high.
+- Anmeldung per Passwort (aktuell `123`, signiertes Session-Cookie oder `Authorization: Bearer`), Sperre nach 5 Fehlversuchen.
+- Status-Endpunkt `GET /api/status` (Zustand, laufender Auftrag, Warteschlange, neueste APK) und Auto-Discovery wie beim Commander: `GET /status` antwortet ohne Anmeldung mit 204, `python3 -m feedback_server.discovery` scannt das /24-Netz.
+- Warteschlange mit Status (wartet, analysiert, KI arbeitet, baut APK, fertig, fehlgeschlagen, abgebrochen), Live-Protokoll, Zusammenfassung von Claude, Abbrechen, „Nur APK bauen“, „Im letzten Gespräch fortsetzen“.
+- Die letzten 10 APKs bleiben zum Download erhalten; Entwurf des Feedback-Textes bleibt im Browser gespeichert.
+- Oberfläche Deutsch mit Englisch als Fallback (`feedback_server/i18n/*.json`), hell/dunkel nach Systemeinstellung.
+- Einrichtung, Fernzugriff (WireGuard/Tailscale) und API in `feedback-server/README.md`.
+
 ## Projektspezifische Ausnahmen von globalen Regeln
 - **Godot 4.7.2 statt Jetpack Compose**: Die WaffleHQ-Styling-Regeln werden sinngemäß über `AppTheme` (Rollen, Radien, Abstände, Geist-Schrift, Material Icons) umgesetzt; Details in `styling-exceptions.md`.
 - **Übersetzungen als CSV** (`i18n/translations.csv`, Godot-Standard) statt `strings.xml`.
@@ -468,3 +482,4 @@ Krankmeldungen, Streits, Kaffeekränzchen und Beschwerden treten früh und häuf
 - **Testabdeckung**: Für GDScript gibt es kein Coverage-Werkzeug; Abdeckung wird über vollständige Unit-Tests aller Kernklassen (GUT 9.7.1) sichergestellt.
 - **Monetarisierung nur als Attrappe**: Werbung ist ein 3-Sekunden-Platzhalter, der Siegel-Shop ein Testkauf ohne Bezahlung. Es ist kein Werbe- oder Bezahl-SDK eingebunden.
 - **Keine Datenbank**: Spielstand als JSON in `user://savegame.json` (Version 3). Version-2-Stände werden beim Laden umgerechnet (Upgrade-Stufen auf die feineren Spuren skaliert, frühere Forschung in Spuren überführt, Briefregal und Schulungen hochgerechnet, Rohrpost-Anschlüsse in Stationen je Raum); noch ältere Stände starten neu.
+- **Feedback-Server in Python**: Werkzeug ohne Fremdpakete (nur Standardbibliothek), Texte als JSON statt `strings.xml`, Tests mit `unittest`. Godot ignoriert den Ordner über `.gdignore`.

@@ -37,7 +37,7 @@ func to_dict() -> Dictionary:
 	return {
 		"id": id,
 		"unlocked": unlocked,
-		"rank": rank,
+		"rank_level": rank,
 		"supervisors": supervisors,
 		"thoroughness": thoroughness,
 		"prioritize_urgent": prioritize_urgent,
@@ -51,7 +51,7 @@ func to_dict() -> Dictionary:
 static func from_dict(data: Dictionary) -> Department:
 	var dept := Department.new(str(data.get("id", "")))
 	dept.unlocked = bool(data.get("unlocked", false))
-	dept.rank = clampi(int(data.get("rank", 1)), 1, GameConfig.MAX_DEPARTMENT_RANK) if dept.unlocked else 1
+	dept.rank = _restore_rank(data) if dept.unlocked else 1
 	dept.supervisors = clampi(int(data.get("supervisors", 0)), 0, GameConfig.MAX_SUPERVISORS)
 	dept.thoroughness = clampi(int(data.get("thoroughness", 1)), 0, GameConfig.THOROUGHNESS.size() - 1)
 	dept.prioritize_urgent = bool(data.get("prioritize_urgent", true))
@@ -61,3 +61,11 @@ static func from_dict(data: Dictionary) -> Department:
 		dept.follow_ups.append(float(value))
 	dept.hands_on = clampi(int(data.get("hands_on", GameConfig.HANDS_ON_CASES if dept.unlocked else 0)), 0, GameConfig.HANDS_ON_CASES)
 	return dept
+
+
+static func _restore_rank(data: Dictionary) -> int:
+	if data.has("rank_level"):
+		return DepartmentRank.clamp_level(int(data.rank_level))
+	if data.has("rank"):
+		return SaveMigration.legacy_rank_level(int(data.rank))
+	return 1

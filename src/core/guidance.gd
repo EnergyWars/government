@@ -22,6 +22,8 @@ const MAIL_FLOOR := "mail_floor"
 
 static func next_task(state: GameState) -> Dictionary:
 	var layout := WorldLayout.get_default()
+	if state.has_ruckus():
+		return {"action": RUCKUS, "key": GameConfig.RECEPTION, "point": layout.ruckus_point(state.ruckus_desk)}
 	var player := state.player
 	var options: Array[Dictionary] = []
 	for item in player.items:
@@ -55,8 +57,6 @@ static func next_task(state: GameState) -> Dictionary:
 	var mailroom := state.mailroom()
 	if not state.mail_floor.is_empty() and mailroom != null and mailroom.has_inbox_space(state.lobby_capacity()):
 		options.append({"action": MAIL_FLOOR, "key": GameConfig.MAILROOM, "point": layout.mail_floor_point()})
-	if state.has_ruckus():
-		options.append({"action": RUCKUS, "key": GameConfig.RECEPTION, "point": layout.ruckus_point(state.ruckus_desk)})
 	for dispute in state.disputes:
 		options.append({"action": DISPUTE, "key": dispute.dept_id, "point": layout.dispute_point(dispute.dept_id)})
 	if state.kranz:
@@ -65,7 +65,7 @@ static func next_task(state: GameState) -> Dictionary:
 		if state.ticket_line.size() >= GameConfig.TICKET_RUSH:
 			options.append({"action": TICKET, "key": "", "point": layout.ticket_machine_point()})
 		var reception := state.station(GameConfig.RECEPTION)
-		if state.ticket_waiting.size() >= GameConfig.TICKET_RUSH and reception != null and reception.inbox.size() < GameConfig.TICKET_CALL_SLOTS:
+		if state.ticket_waiting.size() >= GameConfig.TICKET_RUSH and reception != null and reception.inbox.size() < Formulas.ticket_call_slots(state):
 			options.append({"action": TICKET_CALL, "key": "", "point": layout.ticket_display_point()})
 	if player.complaints > 0 or player.rejects > 0:
 		options.append({"action": SHRED, "key": "", "point": layout.nearest_shredder(player.position, state.shredder_rooms())})

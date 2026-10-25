@@ -25,7 +25,7 @@ static func double_up(state: GameState, result: Dictionary) -> float:
 	var bonus := float(result.get("money", 0.0)) * (GameConfig.AD_REWARD_FACTOR - 1.0)
 	if bonus <= 0.0:
 		return 0.0
-	state.earn(bonus)
+	state.earn_windfall(bonus)
 	state.ads_watched += 1
 	return bonus
 
@@ -33,6 +33,6 @@ static func double_up(state: GameState, result: Dictionary) -> float:
 static func apply(state: GameState, now: int) -> Dictionary:
 	var result := compute(state, now)
 	if result.money > 0.0:
-		state.earn(result.money)
+		state.earn_windfall(result.money)
 	state.saved_at = now
 	return result

@@ -21,6 +21,11 @@ func advance(delta: float, earned: float) -> void:
 	_last_earned = earned
 
 
+func exclude(amount: float) -> void:
+	if _last_earned >= 0.0:
+		_last_earned += maxf(amount, 0.0)
+
+
 func per_minute() -> float:
 	if samples.is_empty():
 		return 0.0

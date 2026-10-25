@@ -43,6 +43,8 @@ const STORAGE_SCALE := 8
 const WAITING_SCALE := 3
 const TUBE_LEVEL_SCALE := 2
 const TRAINING_SCALE := 10
+const LEGACY_RANK_FEE_FACTOR := 2.5
+const LEGACY_MAX_RANK := 10
 const LEGACY_TUTORIAL: Array[String] = [
 	"welcome", "move", "resources", "arrow", "first_case", "queue", "goal", "tasks", "team_open", "hire", "runner", "upgrade",
 	"department_open", "work_modes", "research_open", "research_info", "building_open", "building_info", "departments_open",
@@ -169,3 +171,11 @@ static func _migrate_tube_levels(result: Dictionary) -> void:
 
 static func _dictionary(value: Variant) -> Dictionary:
 	return value if value is Dictionary else {}
+
+
+static func legacy_rank_level(rank: int) -> int:
+	var target := pow(LEGACY_RANK_FEE_FACTOR, clampi(rank, 1, LEGACY_MAX_RANK) - 1)
+	for level in range(1, GameConfig.MAX_DEPARTMENT_RANK + 1):
+		if DepartmentRank.fee_factor(level) >= target * (1.0 - 1e-9):
+			return level
+	return GameConfig.MAX_DEPARTMENT_RANK

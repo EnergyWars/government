@@ -76,8 +76,7 @@ func build(container: VBoxContainer) -> void:
 		rebuild()
 	))
 	container.add_child(UiKit.label(tr("UPGRADE_MODE_HINT_" + mode().to_upper()), "BodySmall", true))
-	if mode() != "expansion":
-		container.add_child(UpgradeEntryCard.amount_selector(self))
+	container.add_child(UpgradeEntryCard.amount_selector(self))
 	var entries := UpgradeCatalog.entries(state)
 	match mode():
 		"buyable":

@@ -344,7 +344,7 @@ func _department_card(dept: Department) -> Control:
 		var state := game.state
 		var demand := Formulas.demand(state, dept)
 		var throughput := Formulas.department_throughput(state, dept)
-		rank.text = tr("FMT_STATS_RANK") % [UpgradeTexts.rank_name(dept.rank), UpgradeTexts.fee_factor_text(dept.rank)]
+		rank.text = tr("FMT_STATS_RANK") % [UpgradeTexts.rank_title(dept.rank), UpgradeTexts.fee_factor_text(dept.rank)]
 		arrived.text = tr("FMT_STATS_MEASURED_EXPECTED") % [_rate(ProductionStats.ARRIVED, dept.id), UiKit.decimal(demand * 60.0)]
 		completed.text = _rate(ProductionStats.COMPLETED, dept.id)
 		capacity.text = _per_minute(throughput)
@@ -510,7 +510,7 @@ func _ticket_card(kind: String, icon_code: String) -> Control:
 	var footer := _area_footer(parts.column, kind)
 	track(func() -> void:
 		var state := game.state
-		var extra: Array[String] = [tr("FMT_STATS_TICKETS") % [state.ticket_line.size(), state.ticket_waiting.size(), state.tickets_called]]
+		var extra: Array[String] = [tr("FMT_STATS_TICKETS") % [state.ticket_line.size(), state.ticket_waiting.size(), state.tickets_called, state.tickets_lapsed]]
 		footer.call(extra)
 	)
 	return parts.card

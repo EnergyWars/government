@@ -23,6 +23,7 @@ var age := 0.0
 var waited := 0.0
 var patience_factor := 1.0
 var handled := 0
+var ticket := 0
 
 
 func _init(p_dept_id: String = "", p_complex: bool = false, p_urgent: bool = false, p_suspicious: bool = false) -> void:
@@ -97,6 +98,7 @@ func to_dict() -> Dictionary:
 		"waited": waited,
 		"patience_factor": patience_factor,
 		"handled": handled,
+		"ticket": ticket,
 	}
 
 
@@ -129,4 +131,5 @@ static func from_dict(data: Dictionary) -> CaseFile:
 	case_file.waited = float(data.get("waited", 0.0))
 	case_file.patience_factor = clampf(float(data.get("patience_factor", 1.0)), GameConfig.PATIENCE_MIN_FACTOR, GameConfig.PATIENCE_MAX_FACTOR)
 	case_file.handled = maxi(0, int(data.get("handled", 0)))
+	case_file.ticket = maxi(0, int(data.get("ticket", 0)))
 	return case_file

@@ -97,7 +97,7 @@ func test_deliveries_fill_storage_and_drop_overflow_on_the_floor() -> void:
 		assert_false(case_file.urgent)
 	for letter in state.mail_floor:
 		assert_true(letter.mail)
-		assert_eq(letter.next_key(), GameConfig.MAILROOM)
+		assert_eq(letter.current_key(), GameConfig.MAILROOM)
 
 
 func test_full_floor_sends_letters_back() -> void:

@@ -14,7 +14,7 @@ const STORAGE := "storage"
 const UNLOCK := "unlock"
 const RANK := "rank"
 const STAGE := "stage"
-const SINGLE_KINDS: Array[String] = [UNLOCK, RANK, STAGE]
+const SINGLE_KINDS: Array[String] = [UNLOCK, STAGE]
 const STAFF_SPOTS := {
 	"runners": "runners",
 	"collectors": "collectors",
@@ -390,7 +390,8 @@ static func rank(state: GameState, dept: Department) -> UpgradeEntry:
 	entry.level = dept.rank
 	entry.max_level = GameConfig.MAX_DEPARTMENT_RANK
 	entry.cost = DepartmentRank.next_cost(dept)
-	entry.single = true
+	entry.growth = GameConfig.RANK_LEVEL_COST_GROWTH
+	entry.cap = DepartmentRank.reachable_level(state, dept)
 	entry.reason = DepartmentRank.block_reason(state, dept.id)
 	return entry
 
