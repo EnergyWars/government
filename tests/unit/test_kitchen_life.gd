@@ -33,28 +33,37 @@ func test_doze_weights_sum_to_one_and_shift_with_kitchen_level() -> void:
 	for key in base:
 		total += float(base[key])
 	assert_almost_eq(total, 1.0, 0.0001)
-	state.research["kitchen"] = 3
+	assert_eq(float(base["chat"]), float(GameConfig.DOZE_WEIGHTS["chat"]))
+	state.set_upgrade("kitchen", 100)
 	var upgraded := Formulas.doze_weights(state)
 	total = 0.0
 	for key in upgraded:
 		total += float(upgraded[key])
 	assert_almost_eq(total, 1.0, 0.0001)
 	assert_lt(float(upgraded["chat"]), float(base["chat"]))
+	assert_almost_eq(float(upgraded["chat"]), float(base["chat"]) * Formulas.track_value("kitchen", 100), 0.0001)
 	assert_gt(float(upgraded["fetch"]), float(base["fetch"]))
 	assert_eq(float(upgraded["asleep"]), float(base["asleep"]))
 
 
-func test_kitchen_config_matches_research() -> void:
-	assert_true(GameConfig.RESEARCH_ORDER.has("coffee_machine"))
-	assert_true(GameConfig.RESEARCH_ORDER.has("kitchen"))
-	assert_lt(GameConfig.KITCHEN_CHAT_SHIFT * int(GameConfig.RESEARCH.kitchen.max_level), float(GameConfig.DOZE_WEIGHTS["chat"]))
+func test_kitchen_config_matches_upgrades() -> void:
+	for upgrade_id in ["coffee_machine", "espresso", "kitchen"]:
+		assert_false(GameConfig.upgrade(upgrade_id).is_empty(), upgrade_id)
+		assert_eq(GameConfig.spot_room(GameConfig.upgrade_spot(upgrade_id)), GameConfig.ROOM_KITCHEN, upgrade_id)
+	state.set_upgrade("kitchen", int(GameConfig.upgrade("kitchen").max))
+	var weights := Formulas.doze_weights(state)
+	assert_gt(float(weights["chat"]), 0.0)
+	assert_lt(float(weights["chat"]), float(GameConfig.DOZE_WEIGHTS["chat"]))
 
 
-func test_coffee_machine_shortens_fetch_and_boosts_alert() -> void:
+func test_coffee_machine_shortens_fetch_and_espresso_boosts_alert() -> void:
 	var base_time := Formulas.rest_limit(state, DeskMood.FETCH)
-	state.research["coffee_machine"] = 4
+	assert_eq(base_time, GameConfig.FETCH_SECONDS)
+	state.set_upgrade("coffee_machine", 50)
 	assert_lt(Formulas.rest_limit(state, DeskMood.FETCH), base_time)
-	assert_almost_eq(Formulas.rest_limit(state, DeskMood.FETCH), GameConfig.FETCH_SECONDS * pow(GameConfig.COFFEE_MACHINE_FETCH_FACTOR, 4), 0.001)
+	assert_almost_eq(Formulas.rest_limit(state, DeskMood.FETCH), GameConfig.FETCH_SECONDS * Formulas.track_value("coffee_machine", 50), 0.001)
+	state.set_upgrade("espresso", int(GameConfig.upgrade("espresso").max))
+	assert_gt(Formulas.track_value("espresso", int(GameConfig.upgrade("espresso").max)), GameConfig.FETCH_ALERT_FACTOR)
 	var plain := 0.0
 	var upgraded := 0.0
 	for i in 40:
@@ -71,7 +80,7 @@ func test_slow_state_basics() -> void:
 	assert_eq(mood.slot, 2)
 	assert_eq(DeskMood.from_dict(mood.to_dict()).state, DeskMood.SLOW)
 	assert_eq(Formulas.rest_limit(state, DeskMood.SLOW), GameConfig.SLOW_SECONDS)
-	state.research["wake_service"] = 5
+	state.set_upgrade("wake_service", int(GameConfig.upgrade("wake_service").max))
 	assert_eq(Formulas.rest_limit(state, DeskMood.SLOW), GameConfig.SLOW_SECONDS)
 
 
@@ -160,11 +169,13 @@ func test_kranz_progress_resets_when_player_leaves() -> void:
 
 
 func test_kranz_ends_by_itself_when_everyone_returned() -> void:
-	state.research["wake_service"] = 5
+	state.set_upgrade("wake_service", int(GameConfig.upgrade("wake_service").max))
 	state.kranz_timer = 0.0
 	_run(0.1)
 	watch_signals(sim)
-	_run(GameConfig.WAKE_SERVICE_DELAYS[5] + 2.0, 0.25)
+	var chat_limit := Formulas.rest_limit(state, DeskMood.CHAT)
+	assert_lt(chat_limit + 2.0, GameConfig.KRANZ_MAX_SECONDS)
+	_run(chat_limit + 2.0, 0.25)
 	assert_false(state.kranz)
 	assert_signal_emitted_with_parameters(sim, "kranz_ended", [false])
 

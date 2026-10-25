@@ -4,10 +4,10 @@ extends RefCounted
 const TICK := 1.0 / 30.0
 const MAX_STEPS_PER_FRAME := 300
 const START_MONEY := 120.0
-const MAX_STATION_LEVEL := 50
+const MAX_STATION_LEVEL := 100
 const MAX_SPECIALISTS := 3
-const MAX_SUPERVISORS := 2
-const MAX_RUNNERS := 12
+const MAX_SUPERVISORS := 4
+const MAX_RUNNERS := 30
 const LEVEL_SPEED_BONUS := 0.12
 const LEVEL_MILESTONE_STEP := 10
 const LEVEL_MILESTONE_BONUS := 1.5
@@ -44,7 +44,6 @@ const REPUTATION_REWARD_DIVISOR := 20.0
 const POPULARITY_DIVISOR := 8.0
 const MAX_POPULARITY := 8.0
 const BASE_PATIENCE := 90.0
-const PATIENCE_PER_LOBBY_LEVEL := 0.4
 const PATIENCE_MIN_FACTOR := 0.3
 const PATIENCE_MAX_FACTOR := 1.7
 const PATIENCE_SPREAD_MIN_CASES := 10
@@ -53,6 +52,7 @@ const INBOX_BASE := 6
 const INBOX_PER_DESK := 2
 const OUTBOX_BASE := 6
 const OUTBOX_PER_DESK := 2
+const TUBE_OVERFLOW_SHARE := 0.5
 const DESK_GROWTH := 2.2
 const HIRE_GROWTH := 2.0
 const UPGRADE_GROWTH := 1.35
@@ -60,20 +60,17 @@ const SPECIALIST_FACTOR := 5.0
 const SPECIALIST_GROWTH := 2.4
 const SUPERVISOR_COST := 1500.0
 const SUPERVISOR_GROWTH := 3.0
-const RUNNER_GROWTH := 2.2
+const RUNNER_GROWTH := 1.5
 const HAND_REWARD_BONUS := 1.5
 const HELP_BACKLOG := 3
 const BASE_ALERT_SECONDS := 100.0
 const MAX_ALERT_SECONDS := 2000.0
 const ALERT_VARIANCE := 0.3
-const COFFEE_ALERT_BONUS := 0.35
 const DOZE_WEIGHTS := {"asleep": 0.12, "coffee": 0.08, "chat": 0.26, "fetch": 0.28, "slow": 0.13, "loo": 0.13}
 const LOO_SLOTS := 4
+const MAX_LOO_SLOTS := 12
 const LOO_SECONDS := 150.0
 const ENCOURAGE_TIME := 2.0
-const KITCHEN_CHAT_SHIFT := 0.07
-const COFFEE_MACHINE_FETCH_FACTOR := 0.8
-const COFFEE_MACHINE_ALERT_BONUS := 0.25
 const SLOW_SECONDS := 70.0
 const DRIVE_FACTOR := 9.0
 const KRANZ_FIRST_SECONDS := 90.0
@@ -112,16 +109,7 @@ const LEAVE_COMPLAINT_CHANCE := 0.3
 const WALKOUT_COMPLAINT_CHANCE := 0.1
 const LEAVE_COMPLAINT_COOLDOWN := 45.0
 const COMPLAINT_BOX_CAPACITY := 20
-const COMPLAINT_BOX_PER_LEVEL := 10
-const COMPLAINT_BOX_MAX_LEVEL := 4
-const COMPLAINT_BOX_COST := 900.0
-const COMPLAINT_BOX_GROWTH := 3.0
 const COMPLAINT_PILE_DRAWN := 20
-const COMPLAINT_CLERK_FEND_CHANCES: Array[float] = [0.15, 0.3, 0.42, 0.52, 0.6, 0.67]
-const COMPLAINT_CLERK_MAX_LEVEL := 5
-const COMPLAINT_CLERK_COST := 500.0
-const COMPLAINT_CLERK_GROWTH := 3.0
-const COMPLAINT_TUBE_DELAYS: Array[float] = [-1.0, 60.0, 35.0, 20.0]
 const REVIEW_LIFETIME := 7200.0
 const MAX_NEGATIVE_REVIEWS := 5
 const MAX_STORED_REVIEWS := 80
@@ -156,35 +144,31 @@ const COMPLAINT_READ_MAX := 6
 const COMPLAINT_REWARD := 4.0
 const COMPLAINT_REPUTATION := 0.05
 const COMPLAINT_TRANSFER_INTERVAL := 0.25
-const SHREDDER_DELAYS: Array[float] = [-1.0, 40.0, 20.0, 8.0]
+const SHREDDER_BATCH := 1
 const FETCH_SECONDS := 14.0
 const FETCH_ALERT_FACTOR := 1.5
 const COFFEE_BREAK_SECONDS := 60.0
 const WAKE_TIME := 0.7
 const WAKE_CHECK_INTERVAL := 0.1
 const SUPERVISOR_DROWSY_FACTOR := 0.7
-const WAKE_SERVICE_DELAYS: Array[float] = [-1.0, 45.0, 28.0, 16.0, 8.0, 3.0]
 const OFFLINE_CAP_SECONDS := 4.0 * 3600.0
 const OFFLINE_EFFICIENCY := 0.7
 const OFFLINE_MIN_SECONDS := 60.0
 
 const PLAYER_SPEED := 420.0
 const PLAYER_BASE_CAPACITY := 6
-const PLAYER_CAPACITY_PER_LEVEL := 2
 const PLAYER_WORK_POWER := 2.5
-const PLAYER_WORK_PER_LEVEL := 0.5
 const TRANSFER_INTERVAL := 0.08
 const INTERACT_RADIUS := 64.0
 const PAD_TIME := 1.2
 const RUNNER_SPEED := 190.0
 const RUNNER_BASE_CAPACITY := 2
-const RUNNER_CAPACITY_PER_LEVEL := 1
 const RUNNER_TRIP_ESTIMATE := 7.0
 const RUNNER_COST := 400.0
-const MAX_RUNNER_LEVEL := 4
+const MAX_RUNNER_LEVEL := 30
 const RUNNER_LEVEL_CAPACITY := 1
 const RUNNER_LEVEL_COST := 900.0
-const RUNNER_LEVEL_GROWTH := 3.5
+const RUNNER_LEVEL_GROWTH := 1.25
 
 const REP_CORRECT := 0.1
 const REP_FLAWED := -0.5
@@ -202,7 +186,6 @@ const EVENT_FIRST_COOLDOWN := 240.0
 const EVENT_MIN_COOLDOWN := 180.0
 const EVENT_MAX_COOLDOWN := 360.0
 const EVENT_DURATION := 45.0
-const EVENT_MITIGATION := 0.15
 const EVENT_MIN_DURATION_FACTOR := 0.4
 const EVENT_CHOICE_SECONDS := 30.0
 const EVENT_PREPARE_SECONDS := 30.0
@@ -218,44 +201,37 @@ const REJECT_FEE_FACTOR := 0.15
 const REJECT_SHRED_REWARD := 2.0
 const TUBE_SPEED := 520.0
 const TUBE_BASE_CAPACITY := 2
-const TUBE_CAPACITY_PER_LEVEL := 2
 const MAX_TUBE_PARCELS := 400
-const TUBE_CONNECTION_FACTOR := 0.5
-const TUBE_CONNECTION_MIN_COST := 20000.0
-const MAX_COLLECTORS := 5
+const TUBE_SEGMENT_MAX_LEVEL := 100
+const TUBE_SEGMENT_CAPACITY_PER_LEVEL := 1
+const TUBE_SEGMENT_SPEED_PER_LEVEL := 0.02
+const TUBE_SEGMENT_COST := 30000.0
+const TUBE_SEGMENT_GROWTH := 1.08
+const TUBE_STATION_FACTOR := 0.5
+const TUBE_STATION_MIN_COST := 20000.0
+const TUBE_STATION_INSPECTION_FACTOR := 3.0
+const MAX_COLLECTORS := 12
 const COLLECTOR_COST := 600.0
-const COLLECTOR_GROWTH := 2.0
+const COLLECTOR_GROWTH := 1.7
 const COLLECTOR_CAPACITY := 3
 const COLLECTOR_SPEED := 170.0
 const COLLECTOR_TRIP_ESTIMATE := 12.0
-const COLLECTOR_CAPACITY_PER_LEVEL := 1
 const COLLECTOR_URGENT_MARGIN := 1
 const COLLECTOR_MAX_DETOUR := 420.0
 const COLLECTOR_DISTANCE_BIAS := 100.0
 const SHRED_CASE_PENALTY := 1.0
-const WAITING_MAX_LEVEL := 8
-const MAX_LOBBY_SLOTS := 64
-const WAITING_SEATS_PER_LEVEL := 3
-const WAITING_COST := 400.0
-const WAITING_GROWTH := 1.9
+const MAX_LOBBY_SLOTS := 160
+const STANDING_PATIENCE_PENALTY := 0.35
 const SEATING_BASE_SEATS := 24
-const SEATING_MAX_LEVEL := 12
-const SEATING_SEATS_PER_LEVEL := 3
-const SEATING_COST := 500.0
-const SEATING_GROWTH := 1.6
 const TICKET_UNLOCK_STAGE := 2
 const TICKET_DRAW_SECONDS := 3.0
 const TICKET_CALL_SECONDS := 3.5
-const TICKET_LEVEL_FACTOR := 0.82
-const TICKET_MAX_LEVEL := 10
 const TICKET_HAND_FACTOR := 2.5
 const TICKET_CALL_SLOTS := 4
 const TICKET_RUSH := 4
 const TICKET_LINE_SLOTS := 10
-const TICKET_MACHINE_COST := 30000.0
-const TICKET_MACHINE_GROWTH := 1.7
-const TICKET_DISPLAY_COST := 35000.0
-const TICKET_DISPLAY_GROWTH := 1.7
+const MAX_TICKET_LINE_SLOTS := 50
+const MAX_TICKET_MACHINES := 5
 const REP_WALKED_OUT := -0.3
 const VISITOR_SPEED := 120.0
 const VISITOR_SLOTS := 3
@@ -268,14 +244,15 @@ const YELL_DIALOGS := 10
 const VISITOR_LINES := 3
 const YELL_COMPLAINTS := 8
 const YELL_INTERVAL := 14.0
-const MAX_GUARDS := 2
+const MAX_GUARDS := 6
 const GUARD_COST := 1100.0
-const GUARD_GROWTH := 2.4
+const GUARD_GROWTH := 2.0
 const GUARD_BLOCK_CHANCE := 0.35
 const GUARD_STOP_SECONDS := 4.0
 const GUARD_DIALOGS := 5
 const GUARD_LINES := 2
 const INTERN_STRESS_FREE := 3
+const INTERN_STRESS_FREE_STEP := 10
 const INTERN_STRESS_RATE := 0.0002
 const INTERN_CALM_RATE := 0.004
 const INTERN_YELL_RATE := 0.006
@@ -283,17 +260,15 @@ const INTERN_VENT_RATE := 0.005
 const INTERN_SPEED := 150.0
 const INTERN_TRIP_ESTIMATE := 8.0
 const INTERN_CRY_SECONDS := 20.0
-const INTERN_TRAINING_CRY_FACTOR := 0.7
-const INTERN_TRAINING_STRESS_FACTOR := 0.75
-const MAX_HELPERS := 2
+const MAX_HELPERS := 5
 const HELPER_COST := 1300.0
-const HELPER_GROWTH := 2.5
+const HELPER_GROWTH := 2.2
 const INTERN_RECOVERED_STRESS := 0.25
 const INTERN_COMFORT_TIME := 2.0
 const INTERN_COMFORT_STRESS := 0.35
-const MAX_COFFEE_INTERNS := 4
+const MAX_COFFEE_INTERNS := 8
 const COFFEE_INTERN_COST := 700.0
-const COFFEE_INTERN_GROWTH := 2.0
+const COFFEE_INTERN_GROWTH := 1.9
 const COFFEE_INTERN_SPEED := 180.0
 const COFFEE_BREW_SECONDS := 1.5
 const COFFEE_SERVE_THRESHOLD := 0.6
@@ -308,11 +283,17 @@ const DISPUTE_SUPERVISOR_RELIEF := 0.3
 const DISPUTE_MAX_SECONDS := 240.0
 const DISPUTE_RETRY_SECONDS := 30.0
 const MEDIATE_TIME := 2.5
+const RUCKUS_MIN_CASES := 25
+const RUCKUS_FIRST_SECONDS := 120.0
+const RUCKUS_MIN_INTERVAL := 120.0
+const RUCKUS_MAX_INTERVAL := 260.0
+const RUCKUS_RETRY_SECONDS := 5.0
+const RUCKUS_GUARD_RELIEF := 0.3
+const RUCKUS_CALM_TIME := 2.5
 const MEDIATE_REPUTATION := 0.2
-const MEDIATION_DELAYS: Array[float] = [-1.0, 120.0, 60.0, 25.0]
 const DISPUTES := {
-	"window": {"speed": 0.85, "climate": 1},
-	"thermostat": {"speed": 0.8, "climate": 2},
+	"window": {"speed": 0.85, "climate": 25},
+	"thermostat": {"speed": 0.8, "climate": 60},
 	"radio": {"speed": 0.9, "climate": 0},
 	"yoghurt": {"speed": 0.9, "climate": 0},
 	"stapler": {"speed": 0.85, "climate": 0},
@@ -341,16 +322,15 @@ const MAIL_FIRST_SECONDS := 30.0
 const MAIL_INTERVAL := 45.0
 const MAIL_BATCH_BASE := 3
 const MAIL_BATCH_PER_DEPT := 1
-const MAIL_SUBSCRIPTION_BATCH := 2
 const MAIL_REWARD_FACTOR := 0.5
-const MAIL_REWARD_PER_LEVEL := 0.1
 const MAIL_STORAGE_BASE := 12
-const MAIL_STORAGE_PER_LEVEL := 8
-const MAIL_STORAGE_MAX_LEVEL := 10
+const MAIL_STORAGE_PER_LEVEL := 1
+const MAIL_STORAGE_MAX_LEVEL := 300
 const MAIL_STORAGE_COST := 600.0
-const MAIL_STORAGE_GROWTH := 1.7
+const MAIL_STORAGE_GROWTH := 1.04
 const MAIL_CITIZEN_PRIORITY := 4
 const MAIL_TARGET_SHARE := 0.5
+const MAIL_FLOOR_MAX := 60
 const MISSING_FORM_CHANCE := 0.05
 const MISSING_FORM_MIN_CASES := 20
 
@@ -433,76 +413,138 @@ const BUILDING_STAGES := [
 	{"id": "citywide_administration", "cost": 40000000.0, "reputation": 1000.0, "max_departments": 8, "max_desks": 6, "lobby": 40},
 ]
 
-const RESEARCH := {
-	"briefcase": {"max_level": 5, "cost": 150.0, "growth": 2.5, "reputation": 0.0},
-	"work_ethic": {"max_level": 5, "cost": 200.0, "growth": 2.5, "reputation": 0.0},
-	"coffee": {"max_level": 6, "cost": 500.0, "growth": 3.0, "reputation": 5.0},
-	"scanners": {"max_level": 3, "cost": 400.0, "growth": 6.0, "reputation": 0.0},
-	"comfortable_lobby": {"max_level": 3, "cost": 800.0, "growth": 5.0, "reputation": 10.0},
-	"trolleys": {"max_level": 3, "cost": 1200.0, "growth": 6.0, "reputation": 15.0},
-	"digital_records": {"max_level": 3, "cost": 1500.0, "growth": 6.0, "reputation": 15.0},
-	"quality_training": {"max_level": 3, "cost": 3000.0, "growth": 6.0, "reputation": 25.0},
-	"shredder_service": {"max_level": 3, "cost": 800.0, "growth": 5.0, "reputation": 10.0},
-	"climate_control": {"max_level": 2, "cost": 900.0, "growth": 4.0, "reputation": 12.0},
-	"mediation": {"max_level": 3, "cost": 1500.0, "growth": 4.0, "reputation": 18.0},
-	"coffee_machine": {"max_level": 4, "cost": 700.0, "growth": 3.5, "reputation": 8.0},
-	"kitchen": {"max_level": 3, "cost": 1200.0, "growth": 5.0, "reputation": 15.0},
-	"wake_service": {"max_level": 5, "cost": 1500.0, "growth": 4.0, "reputation": 20.0},
-	"it_support": {"max_level": 3, "cost": 2000.0, "growth": 4.0, "reputation": 20.0},
-	"digital_signatures": {"max_level": 2, "cost": 25000.0, "growth": 6.0, "reputation": 80.0},
-	"pneumatic_tubes": {"max_level": 1, "cost": 250000.0, "growth": 1.0, "reputation": 250.0},
-	"complaint_tube": {"max_level": 3, "cost": 6000.0, "growth": 4.0, "reputation": 50.0, "requires": "shredder_service"},
-	"intern_training": {"max_level": 8, "cost": 3000.0, "growth": 3.0, "reputation": 40.0, "requires": "shredder_service"},
-	"tube_capacity": {"max_level": 3, "cost": 120000.0, "growth": 3.0, "reputation": 300.0, "requires": "pneumatic_tubes"},
-	"online_portal": {"max_level": 2, "cost": 1000000.0, "growth": 8.0, "reputation": 500.0},
-	"ai_classification": {"max_level": 1, "cost": 20000000.0, "growth": 1.0, "reputation": 1000.0},
-	"letter_opener": {"max_level": 3, "cost": 900.0, "growth": 4.0, "reputation": 10.0},
-	"mail_subscription": {"max_level": 3, "cost": 1500.0, "growth": 4.0, "reputation": 15.0},
-	"registered_mail": {"max_level": 3, "cost": 2500.0, "growth": 4.0, "reputation": 25.0},
-}
-
-const RESEARCH_ORDER: Array[String] = ["briefcase", "work_ethic", "coffee", "coffee_machine", "kitchen", "it_support", "scanners", "comfortable_lobby", "trolleys", "digital_records", "quality_training", "shredder_service", "complaint_tube", "intern_training", "wake_service", "climate_control", "mediation", "digital_signatures", "pneumatic_tubes", "tube_capacity", "online_portal", "ai_classification", "letter_opener", "mail_subscription", "registered_mail"]
-
-const ROOM_OFFICE := "office"
-const ROOM_INSPECTION := "inspection"
+const ROOM_PLAYER := "player"
+const ROOM_HALL := "hall"
+const ROOM_COMPLAINTS := "complaint_office"
+const ROOM_SHREDDER := "shredder_room"
+const ROOM_TECH := "tech_room"
 const ROOM_KITCHEN := "kitchen"
 const ROOM_TOILETS := "toilets"
 const ROOM_PHONE := "phone"
-const ROOM_HALL := "hall"
 const ROOM_MAIL := "mail"
-const ROOMS := [
-	{"id": ROOM_OFFICE, "staff": ["runners", "collectors"], "research": ["briefcase", "work_ethic", "scanners", "digital_records", "quality_training", "digital_signatures", "ai_classification", "climate_control", "mediation", "it_support", "trolleys", "pneumatic_tubes", "tube_capacity"], "boosts": ["overtime", "temp_workers", "stamp_turbo", "roller_skates", "weekend_shift"]},
-	{"id": ROOM_INSPECTION, "stations": [INSPECTION]},
-	{"id": ROOM_KITCHEN, "staff": ["coffee_interns"], "research": ["coffee", "coffee_machine", "kitchen"], "boosts": ["coffee_round", "works_outing"]},
-	{"id": ROOM_TOILETS, "research": ["wake_service"]},
-	{"id": ROOM_PHONE, "staff": ["hr"], "boosts": ["doctor_visit"]},
-	{"id": ROOM_MAIL, "stations": [MAILROOM], "areas": ["mail_storage"], "research": ["letter_opener", "mail_subscription", "registered_mail"], "boosts": ["express_post"]},
-	{"id": ROOM_HALL, "staff": ["guards", "helpers"], "stations": [RECEPTION, COUNTER], "areas": ["ticket_machine", "ticket_display", "waiting", "seating", "complaint_clerk", "complaint_box"], "research": ["comfortable_lobby", "shredder_service", "complaint_tube", "intern_training", "online_portal"], "boosts": ["mayor_speech", "complaint_amnesty", "gazette_ad", "fee_increase"]},
-]
+const ROOM_INSPECTION := "inspection"
+const SERVICE_ROOMS: Array[String] = [ROOM_PLAYER, ROOM_HALL, ROOM_COMPLAINTS, ROOM_SHREDDER, ROOM_TECH, ROOM_KITCHEN, ROOM_TOILETS, ROOM_PHONE, ROOM_MAIL, ROOM_INSPECTION]
+const TUBE_ROOMS: Array[String] = [ROOM_HALL, ROOM_MAIL, ROOM_INSPECTION]
+const TOPICS: Array[String] = ["player", "citizens", "speed", "staff", "transport", "comfort", "complaints", "mail", "quality", "building"]
+
+const SPOTS := {
+	"player": ROOM_PLAYER,
+	"entrance": ROOM_HALL,
+	"waiting": ROOM_HALL,
+	"seating": ROOM_HALL,
+	"tickets": ROOM_HALL,
+	"ticket_display": ROOM_HALL,
+	"complaint_box": ROOM_HALL,
+	"guards": ROOM_HALL,
+	"archive": ROOM_HALL,
+	"training": ROOM_HALL,
+	"complaint_desk": ROOM_COMPLAINTS,
+	"interns": ROOM_COMPLAINTS,
+	"shredder": ROOM_SHREDDER,
+	"collectors": ROOM_SHREDDER,
+	"tube_hub": ROOM_TECH,
+	"server": ROOM_TECH,
+	"climate": ROOM_TECH,
+	"runners": ROOM_TECH,
+	"coffee_machine": ROOM_KITCHEN,
+	"kitchen": ROOM_KITCHEN,
+	"coffee_interns": ROOM_KITCHEN,
+	"works_council": ROOM_KITCHEN,
+	"toilets": ROOM_TOILETS,
+	"phone": ROOM_PHONE,
+	"phone_clerks": ROOM_PHONE,
+	"mail_shelf": ROOM_MAIL,
+	"mailbox": ROOM_MAIL,
+}
+const BOARD_SPOTS: Array[String] = ["runners", "collectors", "interns", "coffee_interns", "guards", "phone_clerks"]
+const BOOST_ROOMS := {
+	ROOM_PLAYER: ["overtime", "roller_skates"],
+	ROOM_HALL: ["mayor_speech", "gazette_ad", "fee_increase", "budget_injection"],
+	ROOM_COMPLAINTS: ["complaint_amnesty"],
+	ROOM_TECH: ["stamp_turbo", "temp_workers", "weekend_shift"],
+	ROOM_KITCHEN: ["coffee_round", "works_outing"],
+	ROOM_PHONE: ["doctor_visit"],
+	ROOM_MAIL: ["express_post"],
+}
+
+const ROOMS_ALL_DEPARTMENTS := "departments"
+const ROOMS_SHREDDERS := "shredders"
+const ROOMS_TUBES := "tubes"
+
+const UPGRADES := {
+	"briefcase": {"spot": "player", "topic": "player", "max": 100, "cost": 150.0, "growth": 1.15, "curve": "linear", "base": PLAYER_BASE_CAPACITY, "step": 1.0, "unit": "count"},
+	"work_ethic": {"spot": "player", "topic": "player", "max": 200, "cost": 200.0, "growth": 1.08, "curve": "linear", "base": 1.0, "step": 0.025, "unit": "bonus"},
+	"sneakers": {"spot": "player", "topic": "player", "max": 100, "cost": 300.0, "growth": 1.12, "curve": "linear", "base": 1.0, "step": 0.005, "unit": "bonus"},
+	"scanners": {"spot": "station:shared/reception", "topic": "speed", "max": 200, "cost": 400.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus"},
+	"digital_records": {"spot": "archive", "topic": "speed", "max": 200, "cost": 1500.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 15.0},
+	"digital_signatures": {"spot": "station:shared/counter", "topic": "speed", "max": 200, "cost": 25000.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 80.0},
+	"letter_opener": {"spot": "station:shared/mailroom", "topic": "speed", "max": 200, "cost": 900.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 10.0},
+	"office_equipment": {"spot": "dept:%s", "topic": "speed", "max": 200, "cost": 500.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "rooms": ROOMS_ALL_DEPARTMENTS},
+	"waiting_places": {"spot": "waiting", "topic": "citizens", "max": 120, "cost": 400.0, "growth": 1.1, "curve": "linear", "base": 0.0, "step": 1.0, "unit": "count"},
+	"comfortable_lobby": {"spot": "waiting", "topic": "citizens", "max": 200, "cost": 800.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 10.0},
+	"seating": {"spot": "seating", "topic": "citizens", "max": 300, "cost": 500.0, "growth": 1.04, "curve": "linear", "base": SEATING_BASE_SEATS, "step": 1.0, "unit": "count"},
+	"standing_places": {"spot": "seating", "topic": "citizens", "max": 150, "cost": 450.0, "growth": 1.07, "curve": "linear", "base": 0.0, "step": 2.0, "unit": "count"},
+	"ticket_speed": {"spot": "tickets", "topic": "citizens", "max": 200, "cost": 30000.0, "growth": 1.06, "curve": "decay", "base": TICKET_DRAW_SECONDS, "rate": 0.985, "unit": "seconds", "stage": TICKET_UNLOCK_STAGE},
+	"ticket_machines": {"spot": "tickets", "topic": "citizens", "max": MAX_TICKET_MACHINES - 1, "cost": 60000.0, "growth": 4.0, "curve": "linear", "base": 1.0, "step": 1.0, "unit": "count", "stage": TICKET_UNLOCK_STAGE},
+	"ticket_line": {"spot": "tickets", "topic": "citizens", "max": MAX_TICKET_LINE_SLOTS - TICKET_LINE_SLOTS, "cost": 20000.0, "growth": 1.15, "curve": "linear", "base": TICKET_LINE_SLOTS, "step": 1.0, "unit": "count", "stage": TICKET_UNLOCK_STAGE},
+	"ticket_call_speed": {"spot": "ticket_display", "topic": "citizens", "max": 200, "cost": 35000.0, "growth": 1.06, "curve": "decay", "base": TICKET_CALL_SECONDS, "rate": 0.985, "unit": "seconds", "stage": TICKET_UNLOCK_STAGE},
+	"online_portal": {"spot": "entrance", "topic": "citizens", "max": 100, "cost": 1000000.0, "growth": 1.1, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 500.0},
+	"complaint_box": {"spot": "complaint_box", "topic": "complaints", "max": 200, "cost": 900.0, "growth": 1.05, "curve": "linear", "base": COMPLAINT_BOX_CAPACITY, "step": 1.0, "unit": "count"},
+	"complaint_tube": {"spot": "complaint_box", "topic": "complaints", "max": 150, "cost": 6000.0, "growth": 1.08, "curve": "unlock_decay", "base": 60.0, "rate": 0.98, "unit": "seconds", "reputation": 50.0, "requires": {"shredder_service": 1}},
+	"complaint_clerk": {"spot": "complaint_desk", "topic": "complaints", "max": 150, "cost": 500.0, "growth": 1.08, "curve": "chance", "base": 0.15, "rate": 0.99, "unit": "chance"},
+	"shredder_service": {"spot": "interns", "topic": "complaints", "max": 200, "cost": 800.0, "growth": 1.07, "curve": "unlock_decay", "base": 40.0, "rate": 0.985, "unit": "seconds", "reputation": 10.0},
+	"intern_training": {"spot": "interns", "topic": "complaints", "max": 50, "cost": 3000.0, "growth": 1.2, "curve": "linear", "base": 1.0, "step": 1.0, "unit": "count", "reputation": 40.0, "requires": {"shredder_service": 1}},
+	"intern_resilience": {"spot": "interns", "topic": "complaints", "max": 150, "cost": 2500.0, "growth": 1.08, "curve": "decay", "base": 1.0, "rate": 0.985, "unit": "reduction", "requires": {"shredder_service": 1}},
+	"shredder_blades": {"spot": "shredder", "topic": "complaints", "max": 100, "cost": 1000.0, "growth": 1.1, "curve": "decay", "base": 1.0, "rate": 0.985, "unit": "reduction"},
+	"shredder": {"spot": "shredder:%s", "topic": "building", "max": 100, "cost": 600.0, "growth": 1.1, "curve": "unlock_decay", "base": 30.0, "rate": 0.98, "unit": "seconds", "rooms": ROOMS_SHREDDERS},
+	"collector_carts": {"spot": "collectors", "topic": "transport", "max": 40, "cost": 1200.0, "growth": 1.18, "curve": "linear", "base": COLLECTOR_CAPACITY, "step": 1.0, "unit": "count", "reputation": 15.0},
+	"collector_speed": {"spot": "collectors", "topic": "transport", "max": 200, "cost": 900.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus"},
+	"runner_trolleys": {"spot": "runners", "topic": "transport", "max": 40, "cost": 1200.0, "growth": 1.18, "curve": "linear", "base": RUNNER_BASE_CAPACITY, "step": 1.0, "unit": "count", "reputation": 15.0},
+	"runner_speed": {"spot": "runners", "topic": "transport", "max": 200, "cost": 900.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus"},
+	"pneumatic_tubes": {"spot": "tube_hub", "topic": "transport", "max": 1, "cost": 250000.0, "growth": 1.0, "curve": "unlock", "unit": "unlock", "reputation": 250.0},
+	"tube_capacity": {"spot": "tube_hub", "topic": "transport", "max": 60, "cost": 120000.0, "growth": 1.15, "curve": "linear", "base": TUBE_BASE_CAPACITY, "step": 1.0, "unit": "count", "requires": {"pneumatic_tubes": 1}},
+	"tube_speed": {"spot": "tube_hub", "topic": "transport", "max": 200, "cost": 80000.0, "growth": 1.06, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "requires": {"pneumatic_tubes": 1}},
+	"large_capsules": {"spot": "tube_hub", "topic": "transport", "max": 1, "cost": 600000.0, "growth": 1.0, "curve": "unlock", "unit": "unlock", "reputation": 400.0, "requires": {"pneumatic_tubes": 1}},
+	"tube_station": {"spot": "tube:%s", "topic": "transport", "max": 1, "cost": TUBE_STATION_MIN_COST, "growth": 1.0, "curve": "unlock", "unit": "unlock", "rooms": ROOMS_TUBES, "requires": {"pneumatic_tubes": 1}},
+	"it_support": {"spot": "server", "topic": "quality", "max": 100, "cost": 2000.0, "growth": 1.1, "curve": "linear", "base": 1.0, "step": -0.006, "unit": "reduction", "reputation": 20.0},
+	"ai_classification": {"spot": "server", "topic": "quality", "max": 100, "cost": 20000000.0, "growth": 1.1, "curve": "decay", "base": 1.0, "rate": 0.993, "unit": "reduction", "reputation": 1000.0},
+	"quality_training": {"spot": "training", "topic": "quality", "max": 150, "cost": 3000.0, "growth": 1.08, "curve": "decay", "base": 1.0, "rate": 0.99, "unit": "reduction", "reputation": 25.0},
+	"climate_control": {"spot": "climate", "topic": "comfort", "max": 100, "cost": 900.0, "growth": 1.1, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 12.0},
+	"mediation": {"spot": "works_council", "topic": "comfort", "max": 150, "cost": 1500.0, "growth": 1.08, "curve": "unlock_decay", "base": 120.0, "rate": 0.985, "unit": "seconds", "reputation": 18.0},
+	"coffee": {"spot": "coffee_machine", "topic": "comfort", "max": 300, "cost": 500.0, "growth": 1.045, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 5.0},
+	"coffee_machine": {"spot": "coffee_machine", "topic": "comfort", "max": 150, "cost": 700.0, "growth": 1.08, "curve": "decay", "base": 1.0, "rate": 0.99, "unit": "reduction", "reputation": 8.0},
+	"espresso": {"spot": "coffee_machine", "topic": "comfort", "max": 200, "cost": 900.0, "growth": 1.06, "curve": "linear", "base": FETCH_ALERT_FACTOR, "step": 0.005, "unit": "bonus", "reputation": 8.0},
+	"kitchen": {"spot": "kitchen", "topic": "comfort", "max": 200, "cost": 1200.0, "growth": 1.06, "curve": "linear", "base": 1.0, "step": -0.0045, "unit": "reduction", "reputation": 15.0},
+	"coffee_intern_speed": {"spot": "coffee_interns", "topic": "comfort", "max": 200, "cost": 700.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus"},
+	"toilet_stalls": {"spot": "toilets", "topic": "comfort", "max": MAX_LOO_SLOTS - LOO_SLOTS, "cost": 1500.0, "growth": 2.2, "curve": "linear", "base": LOO_SLOTS, "step": 1.0, "unit": "count"},
+	"toilet_speed": {"spot": "toilets", "topic": "comfort", "max": 150, "cost": 1000.0, "growth": 1.08, "curve": "decay", "base": LOO_SECONDS, "rate": 0.99, "unit": "seconds"},
+	"toilet_hygiene": {"spot": "toilets", "topic": "comfort", "max": 100, "cost": 2000.0, "growth": 1.1, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 20.0},
+	"wake_service": {"spot": "toilets", "topic": "comfort", "max": 150, "cost": 1500.0, "growth": 1.08, "curve": "unlock_decay", "base": 45.0, "rate": 0.98, "unit": "seconds", "reputation": 20.0},
+	"guard_training": {"spot": "guards", "topic": "staff", "max": 150, "cost": 2000.0, "growth": 1.08, "curve": "linear", "base": GUARD_BLOCK_CHANCE, "step": 0.003, "unit": "chance"},
+	"phone_training": {"spot": "phone", "topic": "staff", "max": 100, "cost": 1500.0, "growth": 1.1, "curve": "decay", "base": 1.0, "rate": 0.99, "unit": "reduction"},
+	"mail_subscription": {"spot": "mailbox", "topic": "mail", "max": 100, "cost": 1500.0, "growth": 1.1, "curve": "linear", "base": 0.0, "step": 1.0, "unit": "count", "reputation": 15.0},
+	"mail_frequency": {"spot": "mailbox", "topic": "mail", "max": 150, "cost": 1200.0, "growth": 1.08, "curve": "decay", "base": MAIL_INTERVAL, "rate": 0.99, "unit": "seconds"},
+	"registered_mail": {"spot": "station:shared/mailroom", "topic": "mail", "max": 200, "cost": 2500.0, "growth": 1.06, "curve": "linear", "base": MAIL_REWARD_FACTOR, "step": 0.005, "unit": "percent", "reputation": 25.0},
+}
 
 const OFFICIAL_TRAININGS := {
-	"skill": {"cost": 1.5, "growth": 2.5, "effect": 0.15},
-	"health": {"cost": 1.2, "growth": 2.5, "effect": 0.2},
-	"stamina": {"cost": 1.0, "growth": 2.5, "effect": 0.8},
-	"calm": {"cost": 1.0, "growth": 2.5, "effect": 0.2},
+	"skill": {"cost": 0.1, "growth": 1.096, "effect": 0.015},
+	"health": {"cost": 0.08, "growth": 1.096, "effect": 0.02},
+	"stamina": {"cost": 0.065, "growth": 1.096, "effect": 0.978},
+	"calm": {"cost": 0.065, "growth": 1.096, "effect": 0.02},
 }
 const OFFICIAL_TRAINING_ORDER: Array[String] = ["skill", "health", "stamina", "calm"]
-const MAX_OFFICIAL_TRAINING := 3
+const MAX_OFFICIAL_TRAINING := 30
 
-const RESEARCH_SPEED := {
-	"reception": {"research": "scanners", "bonus": 0.3},
-	"dock": {"research": "scanners", "bonus": 0.3},
-	"review": {"research": "digital_records", "bonus": 0.2},
-	"signature": {"research": "digital_records", "bonus": 0.2},
-	"counter": {"research": "digital_signatures", "bonus": 0.4},
-	"clearance": {"research": "digital_signatures", "bonus": 0.4},
-	"mailroom": {"research": "letter_opener", "bonus": 0.4},
+const UPGRADE_SPEED := {
+	"reception": "scanners",
+	"dock": "scanners",
+	"review": "digital_records",
+	"signature": "digital_records",
+	"counter": "digital_signatures",
+	"clearance": "digital_signatures",
+	"mailroom": "letter_opener",
 }
-
-const QUALITY_TRAINING_FACTOR := 0.75
-const AI_ERROR_FACTOR := 0.5
-const AI_COMPLEX_FACTOR := 0.5
-const PORTAL_ARRIVAL_BONUS := 0.25
 
 const EVENTS := {
 	"rush_hour": {"arrival": 2.0, "department": "", "min_cases": 0},
@@ -533,13 +575,13 @@ const GOALS := [
 	{"type": "building_stage", "target": 1.0, "param": "", "money": 400.0, "reputation": 2.0},
 	{"type": "runners", "target": 1.0, "param": "", "money": 500.0, "reputation": 1.0},
 	{"type": "department", "target": 1.0, "param": "tax_services", "money": 600.0, "reputation": 3.0},
-	{"type": "research", "target": 1.0, "param": "", "money": 800.0, "reputation": 2.0},
+	{"type": "upgrades", "target": 1.0, "param": "", "money": 800.0, "reputation": 2.0},
 	{"type": "reputation", "target": 40.0, "param": "", "money": 2000.0, "reputation": 0.0},
 	{"type": "department", "target": 1.0, "param": "business_licences", "money": 4000.0, "reputation": 5.0},
 	{"type": "cases", "target": 300.0, "param": "", "money": 8000.0, "reputation": 5.0},
 	{"type": "building_stage", "target": 2.0, "param": "", "money": 20000.0, "reputation": 5.0},
 	{"type": "department", "target": 1.0, "param": "vehicle_registration", "money": 40000.0, "reputation": 8.0},
-	{"type": "research_level", "target": 1.0, "param": "pneumatic_tubes", "money": 100000.0, "reputation": 8.0},
+	{"type": "upgrade_level", "target": 1.0, "param": "pneumatic_tubes", "money": 100000.0, "reputation": 8.0},
 	{"type": "department", "target": 1.0, "param": "building_permits", "money": 200000.0, "reputation": 10.0},
 	{"type": "building_stage", "target": 3.0, "param": "", "money": 600000.0, "reputation": 10.0},
 	{"type": "department", "target": 1.0, "param": "housing", "money": 1000000.0, "reputation": 12.0},
@@ -571,18 +613,79 @@ static func station_kind(kind: String) -> Dictionary:
 	return STATION_KINDS.get(kind, {})
 
 
-static func room(room_id: String) -> Dictionary:
-	for entry: Dictionary in ROOMS:
-		if entry.id == room_id:
-			return entry
-	return {}
+static var _upgrade_ids: Array[String] = []
 
 
-static func room_items(room_id: String, kind: String) -> Array[String]:
-	var items: Array[String] = []
-	for item: String in room(room_id).get(kind, []):
-		items.append(item)
-	return items
+static func upgrade_ids() -> Array[String]:
+	if _upgrade_ids.is_empty():
+		for upgrade_id: String in UPGRADES:
+			_upgrade_ids.append(upgrade_id)
+	return _upgrade_ids
+
+
+static func upgrade(upgrade_id: String) -> Dictionary:
+	return UPGRADES.get(upgrade_id, {})
+
+
+static func is_room_upgrade(upgrade_id: String) -> bool:
+	return upgrade(upgrade_id).has("rooms")
+
+
+static func upgrade_rooms(upgrade_id: String) -> Array[String]:
+	var rooms: Array[String] = []
+	match str(upgrade(upgrade_id).get("rooms", "")):
+		ROOMS_ALL_DEPARTMENTS:
+			rooms.append_array(department_ids())
+		ROOMS_SHREDDERS:
+			for dept_id in department_ids():
+				if not is_customs(dept_id):
+					rooms.append(dept_id)
+		ROOMS_TUBES:
+			rooms.append_array(TUBE_ROOMS)
+			rooms.append_array(department_ids())
+	return rooms
+
+
+static func upgrade_key(upgrade_id: String, room_id: String = "") -> String:
+	return upgrade_id if room_id.is_empty() else "%s@%s" % [upgrade_id, room_id]
+
+
+static func upgrade_spot(upgrade_id: String, room_id: String = "") -> String:
+	var spot := str(upgrade(upgrade_id).get("spot", ""))
+	return spot % room_id if spot.contains("%s") else spot
+
+
+static func station_room(key: String) -> String:
+	match key:
+		RECEPTION, COUNTER:
+			return ROOM_HALL
+		MAILROOM:
+			return ROOM_MAIL
+		INSPECTION:
+			return ROOM_INSPECTION
+	return station_dept(key)
+
+
+static func room_boosts(room_id: String) -> Array[String]:
+	var result: Array[String] = []
+	result.assign(BOOST_ROOMS.get(room_id, []))
+	return result
+
+
+static func spot_room(spot: String) -> String:
+	if SPOTS.has(spot):
+		return SPOTS[spot]
+	if spot_kind(spot) == "station":
+		return station_room(spot_target(spot))
+	return spot_target(spot)
+
+
+static func spot_kind(spot: String) -> String:
+	return spot.get_slice(":", 0) if spot.contains(":") else ""
+
+
+static func spot_target(spot: String) -> String:
+	return spot.get_slice(":", 1) if spot.contains(":") else ""
 
 
 static func building_stage(index: int) -> Dictionary:

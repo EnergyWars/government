@@ -1,7 +1,8 @@
 class_name GameState
 extends RefCounted
 
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
+const LEGACY_SAVE_VERSION := 2
 
 var money := GameConfig.START_MONEY
 var reputation := 0.0
@@ -16,6 +17,8 @@ var mail_timer := GameConfig.MAIL_FIRST_SECONDS
 var mail_received := 0
 var mail_returned := 0
 var mail_promised: Array[String] = []
+var mail_floor: Array[CaseFile] = []
+var mail_dropped := 0
 var bundles := 0
 var kranz_elapsed := 0.0
 var building_stage := 0
@@ -23,11 +26,13 @@ var goal_index := 0
 var tutorial_step := 0
 var departments: Dictionary[String, Department] = {}
 var stations: Dictionary[String, Station] = {}
-var research: Dictionary[String, int] = {}
+var upgrades: Dictionary[String, int] = {}
+var shredder_timers: Dictionary[String, float] = {}
 var player := Player.new()
 var runners: Array[Runner] = []
 var collectors: Array[RejectCollector] = []
 var tube_parcels: Array[TubeParcel] = []
+var tube_levels: Dictionary[String, int] = {}
 var coffee_interns: Array[CoffeeIntern] = []
 var visitors: Array[ComplaintVisitor] = []
 var disputes: Array[Dispute] = []
@@ -59,8 +64,6 @@ var complaint_timer := GameConfig.COMPLAINT_INTERVAL
 var leave_complaint_cooldown := 0.0
 var complaints_filed := 0
 var complaints_fended := 0
-var complaint_clerk_level := 0
-var complaint_box_level := 0
 var shred_timer: float:
 	get:
 		return intern.work_timer
@@ -68,11 +71,11 @@ var shred_timer: float:
 		intern.work_timer = value
 var yell_timer := GameConfig.YELL_INTERVAL
 var dispute_timer := GameConfig.DISPUTE_FIRST_SECONDS
-var waiting_level := 0
+var ruckus_desk := -1
+var ruckus_timer := GameConfig.RUCKUS_FIRST_SECONDS
+var ruckus_progress := 0.0
+var ruckus_calmed := 0
 var walkouts := 0
-var seating_level := 0
-var ticket_machine_level := 0
-var ticket_display_level := 0
 var ticket_line: Array[CaseFile] = []
 var ticket_waiting: Array[CaseFile] = []
 var ticket_progress := 0.0
@@ -108,8 +111,6 @@ var _ordered_signature := -1
 func _init() -> void:
 	for dept_id in GameConfig.department_ids():
 		departments[dept_id] = Department.new(dept_id)
-	for research_id in GameConfig.RESEARCH_ORDER:
-		research[research_id] = 0
 	player.position = WorldLayout.get_default().player_start()
 
 
@@ -142,27 +143,44 @@ func unlocked_departments() -> Array[Department]:
 	return result
 
 
-func has_tube(dept_id: String) -> bool:
-	var dept := department(dept_id)
-	return dept != null and dept.tube and has_research("pneumatic_tubes")
+func has_tube_station(room_id: String) -> bool:
+	return has_upgrade("pneumatic_tubes") and has_upgrade("tube_station", room_id)
+
+
+func tube_link(from_key: String, to_key: String) -> bool:
+	if from_key.is_empty() or to_key.is_empty():
+		return false
+	return has_tube_station(GameConfig.station_room(from_key)) and has_tube_station(GameConfig.station_room(to_key))
+
+
+func fits_capsule(case_file: CaseFile) -> bool:
+	return not case_file.big and (not case_file.complex or has_upgrade("large_capsules"))
 
 
 func is_piped(case_file: CaseFile) -> bool:
-	return has_tube(case_file.dept_id)
+	return fits_capsule(case_file) and tube_link(case_file.current_key(), case_file.next_key())
 
 
 func any_piped() -> bool:
-	return unlocked_departments().any(func(dept: Department) -> bool: return has_tube(dept.id))
+	for dept in unlocked_departments():
+		var route := RouteBuilder.build(CaseFile.new(dept.id))
+		for index in range(1, route.size()):
+			if tube_link(route[index - 1], route[index]):
+				return true
+	return false
 
 
 func all_piped() -> bool:
 	var unlocked := unlocked_departments()
-	return not unlocked.is_empty() and unlocked.all(func(dept: Department) -> bool: return has_tube(dept.id))
+	return not unlocked.is_empty() and unlocked.all(func(dept: Department) -> bool: return Formulas.department_runner_transfers(self, dept) <= 0.0)
 
 
-func connect_all_tubes() -> void:
-	for dept in unlocked_departments():
-		dept.tube = true
+func has_ruckus() -> bool:
+	return ruckus_desk >= 0
+
+
+func tube_level(tube_id: String) -> int:
+	return tube_levels.get(tube_id, 0)
 
 
 func unlocked_count() -> int:
@@ -174,11 +192,23 @@ func stage_config() -> Dictionary:
 
 
 func lobby_capacity() -> int:
-	return int(stage_config().lobby) + waiting_level * GameConfig.WAITING_SEATS_PER_LEVEL
+	return int(stage_config().lobby) + int(Formulas.upgrade_value(self, "waiting_places"))
 
 
 func seat_capacity() -> int:
-	return GameConfig.SEATING_BASE_SEATS + seating_level * GameConfig.SEATING_SEATS_PER_LEVEL
+	return int(Formulas.upgrade_value(self, "seating"))
+
+
+func standing_capacity() -> int:
+	return int(Formulas.upgrade_value(self, "standing_places"))
+
+
+func ticket_line_capacity() -> int:
+	return int(Formulas.upgrade_value(self, "ticket_line"))
+
+
+func standing_citizens() -> int:
+	return maxi(0, seated_citizens() - seat_capacity())
 
 
 func seated_citizens() -> int:
@@ -212,7 +242,7 @@ func lobby_has_space() -> bool:
 
 
 func ticket_line_has_space() -> bool:
-	return ticket_line.size() < GameConfig.TICKET_LINE_SLOTS and lobby_has_space()
+	return ticket_line.size() < ticket_line_capacity() and lobby_has_space()
 
 
 func has_free_seat() -> bool:
@@ -225,19 +255,36 @@ func reception_may_admit() -> bool:
 	for job in reception_station.jobs:
 		if job != null:
 			pending += 1
-	return seated_citizens() + pending < seat_capacity()
+	return seated_citizens() + pending < seat_capacity() + standing_capacity()
 
 
 func max_desks() -> int:
 	return int(stage_config().max_desks)
 
 
-func research_level(research_id: String) -> int:
-	return research.get(research_id, 0)
+func upgrade_level(upgrade_id: String, room_id: String = "") -> int:
+	return upgrades.get(GameConfig.upgrade_key(upgrade_id, room_id), 0)
 
 
-func has_research(research_id: String) -> bool:
-	return research_level(research_id) > 0
+func has_upgrade(upgrade_id: String, room_id: String = "") -> bool:
+	return upgrade_level(upgrade_id, room_id) > 0
+
+
+func set_upgrade(upgrade_id: String, level: int, room_id: String = "") -> void:
+	var key := GameConfig.upgrade_key(upgrade_id, room_id)
+	var capped := clampi(level, 0, int(GameConfig.upgrade(upgrade_id).get("max", 0)))
+	if capped <= 0:
+		upgrades.erase(key)
+	else:
+		upgrades[key] = capped
+
+
+func shredder_rooms() -> Array[String]:
+	var result: Array[String] = []
+	for dept in unlocked_departments():
+		if has_upgrade("shredder", dept.id):
+			result.append(dept.id)
+	return result
 
 
 func unlock_department(dept_id: String) -> void:
@@ -383,8 +430,12 @@ func call_for(key: String, desk: int) -> PhoneCall:
 	return null
 
 
+func loo_slots() -> int:
+	return Formulas.loo_slots(self)
+
+
 func free_loo_slot() -> int:
-	for slot in range(GameConfig.KITCHEN_SLOTS, GameConfig.KITCHEN_SLOTS + GameConfig.LOO_SLOTS):
+	for slot in range(GameConfig.KITCHEN_SLOTS, GameConfig.KITCHEN_SLOTS + loo_slots()):
 		if not kitchen_slot_taken(slot):
 			return slot
 	return -1
@@ -392,7 +443,7 @@ func free_loo_slot() -> int:
 
 func _slot_valid(mood: DeskMood) -> bool:
 	if mood.state == DeskMood.LOO:
-		return mood.slot >= GameConfig.KITCHEN_SLOTS
+		return mood.slot >= GameConfig.KITCHEN_SLOTS and mood.slot < GameConfig.KITCHEN_SLOTS + loo_slots()
 	return mood.slot >= 0 and mood.slot < GameConfig.KITCHEN_SLOTS
 
 
@@ -411,7 +462,7 @@ func _repair_kitchen_slots() -> void:
 	for mood in broken:
 		var free := -1
 		var first := GameConfig.KITCHEN_SLOTS if mood.state == DeskMood.LOO else 0
-		var last := GameConfig.KITCHEN_SLOTS + GameConfig.LOO_SLOTS if mood.state == DeskMood.LOO else GameConfig.KITCHEN_SLOTS
+		var last := GameConfig.KITCHEN_SLOTS + loo_slots() if mood.state == DeskMood.LOO else GameConfig.KITCHEN_SLOTS
 		for slot in range(first, last):
 			if not used.has(slot):
 				free = slot
@@ -451,10 +502,10 @@ func max_station_level() -> int:
 	return best
 
 
-func research_count() -> int:
+func upgrade_count() -> int:
 	var count := 0
-	for research_id in research:
-		count += research[research_id]
+	for key in upgrades:
+		count += upgrades[key]
 	return count
 
 
@@ -704,16 +755,19 @@ func to_dict() -> Dictionary:
 		"mail_received": mail_received,
 		"mail_returned": mail_returned,
 		"mail_promised": mail_promised.duplicate(),
+		"mail_floor": mail_floor.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
+		"mail_dropped": mail_dropped,
 		"bundles": bundles,
 		"building_stage": building_stage,
 		"goal_index": goal_index,
 		"tutorial_step": tutorial_step,
 		"departments": dept_data,
 		"stations": station_data,
-		"research": research.duplicate(),
+		"upgrades": upgrades.duplicate(),
 		"player": player.to_dict(),
 		"runners": runners.map(func(r: Runner) -> Dictionary: return r.to_dict()),
 		"tube_parcels": tube_parcels.map(func(t: TubeParcel) -> Dictionary: return t.to_dict()),
+		"tube_levels": tube_levels.duplicate(),
 		"collectors": collectors.map(func(c: RejectCollector) -> Dictionary: return c.to_dict()),
 		"coffee_interns": coffee_interns.map(func(c: CoffeeIntern) -> Dictionary: return c.to_dict()),
 		"disputes": disputes.map(func(d: Dispute) -> Dictionary: return d.to_dict()),
@@ -723,18 +777,15 @@ func to_dict() -> Dictionary:
 		"review_fear": review_fear,
 		"helpers": helpers.map(func(h: ComplaintIntern) -> Dictionary: return h.to_dict()),
 		"dispute_timer": dispute_timer,
-		"waiting_level": waiting_level,
-		"seating_level": seating_level,
-		"ticket_machine_level": ticket_machine_level,
-		"ticket_display_level": ticket_display_level,
+		"ruckus_desk": ruckus_desk,
+		"ruckus_timer": ruckus_timer,
+		"ruckus_calmed": ruckus_calmed,
 		"ticket_line": ticket_line.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
 		"ticket_waiting": ticket_waiting.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
 		"ticket_progress": ticket_progress,
 		"ticket_call_progress": ticket_call_progress,
 		"tickets_drawn": tickets_drawn,
 		"tickets_called": tickets_called,
-		"complaint_clerk_level": complaint_clerk_level,
-		"complaint_box_level": complaint_box_level,
 		"walkouts": walkouts,
 		"breakdowns": breakdowns,
 		"coffees_served": coffees_served,
@@ -778,6 +829,8 @@ func to_dict() -> Dictionary:
 
 
 static func from_dict(data: Dictionary) -> GameState:
+	if int(data.get("version", 0)) == LEGACY_SAVE_VERSION:
+		return from_dict(SaveMigration.migrate_v2(data))
 	var state := GameState.new()
 	if int(data.get("version", 0)) != SAVE_VERSION:
 		state.rng.randomize()
@@ -795,6 +848,12 @@ static func from_dict(data: Dictionary) -> GameState:
 	state.mail_timer = clampf(float(data.get("mail_timer", GameConfig.MAIL_FIRST_SECONDS)), 0.0, GameConfig.MAIL_INTERVAL)
 	state.mail_received = maxi(0, int(data.get("mail_received", 0)))
 	state.mail_returned = maxi(0, int(data.get("mail_returned", 0)))
+	state.mail_dropped = maxi(0, int(data.get("mail_dropped", 0)))
+	for entry in data.get("mail_floor", []):
+		if entry is Dictionary and state.mail_floor.size() < GameConfig.MAIL_FLOOR_MAX:
+			var letter := CaseFile.from_dict(entry)
+			if letter.mail and not letter.route.is_empty():
+				state.mail_floor.append(letter)
 	for dept_id in data.get("mail_promised", []):
 		if not GameConfig.department(str(dept_id)).is_empty() and not GameConfig.is_customs(str(dept_id)):
 			state.mail_promised.append(str(dept_id))
@@ -803,20 +862,16 @@ static func from_dict(data: Dictionary) -> GameState:
 	state.goal_index = clampi(int(data.get("goal_index", 0)), 0, GameConfig.GOALS.size())
 	state.tutorial_step = Tutorial.clamp_saved(int(data.get("tutorial_step", Tutorial.FINISHED)))
 	var dept_data: Dictionary = data.get("departments", {})
-	var legacy_tube := int((data.get("research", {}) as Dictionary).get("pneumatic_tubes", 0)) > 0
 	for dept_id in dept_data:
 		if state.departments.has(dept_id):
-			state.departments[dept_id] = Department.from_dict(dept_data[dept_id], legacy_tube)
+			state.departments[dept_id] = Department.from_dict(dept_data[dept_id])
 	var station_data: Dictionary = data.get("stations", {})
 	for key in station_data:
 		var restored := Station.from_dict(station_data[key])
 		if GameConfig.station_kind(restored.kind).is_empty() or restored.key != str(key):
 			continue
 		state.stations[restored.key] = restored
-	var research_data: Dictionary = data.get("research", {})
-	for research_id in research_data:
-		if state.research.has(research_id):
-			state.research[research_id] = clampi(int(research_data[research_id]), 0, GameConfig.RESEARCH[research_id].max_level)
+	state._restore_upgrades(data.get("upgrades", {}))
 	var layout := WorldLayout.get_default()
 	state.player = Player.from_dict(data.get("player", {}), layout.player_start())
 	state.player.position = layout.clamp_to_world(state.player.position)
@@ -830,6 +885,7 @@ static func from_dict(data: Dictionary) -> GameState:
 		var parcel := TubeParcel.from_dict(entry)
 		if parcel != null and state.tube_parcels.size() < GameConfig.MAX_TUBE_PARCELS:
 			state.tube_parcels.append(parcel)
+	state._restore_tube_levels(data.get("tube_levels", {}))
 	for entry in data.get("collectors", []):
 		if entry is Dictionary and state.collectors.size() < GameConfig.MAX_COLLECTORS:
 			state.collectors.append(RejectCollector.from_dict(entry, layout.collector_home()))
@@ -844,22 +900,20 @@ static func from_dict(data: Dictionary) -> GameState:
 	for entry in data.get("helpers", []):
 		if entry is Dictionary and state.helpers.size() < GameConfig.MAX_HELPERS:
 			state.helpers.append(ComplaintIntern.from_dict(entry, layout.intern_home(state.helpers.size() + 1), state.helpers.size() + 1))
-	state.waiting_level = clampi(int(data.get("waiting_level", 0)), 0, GameConfig.WAITING_MAX_LEVEL)
-	state.seating_level = clampi(int(data.get("seating_level", 0)), 0, GameConfig.SEATING_MAX_LEVEL)
-	state.ticket_machine_level = clampi(int(data.get("ticket_machine_level", 0)), 0, GameConfig.TICKET_MAX_LEVEL)
-	state.ticket_display_level = clampi(int(data.get("ticket_display_level", 0)), 0, GameConfig.TICKET_MAX_LEVEL)
 	state.ticket_progress = clampf(float(data.get("ticket_progress", 0.0)), 0.0, GameConfig.TICKET_DRAW_SECONDS)
 	state.ticket_call_progress = clampf(float(data.get("ticket_call_progress", 0.0)), 0.0, GameConfig.TICKET_CALL_SECONDS)
 	state.tickets_drawn = maxi(0, int(data.get("tickets_drawn", 0)))
 	state.tickets_called = clampi(int(data.get("tickets_called", 0)), 0, state.tickets_drawn)
-	state.complaint_clerk_level = clampi(int(data.get("complaint_clerk_level", 0)), 0, GameConfig.COMPLAINT_CLERK_MAX_LEVEL)
-	var legacy_box := int(research_data.get("complaint_desk", 0))
-	state.complaint_box_level = clampi(maxi(int(data.get("complaint_box_level", 0)), legacy_box), 0, GameConfig.COMPLAINT_BOX_MAX_LEVEL)
 	state.walkouts = maxi(0, int(data.get("walkouts", 0)))
 	state.breakdowns = maxi(0, int(data.get("breakdowns", 0)))
 	state.coffees_served = maxi(0, int(data.get("coffees_served", 0)))
 	state.disputes_solved = maxi(0, int(data.get("disputes_solved", 0)))
 	state.dispute_timer = clampf(float(data.get("dispute_timer", GameConfig.DISPUTE_FIRST_SECONDS)), 0.0, GameConfig.DISPUTE_MAX_INTERVAL * 2.0)
+	state.ruckus_timer = clampf(float(data.get("ruckus_timer", GameConfig.RUCKUS_FIRST_SECONDS)), 0.0, GameConfig.RUCKUS_MAX_INTERVAL * (1.0 + GameConfig.RUCKUS_GUARD_RELIEF * GameConfig.MAX_GUARDS))
+	state.ruckus_calmed = maxi(0, int(data.get("ruckus_calmed", 0)))
+	var reception_station := state.station(GameConfig.RECEPTION)
+	var ruckus := int(data.get("ruckus_desk", -1))
+	state.ruckus_desk = ruckus if reception_station != null and ruckus >= 0 and ruckus < reception_station.jobs.size() else -1
 	state.event_id = str(data.get("event_id", ""))
 	if not GameConfig.EVENTS.has(state.event_id):
 		state.event_id = ""
@@ -916,7 +970,7 @@ func _restore_tickets(line_data: Variant, waiting_data: Variant) -> void:
 	ticket_waiting.clear()
 	if not tickets_unlocked():
 		return
-	_restore_ticket_cases(ticket_line, line_data, GameConfig.TICKET_LINE_SLOTS)
+	_restore_ticket_cases(ticket_line, line_data, ticket_line_capacity())
 	_restore_ticket_cases(ticket_waiting, waiting_data, lobby_capacity())
 	while lobby_used() > lobby_capacity() and not ticket_waiting.is_empty():
 		ticket_waiting.pop_back()
@@ -971,3 +1025,26 @@ func _ensure_stations() -> void:
 				if not created.machine:
 					created.staff = 1
 				stations[key] = created
+
+
+func _restore_upgrades(entries: Variant) -> void:
+	if not entries is Dictionary:
+		return
+	for key in entries:
+		var text := str(key)
+		var upgrade_id := text.get_slice("@", 0)
+		var room_id := text.get_slice("@", 1) if text.contains("@") else ""
+		if GameConfig.upgrade(upgrade_id).is_empty() or GameConfig.is_room_upgrade(upgrade_id) == room_id.is_empty():
+			continue
+		if not room_id.is_empty() and not GameConfig.upgrade_rooms(upgrade_id).has(room_id):
+			continue
+		set_upgrade(upgrade_id, int(entries[key]), room_id)
+
+
+func _restore_tube_levels(data: Variant) -> void:
+	if not data is Dictionary:
+		return
+	for tube_id in data:
+		var level := clampi(int(data[tube_id]), 0, GameConfig.TUBE_SEGMENT_MAX_LEVEL)
+		if level > 0 and str(tube_id).contains(">"):
+			tube_levels[str(tube_id)] = level

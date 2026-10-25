@@ -31,10 +31,10 @@ func progress_of(goal: Dictionary) -> float:
 		"department":
 			var dept := state.department(goal.param)
 			return 1.0 if dept != null and dept.unlocked else 0.0
-		"research":
-			return state.research_count()
-		"research_level":
-			return state.research_level(goal.param)
+		"upgrades":
+			return state.upgrade_count()
+		"upgrade_level":
+			return state.upgrade_level(goal.param)
 		"reputation":
 			return floorf(state.standing())
 	return 0.0

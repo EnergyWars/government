@@ -50,23 +50,125 @@ func test_building_stages_grow() -> void:
 	assert_eq(int(GameConfig.BUILDING_STAGES[-1].max_departments), GameConfig.DEPARTMENTS.size())
 
 
-func test_research_tables_are_consistent() -> void:
-	assert_eq(GameConfig.RESEARCH_ORDER.size(), GameConfig.RESEARCH.size())
-	for research_id in GameConfig.RESEARCH_ORDER:
-		assert_true(GameConfig.RESEARCH.has(research_id), research_id)
-	for kind in GameConfig.RESEARCH_SPEED:
+func test_upgrade_tracks_are_consistent() -> void:
+	var curves := ["linear", "decay", "unlock_decay", "chance", "unlock"]
+	var units := ["count", "bonus", "reduction", "seconds", "chance", "percent", "unlock"]
+	assert_eq(GameConfig.upgrade_ids().size(), GameConfig.UPGRADES.size())
+	for upgrade_id in GameConfig.upgrade_ids():
+		var config := GameConfig.upgrade(upgrade_id)
+		for field in ["spot", "topic", "max", "cost", "growth", "curve", "unit"]:
+			assert_true(config.has(field), "%s %s" % [upgrade_id, field])
+		assert_true(curves.has(config.curve), upgrade_id)
+		assert_true(units.has(config.unit), upgrade_id)
+		assert_eq(config.curve == "unlock", config.unit == "unlock", upgrade_id)
+		assert_true(GameConfig.TOPICS.has(config.topic), upgrade_id)
+		assert_gt(int(config.max), 0, upgrade_id)
+		assert_gt(float(config.cost), 0.0, upgrade_id)
+		assert_gte(float(config.growth), 1.0, upgrade_id)
+		assert_gte(float(config.get("reputation", 0.0)), 0.0, upgrade_id)
+		assert_lt(int(config.get("stage", 0)), GameConfig.BUILDING_STAGES.size(), upgrade_id)
+		match str(config.curve):
+			"linear":
+				assert_true(config.has("base") and config.has("step"), upgrade_id)
+			"decay", "unlock_decay", "chance":
+				assert_true(config.has("base"), upgrade_id)
+				assert_gt(float(config.rate), 0.0, upgrade_id)
+				assert_lt(float(config.rate), 1.0, upgrade_id)
+			"unlock":
+				assert_eq(int(config.max), 1, upgrade_id)
+		var requires: Dictionary = config.get("requires", {})
+		for required_id: String in requires:
+			assert_ne(required_id, upgrade_id)
+			assert_false(GameConfig.upgrade(required_id).is_empty(), "%s %s" % [upgrade_id, required_id])
+			assert_false(GameConfig.is_room_upgrade(required_id), "%s %s" % [upgrade_id, required_id])
+			assert_between(int(requires[required_id]), 1, int(GameConfig.upgrade(required_id).max), "%s %s" % [upgrade_id, required_id])
+
+
+func test_upgrade_spots_point_to_existing_rooms() -> void:
+	for upgrade_id in GameConfig.upgrade_ids():
+		var room_upgrade := GameConfig.is_room_upgrade(upgrade_id)
+		assert_eq(str(GameConfig.upgrade(upgrade_id).spot).contains("%s"), room_upgrade, upgrade_id)
+		var room_ids: Array[String] = [""]
+		if room_upgrade:
+			room_ids = GameConfig.upgrade_rooms(upgrade_id)
+			assert_false(room_ids.is_empty(), upgrade_id)
+		for room_id in room_ids:
+			var spot := GameConfig.upgrade_spot(upgrade_id, room_id)
+			var room := GameConfig.spot_room(spot)
+			assert_true(GameConfig.SERVICE_ROOMS.has(room) or not GameConfig.department(room).is_empty(), "%s %s" % [upgrade_id, spot])
+			if room_upgrade:
+				assert_eq(room, room_id, upgrade_id)
+
+
+func test_station_speed_and_event_mitigation_use_global_tracks() -> void:
+	for kind: String in GameConfig.UPGRADE_SPEED:
+		var upgrade_id := str(GameConfig.UPGRADE_SPEED[kind])
 		assert_true(GameConfig.STATION_KINDS.has(kind), kind)
-		assert_true(GameConfig.RESEARCH.has(GameConfig.RESEARCH_SPEED[kind].research), kind)
+		assert_false(GameConfig.upgrade(upgrade_id).is_empty(), kind)
+		assert_false(GameConfig.is_room_upgrade(upgrade_id), kind)
+	for event_id: String in GameConfig.EVENTS:
+		var mitigation := str(GameConfig.EVENTS[event_id].get("mitigation", ""))
+		if not mitigation.is_empty():
+			assert_false(GameConfig.upgrade(mitigation).is_empty(), event_id)
+			assert_false(GameConfig.is_room_upgrade(mitigation), event_id)
+
+
+func test_track_limits_match_world_limits() -> void:
+	var lobby_limit := int(GameConfig.BUILDING_STAGES[-1].lobby) + int(Formulas.track_value("waiting_places", int(GameConfig.upgrade("waiting_places").max)))
+	assert_lte(lobby_limit, GameConfig.MAX_LOBBY_SLOTS)
+	assert_eq(int(Formulas.track_value("ticket_line", int(GameConfig.upgrade("ticket_line").max))), GameConfig.MAX_TICKET_LINE_SLOTS)
+	assert_eq(int(Formulas.track_value("ticket_machines", int(GameConfig.upgrade("ticket_machines").max))), GameConfig.MAX_TICKET_MACHINES)
+	assert_eq(int(Formulas.track_value("toilet_stalls", int(GameConfig.upgrade("toilet_stalls").max))), GameConfig.MAX_LOO_SLOTS)
+	assert_eq(int(Formulas.track_value("ticket_line", 0)), GameConfig.TICKET_LINE_SLOTS)
+	assert_eq(int(Formulas.track_value("toilet_stalls", 0)), GameConfig.LOO_SLOTS)
+	assert_eq(int(Formulas.track_value("seating", 0)), GameConfig.SEATING_BASE_SEATS)
+
+
+func test_upgrade_lookups() -> void:
+	assert_eq(GameConfig.upgrade("briefcase").spot, "player")
+	assert_true(GameConfig.upgrade("nope").is_empty())
+	assert_true(GameConfig.upgrade_ids().has("tube_station"))
+	assert_true(GameConfig.is_room_upgrade("office_equipment"))
+	assert_true(GameConfig.is_room_upgrade("shredder"))
+	assert_true(GameConfig.is_room_upgrade("tube_station"))
+	assert_false(GameConfig.is_room_upgrade("briefcase"))
+	assert_false(GameConfig.is_room_upgrade("nope"))
+	assert_eq(GameConfig.upgrade_key("briefcase"), "briefcase")
+	assert_eq(GameConfig.upgrade_key("shredder", "housing"), "shredder@housing")
+	assert_eq(GameConfig.upgrade_spot("briefcase"), "player")
+	assert_eq(GameConfig.upgrade_spot("scanners"), "station:" + GameConfig.RECEPTION)
+	assert_eq(GameConfig.upgrade_spot("office_equipment", "customs"), "dept:customs")
+	assert_eq(GameConfig.upgrade_spot("shredder", "housing"), "shredder:housing")
+	assert_eq(GameConfig.upgrade_spot("tube_station", GameConfig.ROOM_MAIL), "tube:" + GameConfig.ROOM_MAIL)
+	assert_eq(GameConfig.upgrade_spot("nope"), "")
+
+
+func test_room_tracks_list_their_rooms() -> void:
+	assert_eq(GameConfig.upgrade_rooms("office_equipment"), GameConfig.department_ids())
+	var shredders := GameConfig.upgrade_rooms("shredder")
+	assert_eq(shredders.size(), GameConfig.department_ids().size() - 1)
+	assert_false(shredders.has("customs"))
+	assert_true(shredders.has("general_services"))
+	var tubes := GameConfig.upgrade_rooms("tube_station")
+	assert_eq(tubes.size(), GameConfig.TUBE_ROOMS.size() + GameConfig.department_ids().size())
+	for room_id in GameConfig.TUBE_ROOMS:
+		assert_true(tubes.has(room_id), room_id)
+	for dept_id in GameConfig.department_ids():
+		assert_true(tubes.has(dept_id), dept_id)
+	assert_true(GameConfig.upgrade_rooms("briefcase").is_empty())
+	assert_true(GameConfig.upgrade_rooms("nope").is_empty())
 
 
 func test_goals_reference_existing_content() -> void:
-	var types := ["cases", "staff_hired", "runners", "station_level", "building_stage", "department", "research", "research_level", "reputation"]
+	var types := ["cases", "staff_hired", "runners", "station_level", "building_stage", "department", "upgrades", "upgrade_level", "reputation"]
 	for goal: Dictionary in GameConfig.GOALS:
 		assert_true(types.has(goal.type), str(goal))
 		if goal.type == "department":
 			assert_false(GameConfig.department(goal.param).is_empty(), str(goal))
-		if goal.type == "research_level":
-			assert_true(GameConfig.RESEARCH.has(goal.param), str(goal))
+		if goal.type == "upgrade_level":
+			assert_false(GameConfig.upgrade(goal.param).is_empty(), str(goal))
+			assert_false(GameConfig.is_room_upgrade(goal.param), str(goal))
+			assert_lte(int(goal.target), int(GameConfig.upgrade(goal.param).max), str(goal))
 		if goal.type == "building_stage":
 			assert_lt(int(goal.target), GameConfig.BUILDING_STAGES.size(), str(goal))
 
@@ -151,6 +253,28 @@ func test_world_layout_rooms_do_not_overlap() -> void:
 			assert_false(layout.area(keys[i - 1]).intersects(layout.area(keys[i])), dept_id)
 
 
+func test_world_layout_service_rooms_do_not_overlap() -> void:
+	var layout := WorldLayout.get_default()
+	var world := Rect2(Vector2.ZERO, layout.size)
+	var rects: Dictionary[String, Rect2] = {}
+	for room_id in GameConfig.SERVICE_ROOMS:
+		var rect := layout.service_room(room_id)
+		if room_id == GameConfig.ROOM_PLAYER:
+			assert_false(rect.has_area())
+			continue
+		assert_true(rect.has_area(), room_id)
+		assert_true(world.encloses(rect), room_id)
+		rects[room_id] = rect
+	for slot: String in layout.rooms:
+		rects[slot] = layout.rooms[slot]
+	var ids := rects.keys()
+	for i in ids.size():
+		for j in range(i + 1, ids.size()):
+			assert_false(rects[ids[i]].intersects(rects[ids[j]]), "%s %s" % [ids[i], ids[j]])
+	assert_eq(layout.service_room(GameConfig.ROOM_INSPECTION), layout.room("inspection"))
+	assert_eq(layout.service_room("customs"), layout.room("customs"))
+
+
 func test_world_layout_helpers() -> void:
 	var layout := WorldLayout.get_default()
 	assert_eq(layout.input_point(GameConfig.RECEPTION), layout.queue_point(0))
@@ -159,7 +283,7 @@ func test_world_layout_helpers() -> void:
 	assert_ne(layout.waiting_seat(0), layout.waiting_seat(5))
 	assert_ne(layout.desk_position("tax_services/review", 0), layout.desk_position("tax_services/review", 3))
 	assert_true(layout.hall.has_point(layout.player_start()))
-	assert_true(layout.hall.has_point(layout.runner_home()))
+	assert_true(layout.tech_room.has_point(layout.runner_home()))
 	assert_true(layout.room("tax_services").has_point(layout.pad_point("tax_services")))
 	assert_eq(layout.header("tax_services").size.y, WorldLayout.HEADER)
 	assert_eq(layout.clamp_to_world(Vector2(-100, 99999)), Vector2(WorldLayout.MARGIN, layout.size.y - WorldLayout.MARGIN))
@@ -170,27 +294,57 @@ func test_world_layout_helpers() -> void:
 
 
 func test_room_lookups() -> void:
-	assert_eq(GameConfig.room(GameConfig.ROOM_KITCHEN).id, GameConfig.ROOM_KITCHEN)
-	assert_true(GameConfig.room("nope").is_empty())
-	assert_eq(GameConfig.room_items(GameConfig.ROOM_PHONE, "staff"), ["hr"] as Array[String])
-	assert_true(GameConfig.room_items(GameConfig.ROOM_PHONE, "research").is_empty())
-	assert_true(GameConfig.room_items("nope", "staff").is_empty())
-	assert_eq(GameConfig.room_items(GameConfig.ROOM_HALL, "stations"), [GameConfig.RECEPTION, GameConfig.COUNTER] as Array[String])
-	assert_eq(GameConfig.room_items(GameConfig.ROOM_INSPECTION, "stations"), [GameConfig.INSPECTION] as Array[String])
+	assert_eq(GameConfig.station_room(GameConfig.RECEPTION), GameConfig.ROOM_HALL)
+	assert_eq(GameConfig.station_room(GameConfig.COUNTER), GameConfig.ROOM_HALL)
+	assert_eq(GameConfig.station_room(GameConfig.MAILROOM), GameConfig.ROOM_MAIL)
+	assert_eq(GameConfig.station_room(GameConfig.INSPECTION), GameConfig.ROOM_INSPECTION)
+	assert_eq(GameConfig.station_room("tax_services/review"), "tax_services")
+	for key: String in GameConfig.SHARED_STATIONS:
+		assert_true(GameConfig.SERVICE_ROOMS.has(GameConfig.station_room(key)), key)
+	assert_eq(GameConfig.spot_room("guards"), GameConfig.ROOM_HALL)
+	assert_eq(GameConfig.spot_room("runners"), GameConfig.ROOM_TECH)
+	assert_eq(GameConfig.spot_room("station:" + GameConfig.MAILROOM), GameConfig.ROOM_MAIL)
+	assert_eq(GameConfig.spot_room("station:customs/dock"), "customs")
+	assert_eq(GameConfig.spot_room("dept:housing"), "housing")
+	assert_eq(GameConfig.spot_room("shredder:housing"), "housing")
+	assert_eq(GameConfig.spot_room("tube:" + GameConfig.ROOM_INSPECTION), GameConfig.ROOM_INSPECTION)
+	assert_eq(GameConfig.room_boosts(GameConfig.ROOM_PHONE), ["doctor_visit"] as Array[String])
+	assert_true(GameConfig.room_boosts(GameConfig.ROOM_TOILETS).is_empty())
+	assert_true(GameConfig.room_boosts("nope").is_empty())
 
 
-func test_rooms_reference_valid_upgrades() -> void:
+func test_spots_and_boards_belong_to_service_rooms() -> void:
+	for spot: String in GameConfig.SPOTS:
+		var room_id := str(GameConfig.SPOTS[spot])
+		assert_true(GameConfig.SERVICE_ROOMS.has(room_id), spot)
+		assert_eq(GameConfig.spot_room(spot), room_id, spot)
+	for spot in GameConfig.BOARD_SPOTS:
+		assert_true(GameConfig.SPOTS.has(spot), spot)
+		assert_eq(GameConfig.BOARD_SPOTS.count(spot), 1, spot)
 	var staff_seen: Array[String] = []
-	for room: Dictionary in GameConfig.ROOMS:
-		for staff_id in GameConfig.room_items(room.id, "staff"):
-			assert_true(Icons.STAFF.has(staff_id), staff_id)
-			assert_false(staff_seen.has(staff_id), staff_id)
-			staff_seen.append(staff_id)
-		for key in GameConfig.room_items(room.id, "stations"):
-			assert_true(GameConfig.SHARED_STATIONS.has(key), key)
-		for area_id in GameConfig.room_items(room.id, "areas"):
-			assert_true(["ticket_machine", "ticket_display", "waiting", "seating", "complaint_clerk", "complaint_box", "mail_storage"].has(area_id), area_id)
-		for boost_id in GameConfig.room_items(room.id, "boosts"):
+	for staff_type: String in UpgradeCatalog.STAFF_SPOTS:
+		var board := str(UpgradeCatalog.STAFF_SPOTS[staff_type])
+		assert_true(Icons.STAFF.has(staff_type), staff_type)
+		assert_true(GameConfig.BOARD_SPOTS.has(board), staff_type)
+		assert_false(staff_seen.has(board), staff_type)
+		staff_seen.append(board)
+	assert_eq(staff_seen.size(), GameConfig.BOARD_SPOTS.size())
+	for topic in GameConfig.TOPICS:
+		assert_eq(GameConfig.TOPICS.count(topic), 1, topic)
+	for room_id in GameConfig.SERVICE_ROOMS:
+		assert_eq(GameConfig.SERVICE_ROOMS.count(room_id), 1, room_id)
+		assert_true(GameConfig.department(room_id).is_empty(), room_id)
+
+
+func test_every_boost_belongs_to_exactly_one_room() -> void:
+	var seen: Array[String] = []
+	for room_id: String in GameConfig.BOOST_ROOMS:
+		assert_true(GameConfig.SERVICE_ROOMS.has(room_id), room_id)
+		for boost_id in GameConfig.room_boosts(room_id):
 			assert_true(GameConfig.BOOSTS.has(boost_id), boost_id)
 			assert_true(Icons.BOOSTS.has(boost_id), boost_id)
-	assert_eq(staff_seen.size(), 6)
+			assert_false(seen.has(boost_id), boost_id)
+			seen.append(boost_id)
+	assert_eq(seen.size(), GameConfig.BOOSTS.size())
+	for boost_id in GameConfig.BOOST_ORDER:
+		assert_true(seen.has(boost_id), boost_id)

@@ -26,6 +26,7 @@ const INTERN_CRY_COUNT := 4
 const INTERN_NERVOUS_COUNT := 6
 const COFFEE_SERVED_COUNT := 3
 const DISPUTE_LINES := 4
+const RUCKUS_COUNT := 8
 const SECONDS_PER_DAY := 86400
 
 
@@ -144,6 +145,10 @@ static func coffee_served(index: int) -> String:
 
 static func dispute_line(kind: String, index: int) -> String:
 	return TranslationServer.translate("DISPUTE_%s_%d" % [kind.to_upper(), posmod(index, DISPUTE_LINES) + 1])
+
+
+static func ruckus_line(index: int) -> String:
+	return TranslationServer.translate("RUCKUS_%d" % (posmod(index, RUCKUS_COUNT) + 1))
 
 
 static func wisdom(unix_time: float) -> String:

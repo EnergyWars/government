@@ -18,6 +18,8 @@ func test_new_game_starts_with_citizen_services() -> void:
 	assert_true(state.station("general_services/signature").machine)
 	assert_eq(state.player.position, WorldLayout.get_default().player_start())
 	assert_true(state.runners.is_empty())
+	assert_true(state.upgrades.is_empty())
+	assert_true(state.shredder_rooms().is_empty())
 	assert_null(state.department("nope"))
 	assert_null(state.station("nope"))
 
@@ -61,6 +63,11 @@ func test_stage_helpers() -> void:
 	assert_eq(state.max_desks(), int(GameConfig.BUILDING_STAGES[0].max_desks))
 	state.building_stage = 2
 	assert_eq(state.stage_config().id, GameConfig.BUILDING_STAGES[2].id)
+	state.set_upgrade("waiting_places", 5)
+	assert_eq(state.lobby_capacity(), int(GameConfig.BUILDING_STAGES[2].lobby) + 5)
+	assert_eq(state.ticket_line_capacity(), GameConfig.TICKET_LINE_SLOTS)
+	state.set_upgrade("ticket_line", 3)
+	assert_eq(state.ticket_line_capacity(), GameConfig.TICKET_LINE_SLOTS + 3)
 
 
 func test_counting_helpers() -> void:
@@ -71,12 +78,45 @@ func test_counting_helpers() -> void:
 	assert_eq(state.total_staff(), 4)
 	state.station(GameConfig.COUNTER).level = 5
 	assert_eq(state.max_station_level(), 5)
-	state.research["briefcase"] = 2
-	state.research["trolleys"] = 1
-	assert_eq(state.research_count(), 3)
-	assert_true(state.has_research("trolleys"))
-	assert_false(state.has_research("pneumatic_tubes"))
-	assert_eq(state.research_level("nope"), 0)
+	assert_eq(state.upgrade_count(), 0)
+	state.set_upgrade("briefcase", 2)
+	state.set_upgrade("runner_trolleys", 1)
+	state.set_upgrade("office_equipment", 3, "general_services")
+	assert_eq(state.upgrade_count(), 6)
+	assert_true(state.has_upgrade("runner_trolleys"))
+	assert_false(state.has_upgrade("pneumatic_tubes"))
+	assert_true(state.has_upgrade("office_equipment", "general_services"))
+	assert_false(state.has_upgrade("office_equipment", "tax_services"))
+	assert_false(state.has_upgrade("office_equipment"))
+	assert_eq(state.upgrade_level("office_equipment", "general_services"), 3)
+	assert_eq(state.upgrade_level("nope"), 0)
+
+
+func test_set_upgrade_clamps_and_removes_levels() -> void:
+	var limit := int(GameConfig.upgrade("briefcase").max)
+	state.set_upgrade("briefcase", limit + 50)
+	assert_eq(state.upgrade_level("briefcase"), limit)
+	state.set_upgrade("briefcase", 0)
+	assert_false(state.upgrades.has("briefcase"))
+	assert_eq(state.upgrade_level("briefcase"), 0)
+	state.set_upgrade("briefcase", -3)
+	assert_false(state.upgrades.has("briefcase"))
+	state.set_upgrade("nope", 5)
+	assert_false(state.upgrades.has("nope"))
+	state.set_upgrade("office_equipment", 2, "tax_services")
+	assert_eq(state.upgrades.get(GameConfig.upgrade_key("office_equipment", "tax_services"), 0), 2)
+	assert_eq(state.upgrade_level("office_equipment", "tax_services"), 2)
+	assert_eq(state.upgrade_level("office_equipment", "housing"), 0)
+
+
+func test_shredder_rooms_need_an_open_department() -> void:
+	state.set_upgrade("shredder", 1, "general_services")
+	state.set_upgrade("shredder", 4, "tax_services")
+	assert_eq(state.shredder_rooms(), ["general_services"] as Array[String])
+	state.unlock_department("tax_services")
+	assert_eq(state.shredder_rooms(), ["general_services", "tax_services"] as Array[String])
+	state.set_upgrade("shredder", 0, "general_services")
+	assert_eq(state.shredder_rooms(), ["tax_services"] as Array[String])
 
 
 func test_money_and_reputation() -> void:
@@ -109,7 +149,9 @@ func test_roundtrip_keeps_everything() -> void:
 	state.ensure_mailroom()
 	state.goal_index = 4
 	state.unlock_department("tax_services")
-	state.research["briefcase"] = 2
+	state.set_upgrade("briefcase", 2)
+	state.set_upgrade("office_equipment", 3, "tax_services")
+	state.set_upgrade("tube_station", 1, GameConfig.ROOM_MAIL)
 	state.player.position = Vector2(300, 2000)
 	var case_file := CaseFile.new("general_services")
 	case_file.route = RouteBuilder.build(case_file)
@@ -124,6 +166,7 @@ func test_roundtrip_keeps_everything() -> void:
 	var data := state.to_dict()
 	var copy := GameState.from_dict(JSON.parse_string(JSON.stringify(data)))
 	assert_eq(JSON.stringify(copy.to_dict()), JSON.stringify(data))
+	assert_eq(copy.upgrades, state.upgrades)
 	assert_eq(copy.rng.randf(), state.rng.randf())
 
 
@@ -134,7 +177,7 @@ func test_load_validates_input() -> void:
 	data.building_stage = 99
 	data.goal_index = 999
 	data.event_id = "nope"
-	data.research = {"briefcase": 999, "nope": 1}
+	data.upgrades = {"briefcase": 999, "nope": 1, "work_ethic": -2}
 	data.departments = {"general_services": {"id": "general_services", "unlocked": false}, "nope": {}}
 	data.stations = {"bad/kind": {"key": "bad/kind"}, "x": {"key": GameConfig.COUNTER}}
 	data.player = {"x": -999.0, "y": -999.0}
@@ -150,7 +193,8 @@ func test_load_validates_input() -> void:
 	assert_eq(loaded.building_stage, GameConfig.BUILDING_STAGES.size() - 1)
 	assert_eq(loaded.goal_index, GameConfig.GOALS.size())
 	assert_eq(loaded.event_id, "")
-	assert_eq(loaded.research_level("briefcase"), int(GameConfig.RESEARCH.briefcase.max_level))
+	assert_eq(loaded.upgrade_level("briefcase"), int(GameConfig.upgrade("briefcase").max))
+	assert_eq(loaded.upgrades.size(), 1)
 	assert_true(loaded.department("general_services").unlocked)
 	assert_eq(loaded.stations.size(), 5)
 	assert_not_null(loaded.mailroom())

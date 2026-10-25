@@ -45,8 +45,8 @@ func test_new_game_starts_tutorial_at_first_step() -> void:
 func test_step_definitions_are_consistent() -> void:
 	var ids := {}
 	var kinds := [Tutorial.INFO, Tutorial.MOVE, Tutorial.SHEET, Tutorial.STAT]
-	var sheets := ["departments", "department", "team", "research", "building", "goals", "settings"]
-	var targets := ["", "goal", "settings", "departments", "team", "research", "building", "goals"]
+	var sheets := ["upgrades", "spot", "goals", "settings"]
+	var targets := ["", "goal", "settings", "upgrades", "goals"]
 	for step: Dictionary in Tutorial.STEPS:
 		assert_false(ids.has(step.id), step.id)
 		ids[step.id] = true
@@ -121,31 +121,31 @@ func test_goal_hire_runner_and_upgrade_steps() -> void:
 	tutorial.update()
 	state.station(GameConfig.RECEPTION).level += 1
 	tutorial.update()
-	assert_eq(tutorial.current().id, "department_open")
+	assert_eq(tutorial.current().id, "spot_open")
 
 
 func test_sheet_steps_complete_when_sheet_opens() -> void:
-	_go_to_step("team_open")
-	tutorial.set_open_sheet("research")
+	_go_to_step("upgrades_open")
+	tutorial.set_open_sheet("goals")
 	tutorial.update()
-	assert_eq(tutorial.current().id, "team_open")
-	tutorial.set_open_sheet("team")
+	assert_eq(tutorial.current().id, "upgrades_open")
+	tutorial.set_open_sheet("upgrades")
 	tutorial.update()
-	assert_eq(tutorial.current().id, "hire")
+	assert_eq(tutorial.current().id, "upgrade_groups")
 
 
 func test_sheet_step_completes_if_sheet_is_already_open() -> void:
-	tutorial.set_open_sheet("research")
-	_go_to_step("research_open")
-	assert_eq(tutorial.current().id, "research_info")
+	tutorial.set_open_sheet("spot")
+	_go_to_step("spot_open")
+	assert_eq(tutorial.current().id, "spots_info")
 
 
 func test_open_sheet_tracking_emits_only_on_change() -> void:
 	watch_signals(tutorial)
-	tutorial.set_open_sheet("team")
-	assert_eq(tutorial.open_sheet(), "team")
+	tutorial.set_open_sheet("upgrades")
+	assert_eq(tutorial.open_sheet(), "upgrades")
 	assert_signal_emit_count(tutorial, "changed", 1)
-	tutorial.set_open_sheet("team")
+	tutorial.set_open_sheet("upgrades")
 	assert_signal_emit_count(tutorial, "changed", 1)
 	tutorial.set_open_sheet("")
 	assert_eq(tutorial.open_sheet(), "")
@@ -293,7 +293,7 @@ func test_upgrade_step_is_skipped_when_every_station_is_maxed() -> void:
 	for key in state.stations:
 		state.stations[key].level = GameConfig.MAX_STATION_LEVEL
 	_go_to_step("upgrade")
-	assert_eq(tutorial.current().id, "department_open")
+	assert_eq(tutorial.current().id, "spot_open")
 
 
 func test_upgrade_step_waits_while_one_station_can_grow() -> void:

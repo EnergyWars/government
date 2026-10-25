@@ -18,7 +18,7 @@ func build(container: VBoxContainer) -> void:
 	container.add_child(UiKit.label(tr("SECTION_BOOSTS"), "TitleMedium"))
 	for boost_id in GameConfig.BOOST_ORDER:
 		if game.boosts.is_available(boost_id) or state.is_boost_active(boost_id) or not bool(GameConfig.boost(boost_id).get("requires_mail", false)):
-			container.add_child(UpgradeCards.boost_card(self, boost_id))
+			container.add_child(BoostCard.build(self, boost_id))
 	container.add_child(UiKit.label(tr("SECTION_SEAL_SHOP"), "TitleMedium"))
 	container.add_child(UiKit.label(tr("SEAL_SHOP_MOCK"), "BodySmall", true))
 	var packs := UiKit.hbox(AppTheme.SPACING_SM)

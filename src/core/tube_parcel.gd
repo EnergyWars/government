@@ -15,7 +15,7 @@ func _init(p_case: CaseFile = null, p_from: String = "", p_to: String = "", p_le
 
 
 func tube_id() -> String:
-	return "%s>%s" % [from_key, to_key]
+	return RouteBuilder.tube_id(from_key, to_key)
 
 
 func to_dict() -> Dictionary:

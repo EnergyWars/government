@@ -9,8 +9,9 @@ static func describe(goal: Dictionary) -> String:
 	match goal_type:
 		"department":
 			return UiKit.t("FMT_GOAL_DEPARTMENT") % UiKit.t("DEPT_" + param.to_upper())
-		"research_level":
-			return UiKit.t("FMT_GOAL_RESEARCH_LEVEL") % UiKit.t("RESEARCH_" + param.to_upper())
+		"upgrade_level":
+			var name := UiKit.t("TRACK_" + param.to_upper())
+			return UiKit.t("FMT_GOAL_UPGRADE_UNLOCK") % name if target <= 1 else UiKit.t("FMT_GOAL_UPGRADE_LEVEL") % [name, target]
 		"building_stage":
 			return UiKit.t("FMT_GOAL_BUILDING_STAGE") % UiKit.t("STAGE_" + str(GameConfig.building_stage(target).id).to_upper())
 		"cases":

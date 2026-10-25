@@ -4,6 +4,7 @@ extends Sheet
 const BUSY_LOAD := ThroughputReport.BUSY_LOAD
 const RECOMMENDATIONS := 4
 const UPGRADE_LINES := 2
+const REFRESH_MSEC := 250
 
 var _bottlenecks := {}
 var _areas := {}
@@ -14,6 +15,10 @@ func title() -> String:
 	return tr("SHEET_STATISTICS")
 
 
+func refresh_interval() -> int:
+	return REFRESH_MSEC
+
+
 func build(container: VBoxContainer) -> void:
 	track(_update_report)
 	container.add_child(UiKit.label(tr("STATS_INTRO"), "BodySmall", true))
@@ -22,6 +27,8 @@ func build(container: VBoxContainer) -> void:
 	container.add_child(_recommendation_card())
 	container.add_child(_overview_card())
 	container.add_child(_reviews_card())
+	container.add_child(UiKit.label(tr("SECTION_STATISTICS"), "TitleMedium"))
+	container.add_child(_lifetime_card())
 	container.add_child(UiKit.label(tr("STATS_SECTION_DEPARTMENTS"), "TitleMedium"))
 	for dept in game.state.unlocked_departments():
 		container.add_child(_department_card(dept))
@@ -48,6 +55,36 @@ func build(container: VBoxContainer) -> void:
 		var station := game.state.station(key)
 		if not station.machine and station.workers() > 0:
 			container.add_child(_officials_card(station))
+
+
+static func lifetime_text(state: GameState) -> String:
+	var accuracy := 1.0
+	if state.cases_completed > 0:
+		accuracy = 1.0 - float(state.cases_flawed) / state.cases_completed
+	return TranslationServer.translate("FMT_STATISTICS") % [
+		UiKit.number(state.cases_completed),
+		UiKit.percent(accuracy),
+		UiKit.number(state.citizens_lost),
+		UiKit.number(state.wakes),
+		UiKit.number(state.total_staff()),
+		UiKit.money(state.money_earned),
+		UiKit.duration(state.play_time),
+	]
+
+
+func _lifetime_card() -> Control:
+	var card := UiKit.card()
+	var column := UiKit.vbox(AppTheme.SPACING_SM)
+	var population := UiKit.label("", "TitleSmall", true)
+	column.add_child(population)
+	var label := UiKit.label("", "BodyMedium", true)
+	column.add_child(label)
+	card.add_child(column)
+	track(func() -> void:
+		population.text = SpotStatus.population(game.state)
+		label.text = lifetime_text(game.state)
+	)
+	return card
 
 
 func is_bottleneck(key: String) -> bool:
@@ -92,22 +129,13 @@ static func set_highlight(label: Label, on: bool) -> void:
 
 
 static func upgrade_target(state: GameState, entry: Dictionary, upgrade: Dictionary) -> Array[String]:
-	match str(upgrade.id):
-		ThroughputReport.RESEARCH:
-			return ["research", ""]
-		ThroughputReport.RUNNER, ThroughputReport.HELPER, ThroughputReport.COLLECTOR, ThroughputReport.HR, ThroughputReport.GUARD:
-			return ["team", ""]
-		ThroughputReport.SEATS, ThroughputReport.WAITING_SEATS, ThroughputReport.CLERK, ThroughputReport.TICKET_MACHINE, ThroughputReport.TICKET_DISPLAY:
-			return ["building", ""]
-	var station := state.station(str(entry.key))
-	if station == null:
-		return ["departments", ""]
-	if not station.dept_id.is_empty():
-		return ["department", station.dept_id]
-	var users := state.departments_using(station.key)
-	if users.is_empty():
-		return ["departments", ""]
-	return ["department", users[0].id]
+	var found := UpgradeCatalog.find(state, str(upgrade.get("entry", "")))
+	if found != null:
+		return ["spot", found.spot]
+	var station := state.station(str(entry.get("key", "")))
+	if station != null:
+		return ["spot", WorldLayout.STATION_PREFIX + station.key]
+	return ["upgrades", ""]
 
 
 func _update_report() -> void:
@@ -140,8 +168,12 @@ func _area_name(entry: Dictionary) -> String:
 
 
 func _upgrade_name(upgrade: Dictionary) -> String:
-	if str(upgrade.id) == ThroughputReport.RESEARCH:
-		return tr("FMT_UPGRADE_RESEARCH") % tr("RESEARCH_" + str(upgrade.research).to_upper())
+	var entry_id := str(upgrade.get("entry", ""))
+	var found := UpgradeCatalog.find(game.state, entry_id)
+	if found != null:
+		return UpgradeTexts.title(found)
+	if str(upgrade.id) == ThroughputReport.TRACK:
+		return tr("TRACK_" + entry_id.get_slice(":", 1).get_slice("@", 0).to_upper())
 	return tr("UPGRADE_" + str(upgrade.id).to_upper())
 
 
@@ -431,7 +463,7 @@ func _transport_card() -> Control:
 		if not state.all_piped():
 			extra.append(tr("FMT_STATS_RUNNERS") % [state.runners.size(), Formulas.runner_capacity(state)])
 			for role in Runner.ROLES:
-				extra.append(UpgradeCards.role_info(state, role))
+				extra.append(BoardSection.role_info(state, role))
 		footer.call(extra)
 	)
 	return parts.card

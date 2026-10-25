@@ -82,6 +82,16 @@ func test_nothing_happens_away_from_desk_and_shredder() -> void:
 	assert_false(sim.move_complaints())
 
 
+func test_player_shreds_at_a_bought_department_shredder() -> void:
+	state.player.complaints = 1
+	state.player.position = layout.dept_shredder_point("general_services")
+	assert_false(sim.move_complaints())
+	state.set_upgrade("shredder", 1, "general_services")
+	assert_true(sim.move_complaints())
+	assert_eq(state.player.complaints, 0)
+	assert_eq(state.complaints_shredded, 1)
+
+
 func test_shred_complaints_edge_cases() -> void:
 	assert_eq(sim.shred_complaints(3, true), 0)
 	assert_eq(sim.shred_complaints(3, false), 0)
@@ -91,9 +101,9 @@ func test_shred_complaints_edge_cases() -> void:
 
 
 func test_shredder_intern_shreds_automatically() -> void:
-	state.research["shredder_service"] = 3
+	state.set_upgrade("shredder_service", 3)
 	state.complaints = 2
-	_run(GameConfig.SHREDDER_DELAYS[3] * 2.0 + 15.0, 0.5)
+	_run(Formulas.upgrade_value(state, "shredder_service") * 2.0 + 15.0, 0.5)
 	assert_eq(state.complaints, 0)
 	assert_eq(state.complaints_shredded, 2)
 
@@ -105,15 +115,25 @@ func test_without_intern_nothing_is_shredded_automatically() -> void:
 	assert_eq(state.shred_timer, 0.0)
 
 
-func test_shredder_config_matches_research() -> void:
-	assert_eq(GameConfig.SHREDDER_DELAYS.size(), int(GameConfig.RESEARCH.shredder_service.max_level) + 1)
-	assert_true(GameConfig.RESEARCH_ORDER.has("shredder_service"))
+func test_shredder_service_is_a_long_track_that_keeps_speeding_up() -> void:
+	var config := GameConfig.upgrade("shredder_service")
+	var max_level := int(config.max)
+	assert_eq(str(config.spot), "interns")
+	assert_gte(max_level, 100)
+	assert_lt(Formulas.track_value("shredder_service", 0), 0.0)
+	var faster := true
+	for level in range(2, max_level + 1):
+		faster = faster and Formulas.track_value("shredder_service", level) < Formulas.track_value("shredder_service", level - 1)
+	assert_true(faster)
+	assert_gt(Formulas.track_value("shredder_service", max_level), 0.0)
 
 
-func test_complaint_layout_lies_in_hall() -> void:
-	assert_true(layout.hall.has_point(layout.complaint_desk_point()))
-	assert_true(layout.hall.has_point(layout.shredder_point()))
+func test_complaint_layout_uses_office_hall_and_shredder_room() -> void:
+	assert_true(layout.complaint_office.has_point(layout.complaint_desk_point()))
+	assert_true(layout.hall.has_point(layout.complaint_box_point()))
+	assert_true(layout.shredder_room.has_point(layout.shredder_point()))
 	assert_false(layout.near(layout.complaint_desk_point(), layout.shredder_point()))
+	assert_false(layout.near(layout.complaint_box_point(), layout.shredder_point()))
 
 
 func test_complaint_state_is_saved() -> void:
@@ -160,6 +180,17 @@ func test_guidance_leads_to_box_then_shredder() -> void:
 	task = Guidance.next_task(state)
 	assert_eq(task.action, Guidance.SHRED)
 	assert_eq(task.point, layout.shredder_point())
+
+
+func test_guidance_leads_to_the_nearest_shredder() -> void:
+	var dept_shredder := layout.dept_shredder_point("general_services")
+	state.player.complaints = 1
+	state.player.position = dept_shredder
+	assert_eq(Guidance.next_task(state).point, layout.shredder_point())
+	state.set_upgrade("shredder", 1, "general_services")
+	assert_eq(Guidance.next_task(state).point, dept_shredder)
+	state.player.position = layout.shredder_point()
+	assert_eq(Guidance.next_task(state).point, layout.shredder_point())
 
 
 func test_complaints_are_rare_and_harmless() -> void:

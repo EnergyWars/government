@@ -11,6 +11,7 @@ var _title_label: Label
 var _panel: PanelContainer
 var _scroll: FlingScroll
 var _updaters: Array[Callable] = []
+var _last_refresh := -1000000
 
 
 func setup(p_game: Game, p_argument: String = "") -> Sheet:
@@ -60,6 +61,10 @@ func sheet_height_ratio() -> float:
 	return 0.72
 
 
+func refresh_interval() -> int:
+	return 0
+
+
 func title() -> String:
 	return ""
 
@@ -95,6 +100,7 @@ func track(updater: Callable) -> void:
 
 
 func refresh() -> void:
+	_last_refresh = Time.get_ticks_msec()
 	for updater in _updaters:
 		updater.call()
 
@@ -118,7 +124,7 @@ func close_sheet() -> void:
 
 
 func _on_game_changed() -> void:
-	if is_inside_tree():
+	if is_inside_tree() and Time.get_ticks_msec() - _last_refresh >= refresh_interval():
 		refresh()
 
 

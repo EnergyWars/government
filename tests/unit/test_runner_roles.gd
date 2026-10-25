@@ -158,10 +158,10 @@ func test_weakest_role_follows_demand_and_capacity() -> void:
 
 
 func test_role_transfers_and_demand() -> void:
-	assert_eq(Formulas.role_transfers("general_services"), {Runner.INTAKE: 1, Runner.INTERNAL: 1, Runner.OUTPUT: 1})
-	assert_eq(Formulas.role_transfers("housing"), {Runner.INTAKE: 1, Runner.INTERNAL: 2, Runner.OUTPUT: 1})
-	assert_eq(Formulas.role_transfers("business_licences"), {Runner.INTAKE: 1, Runner.INTERNAL: 2, Runner.OUTPUT: 1})
-	assert_eq(int(Formulas.role_transfers("customs")[Runner.INTAKE]), 1)
+	assert_eq(Formulas.runner_transfers(state, state.department("general_services")), {Runner.INTAKE: 1.0, Runner.INTERNAL: 1.0, Runner.OUTPUT: 1.0})
+	assert_eq(Formulas.runner_transfers(state, state.department("housing")), {Runner.INTAKE: 1.0, Runner.INTERNAL: 2.0, Runner.OUTPUT: 1.0})
+	assert_eq(Formulas.runner_transfers(state, state.department("business_licences")), {Runner.INTAKE: 1.0, Runner.INTERNAL: 2.0, Runner.OUTPUT: 1.0})
+	assert_eq(float(Formulas.runner_transfers(state, state.department("customs"))[Runner.INTAKE]), 1.0)
 	var gs := state.department("general_services")
 	assert_almost_eq(Formulas.role_demand(state, Runner.OUTPUT), Formulas.demand(state, gs), 0.0001)
 	assert_almost_eq(Formulas.role_capacity(state, Runner.OUTPUT, 2), 2.0 * Formulas.runner_capacity(state) / GameConfig.RUNNER_TRIP_ESTIMATE, 0.0001)
@@ -249,9 +249,12 @@ func test_guidance_only_counts_matching_runners() -> void:
 	assert_false(Guidance._automated(state, signature))
 	state.add_runner(Runner.OUTPUT)
 	assert_true(Guidance._automated(state, signature))
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
 	state.runners.clear()
+	state.set_upgrade("pneumatic_tubes", 1)
+	state.set_upgrade("tube_station", 1, "general_services")
+	assert_false(Guidance._automated(state, signature))
+	for room_id in GameConfig.upgrade_rooms("tube_station"):
+		state.set_upgrade("tube_station", 1, room_id)
 	assert_true(Guidance._automated(state, signature))
 
 
@@ -262,8 +265,11 @@ func test_runner_level_raises_load_and_cost() -> void:
 	runner.level = 2
 	assert_eq(Formulas.runner_load(state, runner), Formulas.runner_capacity(state) + 2 * GameConfig.RUNNER_LEVEL_CAPACITY)
 	assert_almost_eq(Formulas.runner_level_cost(runner), GameConfig.RUNNER_LEVEL_COST * pow(GameConfig.RUNNER_LEVEL_GROWTH, 2), 0.001)
-	state.research["trolleys"] = 1
+	var base_load := Formulas.runner_load(state, runner)
+	state.set_upgrade("runner_trolleys", 1)
+	assert_eq(Formulas.runner_capacity(state), int(Formulas.track_value("runner_trolleys", 1)))
 	assert_eq(Formulas.runner_load(state, runner), Formulas.runner_capacity(state) + 2 * GameConfig.RUNNER_LEVEL_CAPACITY)
+	assert_gt(Formulas.runner_load(state, runner), base_load)
 
 
 func test_upgrading_a_runner() -> void:
@@ -292,6 +298,23 @@ func test_runner_levels_count_in_capacity() -> void:
 	state.department("general_services").unlocked = false
 	assert_almost_eq(Formulas.transport_throughput(state), (base + 3.0) / GameConfig.RUNNER_TRIP_ESTIMATE, 0.0001)
 	assert_almost_eq(Formulas.transport_throughput(state, Runner.INTAKE), (2.0 * base + 3.0) / GameConfig.RUNNER_TRIP_ESTIMATE, 0.0001)
+
+
+func test_runner_speed_shortens_the_trip_estimate() -> void:
+	assert_eq(Formulas.runner_trip_time(state), GameConfig.RUNNER_TRIP_ESTIMATE)
+	state.add_runner(Runner.INTAKE)
+	state.add_runner(Runner.INTERNAL)
+	state.add_runner(Runner.OUTPUT)
+	var before := Formulas.role_capacity(state, Runner.OUTPUT)
+	var transport := Formulas.transport_throughput(state)
+	state.set_upgrade("runner_speed", 50)
+	var speed := Formulas.track_value("runner_speed", 50)
+	assert_gt(speed, 1.0)
+	assert_almost_eq(Formulas.runner_trip_time(state), GameConfig.RUNNER_TRIP_ESTIMATE / speed, 0.0001)
+	assert_almost_eq(Formulas.role_capacity(state, Runner.OUTPUT), before * speed, 0.0001)
+	assert_almost_eq(Formulas.transport_throughput(state), transport * speed, 0.0001)
+	state.department("general_services").unlocked = false
+	assert_almost_eq(Formulas.transport_throughput(state), 3.0 * Formulas.runner_capacity(state) / Formulas.runner_trip_time(state), 0.0001)
 
 
 func test_upgraded_runner_reserves_more_files() -> void:

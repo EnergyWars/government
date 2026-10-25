@@ -21,18 +21,16 @@ const STEPS := [
 	{"id": "queue", "kind": INFO, "target": ""},
 	{"id": "goal", "kind": STAT, "stat": "goals", "amount": 1, "target": "goal"},
 	{"id": "tasks", "kind": INFO, "target": ""},
-	{"id": "team_open", "kind": SHEET, "sheet": "team", "target": "team"},
+	{"id": "upgrades_open", "kind": SHEET, "sheet": "upgrades", "target": "upgrades"},
+	{"id": "upgrade_groups", "kind": INFO, "target": ""},
 	{"id": "hire", "kind": STAT, "stat": "staff", "amount": 1, "target": ""},
 	{"id": "runner", "kind": STAT, "stat": "runners", "amount": 1, "target": ""},
 	{"id": "upgrade", "kind": STAT, "stat": "levels", "amount": 1, "target": ""},
-	{"id": "department_open", "kind": SHEET, "sheet": "department", "target": ""},
+	{"id": "spot_open", "kind": SHEET, "sheet": "spot", "target": ""},
+	{"id": "spots_info", "kind": INFO, "target": ""},
 	{"id": "work_modes", "kind": INFO, "target": ""},
-	{"id": "research_open", "kind": SHEET, "sheet": "research", "target": "research"},
-	{"id": "research_info", "kind": INFO, "target": ""},
-	{"id": "building_open", "kind": SHEET, "sheet": "building", "target": "building"},
-	{"id": "building_info", "kind": INFO, "target": ""},
-	{"id": "departments_open", "kind": SHEET, "sheet": "departments", "target": "departments"},
-	{"id": "departments_info", "kind": INFO, "target": ""},
+	{"id": "boards_info", "kind": INFO, "target": ""},
+	{"id": "expand_info", "kind": INFO, "target": ""},
 	{"id": "wake", "kind": INFO, "target": ""},
 	{"id": "events", "kind": INFO, "target": ""},
 	{"id": "offline", "kind": INFO, "target": ""},
@@ -60,6 +58,13 @@ static func is_valid_index(index: int) -> bool:
 
 static func clamp_saved(index: int) -> int:
 	return index if is_valid_index(index) else FINISHED
+
+
+static func index_of(step_id: String) -> int:
+	for index in STEPS.size():
+		if str(STEPS[index].id) == step_id:
+			return index
+	return FINISHED
 
 
 func is_active() -> bool:

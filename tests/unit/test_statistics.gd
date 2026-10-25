@@ -126,14 +126,24 @@ func test_simulation_records_quarrels() -> void:
 	assert_eq(state.production.total(ProductionStats.DISPUTE, "general_services"), 1)
 
 
-func test_rooms_cover_every_research_once() -> void:
-	var seen: Array[String] = []
-	for room: Dictionary in GameConfig.ROOMS:
-		for research_id in GameConfig.room_items(room.id, "research"):
-			assert_false(seen.has(research_id), research_id)
-			assert_true(GameConfig.RESEARCH.has(research_id), research_id)
-			seen.append(research_id)
-	assert_eq(seen.size(), GameConfig.RESEARCH.size())
+func test_every_upgrade_track_has_a_spot_in_a_known_room() -> void:
+	var rooms := UpgradeCatalog.rooms()
+	for upgrade_id in GameConfig.upgrade_ids():
+		var targets: Array[String] = [""]
+		if GameConfig.is_room_upgrade(upgrade_id):
+			targets = GameConfig.upgrade_rooms(upgrade_id)
+		assert_false(targets.is_empty(), upgrade_id)
+		for room_id in targets:
+			var spot := GameConfig.upgrade_spot(upgrade_id, room_id)
+			assert_false(spot.is_empty(), upgrade_id)
+			assert_has(rooms, GameConfig.spot_room(spot), GameConfig.upgrade_key(upgrade_id, room_id))
+
+
+func _connect_all_tubes() -> void:
+	state.set_upgrade("pneumatic_tubes", 1)
+	for room_id in GameConfig.upgrade_rooms("tube_station"):
+		state.set_upgrade("tube_station", 1, room_id)
+	state.set_upgrade("large_capsules", 1)
 
 
 func _has_label(node: Node, text: String) -> bool:
@@ -161,24 +171,30 @@ func _statistics() -> StatisticsSheet:
 	return sheet
 
 
-func test_research_sheet_shows_rooms() -> void:
-	var sheet := ResearchSheet.new()
+func test_upgrades_sheet_lists_every_room_with_upgrades() -> void:
+	UpgradesSheet.mode_index = 0
+	UpgradesSheet.expanded.clear()
+	var sheet := UpgradesSheet.new()
 	sheet.setup(game)
 	add_child_autofree(sheet)
-	assert_eq(ResearchSheet.research_rooms(), [GameConfig.ROOM_OFFICE, GameConfig.ROOM_KITCHEN, GameConfig.ROOM_TOILETS, GameConfig.ROOM_MAIL, GameConfig.ROOM_HALL] as Array[String])
-	for room_id in ResearchSheet.research_rooms():
-		assert_true(_has_label(sheet.content, UpgradeCards.room_title(room_id)))
-		assert_true(_has_label(sheet.content, UpgradeCards.room_description(room_id)))
+	assert_eq(UpgradesSheet.mode(), "rooms")
+	var groups := UpgradesSheet.grouped(UpgradeCatalog.entries(state), "rooms")
+	assert_true(groups.has(GameConfig.ROOM_HALL))
+	assert_true(groups.has("general_services"))
+	for room_id in UpgradesSheet.group_order("rooms"):
+		assert_eq(_has_label(sheet.content, UpgradeTexts.room_title(room_id)), groups.has(room_id), room_id)
 
 
 func test_statistics_sheet_shows_all_sections() -> void:
 	var sheet := _statistics()
 	assert_eq(sheet.title(), sheet.tr("SHEET_STATISTICS"))
-	for key in ["STATS_OVERVIEW", "STATS_SECTION_DEPARTMENTS", "STATS_SECTION_STATIONS", "STATS_SECTION_ABSENCES", "STATS_SECTION_OFFICIALS", "SHEET_REVIEWS", "DEPT_GENERAL_SERVICES"]:
+	for key in ["STATS_OVERVIEW", "SECTION_STATISTICS", "STATS_SECTION_DEPARTMENTS", "STATS_SECTION_STATIONS", "STATS_SECTION_ABSENCES", "STATS_SECTION_OFFICIALS", "SHEET_REVIEWS", "DEPT_GENERAL_SERVICES"]:
 		assert_true(_has_label(sheet.content, sheet.tr(key)), key)
 	for key in state.ordered_station_keys():
 		assert_true(_has_label(sheet.content, StationCard.label_for(key)), key)
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_OFFICIAL_NAME") % 1))
+	assert_true(_has_label(sheet.content, StatisticsSheet.lifetime_text(state)))
+	assert_true(_has_label(sheet.content, SpotStatus.population(state)))
 
 
 func test_statistics_sheet_shows_measured_rates() -> void:
@@ -276,9 +292,10 @@ func test_hud_offers_statistics_and_always_the_rating() -> void:
 
 func test_new_texts_exist_in_both_languages() -> void:
 	var keys: Array[String] = ["NAV_STATISTICS", "SHEET_STATISTICS", "STATS_INTRO", "STATS_OVERVIEW", "FMT_STATS_WINDOW", "STATS_INCOME", "STATS_ARRIVED", "STATS_COMPLETED", "STATS_REJECTED", "STATS_LOST", "STATS_CAPACITY", "FMT_STATS_REVIEWS", "STATS_SECTION_DEPARTMENTS", "STATS_DEPT_ARRIVED", "FMT_STATS_MEASURED_EXPECTED", "STATS_DEPT_COMPLETED", "STATS_DEPT_CAPACITY", "STATS_DEPT_WAITING", "STATS_SECTION_STATIONS", "STATS_STATIONS_HINT", "STATS_STATION_MEASURED", "STATS_STATION_CAPACITY", "STATS_STATION_DEMAND", "FMT_STATS_LOAD", "FMT_STATS_BOXES", "FMT_STATS_WORKING", "STATS_SECTION_ABSENCES", "STATS_SICK_NOW", "STATS_SICK_RATE", "STATS_SICK_AVOIDED", "STATS_DOZED", "STATS_DISPUTES", "FMT_STATS_DISPUTES", "STATS_DISPUTES_CALMED", "STATS_TRAININGS", "STATS_SECTION_OFFICIALS", "STATS_OFFICIALS_HINT", "FMT_STATS_OFFICIAL", "ACTION_OFFICIALS", "SHEET_OFFICIALS", "FMT_OFFICIALS_TITLE", "OFFICIALS_INTRO", "OFFICIALS_MACHINE", "OFFICIALS_EMPTY", "FMT_OFFICIAL_NAME", "FMT_SPECIALIST_NAME", "FMT_OFFICIAL_STATS", "FMT_TRAINING_LEVEL", "ACTION_TRAIN"]
-	for room: Dictionary in GameConfig.ROOMS:
-		keys.append("ROOM_" + str(room.id).to_upper())
-		keys.append("ROOM_DESC_" + str(room.id).to_upper())
+	for room_id in GameConfig.SERVICE_ROOMS:
+		keys.append("ROOM_" + room_id.to_upper())
+		if room_id != GameConfig.ROOM_PLAYER:
+			keys.append("ROOM_DESC_" + room_id.to_upper())
 	var original := TranslationServer.get_locale()
 	for locale in ["de", "en"]:
 		TranslationServer.set_locale(locale)
@@ -365,9 +382,9 @@ func test_statistics_sheet_shows_throughput_sections() -> void:
 	var sheet := _statistics()
 	for key in ["STATS_SECTION_UPGRADES", "STATS_UPGRADES_HINT", "STATS_SECTION_AREAS", "STATS_AREAS_HINT", "STATS_DEPT_STEPS", "STATS_STEP_TRANSPORT", "AREA_TRANSPORT", "AREA_COMPLAINTS", "AREA_REJECTS", "AREA_PHONES", "AREA_SEATING", "AREA_WAITING", "STATS_UPGRADES", "STATS_CALLS_ANSWERED", "STATS_CALLS_MISSED", "STATS_OCCUPANCY"]:
 		assert_true(_has_label(sheet.content, sheet.tr(key)), key)
-	assert_true(_has_text_part(sheet.content, sheet.tr("UPGRADE_LEVEL")))
+	assert_true(_has_text_part(sheet.content, UpgradeTexts.title(UpgradeCatalog.find(state, "level:" + REVIEW))))
 	assert_true(_has_text_part(sheet.content, sheet.tr("FMT_STATS_RUNNERS") % [0, Formulas.runner_capacity(state)]))
-	assert_true(_has_label(sheet.content, sheet.tr("FMT_STATS_OCCUPANCY") % [0, state.seat_capacity()]))
+	assert_true(_has_label(sheet.content, sheet.tr("FMT_STATS_OCCUPANCY") % [0, state.seat_capacity() + state.standing_capacity()]))
 	var review := state.station(REVIEW)
 	var case_time := Formulas.station_case_time(state, review, false)
 	var per_official := sheet.tr("FMT_PER_MINUTE") % UiKit.decimal(60.0 / case_time)
@@ -397,20 +414,23 @@ func test_statistics_sheet_phone_quota_without_calls() -> void:
 
 
 func test_statistics_sheet_shows_unlimited_tubes() -> void:
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
+	_connect_all_tubes()
 	var sheet := _statistics()
 	assert_true(_has_label(sheet.content, sheet.tr("STATS_UNLIMITED")))
 	assert_true(_has_text_part(sheet.content, sheet.tr("FMT_STATS_TUBES") % [Formulas.tube_capacity(state), 0]))
+	assert_false(_has_text_part(sheet.content, sheet.tr("FMT_STATS_RUNNERS") % [0, Formulas.runner_capacity(state)]))
 
 
 func test_statistics_sheet_shows_tubes_and_runners_when_mixed() -> void:
 	state.unlock_department("tax_services")
-	state.research["pneumatic_tubes"] = 1
-	state.department("general_services").tube = true
+	state.set_upgrade("pneumatic_tubes", 1)
+	state.set_upgrade("tube_station", 1, GameConfig.ROOM_HALL)
+	state.set_upgrade("tube_station", 1, "general_services")
 	var sheet := _statistics()
 	assert_true(_has_text_part(sheet.content, sheet.tr("FMT_STATS_TUBES") % [Formulas.tube_capacity(state), 0]))
 	assert_true(_has_text_part(sheet.content, sheet.tr("FMT_STATS_RUNNERS") % [0, Formulas.runner_capacity(state)]))
+	for role in Runner.ROLES:
+		assert_true(_has_text_part(sheet.content, BoardSection.role_info(state, role)), role)
 
 
 func test_statistics_sheet_recommends_upgrades_and_links_them() -> void:
@@ -435,8 +455,7 @@ func test_statistics_sheet_recommends_upgrades_and_links_them() -> void:
 
 
 func test_statistics_sheet_without_busy_areas() -> void:
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
+	_connect_all_tubes()
 	state.station(GameConfig.RECEPTION).staff = 1
 	state.station(GameConfig.COUNTER).staff = 1
 	state.station(REVIEW).level = 10
@@ -452,13 +471,19 @@ func test_statistics_sheet_without_busy_areas() -> void:
 func test_statistics_sheet_formats_upgrades() -> void:
 	var sheet := _statistics()
 	var relief := ThroughputReport.upgrade(ThroughputReport.HR, 0.5, ThroughputReport.RELIEF)
-	var places := ThroughputReport.upgrade(ThroughputReport.SEATS, 3.0, ThroughputReport.PLACES)
-	var capacity := ThroughputReport.upgrade(ThroughputReport.RESEARCH, 0.1, ThroughputReport.CAPACITY, "trolleys")
+	var places := ThroughputReport.track("seating", 3.0, ThroughputReport.PLACES)
+	var capacity := ThroughputReport.track("runner_trolleys", 0.1)
 	assert_eq(sheet._upgrade_gain(relief), sheet.tr("FMT_GAIN_RELIEF") % UiKit.decimal(30.0))
 	assert_eq(sheet._upgrade_gain(places), sheet.tr("FMT_GAIN_PLACES") % UiKit.number(3.0))
 	assert_eq(sheet._upgrade_gain(capacity), sheet.tr("FMT_GAIN_CAPACITY") % UiKit.decimal(6.0))
-	assert_eq(sheet._upgrade_name(capacity), sheet.tr("FMT_UPGRADE_RESEARCH") % sheet.tr("RESEARCH_TROLLEYS"))
+	assert_eq(sheet._upgrade_name(capacity), UpgradeTexts.title(UpgradeCatalog.find(state, "track:runner_trolleys")))
+	assert_eq(sheet._upgrade_name(capacity), sheet.tr("TRACK_RUNNER_TROLLEYS"))
+	var unresolved := ThroughputReport.track("tube_station", 1.0, ThroughputReport.CAPACITY, "nope")
+	assert_null(UpgradeCatalog.find(state, str(unresolved.entry)))
+	assert_eq(sheet._upgrade_name(unresolved), sheet.tr("TRACK_TUBE_STATION"))
 	assert_eq(sheet._upgrade_name(relief), sheet.tr("UPGRADE_HR"))
+	var staffed := ThroughputReport.upgrade(ThroughputReport.HR, 0.5, ThroughputReport.RELIEF, ThroughputReport.staff_entry("hr"))
+	assert_eq(sheet._upgrade_name(staffed), sheet.tr("STAFF_HR"))
 	var entry := {"upgrades": [relief, places]}
 	assert_eq(sheet._upgrade_lines(entry, 1), sheet.tr("FMT_UPGRADE") % [sheet.tr("UPGRADE_HR"), sheet._upgrade_gain(relief)])
 	assert_eq(sheet._upgrade_lines(entry).split("\n").size(), 2)
@@ -467,20 +492,26 @@ func test_statistics_sheet_formats_upgrades() -> void:
 	assert_eq(sheet._area_name({"area": ThroughputReport.PHONES, "key": ""}), sheet.tr("AREA_PHONES"))
 
 
-func test_upgrade_targets_open_the_right_sheet() -> void:
-	var research := ThroughputReport.upgrade(ThroughputReport.RESEARCH, 1.0)
-	var hire := ThroughputReport.upgrade(ThroughputReport.HIRE, 1.0)
+func test_upgrade_targets_open_the_right_spot() -> void:
 	var none := {"key": ""}
-	assert_eq(StatisticsSheet.upgrade_target(state, none, research), ["research", ""])
-	for id in [ThroughputReport.RUNNER, ThroughputReport.HELPER, ThroughputReport.COLLECTOR, ThroughputReport.HR, ThroughputReport.GUARD]:
-		assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.upgrade(id, 1.0)), ["team", ""], id)
-	for id in [ThroughputReport.SEATS, ThroughputReport.WAITING_SEATS]:
-		assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.upgrade(id, 1.0)), ["building", ""], id)
-	assert_eq(StatisticsSheet.upgrade_target(state, none, hire), ["departments", ""])
-	assert_eq(StatisticsSheet.upgrade_target(state, {"key": REVIEW}, hire), ["department", "general_services"])
-	assert_eq(StatisticsSheet.upgrade_target(state, {"key": GameConfig.RECEPTION}, hire), ["department", "general_services"])
+	var plain := ThroughputReport.upgrade(ThroughputReport.HIRE, 1.0)
+	assert_eq(StatisticsSheet.upgrade_target(state, none, plain), ["upgrades", ""])
+	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("runner_trolleys", 1.0)), ["spot", "runners"])
+	for staff_type: String in UpgradeCatalog.STAFF_SPOTS:
+		var staff := ThroughputReport.upgrade(ThroughputReport.RUNNER, 1.0, ThroughputReport.CAPACITY, ThroughputReport.staff_entry(staff_type))
+		assert_eq(StatisticsSheet.upgrade_target(state, none, staff), ["spot", str(UpgradeCatalog.STAFF_SPOTS[staff_type])], staff_type)
+	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("seating", 1.0, ThroughputReport.PLACES)), ["spot", "seating"])
+	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("waiting_places", 1.0, ThroughputReport.PLACES)), ["spot", "waiting"])
+	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("office_equipment", 1.0, ThroughputReport.CAPACITY, "general_services")), ["spot", "dept:general_services"])
+	var hire := ThroughputReport.upgrade(ThroughputReport.HIRE, 1.0, ThroughputReport.CAPACITY, "%s:%s" % [UpgradeCatalog.HIRE, REVIEW])
+	assert_eq(StatisticsSheet.upgrade_target(state, none, hire), ["spot", UpgradeCatalog.STATION_PREFIX + REVIEW])
+	assert_eq(StatisticsSheet.upgrade_target(state, {"key": REVIEW}, plain), ["spot", WorldLayout.STATION_PREFIX + REVIEW])
+	var tax_key := GameConfig.department_station_keys("tax_services")[0]
+	var locked := ThroughputReport.upgrade(ThroughputReport.HIRE, 1.0, ThroughputReport.CAPACITY, "%s:%s" % [UpgradeCatalog.HIRE, tax_key])
+	assert_eq(StatisticsSheet.upgrade_target(state, {"key": tax_key}, locked), ["upgrades", ""])
+	assert_eq(StatisticsSheet.upgrade_target(state, {"key": GameConfig.INSPECTION}, plain), ["upgrades", ""])
 	state.stations[GameConfig.INSPECTION] = Station.new(GameConfig.INSPECTION)
-	assert_eq(StatisticsSheet.upgrade_target(state, {"key": GameConfig.INSPECTION}, hire), ["departments", ""])
+	assert_eq(StatisticsSheet.upgrade_target(state, {"key": GameConfig.INSPECTION}, plain), ["spot", WorldLayout.STATION_PREFIX + GameConfig.INSPECTION])
 
 
 func test_highlight_is_only_changed_when_needed() -> void:
@@ -497,10 +528,10 @@ func test_highlight_is_only_changed_when_needed() -> void:
 
 
 func test_throughput_texts_exist_in_both_languages() -> void:
-	var keys: Array[String] = ["STATS_SECTION_UPGRADES", "STATS_UPGRADES_HINT", "STATS_UPGRADES_EMPTY", "FMT_STATS_AREA_LOAD", "ACTION_STATS_OPEN", "STATS_UPGRADES", "STATS_UPGRADES_NONE", "FMT_UPGRADE", "FMT_GAIN_CAPACITY", "FMT_GAIN_RELIEF", "FMT_GAIN_PLACES", "FMT_UPGRADE_RESEARCH", "STATS_UNLIMITED", "FMT_STATS_CASE_TIME", "STATS_DEPT_STEPS", "STATS_STEP_TRANSPORT", "STATS_SECTION_AREAS", "STATS_AREAS_HINT", "STATS_AREA_MEASURED", "STATS_AREA_INCOMING", "FMT_STATS_TRANSFERS", "FMT_STATS_RUNNERS", "FMT_STATS_TUBES", "FMT_STATS_HANDLED_BY", "FMT_STATS_COMPLAINT_STATE", "FMT_STATS_REJECT_STATE", "STATS_CALLS_ANSWERED", "STATS_CALLS_MISSED", "FMT_STATS_PHONE_STATE", "STATS_OCCUPANCY", "FMT_STATS_OCCUPANCY"]
-	for id in [ThroughputReport.HIRE, ThroughputReport.DESK, ThroughputReport.MACHINE, ThroughputReport.LEVEL, ThroughputReport.SPECIALIST, ThroughputReport.SUPERVISOR, ThroughputReport.RUNNER, ThroughputReport.HELPER, ThroughputReport.COLLECTOR, ThroughputReport.HR, ThroughputReport.GUARD, ThroughputReport.SEATS, ThroughputReport.WAITING_SEATS]:
+	var keys: Array[String] = ["STATS_SECTION_UPGRADES", "STATS_UPGRADES_HINT", "STATS_UPGRADES_EMPTY", "FMT_STATS_AREA_LOAD", "ACTION_STATS_OPEN", "STATS_UPGRADES", "STATS_UPGRADES_NONE", "FMT_UPGRADE", "FMT_GAIN_CAPACITY", "FMT_GAIN_RELIEF", "FMT_GAIN_PLACES", "STATS_UNLIMITED", "FMT_STATS_CASE_TIME", "STATS_DEPT_STEPS", "STATS_STEP_TRANSPORT", "STATS_SECTION_AREAS", "STATS_AREAS_HINT", "STATS_AREA_MEASURED", "STATS_AREA_INCOMING", "FMT_STATS_TRANSFERS", "FMT_STATS_RUNNERS", "FMT_STATS_TUBES", "FMT_STATS_HANDLED_BY", "FMT_STATS_COMPLAINT_STATE", "FMT_STATS_REJECT_STATE", "STATS_CALLS_ANSWERED", "STATS_CALLS_MISSED", "FMT_STATS_PHONE_STATE", "STATS_OCCUPANCY", "FMT_STATS_OCCUPANCY", "FMT_STATS_TICKETS", "SECTION_STATISTICS", "FMT_STATISTICS", "FMT_POPULATION"]
+	for id in [ThroughputReport.HIRE, ThroughputReport.DESK, ThroughputReport.MACHINE, ThroughputReport.LEVEL, ThroughputReport.SPECIALIST, ThroughputReport.SUPERVISOR, ThroughputReport.RUNNER, ThroughputReport.HELPER, ThroughputReport.COLLECTOR, ThroughputReport.HR, ThroughputReport.GUARD]:
 		keys.append("UPGRADE_" + id.to_upper())
-	for kind in [ThroughputReport.TRANSPORT, ThroughputReport.COMPLAINTS, ThroughputReport.REJECTS, ThroughputReport.PHONES, ThroughputReport.SEATING, ThroughputReport.WAITING]:
+	for kind in [ThroughputReport.TRANSPORT, ThroughputReport.COMPLAINTS, ThroughputReport.REJECTS, ThroughputReport.PHONES, ThroughputReport.SEATING, ThroughputReport.WAITING, ThroughputReport.TICKETS, ThroughputReport.CALLS]:
 		keys.append("AREA_" + kind.to_upper())
 	var original := TranslationServer.get_locale()
 	for locale in ["de", "en"]:

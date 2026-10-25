@@ -1,10 +1,7 @@
 class_name WorldView
 extends Node2D
 
-signal open_department(dept_id: String)
-signal open_departments
-signal open_room(room_id: String)
-signal open_complaints
+signal open_spot(spot: String)
 
 const VISIBLE_WIDTH := 720.0
 const TAP_SLOP := 14.0
@@ -41,12 +38,20 @@ const KITCHEN_LAYER := "_kitchen"
 const TOILETS_LAYER := "_toilets"
 const PHONE_LAYER := "_phone"
 const MAIL_LAYER := "_mail"
+const COMPLAINT_LAYER := "_complaint_office"
+const SHREDDER_LAYER := "_shredder_room"
+const TECH_LAYER := "_tech_room"
+const PLAYER_TAP_RADIUS := 36.0
+const COFFEE_TIERS := 4
+const KITCHEN_PLANTS := 4
+const CLERK_LOOKS := 6
 const TUBES_LAYER := "_tubes"
 const TUBE_SPEED := GameConfig.TUBE_SPEED
 const COMPLAINT_TUBE_SPEED := 110.0
 const TUBE_WINDOW_SPACING := 170.0
 const TUBE_WINDOW_LENGTH := 34.0
 const MAX_CAPSULES := 40
+const MAIL_FLOOR_VISIBLE := 12
 const CULL_MARGIN := 320.0
 const RING_POINTS := 40
 const RING_START := -PI * 0.5
@@ -61,6 +66,7 @@ var world_scale := 1.0
 var _focus_point := Vector2.ZERO
 var _focus_left := 0.0
 var _highlight_dept := ""
+var _highlight_spot := ""
 var _pressing := false
 var _press_position := Vector2.ZERO
 var _press_time := 0
@@ -78,6 +84,7 @@ var _flavor_count := 0
 var _shred_time := 0.0
 var _returning: Dictionary = {}
 var _leaving: Dictionary = {}
+var _shredding: Dictionary = {}
 var _dispute_crews: Dictionary = {}
 var _crew_desks: Dictionary = {}
 var _citizens := CitizenTracker.new()
@@ -108,6 +115,9 @@ func _ready() -> void:
 	_add_layer(TOILETS_LAYER, layout.toilets.grow(24))
 	_add_layer(PHONE_LAYER, layout.phone_office.grow(24))
 	_add_layer(MAIL_LAYER, layout.mail_room.grow(24))
+	_add_layer(COMPLAINT_LAYER, layout.complaint_office.grow(24))
+	_add_layer(SHREDDER_LAYER, layout.shredder_room.grow(24))
+	_add_layer(TECH_LAYER, layout.tech_room.grow(24))
 	_add_layer(HALL_STATIC_LAYER, layout.hall.grow(24), true)
 	_add_layer(HALL_LAYER, layout.hall.grow(24))
 	for slot in layout.rooms:
@@ -132,6 +142,7 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	sim.smuggling_missed.connect(func(_dept_id: String) -> void: _float(layout.area("customs/clearance").get_center(), tr("FLOAT_SMUGGLED"), AppTheme.accent("error")))
 	sim.employee_dozed.connect(_on_employee_dozed)
 	sim.mail_delivered.connect(_on_mail_delivered)
+	sim.mail_picked_up.connect(func() -> void: _redraw_at(layout.mail_floor_point()))
 	sim.mail_answered.connect(_on_mail_answered)
 	sim.applications_bundled.connect(_on_applications_bundled)
 	sim.form_missing.connect(_on_form_missing)
@@ -148,6 +159,7 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	sim.complaint_shredded.connect(_on_complaint_shredded)
 	sim.case_rejected.connect(_on_case_rejected)
 	sim.case_shredded.connect(_on_case_shredded)
+	sim.dept_shredded.connect(_on_dept_shredded)
 	sim.complaint_piped.connect(_on_complaint_piped)
 	sim.review_posted.connect(_on_review_posted)
 	sim.review_removed.connect(_on_review_removed)
@@ -158,6 +170,8 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	sim.dispute_started.connect(_on_dispute_started)
 	sim.dispute_ended.connect(_on_dispute_ended)
 	sim.ticket_called.connect(_on_ticket_called)
+	sim.ruckus_started.connect(_on_ruckus_started)
+	sim.ruckus_calmed.connect(_on_ruckus_calmed)
 	sim.department_unlocked.connect(func(dept_id: String) -> void: focus(dept_id))
 
 
@@ -165,6 +179,27 @@ func focus(slot: String) -> void:
 	_focus_point = layout.room(slot).get_center()
 	_focus_left = FOCUS_TIME
 	_highlight_dept = slot
+	_highlight_spot = ""
+
+
+func focus_spot(spot: String) -> void:
+	if spot == GameConfig.ROOM_PLAYER:
+		_focus_point = game.state.player.position
+	elif layout.spot_rects(spot).is_empty():
+		return
+	else:
+		_focus_point = layout.spot_center(spot)
+	_focus_left = FOCUS_TIME
+	_highlight_dept = ""
+	_highlight_spot = spot
+
+
+func highlighted_spot() -> String:
+	return _highlight_spot
+
+
+func focus_point() -> Vector2:
+	return _focus_point
 
 
 func visible_size() -> Vector2:
@@ -187,6 +222,7 @@ func _process(delta: float) -> void:
 		target = _focus_point
 		if _focus_left <= 0.0:
 			_highlight_dept = ""
+			_highlight_spot = ""
 	camera = camera.lerp(target, 1.0 - exp(-CAMERA_FOLLOW * delta))
 	camera = _clamp_camera(camera)
 	var viewport := get_viewport_rect().size
@@ -256,25 +292,29 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _handle_tap(point: Vector2) -> void:
-	if layout.complaint_read_rect().has_point(point):
-		open_complaints.emit()
-		return
-	var room_id := layout.header_at(point)
-	if room_id.is_empty():
-		return
-	if GameConfig.department(room_id).is_empty():
-		if UpgradeCards.has_upgrades(game.state, room_id):
-			open_room.emit(room_id)
-	elif game.state.department(room_id).unlocked:
-		open_department.emit(room_id)
-	else:
-		open_departments.emit()
+	var spot := tap_spot(point)
+	if not spot.is_empty():
+		open_spot.emit(spot)
+
+
+func tap_spot(point: Vector2) -> String:
+	var state := game.state
+	if point.distance_to(state.player.position) <= PLAYER_TAP_RADIUS:
+		return GameConfig.ROOM_PLAYER
+	var spot := layout.spot_at(point)
+	if spot.is_empty():
+		var room_id := layout.room_at(point)
+		if room_id.is_empty():
+			return ""
+		spot = UpgradeCatalog.room_spot(room_id)
+	return UpgradeCatalog.resolve_spot(state, spot)
 
 
 func _advance_effects(delta: float) -> void:
 	_shred_time = maxf(0.0, _shred_time - delta)
 	_count_down(_returning, delta)
 	_count_down(_leaving, delta)
+	_count_down(_shredding, delta)
 	for list: Array[Dictionary] in [_walkers, _floaters, _capsules]:
 		var index := list.size() - 1
 		while index >= 0:
@@ -339,12 +379,15 @@ func _walker(from: Vector2, to: Vector2, kind: String, dept_id: String, duration
 	_walkers.append({"from": from, "to": to, "kind": kind, "dept": dept_id, "t": 0.0, "duration": duration, "look": _walkers.size() + _flavor_count, "color": AppTheme.CITIZEN_COLORS[_walkers.size() % AppTheme.CITIZEN_COLORS.size()]})
 
 
-func _on_mail_delivered(count: int, returned: int) -> void:
-	if count + returned <= 0:
+func _on_mail_delivered(count: int, dropped: int, returned: int) -> void:
+	if count + dropped + returned <= 0:
 		return
 	_walker(layout.mail_street(), layout.mail_drop_point(), "postman", "", 2.0)
 	if count > 0:
 		_float(layout.mail_drop_point() + Vector2(0, -40), tr("FMT_FLOAT_MAIL") % count, AppTheme.accent("primary"))
+	if dropped > 0:
+		_float(layout.mail_floor_point() + Vector2(0, -50), tr("FMT_FLOAT_MAIL_DROPPED") % dropped, AppTheme.accent("warning"))
+		_redraw_at(layout.mail_floor_point())
 	if returned > 0:
 		_float(layout.mail_door() + Vector2(60, -70), tr("FMT_FLOAT_MAIL_RETURNED") % returned, AppTheme.accent("warning"))
 
@@ -543,6 +586,12 @@ func _on_case_shredded(_dept_id: String) -> void:
 	_shred_time = SHRED_ANIMATION
 
 
+func _on_dept_shredded(dept_id: String) -> void:
+	var point := layout.dept_shredder_point(dept_id)
+	_shredding[dept_id] = {"left": SHRED_ANIMATION, "point": point}
+	_redraw_at(point)
+
+
 func _on_intern_broke_down(slot: int) -> void:
 	_float(_intern_position(slot) + Vector2(0, -60), tr("FLOAT_INTERN_BREAKDOWN"), AppTheme.accent("error"), AppTheme.SIZE_TITLE_SMALL)
 
@@ -562,6 +611,14 @@ func _on_coffee_served(key: String, desk: int) -> void:
 	if _floaters.size() > MAX_FLAVOR_FLOATERS:
 		return
 	_float(layout.desk_position(key, desk) + Vector2(0, -76), Flavor.coffee_served(_flavor_count), AppTheme.accent("tertiary"), AppTheme.SIZE_TITLE_SMALL)
+
+
+func _on_ruckus_started(desk: int) -> void:
+	_float(layout.ruckus_point(desk) + Vector2(0, -70), tr("FLOAT_RUCKUS_START"), AppTheme.accent("error"), AppTheme.SIZE_TITLE_SMALL)
+
+
+func _on_ruckus_calmed(desk: int) -> void:
+	_float(layout.ruckus_point(desk) + Vector2(0, -70), tr("FLOAT_RUCKUS_CALMED"), AppTheme.accent("success"), AppTheme.SIZE_TITLE_SMALL)
 
 
 func _on_dispute_started(_kind: String, dept_id: String) -> void:
@@ -646,7 +703,8 @@ func _on_case_piped(from_key: String, to_key: String, dept_id: String) -> void:
 		return
 	var path := layout.tube_path(from_key, to_key)
 	var length := WorldLayout.path_length(path)
-	_capsules.append({"path": path, "color": AppTheme.department_color(dept_id), "t": 0.0, "duration": maxf(0.2, length / TUBE_SPEED)})
+	var speed := Formulas.tube_segment_speed(game.state, RouteBuilder.tube_id(from_key, to_key))
+	_capsules.append({"path": path, "color": AppTheme.department_color(dept_id), "t": 0.0, "duration": maxf(0.2, length / speed), "speed": speed})
 
 
 func _on_citizen_left(dept_id: String) -> void:
@@ -784,6 +842,12 @@ func _draw_layer(node: Node2D, id: String) -> void:
 			_draw_phone_office(state)
 		MAIL_LAYER:
 			_draw_mail_room(state)
+		COMPLAINT_LAYER:
+			_draw_complaint_office(state)
+		SHREDDER_LAYER:
+			_draw_shredder_room(state)
+		TECH_LAYER:
+			_draw_tech_room(state)
 		HALL_STATIC_LAYER:
 			_draw_hall_static()
 		HALL_LAYER:
@@ -827,6 +891,7 @@ func _draw_crowd() -> void:
 	_draw_complaint_intern(state, view)
 	_draw_coffee_interns(state, view)
 	_draw_disputes(state, view)
+	_draw_ruckus(state, view)
 	_draw_effects()
 	_canvas = self
 
@@ -874,7 +939,7 @@ func _add_seated(result: Array[Dictionary], case_file: CaseFile, standing: Vecto
 
 
 func _sync_citizens(state: GameState) -> void:
-	var gone := _citizens.sync(citizen_placements(state), _citizen_clock, layout.door_in(), layout.waiting_seat, state.seat_capacity())
+	var gone := _citizens.sync(citizen_placements(state), _citizen_clock, layout.door_in(), layout.waiting_seat, mini(state.seat_capacity(), WorldLayout.MAX_VISIBLE_SEATS))
 	_citizen_clock = 0.0
 	for entry in gone:
 		var from: Vector2 = entry.pos
@@ -891,6 +956,7 @@ static func citizen_color(look: int) -> Color:
 func _draw_citizens(state: GameState, view: Rect2) -> void:
 	_sync_citizens(state)
 	var quipped := false
+	var crowding := Formulas.crowding_factor(state)
 	for case_file: CaseFile in _citizens.entries:
 		var entry: Dictionary = _citizens.entries[case_file]
 		var pos: Vector2 = entry.pos
@@ -903,7 +969,7 @@ func _draw_citizens(state: GameState, view: Rect2) -> void:
 		ItemPainter.draw_person_lite(_canvas, pos + Vector2(0, bob), citizen_color(int(entry.look)), 0.8 if seated else 0.9, int(entry.look))
 		if walking or seated or stage == STAGE_DESK or stage == STAGE_COUNTER:
 			continue
-		var mood := clampf(case_file.waited / Formulas.citizen_patience(state, case_file), 0.0, 1.0)
+		var mood := clampf(case_file.waited / Formulas.citizen_patience(state, case_file, crowding), 0.0, 1.0)
 		_canvas.draw_arc(pos + Vector2(0, 7), 12, -PI * 0.5, -PI * 0.5 + TAU * (1.0 - mood), 16, AppTheme.accent("success").lerp(AppTheme.accent("error"), mood), 2.0)
 		if stage == STAGE_WAITING:
 			_icon(pos + Vector2(0, -26), Icons.TICKET, 16, AppTheme.accent("primary"))
@@ -981,7 +1047,7 @@ func _visitor_speaking(state: GameState) -> bool:
 
 
 func _draw_complaint_intern(state: GameState, view: Rect2) -> void:
-	if not state.has_research("shredder_service"):
+	if not state.has_upgrade("shredder_service"):
 		return
 	for unit in state.all_interns():
 		_draw_intern_unit(state, view, unit)
@@ -1035,6 +1101,21 @@ func _draw_coffee_interns(state: GameState, view: Rect2) -> void:
 		_canvas.draw_line(cup + Vector2(-1, -6), cup + Vector2(-1 + sin(_time * 4.0) * 2.0, -12), AppTheme.METAL, 1.5)
 
 
+func _draw_ruckus(state: GameState, view: Rect2) -> void:
+	if not state.has_ruckus():
+		return
+	var point := layout.ruckus_point(state.ruckus_desk)
+	if not view.has_point(point):
+		return
+	var pulse := 0.5 + 0.5 * sin(_time * 6.0)
+	_canvas.draw_arc(point, 34.0 + pulse * 3.0, 0, TAU, 32, Color(AppTheme.accent("error"), 0.5 + pulse * 0.4), 3.0)
+	_canvas.draw_circle(point + Vector2(0, -40), 13, AppTheme.accent("error"))
+	_icon(point + Vector2(0, -40), Icons.DESCRIPTION, 16, AppTheme.on_accent("error"))
+	_progress_ring(point, 34.0, 6.0, AppTheme.accent("success"), func() -> float: return state.ruckus_progress / GameConfig.RUCKUS_CALM_TIME)
+	_speech(point + Vector2(0, -62), Flavor.ruckus_line(int(_time / 2.5)))
+	_text_centered_outlined(point + Vector2(0, 42), tr("LABEL_RUCKUS"), AppTheme.SIZE_LABEL_SMALL, AppTheme.accent("error"), AppTheme.SURFACE, _bold)
+
+
 func _draw_disputes(state: GameState, view: Rect2) -> void:
 	for dispute in state.disputes:
 		var point := layout.dispute_point(dispute.dept_id)
@@ -1073,6 +1154,7 @@ func _draw_actors() -> void:
 	_canvas = _actors
 	var state := game.state
 	_draw_live_rings()
+	_draw_spot_highlight()
 	_draw_player(state.player)
 	_draw_guidance()
 	_canvas = self
@@ -1115,7 +1197,11 @@ func _draw_hall_static() -> void:
 
 func _draw_waiting_sign(state: GameState) -> void:
 	_draw_hall_sign(layout.queue_sign_rect(), "FMT_WAITING_SIGN", state.lobby_used(), state.lobby_capacity())
-	_draw_hall_sign(layout.seating_sign_rect(), "FMT_SEATING_SIGN", state.seated_citizens(), state.seat_capacity())
+	var seated := state.seated_citizens()
+	var seats := state.seat_capacity()
+	_draw_hall_sign(layout.seating_sign_rect(), "FMT_SEATING_SIGN", mini(seated, seats), seats)
+	if state.standing_capacity() > 0:
+		_draw_hall_sign(layout.standing_sign_rect(), "FMT_STANDING_SIGN", maxi(0, seated - seats), state.standing_capacity())
 
 
 func _draw_hall_sign(rect: Rect2, format_key: String, used: int, capacity: int) -> void:
@@ -1125,32 +1211,36 @@ func _draw_hall_sign(rect: Rect2, format_key: String, used: int, capacity: int) 
 
 
 func _draw_hall(state: GameState, view: Rect2) -> void:
-	_draw_complaint_corner(state)
+	_draw_complaint_box(state)
 	_draw_waiting_sign(state)
 	_draw_station(state, GameConfig.RECEPTION, "")
 	_draw_station(state, GameConfig.COUNTER, "")
 	_draw_hall_furnishing(state, view)
+	_draw_board(layout.guards_board(), tr("BOARD_GUARDS"), tr("FMT_BOARD_STAFF") % [state.guards, GameConfig.MAX_GUARDS])
+	_draw_board(layout.training_board(), tr("BOARD_TRAINING"), tr("FMT_BOARD_LEVEL") % state.upgrade_level("quality_training"))
+	_draw_tube_slot(state, GameConfig.ROOM_HALL)
 	if state.tickets_unlocked():
 		_draw_ticket_corner(state)
 
 
 func _draw_ticket_corner(state: GameState) -> void:
+	for index in Formulas.ticket_machines(state):
+		OfficePainter.ticket_dispenser(_canvas, layout.ticket_machine_point(index))
 	var machine := layout.ticket_machine_point()
-	OfficePainter.ticket_dispenser(_canvas, machine)
 	_canvas.draw_multiline_string(_bold, machine + Vector2(-46, -58), tr("SIGN_TICKET"), HORIZONTAL_ALIGNMENT_CENTER, 92.0, AppTheme.SIZE_LABEL_SMALL - 1, 2, AppTheme.ON_SURFACE)
-	var draw_ratio := func() -> float: return state.ticket_progress / Formulas.ticket_draw_time(state.ticket_machine_level) if not state.ticket_line.is_empty() else 0.0
+	var draw_ratio := func() -> float: return state.ticket_progress / Formulas.ticket_draw_time(state) if not state.ticket_line.is_empty() else 0.0
 	var draw_color := func() -> Color: return AppTheme.accent("success") if layout.near(state.player.position, machine) else AppTheme.accent("primary")
 	_progress_ring(machine + Vector2(0, 6), 30.0, 4.0, draw_color, draw_ratio)
 	var display := layout.ticket_display_rect()
 	OfficePainter.call_display(_canvas, display)
 	_text_centered(display.get_center(), tr("FMT_TICKET_NUMBER") % state.tickets_called, AppTheme.SIZE_LABEL_SMALL + 2, AppTheme.CALL_DISPLAY_TEXT, _bold)
-	var call_ratio := func() -> float: return state.ticket_call_progress / Formulas.ticket_call_time(state.ticket_display_level) if not state.ticket_waiting.is_empty() else 0.0
+	var call_ratio := func() -> float: return state.ticket_call_progress / Formulas.ticket_call_time(state) if not state.ticket_waiting.is_empty() else 0.0
 	var call_color := func() -> Color: return AppTheme.accent("success") if layout.near(state.player.position, layout.ticket_display_point()) else AppTheme.accent("primary")
 	_progress_ring(layout.ticket_display_point(), 22.0, 4.0, call_color, call_ratio)
 
 
 func _draw_hall_furnishing(state: GameState, view: Rect2) -> void:
-	_sync_pop(_seat_born, state.seat_capacity())
+	_sync_pop(_seat_born, mini(state.seat_capacity(), WorldLayout.MAX_VISIBLE_SEATS))
 	_sync_pop(_slot_born, state.lobby_capacity())
 	for i in _slot_born.size():
 		var pos := layout.queue_point(i)
@@ -1187,6 +1277,7 @@ func _draw_kitchen(state: GameState) -> void:
 	_canvas.draw_circle(header.position + Vector2(32, 28), 20, on_band)
 	_icon(header.position + Vector2(32, 28), Icons.COFFEE, 24, color.darkened(0.3))
 	_text(header.position + Vector2(62, 36), tr("AREA_KITCHEN"), AppTheme.SIZE_TITLE_MEDIUM, on_band, _bold, header.size.x - 120)
+	_icon(Vector2(header.end.x - 24, header.position.y + 28), Icons.CHEVRON, 26, on_band)
 	var origin := rect.position
 	OfficePainter.fridge(_canvas, Rect2(origin + Vector2(24, 66), Vector2(58, 118)))
 	OfficePainter.kitchen_counter(_canvas, Rect2(origin + Vector2(96, 110), Vector2(340, 40)))
@@ -1204,7 +1295,7 @@ func _draw_kitchen(state: GameState) -> void:
 				fetching = fetching or mood.state == DeskMood.FETCH or mood.state == DeskMood.SLOW
 				_draw_kitchen_guest(station, desk, mood, not chatting)
 				chatting = chatting or mood.state == DeskMood.CHAT or mood.state == DeskMood.SLOW
-	OfficePainter.coffee_machine(_canvas, layout.coffee_machine_point() + Vector2(0, 20), state.research_level("coffee"), fetching, _time, state.research_level("coffee_machine"))
+	OfficePainter.coffee_machine(_canvas, layout.coffee_machine_point() + Vector2(0, 20), _tier(state, "coffee", OfficePainter.COFFEE_LIGHTS), fetching, _time, _tier(state, "coffee_machine", COFFEE_TIERS))
 	OfficePainter.kitchen_table(_canvas, origin + Vector2(700, 185))
 	var board := Rect2(origin + Vector2(560, 62), Vector2(220, 30))
 	_rounded(board, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
@@ -1213,8 +1304,10 @@ func _draw_kitchen(state: GameState) -> void:
 	_rounded(rules, AppTheme.SURFACE, 8, AppTheme.OUTLINE, 2)
 	_text_centered(rules.get_center(), tr("SIGN_KITCHEN_RULES"), AppTheme.SIZE_LABEL_SMALL, AppTheme.ON_SURFACE, _bold)
 	OfficePainter.plant(_canvas, origin + Vector2(865, 150), 1.1)
-	for i in state.research_level("kitchen"):
+	for i in _tier(state, "kitchen", KITCHEN_PLANTS):
 		OfficePainter.plant(_canvas, origin + Vector2(470 + 44 * i, 135), 0.8)
+	_draw_board(layout.coffee_interns_board(), tr("BOARD_COFFEE_INTERNS"), tr("FMT_BOARD_STAFF") % [state.coffee_interns.size(), GameConfig.MAX_COFFEE_INTERNS])
+	_draw_board(layout.works_council_board(), tr("BOARD_WORKS_COUNCIL"), tr("FMT_BOARD_DISPUTES") % [state.disputes.size(), state.disputes_solved])
 	if state.kranz:
 		_draw_kranz_banner(state)
 
@@ -1227,7 +1320,8 @@ func _draw_toilets(state: GameState) -> void:
 	_rounded(rect, color.lerp(AppTheme.SURFACE, 0.82), ROOM_RADIUS, color.darkened(0.15), 3, false)
 	OfficePainter.tiles(_canvas, Rect2(rect.position + Vector2(10, WorldLayout.HEADER), rect.size - Vector2(20, WorldLayout.HEADER + 12)))
 	_rounded(header, color, ROOM_RADIUS, color.darkened(0.15), 3, false, true)
-	_text(header.position + Vector2(24, 36), tr("AREA_TOILETS"), AppTheme.SIZE_TITLE_MEDIUM, on_band, _bold, header.size.x - 40)
+	_text(header.position + Vector2(24, 36), tr("AREA_TOILETS"), AppTheme.SIZE_TITLE_MEDIUM, on_band, _bold, header.size.x - 70)
+	_icon(Vector2(header.end.x - 24, header.position.y + 28), Icons.CHEVRON, 26, on_band)
 	_draw_loo_block(state)
 	var voiced := false
 	for key in state.stations:
@@ -1251,6 +1345,7 @@ func _draw_phone_office(state: GameState) -> void:
 	_canvas.draw_circle(header.position + Vector2(32, 28), 20, on_band)
 	_icon(header.position + Vector2(32, 28), Icons.STAFF.hr, 24, color.darkened(0.3))
 	_text(header.position + Vector2(62, 36), tr("AREA_PHONE_OFFICE"), AppTheme.SIZE_TITLE_MEDIUM, on_band, _bold, header.size.x - 120)
+	_icon(Vector2(header.end.x - 24, header.position.y + 28), Icons.CHEVRON, 26, on_band)
 	var ringing := state.ringing_count()
 	var board := layout.switchboard_point()
 	OfficePainter.switchboard(_canvas, board, ringing, _time)
@@ -1276,6 +1371,7 @@ func _draw_mail_room(state: GameState) -> void:
 	_canvas.draw_circle(header.position + Vector2(32, 28), 20, on_band)
 	_icon(header.position + Vector2(32, 28), Icons.MAIL, 24, color.darkened(0.3))
 	_text(header.position + Vector2(62, 36), tr("AREA_MAIL_ROOM"), AppTheme.SIZE_TITLE_MEDIUM, on_band, _bold, header.size.x - 120)
+	_icon(Vector2(header.end.x - 24, header.position.y + 28), Icons.CHEVRON, 26, on_band)
 	var room := state.mailroom()
 	if room == null:
 		_text_centered(rect.get_center(), tr("FMT_MAIL_LOCKED") % (GameConfig.MAIL_UNLOCK_STAGE + 1), AppTheme.SIZE_TITLE_SMALL, AppTheme.ON_SURFACE_VARIANT, _bold)
@@ -1283,12 +1379,26 @@ func _draw_mail_room(state: GameState) -> void:
 	OfficePainter.mailbox(_canvas, layout.mail_door() + Vector2(40, 0))
 	var storage := layout.mail_storage_rect()
 	OfficePainter.mail_shelf(_canvas, storage, room.inbox.size(), room.storage_capacity())
+	_draw_mail_floor(state)
 	_draw_hall_sign(Rect2(storage.position + Vector2(0, storage.size.y + 6), Vector2(storage.size.x, 26)), "FMT_MAIL_SHELF_SIGN", room.inbox.size(), room.storage_capacity())
 	_draw_station(state, GameConfig.MAILROOM, "")
+	_draw_tube_slot(state, GameConfig.ROOM_MAIL)
 	var sign_rect := Rect2(layout.mail_desk_point() + Vector2(-110, -40), Vector2(220, 26))
 	_rounded(sign_rect, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
 	_text_centered(sign_rect.get_center(), tr("SIGN_MAIL_%d" % (int(_time / 6.0) % 3 + 1)), AppTheme.SIZE_LABEL_SMALL, AppTheme.SIGN_TEXT, _bold)
 	_text_centered(layout.mail_desk_point() + Vector2(0, 20), tr("FMT_MAIL_NEXT") % ceili(state.mail_timer), AppTheme.SIZE_LABEL_SMALL, AppTheme.ON_SURFACE_VARIANT, _bold)
+
+
+func _draw_mail_floor(state: GameState) -> void:
+	var count := state.mail_floor.size()
+	if count == 0:
+		return
+	var center := layout.mail_floor_point()
+	for index in mini(count, MAIL_FLOOR_VISIBLE):
+		var angle := index * 2.4
+		var offset := Vector2(cos(angle), sin(angle)) * (6.0 + index * 2.5)
+		ItemPainter.draw_letter(_canvas, center + offset, AppTheme.department_color(state.mail_floor[index].dept_id))
+	_text_centered_outlined(center + Vector2(0, 44), tr("FMT_MAIL_FLOOR") % count, AppTheme.SIZE_LABEL_SMALL, AppTheme.accent("warning"), AppTheme.SURFACE, _bold)
 
 
 func _draw_phone_line(state: GameState, line: int, ringing: bool) -> void:
@@ -1362,10 +1472,12 @@ func _draw_loo_block(state: GameState) -> void:
 	var plate := Rect2(origin + Vector2(0, -24), Vector2(256, 22))
 	_rounded(plate, AppTheme.SIGN_BOARD, 6, AppTheme.WALL, 2)
 	_text_centered(plate.get_center(), tr("SIGN_LOO"), AppTheme.SIZE_LABEL_SMALL, AppTheme.SIGN_TEXT, _bold)
-	var occupied: Array[bool] = []
-	for i in GameConfig.LOO_SLOTS:
-		occupied.append(state.kitchen_slot_taken(GameConfig.KITCHEN_SLOTS + i))
-	OfficePainter.toilet_stalls(_canvas, origin, occupied)
+	var slots := state.loo_slots()
+	for row in ceili(float(slots) / WorldLayout.LOO_COLUMNS):
+		var occupied: Array[bool] = []
+		for column in mini(WorldLayout.LOO_COLUMNS, slots - row * WorldLayout.LOO_COLUMNS):
+			occupied.append(state.kitchen_slot_taken(GameConfig.KITCHEN_SLOTS + row * WorldLayout.LOO_COLUMNS + column))
+		OfficePainter.toilet_stalls(_canvas, layout.loo_origin(row), occupied, WorldLayout.LOO_PITCH)
 
 
 func _draw_kitchen_guest(station: Station, desk: int, mood: DeskMood, with_quip: bool) -> void:
@@ -1404,13 +1516,13 @@ func _draw_kitchen_guest(station: Station, desk: int, mood: DeskMood, with_quip:
 
 
 func _draw_hall_decor(hall: Rect2) -> void:
-	var plate := Rect2(Vector2(hall.get_center().x - 170.0, hall.position.y + 6.0), Vector2(340, 30))
+	var plate := layout.hall_plate()
 	_rounded(plate, AppTheme.SIGN_BOARD, 10, AppTheme.WALL, 2, true)
 	_text_centered(plate.get_center(), tr("SIGN_BUILDING"), AppTheme.SIZE_TITLE_SMALL, AppTheme.SIGN_TEXT, _bold)
 	_text(Vector2(plate.end.x + 18.0, plate.position.y + 24.0), tr("AREA_PUBLIC"), AppTheme.SIZE_BODY_SMALL, AppTheme.ON_SURFACE_VARIANT, _bold)
 	OfficePainter.clock(_canvas, hall.position + Vector2(52, 40), 22.0)
-	OfficePainter.cabinet(_canvas, Rect2(hall.position + Vector2(18, 76), Vector2(60, 108)))
-	var board := Rect2(hall.position + Vector2(6, 202), Vector2(88, 96))
+	OfficePainter.cabinet(_canvas, layout.archive_rect())
+	var board := layout.hours_board()
 	_rounded(board, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
 	_text_centered(board.position + Vector2(44, 18), tr("SIGN_HOURS_TITLE"), AppTheme.SIZE_LABEL_SMALL - 1, AppTheme.FLAG_GOLD, _bold)
 	_canvas.draw_multiline_string(_bold, board.position + Vector2(4, 42), tr("SIGN_HOURS_TEXT"), HORIZONTAL_ALIGNMENT_CENTER, board.size.x - 8, AppTheme.SIZE_LABEL_SMALL - 1, 3, AppTheme.SIGN_TEXT)
@@ -1428,25 +1540,128 @@ func _draw_closed_sign(rect: Rect2) -> void:
 	_canvas.draw_multiline_string(_bold, rect.position + Vector2(6, 15), tr("SIGN_CLOSED"), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 12.0, AppTheme.SIZE_LABEL_SMALL - 3, 3, AppTheme.SURFACE)
 
 
-func _draw_complaint_corner(state: GameState) -> void:
-	var desk := layout.complaint_desk_point()
-	var sign_rect := Rect2(desk + Vector2(-120, -92), Vector2(240, 26))
-	_rounded(sign_rect, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
-	_text_centered(sign_rect.get_center(), tr("SIGN_COMPLAINTS"), AppTheme.SIZE_LABEL_SMALL, AppTheme.SIGN_TEXT, _bold)
-	ItemPainter.draw_person(_canvas, layout.complaint_clerk_point(), AppTheme.SIGN_BOARD, 1.0, Color.TRANSPARENT, 3 + state.complaint_clerk_level, AppTheme.TIE)
-	OfficePainter.desk(_canvas, desk, false, false, _time)
+func _draw_complaint_box(state: GameState) -> void:
 	var box := layout.complaint_box_point()
 	var cap := Formulas.complaint_cap(state)
 	var full := state.complaints >= cap
 	OfficePainter.complaint_box(_canvas, box, float(state.complaints) / float(cap))
 	_text_centered_outlined(box + Vector2(0, 34), "%d/%d" % [state.complaints, cap], AppTheme.SIZE_LABEL_SMALL + 1, AppTheme.accent("error") if full else AppTheme.ON_SURFACE, AppTheme.SURFACE, _bold)
-	if state.research_level("complaint_tube") > 0:
-		_draw_tube(layout.complaint_tube_path())
+
+
+func _service_shell(room_id: String, color: Color, icon_code: String) -> Rect2:
+	var rect := layout.service_room(room_id)
+	var header := layout.room_header(room_id)
+	var on_band := _on_color(color)
+	_rounded(rect, color.lerp(AppTheme.SURFACE, 0.88), ROOM_RADIUS, color.darkened(0.15), 3, false)
+	OfficePainter.tiles(_canvas, Rect2(rect.position + Vector2(10, WorldLayout.HEADER), rect.size - Vector2(20, WorldLayout.HEADER + 12)))
+	_rounded(header, color, ROOM_RADIUS, color.darkened(0.15), 3, false, true)
+	_canvas.draw_circle(header.position + Vector2(32, 28), 20, on_band)
+	_icon(header.position + Vector2(32, 28), icon_code, 24, color.darkened(0.3))
+	_text(header.position + Vector2(62, 36), UpgradeTexts.room_title(room_id), AppTheme.SIZE_TITLE_MEDIUM, on_band, _bold, header.size.x - 110)
+	_icon(Vector2(header.end.x - 24, header.position.y + 28), Icons.CHEVRON, 26, on_band)
+	return rect
+
+
+func _draw_door(point: Vector2) -> void:
+	_rounded(Rect2(point + Vector2(-34, -8), Vector2(68, 16)), AppTheme.WALL, 6)
+	_icon(point, Icons.DOOR, 14, AppTheme.SURFACE)
+
+
+func _draw_board(rect: Rect2, title: String, body: String) -> void:
+	_rounded(rect, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
+	var size := AppTheme.SIZE_LABEL_SMALL - 1
+	var width := rect.size.x - 12.0
+	var title_lines := 1 if _bold.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= width else 2
+	_canvas.draw_multiline_string(_bold, rect.position + Vector2(6, 18), title, HORIZONTAL_ALIGNMENT_CENTER, width, size, title_lines, AppTheme.FLAG_GOLD)
+	var top := 22.0 + title_lines * (size + 4.0)
+	var lines := maxi(1, floori((rect.size.y - top) / (size + 4.0)) + 1)
+	_canvas.draw_multiline_string(_bold, rect.position + Vector2(6, top), body, HORIZONTAL_ALIGNMENT_CENTER, width, size, lines, AppTheme.SIGN_TEXT)
+
+
+func _draw_complaint_office(state: GameState) -> void:
+	_service_shell(GameConfig.ROOM_COMPLAINTS, AppTheme.FLAG_RED, Icons.CLERK)
+	var desk := layout.complaint_desk_point()
+	var sign_rect := Rect2(desk + Vector2(-120, -92), Vector2(240, 26))
+	_rounded(sign_rect, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
+	_text_centered(sign_rect.get_center(), tr("SIGN_COMPLAINTS"), AppTheme.SIZE_LABEL_SMALL, AppTheme.SIGN_TEXT, _bold)
+	var clerk := state.upgrade_level("complaint_clerk")
+	ItemPainter.draw_person(_canvas, layout.complaint_clerk_point(), AppTheme.SIGN_BOARD, 1.0, Color.TRANSPARENT, 3 + tier(clerk, int(GameConfig.upgrade("complaint_clerk").max), CLERK_LOOKS), AppTheme.TIE)
+	OfficePainter.desk(_canvas, desk, false, false, _time)
+	if state.complaints > 0:
+		OfficePainter.complaint_pile(_canvas, desk + Vector2(40, -10), state.complaints)
+	var interns := state.all_interns().size() if state.has_upgrade("shredder_service") else 0
+	_draw_board(layout.interns_board(), tr("BOARD_INTERNS"), tr("FMT_BOARD_STAFF") % [interns, GameConfig.MAX_HELPERS + 1])
+	for slot in GameConfig.MAX_HELPERS + 1:
+		OfficePainter.desk(_canvas, layout.intern_home(slot) + Vector2(0, 26), false, false, _time)
+	_draw_door(layout.office_door())
+
+
+func _draw_shredder_room(state: GameState) -> void:
+	_service_shell(GameConfig.ROOM_SHREDDER, AppTheme.METAL_DARK, Icons.DELETE)
+	_draw_board(layout.collectors_board(), tr("BOARD_COLLECTORS"), tr("FMT_BOARD_COLLECTORS") % [state.collectors.size(), GameConfig.MAX_COLLECTORS, Formulas.collector_capacity(state)])
 	var shredder := layout.shredder_point()
 	OfficePainter.shredder(_canvas, shredder, _shred_time > 0.0, _time)
 	var label := Rect2(shredder + Vector2(-64, -90), Vector2(128, 26))
 	_rounded(label, AppTheme.SURFACE, 8, AppTheme.OUTLINE, 2)
 	_text_centered(label.get_center(), tr("SIGN_SHREDDER"), AppTheme.SIZE_LABEL_SMALL, AppTheme.ON_SURFACE, _bold)
+	_draw_door(layout.shredder_door())
+
+
+func _draw_tech_room(state: GameState) -> void:
+	var tubes := state.has_upgrade("pneumatic_tubes")
+	_service_shell(GameConfig.ROOM_TECH, AppTheme.RUNNER, Icons.ROOMS.tech_room)
+	_draw_board(layout.runners_board(), tr("BOARD_RUNNERS"), tr("FMT_BOARD_STAFF") % [state.runners.size(), GameConfig.MAX_RUNNERS])
+	OfficePainter.server_rack(_canvas, layout.server_rect(), tier(state.upgrade_level("it_support") + state.upgrade_level("ai_classification"), int(GameConfig.upgrade("it_support").max) + int(GameConfig.upgrade("ai_classification").max), OfficePainter.SERVER_UNITS), _time)
+	OfficePainter.climate_unit(_canvas, layout.climate_rect(), state.upgrade_level("climate_control"), _time)
+	OfficePainter.tube_hub(_canvas, layout.tube_hub_point(), tubes, _time)
+	if not tubes:
+		_icon(layout.tube_hub_point(), Icons.LOCK, 18, AppTheme.ON_SURFACE_VARIANT)
+	_text_centered(layout.tube_hub_point() + Vector2(0, 76), tr("SIGN_TUBE_HUB"), AppTheme.SIZE_LABEL_SMALL, AppTheme.ON_SURFACE_VARIANT, _bold)
+	_draw_door(layout.tech_door())
+
+
+func _draw_tube_slot(state: GameState, room_id: String) -> void:
+	if not state.has_upgrade("pneumatic_tubes"):
+		return
+	var point := layout.tube_station_point(room_id)
+	if state.has_tube_station(room_id):
+		OfficePainter.tube_station(_canvas, point, _time)
+		return
+	OfficePainter.empty_slot(_canvas, layout.slot_rect(point))
+	_icon(point, Icons.upgrade("tube_station"), 20, Color(AppTheme.OUTLINE, 0.38))
+
+
+func _draw_shredder_slot(state: GameState, dept_id: String) -> void:
+	if GameConfig.is_customs(dept_id):
+		return
+	var point := layout.dept_shredder_point(dept_id)
+	if state.has_upgrade("shredder", dept_id):
+		OfficePainter.shredder(_canvas, point + Vector2(0, 22), _shredding.has(dept_id), _time)
+		return
+	OfficePainter.empty_slot(_canvas, layout.slot_rect(point))
+	_icon(point, Icons.upgrade("shredder"), 20, Color(AppTheme.OUTLINE, 0.38))
+
+
+func _tier(state: GameState, upgrade_id: String, tiers: int) -> int:
+	return tier(state.upgrade_level(upgrade_id), int(GameConfig.upgrade(upgrade_id).get("max", 1)), tiers)
+
+
+static func tier(level: int, max_level: int, tiers: int) -> int:
+	if level <= 0 or max_level <= 0:
+		return 0
+	return clampi(ceili(float(level) * tiers / max_level), 1, tiers)
+
+
+func _draw_spot_highlight() -> void:
+	if _highlight_spot.is_empty():
+		return
+	var pulse := 0.5 + 0.5 * sin(_time * 6.0)
+	var color := Color(AppTheme.accent("warning"), 0.5 + pulse * 0.5)
+	if _highlight_spot == GameConfig.ROOM_PLAYER:
+		_canvas.draw_arc(game.state.player.position, PLAYER_TAP_RADIUS + pulse * 4.0, 0.0, TAU, 32, color, 4.0)
+		return
+	for rect: Rect2 in layout.spot_rects(_highlight_spot):
+		_canvas.draw_rect(rect.grow(6.0 + pulse * 4.0), color, false, 4.0)
 
 
 func _bubble(pos: Vector2, dept_id: String, urgent: bool) -> void:
@@ -1481,6 +1696,7 @@ func _draw_room(state: GameState, slot: String) -> void:
 	_canvas.draw_circle(header.position + Vector2(32, 28), 20, on_band)
 	_icon(header.position + Vector2(32, 28), Icons.department(slot), 24, color.darkened(0.25))
 	_text(header.position + Vector2(62, 36), tr("DEPT_" + slot.to_upper()), AppTheme.SIZE_TITLE_MEDIUM, on_band, _bold, header.size.x - 220)
+	_icon(Vector2(header.end.x - 24, header.position.y + 28), Icons.CHEVRON, 26, on_band)
 	var weakest := ""
 	if slot != "inspection":
 		var dept := state.department(slot)
@@ -1488,11 +1704,12 @@ func _draw_room(state: GameState, slot: String) -> void:
 		var stats := tr("FMT_PER_MINUTE") % UiKit.decimal(Formulas.department_throughput(state, dept) * 60.0)
 		var size := _bold.get_string_size(stats, HORIZONTAL_ALIGNMENT_LEFT, -1, AppTheme.SIZE_BODY_SMALL)
 		_text(Vector2(header.end.x - 44 - size.x, header.position.y + 34), stats, AppTheme.SIZE_BODY_SMALL, on_band, _bold)
-		_icon(Vector2(header.end.x - 24, header.position.y + 28), Icons.CHEVRON, 26, on_band)
 		for key in dept.station_keys():
 			_draw_station(state, key, weakest)
+		_draw_shredder_slot(state, slot)
 	else:
 		_draw_station(state, GameConfig.INSPECTION, "")
+	_draw_tube_slot(state, slot)
 
 
 func _draw_locked_room(state: GameState, slot: String, rect: Rect2) -> void:
@@ -1684,24 +1901,28 @@ func _reject_tray(point: Vector2, count: int) -> void:
 
 
 func _tube_layout_signature(state: GameState) -> int:
-	var signature := 0
-	for dept in state.unlocked_departments():
-		signature = signature * 3 + (2 if state.has_tube(dept.id) else 1)
-	return signature
+	var parts: Array = [state.has_upgrade("pneumatic_tubes"), state.has_upgrade("complaint_tube"), state.unlocked_count()]
+	for room_id in GameConfig.upgrade_rooms("tube_station"):
+		parts.append(state.has_upgrade("tube_station", room_id))
+	return hash(parts)
 
 
-func _draw_tubes(state: GameState) -> void:
-	var seen := {}
+static func tube_pairs(state: GameState) -> Array[String]:
+	var result: Array[String] = []
 	for dept in state.unlocked_departments():
-		if not state.has_tube(dept.id):
-			continue
 		var route := RouteBuilder.build(CaseFile.new(dept.id))
 		for i in route.size() - 1:
 			var pair := "%s>%s" % [route[i], route[i + 1]]
-			if seen.has(pair):
-				continue
-			seen[pair] = true
-			_draw_tube(layout.tube_path(route[i], route[i + 1]))
+			if not result.has(pair) and state.tube_link(route[i], route[i + 1]):
+				result.append(pair)
+	return result
+
+
+func _draw_tubes(state: GameState) -> void:
+	if state.has_upgrade("complaint_tube"):
+		_draw_tube(layout.complaint_tube_path())
+	for pair in tube_pairs(state):
+		_draw_tube(layout.tube_path(pair.get_slice(">", 0), pair.get_slice(">", 1)))
 
 
 func _draw_tube(path: PackedVector2Array) -> void:

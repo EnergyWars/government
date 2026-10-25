@@ -55,10 +55,7 @@ func _build_scene() -> void:
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(overlay)
 	office.setup(game, joystick)
-	office.open_department.connect(func(dept_id: String) -> void: open_sheet("department", dept_id))
-	office.open_departments.connect(func() -> void: open_sheet("departments"))
-	office.open_room.connect(func(room_id: String) -> void: open_sheet("room", room_id))
-	office.open_complaints.connect(func() -> void: open_sheet("complaints"))
+	office.open_spot.connect(func(spot: String) -> void: open_sheet("spot", spot))
 	game.changed.connect(hud.refresh)
 	tutorial_card = TutorialCard.new().setup(game, hud, _safe_top())
 	tutorial_card.highlight_changed.connect(hud.highlight)
@@ -96,22 +93,17 @@ func open_sheet(sheet_id: String, argument: String = "") -> void:
 	if sheet_id == "tutorial":
 		_restart_tutorial()
 		return
+	if sheet_id == "locate":
+		_locate(argument)
+		return
 	if is_instance_valid(_sheet):
 		_sheet.close_sheet()
 	var sheet: Sheet
 	match sheet_id:
-		"departments":
-			sheet = DepartmentsSheet.new()
-		"department":
-			sheet = DepartmentSheet.new()
-		"team":
-			sheet = TeamSheet.new()
-		"research":
-			sheet = ResearchSheet.new()
-		"room":
-			sheet = RoomSheet.new()
-		"building":
-			sheet = BuildingSheet.new()
+		"upgrades":
+			sheet = UpgradesSheet.new()
+		"spot":
+			sheet = SpotSheet.new()
 		"goals":
 			sheet = GoalsSheet.new()
 		"reviews":
@@ -124,8 +116,6 @@ func open_sheet(sheet_id: String, argument: String = "") -> void:
 			sheet = OfficialsSheet.new()
 		"boosts":
 			sheet = BoostSheet.new()
-		"runners":
-			sheet = RunnerSheet.new()
 		"settings":
 			sheet = SettingsSheet.new().with_settings(settings)
 		_:
@@ -136,6 +126,12 @@ func open_sheet(sheet_id: String, argument: String = "") -> void:
 	_sheet = sheet
 	overlay.add_child(sheet)
 	game.tutorial.set_open_sheet(sheet_id)
+
+
+func _locate(spot: String) -> void:
+	if is_instance_valid(_sheet):
+		_sheet.close_sheet()
+	office.focus_spot(spot)
 
 
 func _restart_tutorial() -> void:

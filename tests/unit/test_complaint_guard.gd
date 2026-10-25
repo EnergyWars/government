@@ -142,7 +142,7 @@ func test_stopped_visitor_prevents_the_direct_complaint() -> void:
 
 
 func test_stopped_angry_visitor_does_not_stress_the_intern() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.guards = 1
 	var visitor := _spawn_stopped(true, false)
 	visitor.position = layout.guard_stop_spot(0)
@@ -227,15 +227,40 @@ func test_guard_lines_are_translated_and_clamped() -> void:
 	assert_true(Icons.STAFF.has("guards"))
 
 
-func test_team_sheet_hires_guard() -> void:
+func test_guard_board_hires_and_lists_guards() -> void:
 	var game := Game.new(GameState.create_new(4))
 	game.state.money = 1e9
-	var sheet := TeamSheet.new().setup(game)
+	UpgradeEntryCard.amount_index = 0
+	var sheet := SpotSheet.new()
+	sheet.setup(game, "guards")
 	add_child_autofree(sheet)
 	await wait_physics_frames(2)
-	assert_true(game.actions.hire_guard())
-	sheet.refresh()
+	assert_eq(sheet.title(), UpgradeTexts.spot_title("guards"))
+	assert_true(_has_label(sheet.content, sheet.tr("GUARDS_EMPTY")))
+	assert_true(UpgradeEntryCard.buy(game, "%s:guards" % UpgradeCatalog.STAFF))
+	sheet.rebuild()
 	assert_eq(game.state.guards, 1)
+	assert_false(_has_label(sheet.content, sheet.tr("GUARDS_EMPTY")))
+	assert_true(_has_label(sheet.content, sheet.tr("FMT_GUARD_NAME") % 1))
+
+
+func test_guard_spot_offers_hiring_and_training() -> void:
+	var ids: Array[String] = []
+	for entry in UpgradeCatalog.entries_for_spot(state, "guards"):
+		ids.append(entry.id)
+	assert_true(ids.has("%s:guards" % UpgradeCatalog.STAFF))
+	assert_true(ids.has("%s:guard_training" % UpgradeCatalog.TRACK))
+	assert_eq(GameConfig.spot_room("guards"), GameConfig.ROOM_HALL)
+	assert_true(GameConfig.BOARD_SPOTS.has("guards"))
+	assert_true(layout.hall.encloses(layout.guards_board()))
+
+
+func test_guard_training_raises_the_block_chance() -> void:
+	state.guards = 1
+	var untrained := Formulas.guard_block_chance(state)
+	state.set_upgrade("guard_training", int(GameConfig.upgrade("guard_training").max))
+	assert_gt(Formulas.guard_block_chance(state), untrained)
+	assert_lte(Formulas.guard_block_chance(state), 1.0)
 
 
 func test_world_view_draws_guards_and_stopped_visitors() -> void:
@@ -261,3 +286,12 @@ func test_world_view_draws_guards_and_stopped_visitors() -> void:
 		world.queue_redraw()
 		await wait_physics_frames(2)
 	assert_true(is_instance_valid(world))
+
+
+func _has_label(node: Node, text: String) -> bool:
+	if node is Label and (node as Label).text == text:
+		return true
+	for child in node.get_children():
+		if _has_label(child, text):
+			return true
+	return false

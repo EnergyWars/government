@@ -114,7 +114,7 @@ static func from_dict(data: Variant) -> DeskMood:
 			if level > 0:
 				mood.training[track] = level
 	if mood.state == LOO:
-		mood.slot = clampi(int(data.get("slot", -1)), GameConfig.KITCHEN_SLOTS, GameConfig.KITCHEN_SLOTS + GameConfig.LOO_SLOTS - 1)
+		mood.slot = clampi(int(data.get("slot", -1)), GameConfig.KITCHEN_SLOTS, GameConfig.KITCHEN_SLOTS + GameConfig.MAX_LOO_SLOTS - 1)
 	elif mood.is_away():
 		mood.slot = clampi(int(data.get("slot", -1)), -1, GameConfig.KITCHEN_SLOTS - 1)
 	else:

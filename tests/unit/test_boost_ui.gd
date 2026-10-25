@@ -10,6 +10,7 @@ func before_each() -> void:
 	for dept_id in state.departments:
 		state.departments[dept_id].arrival_timer = -1e9
 	game = Game.new(state)
+	UpgradeEntryCard.amount_index = 0
 
 
 func _host() -> Control:
@@ -28,6 +29,16 @@ func _sheet(sheet: Sheet, argument: String = "") -> Sheet:
 func _open_mail() -> Station:
 	game.state.building_stage = GameConfig.MAIL_UNLOCK_STAGE
 	return game.state.ensure_mailroom()
+
+
+func _install_tubes() -> void:
+	game.state.set_upgrade("pneumatic_tubes", 1)
+	for room_id in GameConfig.upgrade_rooms("tube_station"):
+		game.state.set_upgrade("tube_station", 1, room_id)
+
+
+func _buy(sheet: Sheet, entry_id: String) -> void:
+	sheet.act(func() -> bool: return UpgradeEntryCard.buy(game, entry_id))
 
 
 func _texts(node: Node) -> Array[String]:
@@ -155,9 +166,9 @@ func test_boost_card_buys_with_seals_and_ads() -> void:
 
 
 func test_boost_ad_text_shows_cooldown() -> void:
-	assert_eq(UpgradeCards.boost_ad_text(game.state, "overtime"), tr("ACTION_WATCH_AD"))
+	assert_eq(BoostCard.ad_text(game.state, "overtime"), tr("ACTION_WATCH_AD"))
 	game.state.boost_cooldowns["overtime"] = 90.0
-	assert_eq(UpgradeCards.boost_ad_text(game.state, "overtime"), tr("FMT_AD_COOLDOWN") % UiKit.duration(90.0))
+	assert_eq(BoostCard.ad_text(game.state, "overtime"), tr("FMT_AD_COOLDOWN") % UiKit.duration(90.0))
 
 
 func test_sheet_watch_ad_runs_action_after_the_ad() -> void:
@@ -168,31 +179,48 @@ func test_sheet_watch_ad_runs_action_after_the_ad() -> void:
 	assert_eq(game.state.seals, GameConfig.START_SEALS + GameConfig.SEAL_PACKS[0])
 
 
-func test_mail_room_sheet_shows_storage_and_locked_state() -> void:
-	var sheet := _sheet(RoomSheet.new(), GameConfig.ROOM_MAIL)
-	assert_has(_texts(sheet.content), sheet.tr("FMT_MAIL_LOCKED") % (GameConfig.MAIL_UNLOCK_STAGE + 1))
-	assert_eq(UpgradeCards.mail_storage_info(game.state), sheet.tr("FMT_MAIL_LOCKED") % (GameConfig.MAIL_UNLOCK_STAGE + 1))
+func test_mail_spots_show_storage_and_locked_state() -> void:
+	var locked_text := tr("FMT_MAIL_LOCKED") % (GameConfig.MAIL_UNLOCK_STAGE + 1)
+	var sheet := _sheet(SpotSheet.new(), UpgradeCatalog.room_spot(GameConfig.ROOM_MAIL))
+	assert_has(_texts(sheet.content), locked_text)
+	assert_eq(SpotStatus.mail(game.state), locked_text)
+	var shelf := _sheet(SpotSheet.new(), "mail_shelf")
+	assert_has(_texts(shelf.content), locked_text)
 	var room := _open_mail()
 	sheet.rebuild()
 	var texts := _texts(sheet.content)
-	assert_does_not_have(texts, sheet.tr("FMT_MAIL_LOCKED") % (GameConfig.MAIL_UNLOCK_STAGE + 1))
-	assert_has(texts, sheet.tr("MAIL_STORAGE_DESC"))
+	assert_does_not_have(texts, locked_text)
+	var storage_id := "%s:%s" % [UpgradeCatalog.STORAGE, GameConfig.MAILROOM]
+	var storage := UpgradeCatalog.find(game.state, storage_id)
+	assert_eq(UpgradeTexts.description(storage), sheet.tr("ENTRY_DESC_STORAGE"))
+	assert_has(texts, UpgradeTexts.title(storage))
+	assert_has(texts, sheet.tr("ENTRY_DESC_STORAGE"))
 	assert_has(texts, sheet.tr("BOOST_EXPRESS_POST"))
-	assert_has(texts, UpgradeCards.mail_storage_info(game.state))
-	sheet.act(game.actions.upgrade_mail_storage)
+	shelf.rebuild()
+	assert_does_not_have(_texts(shelf.content), locked_text)
+	assert_has(_texts(shelf.content), SpotStatus.mail(game.state))
+	_buy(shelf, storage_id)
 	assert_eq(room.storage_level, 1)
+	assert_has(_texts(shelf.content), SpotStatus.mail(game.state))
 	await wait_physics_frames(2)
 
 
-func test_area_spec_knows_every_area() -> void:
-	for area_id in ["waiting", "seating", "mail_storage"]:
-		var spec := UpgradeCards.area_spec(game, area_id)
-		assert_false(spec.is_empty(), area_id)
-		assert_false(str(spec.info.call()).is_empty(), area_id)
-		assert_gte(float(spec.cost.call()), 0.0, area_id)
-	assert_true(UpgradeCards.area_spec(game, "nope").is_empty())
+func test_area_spots_have_status_and_priced_entries() -> void:
+	for spot: String in ["waiting", "seating"]:
+		assert_false(SpotStatus.lines(game.state, spot).is_empty(), spot)
+		var entries := UpgradeCatalog.entries_for_spot(game.state, spot)
+		assert_false(entries.is_empty(), spot)
+		for entry in entries:
+			assert_gt(entry.cost, 0.0, entry.id)
+	assert_true(UpgradeCatalog.entries_for_spot(game.state, "nope").is_empty())
+	assert_true(SpotStatus.lines(game.state, "nope").is_empty())
+	assert_true(UpgradeCatalog.entries_for_spot(game.state, "mail_shelf").is_empty())
 	_open_mail()
-	assert_gt(float(UpgradeCards.area_spec(game, "mail_storage").cost.call()), 0.0)
+	var storage := UpgradeCatalog.entries_for_spot(game.state, "mail_shelf")
+	assert_eq(storage.size(), 1)
+	assert_eq(storage[0].kind, UpgradeCatalog.STORAGE)
+	assert_gt(storage[0].cost, 0.0)
+	assert_eq(SpotStatus.lines(game.state, "mail_shelf"), [SpotStatus.mail(game.state)] as Array[String])
 
 
 func test_station_card_shows_upgrade_dynamics_and_onboarding() -> void:
@@ -212,7 +240,9 @@ func test_station_card_shows_upgrade_dynamics_and_onboarding() -> void:
 		assert_false(line.begins_with(tr("FMT_MILESTONE").split("%")[0]))
 	var tax := game.state.department("tax_services")
 	assert_eq(StationCard.onboarding_text(tax), tr("FMT_ONBOARDING") % [0, GameConfig.HANDS_ON_CASES])
-	var sheet := _sheet(DepartmentSheet.new(), "tax_services")
+	var tax_review := game.state.station(GameConfig.department_station_keys("tax_services")[0])
+	assert_has(StationCard.status_lines(game.state, tax_review), StationCard.onboarding_text(tax))
+	var sheet := _sheet(SpotSheet.new(), UpgradeCatalog.room_spot("tax_services"))
 	assert_has(_texts(sheet.content), StationCard.onboarding_text(tax))
 	await wait_physics_frames(2)
 
@@ -290,25 +320,29 @@ func test_world_view_draws_mail_room_and_reacts_to_mail() -> void:
 	var room := _open_mail()
 	room.inbox.append(CaseFile.new("general_services"))
 	room.inbox[0].mail = true
+	for i in WorldView.MAIL_FLOOR_VISIBLE + 2:
+		var letter := CaseFile.new("general_services")
+		letter.mail = true
+		game.state.mail_floor.append(letter)
 	layer.queue_redraw()
 	await wait_physics_frames(2)
 	var walkers := world._walkers.size()
 	var floaters := world._floaters.size()
-	game.simulation.mail_delivered.emit(3, 2)
-	game.simulation.mail_delivered.emit(0, 0)
+	game.simulation.mail_delivered.emit(3, 1, 2)
+	game.simulation.mail_delivered.emit(0, 0, 0)
 	game.simulation.mail_answered.emit("general_services", 10.0)
 	game.simulation.applications_bundled.emit("general_services", 1)
 	game.simulation.form_missing.emit("general_services")
 	game.simulation.onboarding_completed.emit("general_services")
 	game.boosts.use("overtime", Boosts.SEALS)
 	assert_eq(world._walkers.size(), walkers + 2)
-	assert_eq(world._floaters.size(), floaters + 7)
+	assert_eq(world._floaters.size(), floaters + 8)
 	world._process(0.1)
 	world.queue_redraw()
 	await wait_physics_frames(2)
 	watch_signals(world)
 	world._handle_tap(world.layout.mail_header().get_center())
-	assert_signal_emitted_with_parameters(world, "open_room", [GameConfig.ROOM_MAIL])
+	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.room_spot(GameConfig.ROOM_MAIL)])
 
 
 func test_letters_and_shelves_paint() -> void:
@@ -327,35 +361,28 @@ func test_letters_and_shelves_paint() -> void:
 	assert_true(is_instance_valid(canvas))
 
 
-func test_runner_card_hires_per_role_and_opens_the_plan() -> void:
-	var sheet := _sheet(TeamSheet.new())
-	var texts := _texts(sheet.content)
+func test_runner_board_hires_runners_and_shows_role_summaries() -> void:
+	var statistics := _sheet(StatisticsSheet.new())
+	var report := "\n".join(_texts(statistics.content))
 	for role in Runner.ROLES:
-		assert_has(texts, UpgradeCards.role_info(game.state, role))
-	var hire_buttons: Array[Button] = []
-	var plan: Button = null
-	for button in _buttons(sheet.content):
-		if button.text.begins_with(sheet.tr("ACTION_HIRE") + "\n") and hire_buttons.size() < 3 and button.get_parent().get_child(button.get_index() - 1) is Label and (button.get_parent().get_child(button.get_index() - 1) as Label).text.begins_with(sheet.tr("RUNNER_ROLE_INTAKE")):
-			hire_buttons.append(button)
-		if button.text == sheet.tr("ACTION_RUNNER_PLAN"):
-			plan = button
-	assert_not_null(plan)
-	assert_true(plan.disabled)
-	assert_eq(hire_buttons.size(), 1)
-	hire_buttons[0].pressed.emit()
-	assert_eq(game.state.runners_in(Runner.INTAKE), 1)
+		assert_true(report.contains(BoardSection.role_info(game.state, role)), role)
+	var sheet := _sheet(SpotSheet.new(), "runners")
+	assert_has(_texts(sheet.content), sheet.tr("RUNNERS_EMPTY"))
+	assert_true(UpgradeCatalog.find(game.state, "%s:runners" % UpgradeCatalog.STAFF).is_buyable())
+	_buy(sheet, "%s:runners" % UpgradeCatalog.STAFF)
+	assert_eq(game.state.runners.size(), 1)
+	var texts := _texts(sheet.content)
+	assert_does_not_have(texts, sheet.tr("RUNNERS_EMPTY"))
+	assert_has(texts, sheet.tr("FMT_RUNNER_NAME") % 1)
+	for role in Runner.ROLES:
+		assert_has(texts, sheet.tr("RUNNER_ROLE_" + role.to_upper()))
+		assert_has(texts, BoardSection.role_summary(game.state, role))
 	await wait_physics_frames(2)
-	watch_signals(sheet)
-	for button in _buttons(sheet.content):
-		if button.text == sheet.tr("ACTION_RUNNER_PLAN"):
-			assert_false(button.disabled)
-			button.pressed.emit()
-	assert_signal_emitted_with_parameters(sheet, "navigate", ["runners", ""])
 
 
-func test_runner_sheet_assigns_roles_and_departments() -> void:
-	var sheet := _sheet(RunnerSheet.new()) as RunnerSheet
-	assert_eq(sheet.title(), sheet.tr("SHEET_RUNNERS"))
+func test_runner_board_assigns_roles_and_departments() -> void:
+	var sheet := _sheet(SpotSheet.new(), "runners")
+	assert_eq(sheet.title(), sheet.tr("SPOT_RUNNERS"))
 	assert_has(_texts(sheet.content), sheet.tr("RUNNERS_EMPTY"))
 	game.state.add_runner(Runner.INTAKE)
 	game.state.unlock_department("tax_services")
@@ -364,14 +391,14 @@ func test_runner_sheet_assigns_roles_and_departments() -> void:
 	assert_has(texts, sheet.tr("FMT_RUNNER_NAME") % 1)
 	assert_has(texts, sheet.tr("RUNNER_IDLE"))
 	for role in Runner.ROLES:
-		assert_has(texts, RunnerSheet.role_summary(game.state, role))
+		assert_has(texts, BoardSection.role_summary(game.state, role))
 	var output_segment: Button = null
 	for button in _buttons(sheet.content):
 		if button.text == sheet.tr("RUNNER_ROLE_SHORT_OUTPUT"):
 			output_segment = button
 	output_segment.pressed.emit()
 	assert_eq(game.state.runners[0].role, Runner.OUTPUT)
-	var dept_text := sheet.tr("FMT_RUNNER_DEPARTMENT") % RunnerSheet.department_text(Runner.ALL_DEPARTMENTS)
+	var dept_text := sheet.tr("FMT_RUNNER_DEPARTMENT") % BoardSection.department_text(Runner.ALL_DEPARTMENTS)
 	for button in _buttons(sheet.content):
 		if button.text == dept_text:
 			button.pressed.emit()
@@ -381,27 +408,36 @@ func test_runner_sheet_assigns_roles_and_departments() -> void:
 	game.state.runners[0].task = Runner.Task.TO_SOURCE
 	sheet.refresh()
 	assert_has(_texts(sheet.content), sheet.tr("RUNNER_BUSY"))
-	game.state.research["pneumatic_tubes"] = 1
-	game.state.connect_all_tubes()
+	assert_does_not_have(_texts(sheet.content), sheet.tr("RUNNERS_TUBES_PARTIAL_TEXT"))
+	_install_tubes()
 	sheet.rebuild()
-	assert_has(_texts(sheet.content), sheet.tr("RUNNERS_TUBES_TEXT"))
+	assert_has(_texts(sheet.content), sheet.tr("LABEL_TUBES_ACTIVE"))
+	assert_has(_texts(sheet.content), sheet.tr("RUNNERS_TUBES_PARTIAL_TEXT"))
 	await wait_physics_frames(2)
 
 
-func test_runner_sheet_upgrades_a_runner() -> void:
-	var runner := game.state.add_runner(Runner.INTAKE)
-	var sheet := _sheet(RunnerSheet.new()) as RunnerSheet
-	assert_has(_texts(sheet.content), RunnerSheet.level_text(game.state, runner))
-	var upgrade: Button = null
+func _runner_upgrade_button(sheet: Sheet) -> Button:
 	for button in _buttons(sheet.content):
-		if button.text.begins_with(sheet.tr("ACTION_UPGRADE_RUNNER")):
-			upgrade = button
+		var column := button.get_parent()
+		if column is VBoxContainer and column.get_child(column.get_child_count() - 1) == button and _texts(column).has(sheet.tr("FMT_RUNNER_NAME") % 1):
+			return button
+	return null
+
+
+func test_runner_board_upgrades_a_runner() -> void:
+	var runner := game.state.add_runner(Runner.INTAKE)
+	var sheet := _sheet(SpotSheet.new(), "runners")
+	assert_has(_texts(sheet.content), BoardSection.level_text(game.state, runner))
+	var entry := UpgradeCatalog.find(game.state, "%s:0" % UpgradeCatalog.RUNNER_LEVEL)
+	var upgrade := _runner_upgrade_button(sheet)
 	assert_not_null(upgrade)
+	assert_eq(upgrade.text, UpgradeTexts.button_text(game.state, entry, 1))
 	upgrade.pressed.emit()
 	assert_eq(runner.level, 1)
-	assert_has(_texts(sheet.content), RunnerSheet.level_text(game.state, runner))
-	assert_eq(RunnerSheet.level_text(game.state, runner), TranslationServer.translate("FMT_RUNNER_LEVEL") % [1, GameConfig.MAX_RUNNER_LEVEL, Formulas.runner_load(game.state, runner)])
+	assert_has(_texts(sheet.content), BoardSection.level_text(game.state, runner))
+	assert_eq(BoardSection.level_text(game.state, runner), TranslationServer.translate("FMT_RUNNER_LEVEL") % [1, GameConfig.MAX_RUNNER_LEVEL, Formulas.runner_load(game.state, runner)])
 	runner.level = GameConfig.MAX_RUNNER_LEVEL
 	sheet.rebuild()
+	assert_eq(_runner_upgrade_button(sheet).text, sheet.tr("LABEL_MAX_LEVEL"))
 	assert_has(_texts(sheet.content), sheet.tr("LABEL_MAX_LEVEL"))
 	await wait_physics_frames(2)

@@ -39,6 +39,11 @@ func serves(case_file: CaseFile, source_key: String) -> bool:
 	return role_for(source_key, case_file.next_key()) == role
 
 
+static func restore_department(value: Variant) -> String:
+	var saved := str(value)
+	return saved if GameConfig.department_ids().has(saved) else ALL_DEPARTMENTS
+
+
 func to_dict() -> Dictionary:
 	return {"x": position.x, "y": position.y, "items": items_to_dict(), "target": target if not items.is_empty() else "", "role": role, "dept": dept_id, "level": level}
 
@@ -51,7 +56,6 @@ static func from_dict(data: Dictionary, fallback: Vector2) -> Runner:
 		runner.target = str(data.get("target", runner.items[0].next_key()))
 	var saved_role := str(data.get("role", ""))
 	runner.role = saved_role if ROLES.has(saved_role) else ""
-	var saved_dept := str(data.get("dept", ALL_DEPARTMENTS))
-	runner.dept_id = saved_dept if GameConfig.department_ids().has(saved_dept) else ALL_DEPARTMENTS
+	runner.dept_id = restore_department(data.get("dept", ALL_DEPARTMENTS))
 	runner.level = clampi(int(data.get("level", 0)), 0, GameConfig.MAX_RUNNER_LEVEL)
 	return runner

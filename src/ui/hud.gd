@@ -5,10 +5,7 @@ signal open_sheet(sheet_id: String, argument: String)
 signal focus_department(dept_id: String)
 
 const NAV_ITEMS := [
-	{"id": "departments", "icon": Icons.APARTMENT, "label": "NAV_DEPARTMENTS"},
-	{"id": "team", "icon": Icons.TEAM, "label": "NAV_TEAM"},
-	{"id": "research", "icon": Icons.SCIENCE, "label": "NAV_RESEARCH"},
-	{"id": "building", "icon": Icons.DOMAIN, "label": "NAV_BUILDING"},
+	{"id": "upgrades", "icon": Icons.UPGRADE, "label": "NAV_UPGRADES"},
 	{"id": "statistics", "icon": Icons.STATS, "label": "NAV_STATISTICS"},
 	{"id": "goals", "icon": Icons.FLAG, "label": "NAV_GOALS"},
 ]
@@ -66,7 +63,7 @@ func _ready() -> void:
 	_build_bottom()
 	task_panel = TaskPanel.new().setup(game)
 	task_panel.focus_department.connect(func(dept_id: String) -> void: focus_department.emit(dept_id))
-	task_panel.open_department.connect(func(dept_id: String) -> void: open_sheet.emit("department", dept_id))
+	task_panel.open_department.connect(func(dept_id: String) -> void: open_sheet.emit("spot", WorldLayout.DEPT_PREFIX + dept_id))
 	add_child(task_panel)
 	refresh()
 

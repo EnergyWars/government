@@ -66,6 +66,9 @@ const SEAL := "\uea3f"
 const AD := "\ue63a"
 const CART := "\ue8cc"
 const STORAGE := "\ue179"
+const UPGRADE := "\uf0fb"
+const LOCATE := "\ue55c"
+const BOARD := "\ue85d"
 const SWAMPED := "\ue002"
 
 const TRAININGS := {
@@ -120,32 +123,116 @@ const STAFF := {
 	"coffee_interns": "\ue541",
 }
 
-const RESEARCH := {
+const UPGRADES := {
 	"briefcase": "\ue1a1",
 	"work_ethic": "\ue9e4",
-	"coffee": "\ue541",
-	"wake_service": "\ue855",
-	"it_support": "\ue8b8",
-	"coffee_machine": "\ue536",
-	"kitchen": "\ue0bf",
+	"sneakers": "\ue566",
+	"scanners": "\ue5fa",
+	"digital_records": "\ue873",
+	"digital_signatures": "\ue2e6",
+	"letter_opener": "\ue14e",
+	"office_equipment": "\uf8f4",
+	"waiting_places": "\ue7fb",
+	"comfortable_lobby": "\uefed",
+	"seating": "\ue903",
+	"standing_places": "\ue536",
+	"ticket_speed": "\ue638",
+	"ticket_machines": "\ue8ad",
+	"ticket_line": "\uea5b",
+	"ticket_call_speed": "\ue333",
+	"online_portal": "\ue894",
+	"complaint_box": "\ue89b",
+	"complaint_tube": "\ue8f9",
+	"complaint_clerk": "\uf0e2",
 	"shredder_service": "\ue872",
+	"intern_training": "\ue80c",
+	"intern_resilience": "\uea78",
+	"shredder_blades": "\ue16c",
+	"shredder": "\ue760",
+	"collector_carts": "\uf86b",
+	"collector_speed": "\ue566",
+	"runner_trolleys": "\uf86b",
+	"runner_speed": "\ue9e4",
+	"pneumatic_tubes": "\uf867",
+	"tube_capacity": "\ue97f",
+	"tube_speed": "\uea0b",
+	"large_capsules": "\ue179",
+	"tube_station": "\ue9f4",
+	"it_support": "\ue8b8",
+	"ai_classification": "\uea4b",
+	"quality_training": "\ue7af",
 	"climate_control": "\ueb3b",
 	"mediation": "\ue90e",
-	"scanners": "\ue5fa",
-	"comfortable_lobby": "\uefed",
-	"trolleys": "\uf86b",
-	"digital_records": "\ue873",
-	"quality_training": "\ue7af",
-	"digital_signatures": "\ue2e6",
-	"pneumatic_tubes": "\uf867",
-	"tube_capacity": "\ue8f9",
-	"complaint_tube": "\ue8f9",
-	"intern_training": "\ue80c",
-	"online_portal": "\ue894",
-	"ai_classification": "\uea4b",
-	"letter_opener": "\ue14e",
+	"coffee": "\ue541",
+	"coffee_machine": "\ueff0",
+	"espresso": "\uea1b",
+	"kitchen": "\ueb47",
+	"coffee_intern_speed": "\ue536",
+	"toilet_stalls": "\ue63d",
+	"toilet_speed": "\ue425",
+	"toilet_hygiene": "\uf1b2",
+	"wake_service": "\ue855",
+	"guard_training": "\ue9e0",
+	"phone_training": "\ue311",
 	"mail_subscription": "\ue0be",
+	"mail_frequency": "\ue8b5",
 	"registered_mail": "\ue8e8",
+}
+
+const SPOTS := {
+	"player": "\ue7fd",
+	"entrance": "\ueffd",
+	"waiting": "\ue7fb",
+	"seating": "\uefed",
+	"tickets": "\ue638",
+	"ticket_display": "\ue333",
+	"complaint_box": "\ue89b",
+	"guards": "\ue32a",
+	"archive": "\ue149",
+	"training": "\ue80c",
+	"complaint_desk": "\uf0e2",
+	"interns": "\ue7fb",
+	"shredder": "\ue872",
+	"collectors": "\ue16c",
+	"tube_hub": "\ue9f4",
+	"server": "\ue875",
+	"climate": "\ueb3b",
+	"runners": "\uea72",
+	"coffee_machine": "\ueff0",
+	"kitchen": "\ueb47",
+	"coffee_interns": "\ue541",
+	"works_council": "\ue90e",
+	"toilets": "\ue63d",
+	"phone": "\ue0b0",
+	"phone_clerks": "\ue311",
+	"mail_shelf": "\ue179",
+	"mailbox": "\ue168",
+}
+
+const ROOMS := {
+	"player": "\ue7fd",
+	"hall": "\uea40",
+	"complaint_office": "\ue89b",
+	"shredder_room": "\ue872",
+	"tech_room": "\ue335",
+	"kitchen": "\ue541",
+	"toilets": "\ue63d",
+	"phone": "\ue0b0",
+	"mail": "\ue158",
+	"inspection": "\ue8b6",
+}
+
+const TOPICS := {
+	"player": "\ue7fd",
+	"citizens": "\ue7fb",
+	"speed": "\ue9e4",
+	"staff": "\uf233",
+	"transport": "\ue558",
+	"comfort": "\uefed",
+	"complaints": "\ue89b",
+	"mail": "\ue158",
+	"quality": "\ue7af",
+	"building": "\ue7ee",
 }
 
 const DISPUTES := {
@@ -197,6 +284,18 @@ const BOOSTS := {
 
 static func department(dept_id: String) -> String:
 	return DEPARTMENTS.get(dept_id, DEPARTMENTS.inspection)
+
+
+static func upgrade(upgrade_id: String) -> String:
+	return UPGRADES.get(upgrade_id, UPGRADE)
+
+
+static func room(room_id: String) -> String:
+	return ROOMS.get(room_id, department(room_id))
+
+
+static func topic(topic_id: String) -> String:
+	return TOPICS.get(topic_id, UPGRADE)
 
 
 static func signature(dept_id: String) -> String:

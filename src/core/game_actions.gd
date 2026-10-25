@@ -145,16 +145,25 @@ func upgrade_runner(index: int) -> bool:
 	return true
 
 
-func can_connect_tube(dept_id: String) -> bool:
-	var dept := state.department(dept_id)
-	return dept != null and dept.unlocked and not dept.tube and state.has_research("pneumatic_tubes") and state.can_afford(Formulas.tube_connection_cost(dept_id))
-
-
-func connect_tube(dept_id: String) -> bool:
-	if not can_connect_tube(dept_id):
+func tube_segment_ready(tube_id: String) -> bool:
+	var dept := state.department(RouteBuilder.segment_department(tube_id))
+	if dept == null or not dept.unlocked or not RouteBuilder.segments(dept.id).has(tube_id):
 		return false
-	state.spend(Formulas.tube_connection_cost(dept_id))
-	state.department(dept_id).tube = true
+	var ends := RouteBuilder.segment_ends(tube_id)
+	return state.station(ends[0]) != null and state.station(ends[1]) != null and state.tube_link(ends[0], ends[1])
+
+
+func can_upgrade_tube(tube_id: String) -> bool:
+	var level := state.tube_level(tube_id)
+	return tube_segment_ready(tube_id) and level < GameConfig.TUBE_SEGMENT_MAX_LEVEL and state.can_afford(Formulas.tube_segment_cost(level))
+
+
+func upgrade_tube(tube_id: String) -> bool:
+	if not can_upgrade_tube(tube_id):
+		return false
+	var level := state.tube_level(tube_id)
+	state.spend(Formulas.tube_segment_cost(level))
+	state.tube_levels[tube_id] = level + 1
 	return true
 
 
@@ -177,14 +186,37 @@ func runner_department_options() -> Array[String]:
 	return options
 
 
+func next_department_option(current: String) -> String:
+	var options := runner_department_options()
+	return options[(options.find(current) + 1) % options.size()]
+
+
 func cycle_runner_department(index: int) -> bool:
 	if index < 0 or index >= state.runners.size():
 		return false
 	var runner := state.runners[index]
-	var options := runner_department_options()
-	runner.dept_id = options[(options.find(runner.dept_id) + 1) % options.size()]
+	runner.dept_id = next_department_option(runner.dept_id)
 	if runner.task == Runner.Task.TO_SOURCE:
 		runner.clear_task()
+	return true
+
+
+func cycle_collector_department(index: int) -> bool:
+	if index < 0 or index >= state.collectors.size():
+		return false
+	var collector := state.collectors[index]
+	collector.dept_id = next_department_option(collector.dept_id)
+	collector.source = ""
+	return true
+
+
+func cycle_coffee_intern_department(index: int) -> bool:
+	if index < 0 or index >= state.coffee_interns.size():
+		return false
+	var coffee_intern := state.coffee_interns[index]
+	coffee_intern.dept_id = next_department_option(coffee_intern.dept_id)
+	if not coffee_intern.carrying:
+		coffee_intern.clear_task()
 	return true
 
 
@@ -214,78 +246,6 @@ func hire_coffee_intern() -> bool:
 	return true
 
 
-func can_upgrade_waiting_area() -> bool:
-	return state.waiting_level < GameConfig.WAITING_MAX_LEVEL and state.can_afford(Formulas.waiting_area_cost(state))
-
-
-func upgrade_waiting_area() -> bool:
-	if not can_upgrade_waiting_area():
-		return false
-	state.spend(Formulas.waiting_area_cost(state))
-	state.waiting_level += 1
-	return true
-
-
-func can_upgrade_seating_area() -> bool:
-	return state.seating_level < GameConfig.SEATING_MAX_LEVEL and state.can_afford(Formulas.seating_area_cost(state))
-
-
-func upgrade_seating_area() -> bool:
-	if not can_upgrade_seating_area():
-		return false
-	state.spend(Formulas.seating_area_cost(state))
-	state.seating_level += 1
-	return true
-
-
-func can_upgrade_ticket_machine() -> bool:
-	return state.tickets_unlocked() and state.ticket_machine_level < GameConfig.TICKET_MAX_LEVEL and state.can_afford(Formulas.ticket_machine_cost(state))
-
-
-func upgrade_ticket_machine() -> bool:
-	if not can_upgrade_ticket_machine():
-		return false
-	state.spend(Formulas.ticket_machine_cost(state))
-	state.ticket_machine_level += 1
-	return true
-
-
-func can_upgrade_ticket_display() -> bool:
-	return state.tickets_unlocked() and state.ticket_display_level < GameConfig.TICKET_MAX_LEVEL and state.can_afford(Formulas.ticket_display_cost(state))
-
-
-func upgrade_ticket_display() -> bool:
-	if not can_upgrade_ticket_display():
-		return false
-	state.spend(Formulas.ticket_display_cost(state))
-	state.ticket_display_level += 1
-	return true
-
-
-func can_upgrade_complaint_clerk() -> bool:
-	return state.complaint_clerk_level < GameConfig.COMPLAINT_CLERK_MAX_LEVEL and state.can_afford(Formulas.complaint_clerk_cost(state))
-
-
-func upgrade_complaint_clerk() -> bool:
-	if not can_upgrade_complaint_clerk():
-		return false
-	state.spend(Formulas.complaint_clerk_cost(state))
-	state.complaint_clerk_level += 1
-	return true
-
-
-func can_upgrade_complaint_box() -> bool:
-	return state.complaint_box_level < GameConfig.COMPLAINT_BOX_MAX_LEVEL and state.can_afford(Formulas.complaint_box_cost(state))
-
-
-func upgrade_complaint_box() -> bool:
-	if not can_upgrade_complaint_box():
-		return false
-	state.spend(Formulas.complaint_box_cost(state))
-	state.complaint_box_level += 1
-	return true
-
-
 func can_upgrade_mail_storage() -> bool:
 	var room := state.mailroom()
 	return room != null and room.storage_level < GameConfig.MAIL_STORAGE_MAX_LEVEL and state.can_afford(Formulas.mail_storage_cost(room))
@@ -301,7 +261,7 @@ func upgrade_mail_storage() -> bool:
 
 
 func can_hire_helper() -> bool:
-	return state.has_research("shredder_service") and state.helpers.size() < GameConfig.MAX_HELPERS and state.can_afford(Formulas.helper_cost(state))
+	return state.has_upgrade("shredder_service") and state.helpers.size() < GameConfig.MAX_HELPERS and state.can_afford(Formulas.helper_cost(state))
 
 
 func hire_helper() -> bool:
@@ -367,14 +327,18 @@ func unlock_department(dept_id: String) -> bool:
 	return simulation.unlock(dept_id)
 
 
-func buy_research(research_id: String) -> bool:
-	if not Progression.research_block_reason(state, research_id).is_empty():
+func buy_upgrade(upgrade_id: String, room_id: String = "", count: int = 1) -> bool:
+	var level := state.upgrade_level(upgrade_id, room_id)
+	var amount := mini(count, int(GameConfig.upgrade(upgrade_id).get("max", 0)) - level)
+	if amount <= 0 or not Progression.upgrade_block_reason(state, upgrade_id, room_id, amount).is_empty():
 		return false
-	state.spend(Formulas.research_cost(research_id, state.research_level(research_id)))
-	state.research[research_id] += 1
-	if research_id == "pneumatic_tubes":
-		state.connect_all_tubes()
+	state.spend(Formulas.track_bulk_cost(upgrade_id, level, amount, room_id))
+	state.set_upgrade(upgrade_id, level + amount, room_id)
 	return true
+
+
+func buy_entry(entry_id: String, count: int = 1) -> bool:
+	return UpgradeCatalog.buy(self, entry_id, count)
 
 
 func expand_building() -> bool:

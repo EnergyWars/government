@@ -116,7 +116,7 @@ func test_availability_reflects_rests_and_sickness() -> void:
 	assert_gt(available, 0.0)
 	assert_lt(available, 1.0)
 	assert_eq(Formulas.availability(state, state.station("general_services/signature")), 1.0)
-	state.research["wake_service"] = GameConfig.WAKE_SERVICE_DELAYS.size() - 1
+	state.set_upgrade("wake_service", int(GameConfig.upgrade("wake_service").max))
 	assert_gt(Formulas.availability(state, review), available)
 	assert_gt(Formulas.sick_share(state), 0.0)
 	state.hr = 2

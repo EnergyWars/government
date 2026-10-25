@@ -144,11 +144,26 @@ func test_loo_state_uses_separate_slot_range() -> void:
 	assert_eq(state.free_kitchen_slot(), 0)
 
 
+func test_toilet_stalls_open_more_loo_slots() -> void:
+	assert_eq(state.loo_slots(), GameConfig.LOO_SLOTS)
+	state.set_upgrade("toilet_stalls", int(GameConfig.upgrade("toilet_stalls").max))
+	assert_eq(state.loo_slots(), GameConfig.MAX_LOO_SLOTS)
+	var review := state.station(REVIEW)
+	while review.desks < GameConfig.MAX_LOO_SLOTS:
+		review.add_desk()
+	review.staff = review.desks
+	for i in GameConfig.MAX_LOO_SLOTS - 1:
+		review.moods[i].rest(DeskMood.LOO, state.free_loo_slot())
+	assert_eq(state.free_loo_slot(), GameConfig.KITCHEN_SLOTS + GameConfig.MAX_LOO_SLOTS - 1)
+	review.moods[GameConfig.MAX_LOO_SLOTS - 1].rest(DeskMood.LOO, state.free_loo_slot())
+	assert_eq(state.free_loo_slot(), -1)
+
+
 func test_loo_slot_points() -> void:
-	for i in GameConfig.LOO_SLOTS:
-		assert_true(layout.toilets.has_point(layout.slot_point(GameConfig.KITCHEN_SLOTS + i)))
+	for i in GameConfig.MAX_LOO_SLOTS:
+		assert_true(layout.toilets.has_point(layout.slot_point(GameConfig.KITCHEN_SLOTS + i)), str(i))
 	assert_eq(layout.slot_point(3), layout.kitchen_slot(3))
-	assert_eq(layout.slot_point(999), layout.slot_point(GameConfig.KITCHEN_SLOTS + GameConfig.LOO_SLOTS - 1))
+	assert_eq(layout.slot_point(999), layout.slot_point(GameConfig.KITCHEN_SLOTS + GameConfig.MAX_LOO_SLOTS - 1))
 	assert_false(layout.toilets.has_point(layout.phone_point()))
 	assert_true(layout.toilets.has_point(layout.loo_origin() + Vector2(256, 98)))
 
@@ -195,12 +210,22 @@ func test_loo_guest_stays_without_help_and_wake_service_shortens_it() -> void:
 	assert_eq(Formulas.rest_limit(state, DeskMood.LOO), GameConfig.LOO_SECONDS)
 	_run(60.0, 1.0)
 	assert_true(review.moods[0].is_resting())
-	state.research["wake_service"] = 5
-	assert_eq(Formulas.rest_limit(state, DeskMood.LOO), GameConfig.WAKE_SERVICE_DELAYS[5])
+	var top := int(GameConfig.upgrade("wake_service").max)
+	state.set_upgrade("wake_service", top)
+	assert_eq(Formulas.rest_limit(state, DeskMood.LOO), Formulas.track_value("wake_service", top))
+	assert_lt(Formulas.rest_limit(state, DeskMood.LOO), GameConfig.LOO_SECONDS)
+
+
+func test_toilet_speed_shortens_loo_visits_until_the_wake_service_is_faster() -> void:
+	state.set_upgrade("toilet_speed", 50)
+	assert_almost_eq(Formulas.rest_limit(state, DeskMood.LOO), Formulas.track_value("toilet_speed", 50), 0.0001)
+	assert_lt(Formulas.rest_limit(state, DeskMood.LOO), GameConfig.LOO_SECONDS)
+	state.set_upgrade("wake_service", 1)
+	assert_eq(Formulas.rest_limit(state, DeskMood.LOO), minf(Formulas.track_value("toilet_speed", 50), Formulas.track_value("wake_service", 1)))
 
 
 func test_doze_weights_still_sum_to_one_with_loo() -> void:
-	state.research["kitchen"] = 3
+	state.set_upgrade("kitchen", 150)
 	var total := 0.0
 	var weights := Formulas.doze_weights(state)
 	for key in weights:
@@ -219,11 +244,12 @@ func test_doze_can_send_employees_to_loo_and_falls_back_when_full() -> void:
 			seen = true
 			assert_gte(review.moods[0].slot, GameConfig.KITCHEN_SLOTS)
 	assert_true(seen)
-	for i in GameConfig.LOO_SLOTS:
+	var stalls := state.loo_slots()
+	for i in stalls:
 		review.add_desk()
 	review.staff = review.desks
-	var base := review.moods.size() - GameConfig.LOO_SLOTS
-	for i in GameConfig.LOO_SLOTS:
+	var base := review.moods.size() - stalls
+	for i in stalls:
 		review.moods[base + i].rest(DeskMood.LOO, GameConfig.KITCHEN_SLOTS + i)
 	for i in 100:
 		review.moods[0].wake(10.0)

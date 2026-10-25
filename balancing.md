@@ -1,6 +1,6 @@
 # Balancing – Review und Todos
 
-Stand: 24.10.2026. Grundlage: Code-Review von `game_config.gd`, `formulas.gd`, `simulation.gd`, `progression.gd`, `goal_tracker.gd`, `offline_calculator.gd`, dazu Simulationen mit `tests/tools/balance_bot.gd` (8 h, 30 min bzw. 480 min aktiv) und einem Diagnose-Bot (Stationen alle 5 min, Varianten „ohne Krankheit“ / „ohne Ansehensverlust“).
+Stand: 25.10.2026 (Upgrade-Neugliederung in 4.13). Grundlage: Code-Review von `game_config.gd`, `formulas.gd`, `simulation.gd`, `progression.gd`, `goal_tracker.gd`, `offline_calculator.gd`, dazu Simulationen mit `tests/tools/balance_bot.gd` (8 h, 30 min bzw. 480 min aktiv) und einem Diagnose-Bot (Stationen alle 5 min, Varianten „ohne Krankheit“ / „ohne Ansehensverlust“).
 
 Ziele des Balancings (Vorgabe):
 1. Bei jeder neuen Abteilung muss der Spieler erst viel selbst machen.
@@ -11,7 +11,7 @@ Legende: **[K]** kritisch (blockiert Fortschritt), **[H]** hoch, **[M]** mittel,
 
 Zusätzliches Designziel: **Engpässe entstehen häufig und bewusst.** Der Spieler muss oft selbst eingreifen, regelmäßig einzelne Stationen ausbauen und kann einen Engpass mit Boosts oder Werbung überbrücken. Ansehen sinkt höchstens minimal.
 
-Bewusst **nicht** umgesetzt, weil es Engpässe abbauen würde: größere Fächer und Rückfluss bei Stau (4.5a), Andrang an die Kapazität koppeln (3.5), längere Geduld und größerer Sitzbereich (3.5), höhere Personal-Obergrenzen (3.1), Störungs-Budget bei Ereignissen (4.7).
+Bewusst **nicht** umgesetzt, weil es Engpässe abbauen würde: größere Fächer und Rückfluss bei Stau (4.5a), Andrang an die Kapazität koppeln (3.5), längere Geduld (3.5), Störungs-Budget bei Ereignissen (4.7). Personal-Obergrenzen wurden mit der Upgrade-Neugliederung (4.13) angehoben, weil jedes weitere Personal teurer wird und Engpässe nur verschiebt.
 
 ### Umgesetzte Engpass-Mechaniken
 | Mechanik | Wirkung |
@@ -24,6 +24,9 @@ Bewusst **nicht** umgesetzt, weil es Engpässe abbauen würde: größere Fächer
 | Poststelle | zweiter Eingang, füllt Sachbearbeitungen bis zur Hälfte, nur 50 % Gebühr |
 | Einarbeitung | 5 Handfälle je neuer Abteilung vor dem ersten Einstellen |
 | Boosts | 14 Boosts gegen Siegel oder Werbung (Attrappe) |
+| Radau am Empfang | blockiert den Empfang, bis der Spieler 2,5 s danebensteht |
+| Briefe auf dem Boden | Überlauf des Briefregals bleibt liegen, bis der Spieler ihn einsortiert |
+| Röhrenabschnitte | jeder Rohrpost-Abschnitt einzeln ausbaubar, schwächster Abschnitt bremst |
 
 Bot-Messung nach Umsetzung (`--hours=3 --active=90`, Seed 2024): Aktiv steigt das Ansehen auf ≈ 110, danach fällt es in 90 min nur um ≈ 3,4. Unbesetzt bearbeitet die Poststelle wenig (49 von 990 Briefen), der Rest geht zurück. Das ist gewollt: Das Briefregal ist eine Ausbau-Senke.
 
@@ -108,10 +111,10 @@ Schlussfolgerung: Es gibt **drei unabhängige Blocker**, die jeder für sich das
 **Befund.** Summe aller Technik-Kosten außer Rohrpost/Röhren/Portal/KI: ~0,9 Mio. Summe aller globalen Mitarbeiter und Bereiche (12 Boten, 3 Ablehnungs-Boten, 4 Kaffee-Praktikanten, 4 Telefonisten, 2 Wachen, 2 Praktikanten, Warte- 8/Sitzbereich 12): ~0,55 Mio. Das Bauamt kostet allein 400 000 €, das Wohnungsamt 2 Mio. Ab Kreisverwaltung ist alles Kleine gekauft; danach gibt es nur noch Tische/Stufen in teuren Abteilungen und vier Großtechniken. Zwischen Wohnungsamt (2 Mio.) und Sozialamt (12 Mio.) liegen Stunden ohne „kleines Upgrade“.
 **Todos.**
 - [ ] Alle globalen Mitarbeiter-/Bereichspreise an das **aktuelle Einkommen** koppeln (`max(Basis, Einkommen/min × Faktor) × Wachstum^n`) wie bereits `sick_bonus_cost`; dann bleiben Bote Nr. 9 oder Telefonist Nr. 3 in jeder Phase eine spürbare, aber kurze Investition.
-- [ ] Obergrenzen anheben und an Gebäudestufe binden: Boten 12 → 4/Stufe (max. 20), Kaffee-Praktikanten 4 → 1/Stufe + 2, Telefonisten 4 → 6, Wachen 2 → 4, Praktikanten 2 → 4, Ablehnungs-Boten 3 → 5.
-- [ ] Technik-Stufen verlängern mit abflachender Wirkung statt harter `max_level`: Kaffee 6 → 10, Scanner 3 → 8, Digitale Akte 3 → 8, Qualitätsschulung 3 → 6, Weckdienst 5 → 8, Röhrenkapazität 3 → 6; Wirkung je Stufe linear, Kosten ×Wachstum.
-- [ ] Neue **Dauer-Senke**: „Verwaltungsreform“ (Prestige-light, s. 3.4) oder „Behördenschild / Ausstattung“ mit rein kosmetischen, aber sichtbaren Stufen (Pflanzen, Teppich, Kaffeetasse des Spielers) zu Preisen = 1–2 min Einkommen.
-- [ ] Beamten-Schulungen (4 Spuren × 3 Stufen je Beamtem) als die vorgesehenen Klein-Upgrades sichtbar machen: Sammelknopf „Alle Beamten dieser Station schulen“ und Hinweis im Statistik-Report, wenn Schulungen günstiger als eine Stufe sind.
+- [x] Obergrenzen anheben. **Umgesetzt (4.13):** Boten 30, Ablehnungs-Boten 12, Kaffee-Praktikanten 8, Beschwerde-Praktikanten 5, Wachen 6, Telefonisten 4, Teamleitungen 4 je Abteilung, Fachkräfte 3; flacheres Preiswachstum (×1,5 bis ×2,2). Bindung an die Gebäudestufe bewusst nicht, die Preise begrenzen ausreichend.
+- [x] Technik-Stufen verlängern mit kleinen Schritten statt harter `max_level`. **Umgesetzt (4.13):** alle Spuren 40–300 Stufen mit Wachstum ×1,04–×1,2.
+- [x] Neue **Dauer-Senke**. **Umgesetzt (4.13):** Büroausstattung je Abteilung (200 Stufen), Abteilungsschredder (100 Stufen je Abteilung), Rohrpost-Stationen und Röhrenabschnitte je Raum, Briefregal 300 Stufen, Sitzplätze 300 Stufen. Ob die Startpreise in jeder Phase bei 1–2 min Einkommen liegen, misst der Balance-Bot noch (4.13).
+- [ ] Beamten-Schulungen (4 Spuren × 30 Stufen je Beamtem) als Klein-Upgrades sichtbarer machen: Sammelknopf „Alle Beamten dieser Station schulen“ und Hinweis im Statistik-Report, wenn Schulungen günstiger als eine Stufe sind.
 
 ### 3.2 [H] Freischalt-Sprünge wachsen zu steil
 **Befund.** Amortisation nur aus Rohertrag der neuen Abteilung (Gebühr/Intervall ÷ Freischaltkosten): Steuer 2,4 min, Gewerbe 11 min, Kfz 34 min, Bauamt 1,9 h, Wohnungsamt 3,6 h, Sozialamt 9,3 h, Zoll 19 h. Multiplikatoren (Ansehen ×2–2,8, Andrang ×3–5,5) verkürzen das später, aber die Ansehensschwellen (300/500/800/1 300) bremsen zusätzlich. Gleichzeitig steigen die Kostenfaktoren der Abteilungen ×3 je Stufe (1, 3, 9, 27, 80, 220, 650, 1 900) – ein Sachbearbeiter-Tisch im Zoll kostet 228 000 €, eine Stufe 171 000 €.
@@ -161,8 +164,8 @@ Fachkraft: 5 × Einstellkosten × 2,4^n, nur komplexe Fälle (10–35 %) ohne Ze
 
 ### 4.3 [M] Rohrpost entwertet eine ganze Upgrade-Linie schlagartig
 250 000 € einmalig → Transport unendlich, 12 Boten und 3 Stufen Aktenwagen wertlos.
-- [ ] Rohrpost als Netz je Abteilungsraum verkaufen (eine Röhre je Verbindung, Preis steigend), Boten bleiben für nicht angeschlossene Strecken nötig; `tube_capacity` dann je Röhre.
-- [ ] Boten nach Rohrpost automatisch in „Ablehnungs-Boten“ umschulen (Knopf im Team-Fenster), damit Investition nicht verloren ist.
+- [x] Rohrpost als Netz je Raum verkaufen, Boten bleiben für nicht angeschlossene Strecken nötig. **Umgesetzt:** einmalige Freischaltung (250 000) plus Station je Raum (Abteilungen halber Eröffnungspreis, mindestens 20 000); komplexe Akten erst mit Großen Kapseln, Großakten nie; Kapazität global (Röhrenkapazität, 60 Stufen) und je Abschnitt (100 Stufen).
+- [~] Boten nach Rohrpost umschulen. **Verworfen:** Boten behalten Arbeit durch nicht angeschlossene Räume, nicht passende Akten und den Überlauf (sie nehmen Rohrpost-Akten, sobald ein Ausgangsfach halb voll ist, `TUBE_OVERFLOW_SHARE`).
 
 ### 4.4 [M] Prozess-Klage ist ab dem zweiten Versuch ein Geldautomat
 Erwartungswert Geld = Chance × 2,5 − 1 ≥ 0 schon bei 40 %; Chance steigt +8 % je Klage bis 85 %, Kosten nur ×1,25. Ab Klage 2 positiver Erwartungswert, bis 20 Klagen je Bewertung.
@@ -245,6 +248,26 @@ Ziel: Vor dem Empfang ein weiterer Engpass, der früh in der Regionalverwaltung 
 - [x] Automat 3 s je Nummer (max. 20/Min.), Aufruf 3,5 s je Nummer (max. ≈ 17/Min.), Hand ×2,5, je Stufe −18 % (10 Stufen, Endwert ≈ 0,41 s bzw. 0,48 s). Kosten 30 000 bzw. 35 000 · 1,7^Stufe. Aufruf nur bei < 4 Anstehenden am Empfang. Konstanten `TICKET_*` in `game_config.gd`.
 - [ ] Mit Balance-Bot prüfen, ob die Kombination aus Ankunftsrate und Aufrufzeit ab Stufe 3 zu häufigem Abhauen führt; ggf. Startwerte senken.
 
+### 4.12 [H] Tester-Feedback Halle, Rohrpost, Poststelle
+Befund: Der Wartebereich-Ausbau änderte nichts am Durchsatz, allein der Sitzbereich begrenzte ihn (ein Platz bedient etwa 3–4 Bürger/Min.; für 1000 Anträge/Min. braucht es mindestens 250 Plätze). Rohrpost war nur global ausbaubar, und fertige Bescheide teilten sich die Röhren mit der Gegenrichtung.
+- [x] Sitzbereich bis über 300 Plätze. Heute (4.13): 300 Stufen à +1 Platz (24 → 324), 500 · 1,04^Stufe.
+- [x] Stehplätze als Überlauf bei vollem Sitzbereich; Gedränge senkt die Geduld der Schlange um bis zu 35 %. Heute (4.13): eigene Spur, 150 Stufen à +2 Stehplätze; Warteschlange 120 Stufen à +1 Platz.
+- [x] Röhrenabschnitte einzeln ausbaubar; eigene Ausgabe-Röhre über den rechten Schacht. Heute (4.13): 100 Stufen à +1 Kapsel und +2 % Tempo, 30 000 · 1,08^Stufe.
+- [x] Radau am Empfang alle 120–260 s ab 25 Fällen (Wachen +30 % Abstand).
+- [x] Volles Briefregal: Briefe bleiben auf dem Boden liegen (max. 60), Spieler sortiert sie ein.
+- [ ] Mit Balance-Bot prüfen, ob Stehplätze und Sitzbereich-Kosten im späten Spiel mit dem Andrang mithalten und Radau nicht zu häufig stört.
+
+### 4.13 [H] Upgrade-Neugliederung: feine Stufen, alles auf der Karte
+**Befund (Spieler-Feedback).** Je Upgrade-Art gab es nur 3–10 Stufen mit großen Sprüngen (Wachstum ×2,5 bis ×6), dazu eine unübersichtliche Aufteilung in Abteilungen, Team und Technik. Zwischen großen Käufen gab es lange nichts Kleines zu kaufen (siehe 3.1).
+- [x] 53 Upgrade-Spuren in `GameConfig.UPGRADES` mit zusammen 9 325 Stufen (Spuren je Abteilung bzw. Raum mehrfach gezählt), meist 100–300 Stufen, Wachstum ×1,04–×1,2. Kurven: `linear` (Wert + Schritt), `decay` (Wert × Rate^Stufe, nähert sich asymptotisch), `unlock_decay` (Stufe 1 schaltet frei, danach Rate), `chance` (1 − (1 − Basis) × Rate^Stufe) und `unlock`. Übersicht aller Werte in FEATURES.md („Upgrades und Bereiche“).
+- [x] `Formulas.track_value` begrenzt die Stufe auf 0 bis zur Höchststufe; manipulierte oder alte Spielstände ergeben so keine Werte jenseits der Tabelle.
+- [x] Kaufmengen ×1, ×10 und Max über die geschlossene geometrische Summe (`geometric_sum`, `geometric_affordable`), damit Hunderte Stufen ohne Schleife bezahlt werden.
+- [x] Migration v2 → v3 hält die Wirkung alter Stände ungefähr gleich: Stufen werden je Spur skaliert (`SaveMigration.LEVEL_SCALES`, Stufentabellen `LEVEL_STEPS`). Beispiel Küche: früher 0,07 von 0,26 Verquatsch-Gewicht je Stufe (≈ 26,9 %), heute −0,45 % je Stufe, daher ×60 (alte Stufe 3 → 180 = −81 %).
+- [x] Transportschätzung nutzt das Lauftempo der Boten: `Formulas.runner_trip_time` = `RUNNER_TRIP_ESTIMATE` / Botenschuhe; Kapazität und Ausbau-Gewinn steigen damit mit jeder Stufe Botenschuhe.
+- [x] Ausbau-Gewinn der Flinken Ablehnungs-Boten exakt über `ThroughputReport.collector_trip(state, speed_factor)`: Sobald die Mindestdauer von 12 s greift, bringt eine weitere Stufe rechnerisch nichts mehr.
+- [x] Röhrenkapazität-Gewinn aus dem Schritt der Spur (+1 Akte je Röhre und Stufe) statt fester Annahme.
+- [ ] Mit Balance-Bot (kauft bereits die günstigste Spur über `UpgradeCatalog` und `buy_entry`) prüfen, ob die feinen Spuren in jeder Phase ein „kleines Upgrade“ zu 1–2 min Einkommen bieten und die Max-Kaufmenge nicht zu schnell ganze Spuren leert.
+
 ---
 
 ## 5. Niedrige Priorität / Feinschliff
@@ -255,7 +278,7 @@ Ziel: Vor dem Empfang ein weiterer Engpass, der früh in der Regionalverwaltung 
 - [ ] [N] Ziel „Ansehen 40“ (Ziel 9) ohne Ansehensbelohnung ist nach 2.2 leicht; Reihenfolge der Ziele gegen die neue Kostenkurve aus 3.2 neu prüfen.
 - [x] [N] Bewertungs-Drain 0,0006/s je Gewicht = −2,2 Ansehen/h je 1-Stern-Bewertung, bis zu 5 → −11/h; nach 2.2 auf −0,5/h je Bewertung senken, dafür Andrang ×(Durchschnitt/5) koppeln (sichtbarer Effekt). **Umgesetzt:** Drain unterliegt der Dämpfung; Andrang × Bewertungsfaktor 0,85–1,25.
 - [ ] [N] Einwohnerzahl (`POPULATION_PER_CASE`) wächst linear mit Fällen; Metropole erst bei 50 000 Fällen; Ränge an Meilensteine aus 3.3 binden und mit kleinem Bonus (+Lobbyplätze) versehen.
-- [ ] [N] `MAX_STATION_LEVEL = 50` nach 4.1 auf 100 anheben (Schwellen alle 10).
+- [x] [N] `MAX_STATION_LEVEL = 50` nach 4.1 auf 100 anheben (Schwellen alle 10). **Umgesetzt:** 100 Stufen.
 
 ---
 

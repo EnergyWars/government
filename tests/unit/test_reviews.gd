@@ -865,8 +865,10 @@ func test_stars_widget_has_five_icons() -> void:
 
 func test_delete_cost_scales_with_income() -> void:
 	var review := Review.new(0, 1)
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
+	state.set_upgrade("pneumatic_tubes", 1)
+	state.set_upgrade("large_capsules", 1)
+	for room_id in GameConfig.upgrade_rooms("tube_station"):
+		state.set_upgrade("tube_station", 1, room_id)
 	for key in state.stations:
 		if not state.stations[key].machine:
 			state.stations[key].staff = state.stations[key].desks

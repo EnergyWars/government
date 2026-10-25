@@ -38,7 +38,7 @@ func _initialize() -> void:
 		_buy(game)
 		if state.goal_index != last_goal:
 			last_goal = state.goal_index
-			print("%7.1f min | goal %2d | money %12.0f | rep %6.1f | depts %d | stage %d | cases %d | lost %d | staff %d | mail %d/%d | bundles %d" % [elapsed / 60.0, state.goal_index, state.money, state.reputation, state.unlocked_count(), state.building_stage, state.cases_completed, state.citizens_lost, state.total_staff(), state.mail_received, state.mail_returned, state.bundles])
+			print("%7.1f min | goal %2d | money %12.0f | rep %6.1f | depts %d | stage %d | cases %d | lost %d | staff %d | mail %d/%d/%d | ruckus %d | bundles %d" % [elapsed / 60.0, state.goal_index, state.money, state.reputation, state.unlocked_count(), state.building_stage, state.cases_completed, state.citizens_lost, state.total_staff(), state.mail_received, state.mail_dropped, state.mail_returned, state.ruckus_calmed, state.bundles])
 		if elapsed >= next_report:
 			next_report += 1800.0
 			print("  ~ %5.0f min: money %.0f rep %.1f income/s %.1f flawed %d lost %d mail %d/%d bundles %d" % [elapsed / 60.0, state.money, state.reputation, OfflineCalculator.earnings_per_second(state) / GameConfig.OFFLINE_EFFICIENCY, state.cases_flawed, state.citizens_lost, state.mail_received, state.mail_returned, state.bundles])
@@ -60,7 +60,7 @@ func _buy(game: Game) -> void:
 		if weakest == "demand":
 			continue
 		if weakest == "transport":
-			if actions.connect_tube(dept.id) or actions.hire_runner():
+			if _install_tube_stations(game, dept.id) or actions.hire_runner():
 				continue
 			for index in state.runners.size():
 				if actions.upgrade_runner(index):
@@ -73,10 +73,10 @@ func _buy(game: Game) -> void:
 			actions.hire(weakest)
 		elif not actions.add_desk(weakest):
 			actions.upgrade(weakest)
-	for research_id in GameConfig.RESEARCH_ORDER:
-		if Progression.research_block_reason(state, research_id).is_empty() and state.money > 3.0 * Formulas.research_cost(research_id, state.research_level(research_id)):
-			actions.buy_research(research_id)
-			return
+	var cheapest := _cheapest_track(state)
+	if cheapest != null and state.money > 3.0 * cheapest.cost:
+		actions.buy_entry(cheapest.id)
+		return
 	for key in [GameConfig.RECEPTION, GameConfig.COUNTER]:
 		if state.station(key).staff < state.station(key).desks:
 			actions.hire(key)
@@ -94,3 +94,22 @@ func _buy(game: Game) -> void:
 		var review := state.station(dept.station_keys()[0 if not dept.is_customs() else 1])
 		if state.money > 4.0 * Formulas.specialist_cost(review):
 			actions.hire_specialist(review.key)
+
+
+func _install_tube_stations(game: Game, dept_id: String) -> bool:
+	var state := game.state
+	if not state.has_upgrade("pneumatic_tubes"):
+		return false
+	for key in RouteBuilder.build(CaseFile.new(dept_id)):
+		var room_id := GameConfig.station_room(key)
+		if not state.has_tube_station(room_id) and game.actions.buy_upgrade("tube_station", room_id):
+			return true
+	return false
+
+
+func _cheapest_track(state: GameState) -> UpgradeEntry:
+	var cheapest: UpgradeEntry = null
+	for entry in UpgradeCatalog.entries(state):
+		if entry.kind == UpgradeCatalog.TRACK and entry.is_buyable() and (cheapest == null or entry.cost < cheapest.cost):
+			cheapest = entry
+	return cheapest

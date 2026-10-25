@@ -11,6 +11,8 @@ func before_each() -> void:
 	for dept_id in GameConfig.department_ids():
 		state.unlock_department(dept_id)
 	game = Game.new(state)
+	UpgradeEntryCard.amount_index = 0
+	UpgradesSheet.mode_index = 0
 
 
 func _sheet(sheet: Sheet, argument: String = "") -> Sheet:
@@ -19,12 +21,26 @@ func _sheet(sheet: Sheet, argument: String = "") -> Sheet:
 	return sheet
 
 
+func _buy(sheet: Sheet, entry_id: String) -> void:
+	sheet.act(func() -> bool: return UpgradeEntryCard.buy(game, entry_id))
+
+
+func _install_tubes() -> void:
+	game.state.set_upgrade("pneumatic_tubes", 1)
+	for room_id in GameConfig.upgrade_rooms("tube_station"):
+		game.state.set_upgrade("tube_station", 1, room_id)
+
+
 func test_every_sheet_builds_content() -> void:
-	var sheets: Array[Sheet] = [DepartmentsSheet.new(), TeamSheet.new(), ResearchSheet.new(), BuildingSheet.new(), GoalsSheet.new()]
+	var sheets: Array[Sheet] = [UpgradesSheet.new(), StatisticsSheet.new(), GoalsSheet.new(), BoostSheet.new()]
 	for sheet in sheets:
 		_sheet(sheet)
 		assert_gt(sheet.content.get_child_count(), 1, sheet.get_class())
 		assert_false(sheet.title().is_empty())
+	for spot: String in ["entrance", "runners", UpgradeCatalog.DEPT_PREFIX + "customs", UpgradeCatalog.ROOM_PREFIX + GameConfig.ROOM_TECH]:
+		var spot_sheet := _sheet(SpotSheet.new(), spot)
+		assert_gt(spot_sheet.content.get_child_count(), 1, spot)
+		assert_false(spot_sheet.title().is_empty(), spot)
 	await wait_physics_frames(2)
 
 
@@ -37,13 +53,16 @@ func _has_label(node: Node, text: String) -> bool:
 	return false
 
 
-func test_department_sheet_offers_shared_stations_of_the_route() -> void:
-	var licences := _sheet(DepartmentSheet.new(), "business_licences")
-	assert_true(_has_label(licences.content, licences.tr("SECTION_SHARED_STATIONS")))
-	assert_true(_has_label(licences.content, licences.tr("STATION_INSPECTION")))
-	assert_true(_has_label(licences.content, licences.tr("STATION_RECEPTION")))
-	var housing := _sheet(DepartmentSheet.new(), "housing")
-	assert_true(_has_label(housing.content, housing.tr("STATION_GENERAL_SERVICES_REVIEW")))
+func test_department_spot_shows_the_route_through_shared_stations() -> void:
+	var licences := _sheet(SpotSheet.new(), UpgradeCatalog.DEPT_PREFIX + "business_licences")
+	var route := DepartmentSection.route_text("business_licences")
+	assert_true(_has_label(licences.content, route))
+	assert_true(route.contains(StationCard.label_for(GameConfig.INSPECTION)))
+	assert_true(route.contains(StationCard.label_for(GameConfig.RECEPTION)))
+	var housing_sheet := _sheet(SpotSheet.new(), UpgradeCatalog.DEPT_PREFIX + "housing")
+	var housing_route := DepartmentSection.route_text("housing")
+	assert_true(_has_label(housing_sheet.content, housing_route))
+	assert_true(housing_route.contains(housing_sheet.tr("STATION_GENERAL_SERVICES_REVIEW")))
 	await wait_physics_frames(2)
 
 
@@ -91,7 +110,7 @@ func test_world_view_draws_kitchen_guests() -> void:
 	review.moods[1].wake_progress = 0.3
 	review.moods[2].rest(DeskMood.FETCH, 2)
 	review.moods[3].rest(DeskMood.CHAT, 3)
-	game.state.research["coffee"] = 3
+	game.state.set_upgrade("coffee", 3)
 	world._process(0.1)
 	world.queue_redraw()
 	await wait_physics_frames(2)
@@ -116,8 +135,8 @@ func test_world_view_draws_kranz_and_slow_walkers() -> void:
 	review.moods[2].rest(DeskMood.CHAT, 2)
 	game.state.kranz = true
 	game.state.kranz_progress = 0.5
-	game.state.research["kitchen"] = 3
-	game.state.research["coffee_machine"] = 4
+	game.state.set_upgrade("kitchen", 3)
+	game.state.set_upgrade("coffee_machine", 4)
 	game.state.player.position = game.simulation.layout.kitchen_slot(0)
 	game.simulation.kranz_called.emit()
 	game.simulation.employee_dozed.emit("general_services/review", 0, DeskMood.SLOW)
@@ -216,7 +235,7 @@ func test_tapping_phone_office_opens_phone_room() -> void:
 	world.setup(game, joystick)
 	watch_signals(world)
 	world._handle_tap(world.layout.phone_header().get_center())
-	assert_signal_emitted_with_parameters(world, "open_room", [GameConfig.ROOM_PHONE])
+	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.room_spot(GameConfig.ROOM_PHONE)])
 
 
 func test_phone_and_toilet_painters_draw() -> void:
@@ -244,23 +263,30 @@ func test_tapping_inspection_room_opens_inspection_room() -> void:
 	game.state.stations.erase(GameConfig.INSPECTION)
 	game.state.department("business_licences").unlocked = false
 	watch_signals(world)
-	var point := world.layout.header("inspection").get_center()
-	world._handle_tap(point)
-	assert_signal_not_emitted(world, "open_room")
+	var inspection_spot := UpgradeCatalog.room_spot(GameConfig.ROOM_INSPECTION)
+	var body := world.layout.room("inspection").get_center()
+	world._handle_tap(world.layout.header("inspection").get_center())
+	assert_signal_emitted_with_parameters(world, "open_spot", [inspection_spot])
+	assert_eq(world.tap_spot(body), inspection_spot)
+	var locked := _sheet(SpotSheet.new(), inspection_spot)
+	assert_true(_has_label(locked.content, locked.tr("ROOM_LOCKED_INSPECTION")))
 	game.state.unlock_department("business_licences")
 	assert_not_null(game.state.station(GameConfig.INSPECTION))
-	world._handle_tap(point)
-	assert_signal_emitted_with_parameters(world, "open_room", [GameConfig.ROOM_INSPECTION])
+	assert_eq(world.tap_spot(body), UpgradeCatalog.STATION_PREFIX + GameConfig.INSPECTION)
+	var opened := _sheet(SpotSheet.new(), inspection_spot)
+	assert_false(_has_label(opened.content, opened.tr("ROOM_LOCKED_INSPECTION")))
+	assert_true(_has_label(opened.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:%s" % [UpgradeCatalog.LEVEL, GameConfig.INSPECTION]))))
 
 
-func test_team_sheet_hires_hr() -> void:
+func test_phone_clerk_board_hires_hr() -> void:
 	game.state.money = 1e9
-	var sheet := TeamSheet.new().setup(game)
-	add_child_autofree(sheet)
-	await wait_physics_frames(2)
-	assert_true(game.actions.hire_hr())
-	sheet.refresh()
+	var sheet := _sheet(SpotSheet.new(), "phone_clerks")
+	assert_true(_has_label(sheet.content, sheet.tr("PHONE_CLERKS_EMPTY")))
+	_buy(sheet, "%s:hr" % UpgradeCatalog.STAFF)
 	assert_eq(game.state.hr, 1)
+	assert_false(_has_label(sheet.content, sheet.tr("PHONE_CLERKS_EMPTY")))
+	assert_true(_has_label(sheet.content, sheet.tr("FMT_PHONE_LINE") % 1))
+	await wait_physics_frames(2)
 
 
 func test_world_view_layers_are_created_and_redrawn_selectively() -> void:
@@ -269,7 +295,12 @@ func test_world_view_layers_are_created_and_redrawn_selectively() -> void:
 	var world := WorldView.new()
 	add_child_autofree(world)
 	world.setup(game, joystick)
-	assert_eq(world._layers.size(), 8 + world.layout.rooms.size())
+	assert_eq(world._layers.size(), 11 + world.layout.rooms.size())
+	var layer_ids: Array[String] = []
+	for layer in world._layers:
+		layer_ids.append(str(layer.id))
+	for id: String in [WorldView.SHELL_LAYER, WorldView.KITCHEN_LAYER, WorldView.TOILETS_LAYER, WorldView.PHONE_LAYER, WorldView.MAIL_LAYER, WorldView.COMPLAINT_LAYER, WorldView.SHREDDER_LAYER, WorldView.TECH_LAYER, WorldView.HALL_STATIC_LAYER, WorldView.HALL_LAYER, WorldView.TUBES_LAYER]:
+		assert_has(layer_ids, id)
 	world._process(0.016)
 	await wait_physics_frames(2)
 	var drawn := 0
@@ -319,7 +350,7 @@ func test_lite_person_and_textures_draw() -> void:
 
 
 func test_sheet_scroll_container_is_fling_scroll() -> void:
-	var sheet := BuildingSheet.new().setup(game)
+	var sheet := UpgradesSheet.new().setup(game)
 	add_child_autofree(sheet)
 	assert_true(sheet._scroll is FlingScroll)
 
@@ -341,7 +372,7 @@ func test_world_view_draws_complaint_corner() -> void:
 	for outcome in ["expired", "lost", "deleted"]:
 		game.simulation.review_removed.emit(outcome)
 	assert_eq(world._floaters.size(), floaters + 4)
-	game.state.complaint_clerk_level = GameConfig.COMPLAINT_CLERK_MAX_LEVEL
+	game.state.set_upgrade("complaint_clerk", int(GameConfig.upgrade("complaint_clerk").max))
 	game.state.complaints = Formulas.complaint_cap(game.state)
 	assert_gt(world._shred_time, 0.0)
 	world._process(0.1)
@@ -422,14 +453,15 @@ func test_goals_sheet_starts_with_wisdom_banner() -> void:
 
 func test_department_sheets_for_all_departments() -> void:
 	for dept_id in GameConfig.department_ids():
-		var sheet := _sheet(DepartmentSheet.new(), dept_id)
+		var sheet := _sheet(SpotSheet.new(), UpgradeCatalog.room_spot(dept_id))
 		assert_gt(sheet.content.get_child_count(), 4, dept_id)
+		assert_eq(sheet.title(), UpgradeTexts.room_title(dept_id))
 		sheet.refresh()
 	await wait_physics_frames(2)
 
 
 func test_sheet_actions_rebuild_and_close() -> void:
-	var sheet := _sheet(TeamSheet.new())
+	var sheet := _sheet(SpotSheet.new(), "runners")
 	watch_signals(sheet)
 	var runners := game.state.runners.size()
 	sheet.act(game.actions.hire_runner)
@@ -443,9 +475,12 @@ func test_sheet_actions_rebuild_and_close() -> void:
 func test_station_card_labels() -> void:
 	assert_ne(StationCard.label_for("tax_services/signature"), StationCard.label_for(GameConfig.COUNTER))
 	var button := autofree(UiKit.button("")) as Button
-	StationCard.update_button(button, "ACTION_HIRE", 10.0, false, true, "LABEL_MAX_LEVEL")
+	StationCard.update_button(button, "ACTION_BUY", 10.0, false, true, "LABEL_MAX_LEVEL")
 	assert_true(button.disabled)
 	assert_eq(button.text, button.tr("LABEL_MAX_LEVEL"))
+	StationCard.update_button(button, "ACTION_BUY", 10.0, true, false, "LABEL_MAX_LEVEL")
+	assert_false(button.disabled)
+	assert_eq(button.text, button.tr("ACTION_BUY") + "\n" + UiKit.money(10.0))
 
 
 func test_task_panel_lists_unlocked_departments() -> void:
@@ -456,6 +491,16 @@ func test_task_panel_lists_unlocked_departments() -> void:
 	watch_signals(panel)
 	panel._toggle.pressed.emit()
 	assert_false(panel.expanded)
+
+
+func test_hud_task_panel_opens_the_department_spot() -> void:
+	var hud := Hud.new().setup(game, 0.0)
+	add_child_autofree(hud)
+	watch_signals(hud)
+	hud.task_panel.open_department.emit("tax_services")
+	assert_signal_emitted_with_parameters(hud, "open_sheet", ["spot", UpgradeCatalog.DEPT_PREFIX + "tax_services"])
+	hud.task_panel.focus_department.emit("customs")
+	assert_signal_emitted_with_parameters(hud, "focus_department", ["customs"])
 
 
 func test_world_view_renders_and_handles_input() -> void:
@@ -499,17 +544,19 @@ func test_world_view_tap_opens_department() -> void:
 	add_child_autofree(world)
 	world.setup(game, joystick)
 	watch_signals(world)
-	world._handle_tap(world.layout.room("tax_services").get_center())
-	assert_signal_not_emitted(world, "open_department")
+	var tax_body := world.tap_spot(world.layout.room("tax_services").get_center())
+	assert_true(tax_body.begins_with(UpgradeCatalog.STATION_PREFIX), tax_body)
+	assert_eq(GameConfig.spot_room(tax_body), "tax_services")
 	world._handle_tap(world.layout.header("tax_services").get_center())
-	assert_signal_emitted_with_parameters(world, "open_department", ["tax_services"])
+	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.DEPT_PREFIX + "tax_services"])
 	game.state.department("customs").unlocked = false
-	world._handle_tap(world.layout.room("customs").get_center())
-	assert_signal_not_emitted(world, "open_departments")
+	for key in GameConfig.department_station_keys("customs"):
+		game.state.stations.erase(key)
+	assert_eq(world.tap_spot(world.layout.room("customs").get_center()), UpgradeCatalog.DEPT_PREFIX + "customs")
 	world._handle_tap(world.layout.header("customs").get_center())
-	assert_signal_emitted(world, "open_departments")
-	world._handle_tap(world.layout.hall.get_center())
-	assert_signal_not_emitted(world, "open_room")
+	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.DEPT_PREFIX + "customs"])
+	assert_eq(GameConfig.spot_room(world.tap_spot(world.layout.hall.get_center())), GameConfig.ROOM_HALL)
+	assert_signal_emit_count(world, "open_spot", 2)
 
 
 func test_world_view_reacts_to_simulation_signals() -> void:
@@ -640,9 +687,12 @@ func test_tutorial_card_shows_info_step_with_next_button() -> void:
 func test_tutorial_card_reports_highlight_target() -> void:
 	var card := _tutorial_card()
 	watch_signals(card)
-	game.tutorial.state.tutorial_step = 8
+	game.tutorial.state.tutorial_step = Tutorial.index_of("upgrades_open")
 	game.tutorial.changed.emit()
-	assert_signal_emitted_with_parameters(card, "highlight_changed", ["team"])
+	assert_signal_emitted_with_parameters(card, "highlight_changed", ["upgrades"])
+	game.tutorial.state.tutorial_step = Tutorial.index_of("goals_open")
+	game.tutorial.changed.emit()
+	assert_signal_emitted_with_parameters(card, "highlight_changed", ["goals"])
 
 
 func test_tutorial_card_finish_label_on_last_step() -> void:
@@ -687,7 +737,7 @@ func test_tutorial_card_moves_to_top_while_a_sheet_is_open() -> void:
 	card._process(0.0)
 	assert_eq(card.panel.anchor_top, 1.0)
 	assert_lt(card.panel.offset_top, 0.0)
-	game.tutorial.set_open_sheet("team")
+	game.tutorial.set_open_sheet("upgrades")
 	card._process(0.0)
 	assert_eq(card.panel.anchor_top, 0.0)
 	assert_eq(card.panel.offset_top, float(AppTheme.SPACING_SM))
@@ -696,12 +746,15 @@ func test_tutorial_card_moves_to_top_while_a_sheet_is_open() -> void:
 func test_hud_highlights_and_clears_targets() -> void:
 	var hud := Hud.new().setup(game, 0.0)
 	add_child_autofree(hud)
-	hud.highlight("team")
-	assert_eq(hud._highlighted, hud._nav_buttons["team"])
+	for item: Dictionary in Hud.NAV_ITEMS:
+		hud.highlight(str(item.id))
+		assert_eq(hud._highlighted, hud._nav_buttons[item.id])
+	hud.highlight("upgrades")
+	assert_eq(hud._highlighted, hud._nav_buttons["upgrades"])
 	assert_not_null(hud._highlight_tween)
 	hud.highlight("goal")
 	assert_eq(hud._highlighted, hud._goal_card)
-	assert_eq(hud._nav_buttons["team"].modulate, Color.WHITE)
+	assert_eq(hud._nav_buttons["upgrades"].modulate, Color.WHITE)
 	hud.highlight("settings")
 	assert_eq(hud._highlighted, hud._settings_button)
 	hud.highlight("")
@@ -752,39 +805,57 @@ func test_event_banner_without_choices_hides_actions() -> void:
 	await wait_physics_frames(2)
 
 
-func test_departments_sheet_shows_jam_and_legend() -> void:
+func test_department_spot_shows_jam_and_legend() -> void:
 	var review := game.state.station("general_services/review")
 	for i in review.outbox_capacity():
 		review.outbox.append(CaseFile.new("general_services"))
-	var sheet := _sheet(DepartmentsSheet.new())
+	var sheet := _sheet(SpotSheet.new(), UpgradeCatalog.DEPT_PREFIX + "general_services")
 	sheet.refresh()
 	assert_true(_has_label(sheet.content, sheet.tr("LEGEND_MARKERS")))
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_JAM") % ("%s (%s)" % [StationCard.label_for("general_services/review"), sheet.tr("JAM_SIDE_OUT")])))
 	await wait_physics_frames(2)
 
 
-func test_building_sheet_offers_clerk_and_box_upgrades() -> void:
+func test_complaint_spots_offer_clerk_and_box_upgrades() -> void:
 	game.state.money = 1.0e9
-	var sheet := _sheet(BuildingSheet.new())
+	var clerk_id := "%s:complaint_clerk" % UpgradeCatalog.TRACK
+	var sheet := _sheet(SpotSheet.new(), "complaint_desk")
+	var clerk := UpgradeCatalog.find(game.state, clerk_id)
+	assert_eq(clerk.level, 0)
+	assert_true(_has_label(sheet.content, UpgradeTexts.title(clerk)))
+	assert_true(_has_label(sheet.content, UpgradeTexts.level_text(clerk)))
+	assert_true(_has_label(sheet.content, UpgradeTexts.effect(game.state, clerk)))
+	assert_true(_has_label(sheet.content, "\n".join(SpotStatus.lines(game.state, "complaint_desk"))))
+	_buy(sheet, clerk_id)
+	clerk = UpgradeCatalog.find(game.state, clerk_id)
+	assert_eq(clerk.level, 1)
+	assert_eq(game.state.upgrade_level("complaint_clerk"), 1)
+	assert_true(_has_label(sheet.content, UpgradeTexts.level_text(clerk)))
+	assert_true(_has_label(sheet.content, UpgradeTexts.effect(game.state, clerk)))
+	assert_true(_has_label(sheet.content, "\n".join(SpotStatus.lines(game.state, "complaint_desk"))))
+	game.state.set_upgrade("complaint_clerk", clerk.max_level)
 	sheet.refresh()
-	var clerk: String = sheet.tr("FMT_WAITING_LEVEL") % [sheet.tr("COMPLAINT_CLERK_TITLE"), 0, GameConfig.COMPLAINT_CLERK_MAX_LEVEL]
-	var box: String = sheet.tr("FMT_WAITING_LEVEL") % [sheet.tr("COMPLAINT_BOX_TITLE"), 0, GameConfig.COMPLAINT_BOX_MAX_LEVEL]
-	assert_true(_has_label(sheet.content, clerk))
-	assert_true(_has_label(sheet.content, box))
-	assert_true(_has_label(sheet.content, UpgradeCards.complaint_clerk_info(game.state)))
-	assert_true(game.actions.upgrade_complaint_clerk())
-	sheet.refresh()
-	assert_true(_has_label(sheet.content, UpgradeCards.complaint_clerk_info(game.state)))
-	game.state.complaint_clerk_level = GameConfig.COMPLAINT_CLERK_MAX_LEVEL
-	assert_false(UpgradeCards.complaint_clerk_info(game.state).contains("\n"))
+	var maxed := UpgradeCatalog.find(game.state, clerk_id)
+	assert_true(maxed.is_maxed())
+	assert_false(UpgradeTexts.effect(game.state, maxed).contains("→"))
+	assert_true(_has_label(sheet.content, UpgradeTexts.effect(game.state, maxed)))
+	assert_not_null(_find_button(sheet.content, sheet.tr("LABEL_MAX_LEVEL")))
+	var box_sheet := _sheet(SpotSheet.new(), "complaint_box")
+	assert_true(_has_label(box_sheet.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:complaint_box" % UpgradeCatalog.TRACK))))
+	assert_true(_has_label(box_sheet.content, "\n".join(SpotStatus.lines(game.state, "complaint_box"))))
 	await wait_physics_frames(2)
 
 
-func test_building_sheet_shows_population() -> void:
-	var sheet := _sheet(BuildingSheet.new())
-	sheet.refresh()
-	var expected: String = sheet.tr("FMT_POPULATION") % [UiKit.number(Formulas.population(game.state)), sheet.tr("SETTLEMENT_VILLAGE")]
-	assert_true(_has_label(sheet.content, expected))
+func test_entrance_spot_and_statistics_show_population() -> void:
+	var expected := TranslationServer.translate("FMT_POPULATION") % [UiKit.number(Formulas.population(game.state)), TranslationServer.translate("SETTLEMENT_VILLAGE")]
+	assert_eq(SpotStatus.population(game.state), expected)
+	var lines := SpotStatus.lines(game.state, "entrance")
+	assert_has(lines, expected)
+	var entrance := _sheet(SpotSheet.new(), "entrance")
+	assert_true(_has_label(entrance.content, "\n".join(lines)))
+	var statistics := _sheet(StatisticsSheet.new())
+	statistics.refresh()
+	assert_true(_has_label(statistics.content, expected))
 	await wait_physics_frames(2)
 
 
@@ -814,8 +885,8 @@ func test_world_view_draws_tubes_capsules_and_reject_piles() -> void:
 	var world := WorldView.new()
 	add_child_autofree(world)
 	world.setup(game, joystick)
-	game.state.research["pneumatic_tubes"] = 1
-	game.state.connect_all_tubes()
+	_install_tubes()
+	assert_true(game.state.tube_link("general_services/review", GameConfig.COUNTER))
 	game.state.station("general_services/review").rejects = 3
 	game.state.player.rejects = 2
 	game.simulation.case_piped.emit("general_services/review", "shared/counter", "general_services")
@@ -926,11 +997,17 @@ func test_hud_shows_review_banner_and_rating_chip() -> void:
 	assert_false(hud._review_banner.visible)
 
 
-func test_team_sheet_shows_helper_card() -> void:
-	game.state.research["shredder_service"] = 1
-	var sheet := _sheet(TeamSheet.new())
+func test_intern_board_shows_helper_card() -> void:
+	var helpers_title := UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:helpers" % UpgradeCatalog.STAFF))
+	var waiting := _sheet(SpotSheet.new(), "interns")
+	assert_true(_has_label(waiting.content, waiting.tr("INTERNS_EMPTY")))
+	assert_true(_has_label(waiting.content, helpers_title))
+	game.state.set_upgrade("shredder_service", 1)
+	var sheet := _sheet(SpotSheet.new(), "interns")
 	sheet.refresh()
-	assert_gt(sheet.get_child_count(), 0)
+	assert_true(_has_label(sheet.content, helpers_title))
+	assert_false(_has_label(sheet.content, sheet.tr("INTERNS_EMPTY")))
+	await wait_physics_frames(2)
 
 
 func test_world_view_draws_sick_timer_bonus_and_cover_hint() -> void:

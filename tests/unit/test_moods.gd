@@ -118,9 +118,10 @@ func test_game_state_saves_wake_counter() -> void:
 func test_coffee_extends_alert_duration() -> void:
 	var base := Formulas.alert_duration(state)
 	assert_eq(base, GameConfig.BASE_ALERT_SECONDS)
-	state.research["coffee"] = 2
-	assert_almost_eq(Formulas.alert_duration(state), base * (1.0 + 2.0 * GameConfig.COFFEE_ALERT_BONUS), 0.001)
-	state.research["coffee"] = int(GameConfig.RESEARCH.coffee.max_level)
+	state.set_upgrade("coffee", 70)
+	assert_almost_eq(Formulas.alert_duration(state), base * Formulas.track_value("coffee", 70), 0.001)
+	assert_gt(Formulas.alert_duration(state), base)
+	state.set_upgrade("coffee", int(GameConfig.upgrade("coffee").max))
 	assert_gt(Formulas.alert_duration(state), base * 3.0)
 
 
@@ -149,19 +150,20 @@ func test_shared_stations_use_best_supervisor_count() -> void:
 func test_rest_limits_follow_wake_service() -> void:
 	assert_eq(Formulas.rest_limit(state, DeskMood.ASLEEP), INF)
 	assert_eq(Formulas.rest_limit(state, DeskMood.COFFEE), GameConfig.COFFEE_BREAK_SECONDS)
-	for level in range(1, GameConfig.WAKE_SERVICE_DELAYS.size()):
-		state.research["wake_service"] = level
-		assert_eq(Formulas.rest_limit(state, DeskMood.ASLEEP), GameConfig.WAKE_SERVICE_DELAYS[level])
-		assert_eq(Formulas.rest_limit(state, DeskMood.COFFEE), minf(GameConfig.COFFEE_BREAK_SECONDS, GameConfig.WAKE_SERVICE_DELAYS[level]))
+	for level in range(1, int(GameConfig.upgrade("wake_service").max) + 1):
+		state.set_upgrade("wake_service", level)
+		var delay := Formulas.track_value("wake_service", level)
+		assert_eq(Formulas.rest_limit(state, DeskMood.ASLEEP), delay, str(level))
+		assert_eq(Formulas.rest_limit(state, DeskMood.COFFEE), minf(GameConfig.COFFEE_BREAK_SECONDS, delay), str(level))
 
 
-func test_wake_service_table_matches_research_levels() -> void:
-	assert_eq(GameConfig.WAKE_SERVICE_DELAYS.size(), int(GameConfig.RESEARCH.wake_service.max_level) + 1)
-	assert_true(GameConfig.RESEARCH_ORDER.has("coffee"))
-	assert_true(GameConfig.RESEARCH_ORDER.has("wake_service"))
-	assert_eq(GameConfig.RESEARCH.size(), GameConfig.RESEARCH_ORDER.size())
-	for level in range(2, GameConfig.WAKE_SERVICE_DELAYS.size()):
-		assert_lt(GameConfig.WAKE_SERVICE_DELAYS[level], GameConfig.WAKE_SERVICE_DELAYS[level - 1])
+func test_wake_service_track_matches_upgrades() -> void:
+	assert_eq(GameConfig.spot_room(GameConfig.upgrade_spot("coffee")), GameConfig.ROOM_KITCHEN)
+	assert_eq(GameConfig.spot_room(GameConfig.upgrade_spot("wake_service")), GameConfig.ROOM_TOILETS)
+	assert_lt(Formulas.track_value("wake_service", 0), 0.0)
+	assert_gt(Formulas.track_value("wake_service", 1), 0.0)
+	for level in range(2, int(GameConfig.upgrade("wake_service").max) + 1):
+		assert_lt(Formulas.track_value("wake_service", level), Formulas.track_value("wake_service", level - 1), str(level))
 
 
 func test_employee_dozes_off_while_working() -> void:
@@ -246,11 +248,11 @@ func test_coffee_break_ends_on_its_own() -> void:
 
 
 func test_wake_service_wakes_sleepers_by_themselves() -> void:
-	state.research["wake_service"] = 2
+	state.set_upgrade("wake_service", 25)
 	var review := _busy_review()
 	review.moods[0].rest(DeskMood.ASLEEP)
 	watch_signals(sim)
-	_run(GameConfig.WAKE_SERVICE_DELAYS[2] + 2.0, 0.5)
+	_run(Formulas.rest_limit(state, DeskMood.ASLEEP) + 2.0, 0.5)
 	assert_false(review.moods[0].is_resting())
 	assert_signal_emitted_with_parameters(sim, "employee_woke", [REVIEW, 0, false])
 	assert_eq(state.wakes, 0)
@@ -452,9 +454,10 @@ func test_fetching_employee_returns_refreshed() -> void:
 
 
 func test_fetch_time_ignores_wake_service() -> void:
-	state.research["wake_service"] = 5
+	var top := int(GameConfig.upgrade("wake_service").max)
+	state.set_upgrade("wake_service", top)
 	assert_eq(Formulas.rest_limit(state, DeskMood.FETCH), GameConfig.FETCH_SECONDS)
-	assert_eq(Formulas.rest_limit(state, DeskMood.CHAT), GameConfig.WAKE_SERVICE_DELAYS[5])
+	assert_eq(Formulas.rest_limit(state, DeskMood.CHAT), Formulas.track_value("wake_service", top))
 
 
 func test_wake_alert_bonus_only_after_fetching() -> void:
@@ -483,10 +486,10 @@ func test_chatterer_stays_in_kitchen_until_fetched_by_player() -> void:
 
 
 func test_wake_service_calls_chatterers_back() -> void:
-	state.research["wake_service"] = 3
+	state.set_upgrade("wake_service", 52)
 	var review := _busy_review()
 	review.moods[0].rest(DeskMood.CHAT, 0)
-	_run(GameConfig.WAKE_SERVICE_DELAYS[3] + 2.0, 0.5)
+	_run(Formulas.rest_limit(state, DeskMood.CHAT) + 2.0, 0.5)
 	assert_false(review.moods[0].is_resting())
 	assert_eq(state.wakes, 0)
 

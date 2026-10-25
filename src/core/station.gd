@@ -69,6 +69,10 @@ func outbox_capacity() -> int:
 	return GameConfig.OUTBOX_BASE + GameConfig.OUTBOX_PER_DESK * desks
 
 
+func is_backlogged() -> bool:
+	return outbox.size() >= ceili(outbox_capacity() * GameConfig.TUBE_OVERFLOW_SHARE)
+
+
 func has_inbox_space(lobby: int) -> bool:
 	return inbox.size() < inbox_capacity(lobby)
 

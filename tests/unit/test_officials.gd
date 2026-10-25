@@ -320,13 +320,24 @@ func test_training_config_is_consistent() -> void:
 		assert_true(Icons.TRAININGS.has(track_id))
 
 
-func test_station_card_opens_officials() -> void:
-	var sheet := DepartmentSheet.new()
-	sheet.setup(game, "general_services")
-	add_child_autofree(sheet)
-	watch_signals(sheet)
+func _officials_buttons(sheet: Sheet) -> Array[Button]:
+	var result: Array[Button] = []
 	for button in _buttons(sheet.content):
 		if button.text == sheet.tr("ACTION_OFFICIALS"):
-			button.pressed.emit()
-			break
+			result.append(button)
+	return result
+
+
+func test_station_card_opens_officials() -> void:
+	var sheet := SpotSheet.new()
+	sheet.setup(game, UpgradeCatalog.STATION_PREFIX + REVIEW)
+	add_child_autofree(sheet)
+	watch_signals(sheet)
+	var officials := _officials_buttons(sheet)
+	assert_eq(officials.size(), 1)
+	officials[0].pressed.emit()
 	assert_signal_emitted_with_parameters(sheet, "navigate", ["officials", REVIEW])
+	var machine := SpotSheet.new()
+	machine.setup(game, UpgradeCatalog.STATION_PREFIX + SIGNATURE)
+	add_child_autofree(machine)
+	assert_true(_officials_buttons(machine).is_empty())

@@ -41,7 +41,7 @@ func test_settings_resolve_explicit_locale() -> void:
 
 
 func test_translations_exist_for_both_languages() -> void:
-	var keys := ["DEPT_GENERAL_SERVICES", "STATION_REVIEW", "ACTION_HIRE", "FMT_MONEY"]
+	var keys := ["DEPT_GENERAL_SERVICES", "STATION_REVIEW", "ACTION_BUY", "FMT_MONEY"]
 	for locale in ["de", "en"]:
 		TranslationServer.set_locale(locale)
 		for key in keys:
@@ -61,9 +61,21 @@ func test_every_content_id_is_translated() -> void:
 	for kind in GameConfig.STATION_KINDS:
 		keys.append("STATION_" + kind.to_upper())
 		keys.append("STATION_SHORT_" + kind.to_upper())
-	for research_id in GameConfig.RESEARCH_ORDER:
-		keys.append("RESEARCH_" + research_id.to_upper())
-		keys.append("RESEARCH_DESC_" + research_id.to_upper())
+	for upgrade_id in GameConfig.upgrade_ids():
+		keys.append("TRACK_" + upgrade_id.to_upper())
+		keys.append("TRACK_DESC_" + upgrade_id.to_upper())
+	for spot: String in GameConfig.SPOTS:
+		keys.append("SPOT_" + spot.to_upper())
+		keys.append(UpgradeTexts.spot_description_key(spot))
+	for topic_id in GameConfig.TOPICS:
+		keys.append("TOPIC_" + topic_id.to_upper())
+	for mode_id in UpgradesSheet.MODES:
+		keys.append("UPGRADE_MODE_" + mode_id.to_upper())
+		keys.append("UPGRADE_MODE_HINT_" + mode_id.to_upper())
+	for kind: String in [UpgradeCatalog.LEVEL, UpgradeCatalog.DESK, UpgradeCatalog.HIRE, UpgradeCatalog.RUNNER_LEVEL, UpgradeCatalog.SEGMENT, UpgradeCatalog.STORAGE, UpgradeCatalog.UNLOCK, UpgradeCatalog.STAGE]:
+		keys.append("ENTRY_DESC_" + kind.to_upper())
+	for reason: String in UpgradeTexts.BLOCK_KEYS:
+		keys.append(str(UpgradeTexts.BLOCK_KEYS[reason]))
 	for stage: Dictionary in GameConfig.BUILDING_STAGES:
 		keys.append("STAGE_" + str(stage.id).to_upper())
 	for event_id in GameConfig.EVENTS:
@@ -95,14 +107,16 @@ func test_formatting_helpers_follow_locale() -> void:
 	assert_eq(UiKit.number(2000.0), "2K")
 	TranslationServer.set_locale("en")
 	assert_eq(UiKit.money(1500.0), "$1.5K")
-	assert_eq(UiKit.cost_text("ACTION_HIRE", 80.0), "Hire · $80")
+	assert_eq(UiKit.cost_text("ACTION_BUY", 80.0), "Buy · $80")
 
 
 func test_goal_texts() -> void:
 	TranslationServer.set_locale("de")
 	assert_eq(GoalText.describe({"type": "cases", "target": 3.0}), "Erledige 3 Fälle")
 	assert_eq(GoalText.describe({"type": "department", "target": 1.0, "param": "tax_services"}), "Eröffne: Finanzamt")
-	assert_eq(GoalText.describe({"type": "research_level", "target": 1.0, "param": "pneumatic_tubes"}), "Führe ein: Rohrpost")
+	assert_eq(GoalText.describe({"type": "upgrade_level", "target": 1.0, "param": "pneumatic_tubes"}), "Führe ein: Rohrpost")
+	assert_eq(GoalText.describe({"type": "upgrade_level", "target": 5.0, "param": "coffee"}), "Kaffeequalität auf Stufe 5")
+	assert_eq(GoalText.describe({"type": "upgrades", "target": 1.0}), "Kaufe 1 Upgrade-Stufe")
 	assert_eq(GoalText.describe({"type": "building_stage", "target": 1.0}), "Erweitere zu: Bürgeramt")
 	assert_eq(GoalText.describe({"type": "runners", "target": 1.0}), "Stelle 1 Boten ein")
 	assert_eq(GoalText.describe({"type": "reputation", "target": 30.0}), "Erreiche 30 Ansehen")
@@ -149,8 +163,20 @@ func test_icons_cover_content() -> void:
 		assert_true(Icons.DEPARTMENTS.has(dept_id), dept_id)
 	for kind in GameConfig.STATION_KINDS:
 		assert_true(Icons.STATIONS.has(kind), kind)
-	for research_id in GameConfig.RESEARCH_ORDER:
-		assert_true(Icons.RESEARCH.has(research_id), research_id)
+	for upgrade_id in GameConfig.upgrade_ids():
+		assert_true(Icons.UPGRADES.has(upgrade_id), upgrade_id)
+	for spot: String in GameConfig.SPOTS:
+		assert_true(Icons.SPOTS.has(spot), spot)
+	for room_id in GameConfig.SERVICE_ROOMS:
+		assert_true(Icons.ROOMS.has(room_id), room_id)
+	for topic_id in GameConfig.TOPICS:
+		assert_true(Icons.TOPICS.has(topic_id), topic_id)
+	for boost_id in GameConfig.BOOST_ORDER:
+		assert_true(Icons.BOOSTS.has(boost_id), boost_id)
+	assert_eq(Icons.upgrade("nope"), Icons.UPGRADE)
+	assert_eq(Icons.topic("nope"), Icons.UPGRADE)
+	assert_eq(Icons.room(GameConfig.ROOM_KITCHEN), Icons.ROOMS.kitchen)
+	assert_eq(Icons.room("general_services"), Icons.DEPARTMENTS.general_services)
 	for dept_id in GameConfig.department_ids():
 		assert_true(Icons.SIGNATURES.has(dept_id), dept_id)
 	for event_id in GameConfig.EVENTS:
@@ -230,18 +256,18 @@ func test_flavor_texts_exist_in_both_languages() -> void:
 			assert_ne(Flavor.slow(i), "SLOW_%d" % (i + 1), "%s slow %d" % [locale, i])
 		for i in Flavor.KRANZ_COUNT:
 			assert_ne(Flavor.kranz(i), "KRANZ_%d" % (i + 1), "%s kranz %d" % [locale, i])
-		for key in ["SIGN_KRANZ", "RESEARCH_COFFEE_MACHINE", "RESEARCH_KITCHEN", "RESEARCH_DESC_COFFEE_MACHINE", "RESEARCH_DESC_KITCHEN"]:
+		for key in ["SIGN_KRANZ", "TRACK_COFFEE_MACHINE", "TRACK_KITCHEN", "TRACK_DESC_COFFEE_MACHINE", "TRACK_DESC_KITCHEN"]:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
 		for i in Flavor.COMPLAINT_COUNT:
 			assert_ne(Flavor.complaint(i), "COMPLAINT_%d" % (i + 1), "%s complaint %d" % [locale, i])
 			assert_false(Flavor.complaint_subject(i).begins_with("COMPLAINT_SUBJECT_"), "%s subject %d" % [locale, i])
 		for i in Flavor.SHRED_COUNT:
 			assert_ne(Flavor.shred(i), "SHRED_%d" % (i + 1), "%s shred %d" % [locale, i])
-		for key in ["SIGN_COMPLAINTS", "SIGN_SHREDDER", "FLOAT_COMPLAINT_OVERFLOW", "RESEARCH_SHREDDER_SERVICE", "RESEARCH_DESC_SHREDDER_SERVICE"]:
+		for key in ["SIGN_COMPLAINTS", "SIGN_SHREDDER", "FLOAT_COMPLAINT_OVERFLOW", "TRACK_SHREDDER_SERVICE", "TRACK_DESC_SHREDDER_SERVICE"]:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
 		for key in ["AREA_KITCHEN", "SIGN_COFFEE_FUND", "SIGN_KITCHEN_RULES"]:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
-		for key in ["SECTION_SHARED_STATIONS", "FMT_TASK_ROW_RESTING", "FMT_RESTING", "TUTORIAL_WAKE_TITLE", "TUTORIAL_WAKE_TEXT"]:
+		for key in ["FMT_ROUTE", "FMT_TASK_ROW_RESTING", "FMT_RESTING", "TUTORIAL_WAKE_TITLE", "TUTORIAL_WAKE_TEXT"]:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
 		for day in Flavor.WISDOM_COUNT:
 			var wisdom := Flavor.wisdom(day * float(Flavor.SECONDS_PER_DAY))

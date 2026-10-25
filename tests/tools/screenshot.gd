@@ -67,8 +67,10 @@ func _process(_delta: float) -> bool:
 				station.staff = station.desks if not station.machine else station.staff
 			state.station("general_services/review").add_specialist()
 		if _tubes:
-			_main.game.state.research["pneumatic_tubes"] = 1
-			_main.game.state.connect_all_tubes()
+			var tube_state: GameState = _main.game.state
+			tube_state.set_upgrade("pneumatic_tubes", 1)
+			for room_id in GameConfig.upgrade_rooms("tube_station"):
+				tube_state.set_upgrade("tube_station", 1, room_id)
 		if _seconds > 0.0:
 			var state: GameState = _main.game.state
 			var steps := int(_seconds / GameConfig.TICK)
@@ -114,7 +116,7 @@ func _stage_complaint_flow() -> void:
 	var layout: WorldLayout = _main.office.layout
 	state.tutorial_step = -1
 	_main.tutorial_card.visible = false
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.complaints = 6
 	while state.helpers.size() < GameConfig.MAX_HELPERS:
 		state.add_helper()

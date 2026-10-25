@@ -2,6 +2,11 @@ class_name OfficePainter
 extends RefCounted
 
 const SWITCHBOARD_LAMPS := 8
+const COFFEE_LIGHTS := 6
+const SHELF_BOARDS := 6
+const SHELF_LETTERS := 96
+const SERVER_UNITS := 6
+const STALL_PITCH := 64.0
 const TILE := 44.0
 const POP_SECONDS := 0.45
 
@@ -263,7 +268,7 @@ static func coffee_machine(canvas: CanvasItem, base: Vector2, level: int, active
 	canvas.draw_rect(Rect2(base + Vector2(-14, -10), Vector2(28, 8)), AppTheme.METAL_DARK)
 	canvas.draw_rect(Rect2(base + Vector2(-9, -9), Vector2(18, 7)), AppTheme.SURFACE)
 	canvas.draw_rect(Rect2(base + Vector2(-9, -6), Vector2(18, 4)), AppTheme.COFFEE_LIQUID)
-	for i in GameConfig.RESEARCH.coffee.max_level:
+	for i in COFFEE_LIGHTS:
 		var lit := i < level
 		canvas.draw_circle(base + Vector2(-20 + i * 8, 10), 2.5, AppTheme.accent("success") if lit else AppTheme.METAL_DARK)
 	for i in tier:
@@ -360,35 +365,40 @@ static func switchboard(canvas: CanvasItem, base: Vector2, ringing: int, time: f
 		canvas.draw_line(base + Vector2(-34 + i * 17, -4), base + Vector2(-30 + i * 15, 14), AppTheme.SHOES, 2.0)
 
 
-static func toilet_stalls(canvas: CanvasItem, origin: Vector2, occupied: Array[bool]) -> void:
-	canvas.draw_rect(Rect2(origin + Vector2(-4, -4), Vector2(264, 98)), AppTheme.METAL_DARK)
+static func toilet_stalls(canvas: CanvasItem, origin: Vector2, occupied: Array[bool], pitch: float = STALL_PITCH) -> void:
+	if occupied.is_empty():
+		return
+	canvas.draw_rect(Rect2(origin + Vector2(-4, -4), Vector2(occupied.size() * pitch + 8.0, 98)), AppTheme.METAL_DARK)
+	var width := pitch - 8.0
 	for i in occupied.size():
-		var door := Rect2(origin + Vector2(2 + i * 64, 0), Vector2(56, 88))
+		var door := Rect2(origin + Vector2(2 + i * pitch, 0), Vector2(width, 88))
 		canvas.draw_rect(door, AppTheme.FRIDGE.darkened(0.05))
 		canvas.draw_rect(door, AppTheme.METAL_DARK, false, 2.0)
-		for x in [14.0, 28.0, 42.0]:
-			canvas.draw_line(door.position + Vector2(x, 10), door.position + Vector2(x, 70), AppTheme.METAL, 1.5)
+		for share in [0.25, 0.5, 0.75]:
+			canvas.draw_line(door.position + Vector2(width * share, 10), door.position + Vector2(width * share, 70), AppTheme.METAL, 1.5)
 		var lamp := AppTheme.accent("error") if occupied[i] else AppTheme.accent("success")
-		canvas.draw_circle(door.position + Vector2(44, 44), 4.0, lamp)
+		canvas.draw_circle(door.position + Vector2(width - 10.0, 44), 4.0, lamp)
 		if occupied[i]:
-			canvas.draw_rect(Rect2(door.position + Vector2(14, 82), Vector2(10, 6)), AppTheme.SHOES)
-			canvas.draw_rect(Rect2(door.position + Vector2(32, 82), Vector2(10, 6)), AppTheme.SHOES)
+			canvas.draw_rect(Rect2(door.position + Vector2(width * 0.2, 82), Vector2(width * 0.2, 6)), AppTheme.SHOES)
+			canvas.draw_rect(Rect2(door.position + Vector2(width * 0.55, 82), Vector2(width * 0.2, 6)), AppTheme.SHOES)
 
 
 static func mail_shelf(canvas: CanvasItem, rect: Rect2, stored: int, capacity: int) -> void:
 	canvas.draw_rect(Rect2(rect.position + Vector2(3, 5), rect.size), AppTheme.SHADOW_SOFT)
 	canvas.draw_rect(rect, AppTheme.WOOD_FRONT)
 	canvas.draw_rect(rect, AppTheme.WOOD_DARK, false, 2.0)
-	var boards := maxi(1, ceili(capacity / 8.0))
+	var shown_capacity := clampi(capacity, 1, SHELF_LETTERS)
+	var shown := clampi(ceili(float(stored) * shown_capacity / maxf(1.0, float(capacity))), 0, shown_capacity)
+	var boards := clampi(ceili(shown_capacity / 8.0), 1, SHELF_BOARDS)
 	var step := rect.size.y / boards
-	var per_board := maxi(1, ceili(capacity / float(boards)))
+	var per_board := maxi(1, ceili(shown_capacity / float(boards)))
 	var slot_width := (rect.size.x - 16.0) / per_board
 	for board in boards:
 		var y := rect.position.y + step * (board + 1) - 4.0
 		canvas.draw_rect(Rect2(Vector2(rect.position.x + 4, y), Vector2(rect.size.x - 8, 4)), AppTheme.WOOD_TOP)
 		for slot in per_board:
 			var index := board * per_board + slot
-			if index >= stored:
+			if index >= shown:
 				return
 			var letter := Rect2(Vector2(rect.position.x + 8 + slot * slot_width, y - minf(22.0, step - 10.0)), Vector2(maxf(3.0, slot_width - 2.0), minf(22.0, step - 10.0)))
 			canvas.draw_rect(letter, AppTheme.PAPER)
@@ -409,3 +419,71 @@ static func call_display(canvas: CanvasItem, rect: Rect2) -> void:
 	canvas.draw_rect(Rect2(rect.position + Vector2(2, 3), rect.size), AppTheme.SHADOW_SOFT)
 	canvas.draw_rect(rect, AppTheme.CALL_DISPLAY_BG)
 	canvas.draw_rect(rect, AppTheme.METAL_DARK, false, 2.0)
+
+
+static func server_rack(canvas: CanvasItem, rect: Rect2, units: int, time: float) -> void:
+	canvas.draw_rect(Rect2(rect.position + Vector2(3, 4), rect.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(rect, AppTheme.MONITOR)
+	canvas.draw_rect(rect, AppTheme.SHOES, false, 2.0)
+	var height := (rect.size.y - 16.0) / SERVER_UNITS
+	for i in SERVER_UNITS:
+		var unit := Rect2(rect.position + Vector2(8, 8 + i * height), Vector2(rect.size.x - 16, height - 4))
+		var active := i < units
+		canvas.draw_rect(unit, AppTheme.METAL_DARK if active else AppTheme.SHOES)
+		if active:
+			var blink := fmod(time * (1.5 + i * 0.4), 1.0) < 0.5
+			canvas.draw_circle(unit.position + Vector2(unit.size.x - 8, unit.size.y * 0.5), 2.5, AppTheme.SCREEN if blink else AppTheme.accent("success"))
+			canvas.draw_line(unit.position + Vector2(6, unit.size.y * 0.5), unit.position + Vector2(unit.size.x - 18, unit.size.y * 0.5), AppTheme.METAL, 1.5)
+
+
+static func climate_unit(canvas: CanvasItem, rect: Rect2, level: int, time: float) -> void:
+	canvas.draw_rect(Rect2(rect.position + Vector2(3, 4), rect.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(rect, AppTheme.FRIDGE)
+	canvas.draw_rect(rect, AppTheme.METAL_DARK, false, 2.0)
+	var fan := Vector2(rect.position.x + rect.size.y * 0.5, rect.get_center().y)
+	var radius := rect.size.y * 0.32
+	canvas.draw_circle(fan, radius, AppTheme.METAL)
+	var spin := time * (2.0 + level * 0.05)
+	for blade in 3:
+		var angle := spin + blade * TAU / 3.0
+		canvas.draw_line(fan, fan + Vector2(cos(angle), sin(angle)) * radius, AppTheme.METAL_DARK, 3.0)
+	for i in 4:
+		var y := rect.position.y + 12.0 + i * (rect.size.y - 24.0) / 3.0
+		canvas.draw_line(Vector2(fan.x + radius + 10.0, y), Vector2(rect.end.x - 10.0, y), AppTheme.METAL_DARK, 2.0)
+
+
+static func tube_hub(canvas: CanvasItem, center: Vector2, active: bool, time: float) -> void:
+	ItemPainter.shadow(canvas, center + Vector2(0, 40), 46, 8)
+	for angle in [0.0, PI * 0.5, PI, PI * 1.5]:
+		var direction := Vector2(cos(angle), sin(angle))
+		canvas.draw_line(center + direction * 30.0, center + direction * 58.0, AppTheme.METAL_DARK, 10.0)
+		canvas.draw_line(center + direction * 30.0, center + direction * 58.0, AppTheme.METAL if active else AppTheme.HATCH, 6.0)
+	canvas.draw_circle(center, 34.0, AppTheme.METAL_DARK)
+	canvas.draw_circle(center, 28.0, AppTheme.METAL if active else AppTheme.LOCKED_FLOOR)
+	canvas.draw_circle(center, 12.0, AppTheme.WINDOW if active else AppTheme.HATCH)
+	if active:
+		var angle := time * 4.0
+		canvas.draw_circle(center + Vector2(cos(angle), sin(angle)) * 20.0, 4.0, AppTheme.RUNNER)
+
+
+static func tube_station(canvas: CanvasItem, center: Vector2, time: float) -> void:
+	ItemPainter.shadow(canvas, center + Vector2(0, 20), 26, 5)
+	canvas.draw_line(center + Vector2(0, -26), center + Vector2(0, -6), AppTheme.METAL_DARK, 10.0)
+	canvas.draw_line(center + Vector2(0, -26), center + Vector2(0, -6), AppTheme.METAL, 6.0)
+	var body := Rect2(center + Vector2(-20, -8), Vector2(40, 26))
+	canvas.draw_rect(body, AppTheme.METAL_DARK)
+	canvas.draw_rect(Rect2(body.position + Vector2(4, 4), Vector2(32, 10)), AppTheme.WINDOW)
+	canvas.draw_circle(body.position + Vector2(32, 20), 2.5, AppTheme.accent("success") if fmod(time, 1.2) < 0.6 else AppTheme.METAL)
+
+
+static func empty_slot(canvas: CanvasItem, rect: Rect2) -> void:
+	var color := Color(AppTheme.OUTLINE, 0.38)
+	var corners := [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y), rect.position]
+	for i in 4:
+		var from: Vector2 = corners[i]
+		var to: Vector2 = corners[i + 1]
+		var length := from.distance_to(to)
+		var dash := 0.0
+		while dash < length:
+			canvas.draw_line(from.lerp(to, dash / length), from.lerp(to, minf(dash + 8.0, length) / length), color, 2.0)
+			dash += 14.0

@@ -16,6 +16,8 @@ const DISPUTE := "dispute"
 const COVER := "cover"
 const TICKET := "ticket"
 const TICKET_CALL := "ticket_call"
+const RUCKUS := "ruckus"
+const MAIL_FLOOR := "mail_floor"
 
 
 static func next_task(state: GameState) -> Dictionary:
@@ -46,10 +48,15 @@ static func next_task(state: GameState) -> Dictionary:
 				options.append({"action": REJECT, "key": key, "point": layout.reject_point(key)})
 	if state.ringing_count() > 0 or state.reported_sick_count() > 0:
 		options.append({"action": CALL, "key": "", "point": layout.phone_point()})
-	if state.has_research("shredder_service"):
+	if state.has_upgrade("shredder_service"):
 		for unit in state.all_interns():
 			if unit.is_away():
 				options.append({"action": COMFORT, "key": "", "point": unit.position})
+	var mailroom := state.mailroom()
+	if not state.mail_floor.is_empty() and mailroom != null and mailroom.has_inbox_space(state.lobby_capacity()):
+		options.append({"action": MAIL_FLOOR, "key": GameConfig.MAILROOM, "point": layout.mail_floor_point()})
+	if state.has_ruckus():
+		options.append({"action": RUCKUS, "key": GameConfig.RECEPTION, "point": layout.ruckus_point(state.ruckus_desk)})
 	for dispute in state.disputes:
 		options.append({"action": DISPUTE, "key": dispute.dept_id, "point": layout.dispute_point(dispute.dept_id)})
 	if state.kranz:
@@ -61,7 +68,7 @@ static func next_task(state: GameState) -> Dictionary:
 		if state.ticket_waiting.size() >= GameConfig.TICKET_RUSH and reception != null and reception.inbox.size() < GameConfig.TICKET_CALL_SLOTS:
 			options.append({"action": TICKET_CALL, "key": "", "point": layout.ticket_display_point()})
 	if player.complaints > 0 or player.rejects > 0:
-		options.append({"action": SHRED, "key": "", "point": layout.shredder_point()})
+		options.append({"action": SHRED, "key": "", "point": layout.nearest_shredder(player.position, state.shredder_rooms())})
 	elif state.complaints > 0 and player.items.size() < Formulas.carry_capacity(state):
 		options.append({"action": COMPLAINT, "key": "", "point": layout.complaint_box_point()})
 	var locked := Progression.next_locked_department(state)

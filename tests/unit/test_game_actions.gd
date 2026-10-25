@@ -112,13 +112,70 @@ func test_unlock_department_spends_money() -> void:
 	assert_false(actions.unlock_department("tax_services"))
 
 
-func test_research_purchase() -> void:
+func test_upgrade_purchase() -> void:
 	state.money = 1e6
-	assert_true(actions.buy_research("briefcase"))
-	assert_eq(state.research_level("briefcase"), 1)
-	assert_almost_eq(state.money, 1e6 - 150.0, 0.01)
-	assert_false(actions.buy_research("nope"))
-	assert_false(actions.buy_research("trolleys"))
+	var cost := Formulas.track_cost("briefcase", 0)
+	assert_true(actions.buy_upgrade("briefcase"))
+	assert_eq(state.upgrade_level("briefcase"), 1)
+	assert_almost_eq(state.money, 1e6 - cost, 0.01)
+	assert_false(actions.buy_upgrade("nope"))
+	assert_false(actions.buy_upgrade("runner_trolleys"))
+	assert_eq(state.upgrade_level("runner_trolleys"), 0)
+	assert_false(actions.buy_upgrade("work_ethic", "", 0))
+	assert_eq(state.upgrade_level("work_ethic"), 0)
+
+
+func test_upgrades_can_be_bought_in_bulk() -> void:
+	state.money = 1e6
+	var cost := Formulas.track_bulk_cost("briefcase", 0, 5)
+	assert_true(actions.buy_upgrade("briefcase", "", 5))
+	assert_eq(state.upgrade_level("briefcase"), 5)
+	assert_almost_eq(state.money, 1e6 - cost, 0.01)
+	var limit := int(GameConfig.upgrade("briefcase").max)
+	var money := state.money
+	assert_false(actions.buy_upgrade("briefcase", "", limit))
+	assert_eq(state.upgrade_level("briefcase"), 5)
+	assert_eq(state.money, money)
+	state.money = 1e30
+	assert_true(actions.buy_upgrade("briefcase", "", limit * 2))
+	assert_eq(state.upgrade_level("briefcase"), limit)
+	assert_false(actions.buy_upgrade("briefcase"))
+
+
+func test_room_upgrades_need_an_open_room() -> void:
+	state.money = 1e9
+	assert_false(actions.buy_upgrade("office_equipment"))
+	assert_false(actions.buy_upgrade("briefcase", "general_services"))
+	assert_false(actions.buy_upgrade("office_equipment", "tax_services"))
+	assert_false(actions.buy_upgrade("shredder", "customs"))
+	var cost := Formulas.track_cost("office_equipment", 0, "general_services")
+	assert_true(actions.buy_upgrade("office_equipment", "general_services"))
+	assert_eq(state.upgrade_level("office_equipment", "general_services"), 1)
+	assert_eq(state.upgrade_level("office_equipment"), 0)
+	assert_almost_eq(state.money, 1e9 - cost, 0.01)
+	state.building_stage = 1
+	state.reputation = 15.0
+	assert_true(actions.unlock_department("tax_services"))
+	assert_true(actions.buy_upgrade("office_equipment", "tax_services"))
+	assert_true(actions.buy_upgrade("shredder", "tax_services"))
+	assert_eq(state.shredder_rooms(), ["tax_services"] as Array[String])
+
+
+func test_upgrades_need_their_requirements() -> void:
+	state.money = 1e12
+	state.reputation = 1e6
+	assert_false(actions.buy_upgrade("tube_capacity"))
+	assert_false(actions.buy_upgrade("tube_station", GameConfig.ROOM_HALL))
+	assert_true(actions.buy_upgrade("pneumatic_tubes"))
+	assert_false(actions.buy_upgrade("pneumatic_tubes"))
+	assert_true(actions.buy_upgrade("tube_station", GameConfig.ROOM_HALL))
+	assert_true(actions.buy_upgrade("tube_capacity"))
+	assert_true(state.has_tube_station(GameConfig.ROOM_HALL))
+	assert_false(actions.buy_upgrade("tube_station", GameConfig.ROOM_MAIL))
+	state.building_stage = GameConfig.MAIL_UNLOCK_STAGE
+	state.ensure_mailroom()
+	assert_true(actions.buy_upgrade("tube_station", GameConfig.ROOM_MAIL))
+	assert_true(state.has_tube_station(GameConfig.ROOM_MAIL))
 
 
 func test_expand_building() -> void:
@@ -156,14 +213,58 @@ func test_next_locked_department() -> void:
 	assert_eq(Progression.next_locked_department(state), "")
 
 
-func test_research_block_reasons() -> void:
-	assert_eq(Progression.research_block_reason(state, "nope"), "unknown")
-	assert_eq(Progression.research_block_reason(state, "trolleys"), "reputation")
-	assert_eq(Progression.research_block_reason(state, "briefcase"), "money")
-	state.money = 150.0
-	assert_eq(Progression.research_block_reason(state, "briefcase"), "")
-	state.research["briefcase"] = int(GameConfig.RESEARCH.briefcase.max_level)
-	assert_eq(Progression.research_block_reason(state, "briefcase"), "max")
+func test_upgrade_block_reasons() -> void:
+	assert_eq(Progression.upgrade_block_reason(state, "nope"), "unknown")
+	assert_eq(Progression.upgrade_block_reason(state, "office_equipment"), "unknown")
+	assert_eq(Progression.upgrade_block_reason(state, "briefcase", "general_services"), "unknown")
+	assert_eq(Progression.upgrade_block_reason(state, "shredder", "customs"), "unknown")
+	assert_eq(Progression.upgrade_block_reason(state, "office_equipment", "tax_services"), "room")
+	assert_eq(Progression.upgrade_block_reason(state, "letter_opener"), "room")
+	assert_eq(Progression.upgrade_block_reason(state, "tube_station", GameConfig.ROOM_INSPECTION), "room")
+	assert_eq(Progression.upgrade_block_reason(state, "ticket_speed"), "stage")
+	assert_eq(Progression.upgrade_block_reason(state, "tube_capacity"), "requires")
+	assert_eq(Progression.upgrade_block_reason(state, "runner_trolleys"), "reputation")
+	assert_eq(Progression.upgrade_block_reason(state, "briefcase"), "money")
+	state.money = Formulas.track_cost("briefcase", 0)
+	assert_eq(Progression.upgrade_block_reason(state, "briefcase"), "")
+	assert_eq(Progression.upgrade_block_reason(state, "briefcase", "", 2), "money")
+	state.money = Formulas.track_bulk_cost("briefcase", 0, 2)
+	assert_eq(Progression.upgrade_block_reason(state, "briefcase", "", 2), "")
+	assert_eq(Progression.upgrade_block_reason(state, "office_equipment", "general_services"), "money")
+	state.set_upgrade("briefcase", int(GameConfig.upgrade("briefcase").max))
+	assert_eq(Progression.upgrade_block_reason(state, "briefcase"), "max")
+	assert_eq(Progression.upgrade_block_reason(state, "briefcase", "", 5), "max")
+
+
+func test_upgrade_block_reasons_check_requirements_before_reputation() -> void:
+	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "requires")
+	state.set_upgrade("shredder_service", 1)
+	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "reputation")
+	state.reputation = float(GameConfig.upgrade("complaint_tube").reputation)
+	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "money")
+	state.reputation = 0.0
+	state.reputation_peak = float(GameConfig.upgrade("complaint_tube").reputation)
+	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "money")
+	state.money = Formulas.track_cost("complaint_tube", 0)
+	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "")
+
+
+func test_room_availability() -> void:
+	assert_true(Progression.room_available(state, ""))
+	for room_id in GameConfig.SERVICE_ROOMS:
+		if room_id != GameConfig.ROOM_MAIL and room_id != GameConfig.ROOM_INSPECTION:
+			assert_true(Progression.room_available(state, room_id), room_id)
+	assert_false(Progression.room_available(state, GameConfig.ROOM_MAIL))
+	assert_false(Progression.room_available(state, GameConfig.ROOM_INSPECTION))
+	assert_true(Progression.room_available(state, "general_services"))
+	assert_false(Progression.room_available(state, "tax_services"))
+	assert_false(Progression.room_available(state, "nope"))
+	state.building_stage = GameConfig.MAIL_UNLOCK_STAGE
+	state.ensure_mailroom()
+	assert_true(Progression.room_available(state, GameConfig.ROOM_MAIL))
+	state.unlock_department("business_licences")
+	assert_true(Progression.room_available(state, "business_licences"))
+	assert_true(Progression.room_available(state, GameConfig.ROOM_INSPECTION))
 
 
 func test_expansion_block_reasons() -> void:
@@ -210,10 +311,13 @@ func test_guidance_pickups_depend_on_automation() -> void:
 	state.add_runner()
 	assert_true(Guidance.next_task(state).is_empty())
 	state.runners.clear()
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
+	state.set_upgrade("pneumatic_tubes", 1)
+	state.set_upgrade("tube_station", 1, GameConfig.ROOM_HALL)
+	assert_eq(Guidance.next_task(state).action, Guidance.PICKUP)
+	state.set_upgrade("tube_station", 1, "general_services")
 	assert_true(Guidance.next_task(state).is_empty())
-	state.research["pneumatic_tubes"] = 0
+	state.set_upgrade("pneumatic_tubes", 0)
+	assert_eq(Guidance.next_task(state).action, Guidance.PICKUP)
 	for i in Formulas.carry_capacity(state):
 		state.player.items.append(_case())
 	var review := state.station("general_services/review")

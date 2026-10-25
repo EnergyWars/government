@@ -48,6 +48,10 @@ func _fill_lobby() -> void:
 		assert_not_null(sim.spawn_case(dept))
 
 
+func _walk_seconds(from: Vector2, to: Vector2) -> float:
+	return from.distance_to(to) / GameConfig.VISITOR_SPEED
+
+
 func test_complaint_arrives_with_a_visitor() -> void:
 	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
 	state.complaint_timer = 0.0
@@ -56,13 +60,14 @@ func test_complaint_arrives_with_a_visitor() -> void:
 	var visitor := state.visitors[0]
 	assert_true(visitor.files_complaint)
 	assert_eq(state.complaints, 0)
-	_run(4.0)
+	var desk := layout.visitor_spot(visitor.slot)
+	_run(_walk_seconds(layout.door_in(), desk) + 0.5)
 	assert_eq(visitor.phase, ComplaintVisitor.Phase.TALKING)
 	assert_eq(state.complaints + state.complaints_fended, 0)
-	_run(15.0)
+	_run(GameConfig.VISITOR_TALK_SECONDS + _walk_seconds(desk, layout.complaint_drop_spot()) + 1.0)
 	assert_eq(state.complaints + state.complaints_fended, 1)
 	assert_false(visitor.files_complaint)
-	_run(20.0)
+	_run(maxf(_walk_seconds(desk, layout.door_out()), _walk_seconds(layout.complaint_drop_spot(), layout.door_out())) + 2.0)
 	assert_true(state.visitors.is_empty())
 
 
@@ -81,7 +86,7 @@ func _visitor_past_the_clerk(angry: bool, files_complaint: bool) -> ComplaintVis
 
 
 func test_unfended_visitor_complains_to_the_interns_then_uses_the_box() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	var visitor := _visitor_past_the_clerk(false, true)
 	assert_not_null(visitor)
 	assert_eq(visitor.phase, ComplaintVisitor.Phase.TO_INTERNS)
@@ -109,7 +114,7 @@ func test_unfended_visitor_complains_to_the_interns_then_uses_the_box() -> void:
 
 
 func test_normal_venting_stresses_the_intern_less_than_shouting() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	var visitor := _visitor_past_the_clerk(false, true)
 	visitor.position = layout.vent_spot(visitor.slot)
 	sim.tick(0.05)
@@ -124,7 +129,7 @@ func test_normal_venting_stresses_the_intern_less_than_shouting() -> void:
 
 
 func test_fended_visitor_leaves_without_visiting_the_interns() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	var fended := 0
 	for attempt in 200:
 		state.visitors.clear()
@@ -147,7 +152,7 @@ func test_fended_visitor_leaves_without_visiting_the_interns() -> void:
 func test_without_interns_the_visitor_walks_straight_to_the_box() -> void:
 	var visitor := _visitor_past_the_clerk(false, true)
 	assert_eq(visitor.phase, ComplaintVisitor.Phase.TO_BOX)
-	_run(5.0)
+	_run(_walk_seconds(visitor.position, layout.complaint_drop_spot()) + 1.0)
 	assert_eq(state.complaints, 1)
 	assert_eq(state.intern.stress, 0.0)
 
@@ -158,7 +163,7 @@ func test_angry_visitor_without_interns_just_leaves() -> void:
 
 
 func test_angry_visitor_vents_but_files_nothing() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	var visitor := _visitor_past_the_clerk(true, false)
 	assert_eq(visitor.phase, ComplaintVisitor.Phase.TO_INTERNS)
 	visitor.position = layout.vent_spot(visitor.slot)
@@ -168,7 +173,7 @@ func test_angry_visitor_vents_but_files_nothing() -> void:
 
 
 func test_amnesty_sends_the_visitor_home_after_the_clerk() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.seals = 10
 	assert_true(Boosts.new(state, sim).use("complaint_amnesty", Boosts.SEALS))
 	var visitor := sim.spawn_visitor(false, true)
@@ -263,13 +268,14 @@ func test_visitor_line_follows_progress() -> void:
 func test_visitor_walks_in_talks_and_leaves() -> void:
 	var visitor := sim.spawn_visitor(false, false)
 	assert_eq(visitor.phase, ComplaintVisitor.Phase.ARRIVING)
-	_run(4.0)
+	var desk := layout.visitor_spot(visitor.slot)
+	_run(_walk_seconds(layout.door_in(), desk) + 0.5)
 	assert_eq(visitor.phase, ComplaintVisitor.Phase.TALKING)
-	assert_eq(visitor.position, layout.visitor_spot(visitor.slot))
+	assert_eq(visitor.position, desk)
 	assert_gt(visitor.timer, 0.0)
 	_run(GameConfig.VISITOR_TALK_SECONDS + 0.5)
 	assert_eq(visitor.phase, ComplaintVisitor.Phase.LEAVING)
-	_run(5.0)
+	_run(_walk_seconds(desk, layout.door_out()) + 1.0)
 	assert_true(state.visitors.is_empty())
 
 
@@ -352,7 +358,7 @@ func test_no_angry_visitors_below_threshold() -> void:
 
 
 func test_angry_visitor_stresses_the_intern() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	var visitor := sim.spawn_visitor(true, false)
 	visitor.phase = ComplaintVisitor.Phase.TO_INTERNS
 	visitor.position = layout.vent_spot(visitor.slot)
@@ -362,7 +368,7 @@ func test_angry_visitor_stresses_the_intern() -> void:
 
 
 func test_angry_visitor_at_the_clerk_does_not_stress_the_intern() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	var visitor := sim.spawn_visitor(true, false)
 	visitor.position = layout.visitor_spot(visitor.slot)
 	_run(3.0)
@@ -370,21 +376,23 @@ func test_angry_visitor_at_the_clerk_does_not_stress_the_intern() -> void:
 	assert_eq(state.intern.stress, 0.0)
 
 
-func test_angry_visitor_does_not_stress_without_intern_research() -> void:
-	sim.spawn_visitor(true, false)
-	_run(15.0)
+func test_angry_visitor_does_not_stress_without_shredder_service() -> void:
+	var visitor := sim.spawn_visitor(true, false)
+	_run(_walk_seconds(layout.door_in(), layout.visitor_spot(visitor.slot)) + GameConfig.VISITOR_ANGRY_TALK_SECONDS + GameConfig.VISITOR_VENT_SECONDS + 1.0)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.LEAVING)
 	assert_eq(state.intern.stress, 0.0)
 
 
 func test_normal_visitor_without_complaint_does_not_stress_the_intern() -> void:
-	state.research["shredder_service"] = 1
-	sim.spawn_visitor(false, false)
-	_run(15.0)
+	state.set_upgrade("shredder_service", 1)
+	var visitor := sim.spawn_visitor(false, false)
+	_run(_walk_seconds(layout.door_in(), layout.visitor_spot(visitor.slot)) + GameConfig.VISITOR_TALK_SECONDS + GameConfig.VISITOR_VENT_SECONDS + 1.0)
+	assert_eq(visitor.phase, ComplaintVisitor.Phase.LEAVING)
 	assert_eq(state.intern.stress, 0.0)
 
 
 func test_intern_stress_builds_up_with_many_complaints() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	_run(10.0)
 	var expected := (GameConfig.COMPLAINT_BOX_CAPACITY - GameConfig.INTERN_STRESS_FREE) * GameConfig.INTERN_STRESS_RATE * 10.0
@@ -395,48 +403,63 @@ func test_intern_survives_several_shredder_trips_with_a_full_box() -> void:
 	var full_box := float(GameConfig.COMPLAINT_BOX_CAPACITY - GameConfig.INTERN_STRESS_FREE) * GameConfig.INTERN_STRESS_RATE
 	var shouting := GameConfig.INTERN_YELL_RATE * GameConfig.VISITOR_VENT_SECONDS / GameConfig.YELL_INTERVAL
 	var seconds_until_breakdown := (1.0 - GameConfig.INTERN_RECOVERED_STRESS) / (full_box + shouting)
-	var trip: float = GameConfig.SHREDDER_DELAYS[1] + GameConfig.INTERN_TRIP_ESTIMATE
+	var trip := Formulas.track_value("shredder_service", 1) + GameConfig.INTERN_TRIP_ESTIMATE
 	assert_gt(seconds_until_breakdown / trip, 2.0)
 
 
-func test_training_reduces_stress_from_a_full_box() -> void:
-	state.research["shredder_service"] = 1
-	state.research["intern_training"] = 2
+func test_resilience_reduces_stress_from_a_full_box() -> void:
+	state.set_upgrade("shredder_service", 1)
+	state.set_upgrade("intern_resilience", 40)
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	_run(10.0)
 	var over := GameConfig.COMPLAINT_BOX_CAPACITY - Formulas.intern_stress_free(state)
-	var expected := over * GameConfig.INTERN_STRESS_RATE * pow(GameConfig.INTERN_TRAINING_STRESS_FACTOR, 2) * 10.0
+	var expected := over * GameConfig.INTERN_STRESS_RATE * Formulas.intern_stress_factor(state) * 10.0
 	assert_almost_eq(state.intern.stress, expected, 0.002)
 	var untrained := (GameConfig.COMPLAINT_BOX_CAPACITY - GameConfig.INTERN_STRESS_FREE) * GameConfig.INTERN_STRESS_RATE * 10.0
 	assert_lt(state.intern.stress, untrained * 0.6)
 
 
-func test_training_softens_the_shouting() -> void:
-	state.research["shredder_service"] = 1
-	state.research["intern_training"] = 2
+func test_resilience_softens_the_shouting() -> void:
+	state.set_upgrade("shredder_service", 1)
+	state.set_upgrade("intern_resilience", 40)
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	var visitor := sim.spawn_visitor(true, false)
 	visitor.phase = ComplaintVisitor.Phase.TO_INTERNS
 	visitor.position = layout.vent_spot(visitor.slot)
 	_run(4.0)
-	var factor := pow(GameConfig.INTERN_TRAINING_STRESS_FACTOR, 2)
+	var factor := Formulas.intern_stress_factor(state)
 	var from_box := (GameConfig.COMPLAINT_BOX_CAPACITY - Formulas.intern_stress_free(state)) * GameConfig.INTERN_STRESS_RATE * 4.0
 	var from_shouting := GameConfig.INTERN_YELL_RATE * (4.0 - 0.05)
+	assert_lt(factor, 1.0)
 	assert_eq(visitor.phase, ComplaintVisitor.Phase.VENTING)
 	assert_almost_eq(state.intern.stress, factor * (from_box + from_shouting), 0.002)
 
 
-func test_fully_trained_intern_barely_notices_a_full_box() -> void:
-	state.research["shredder_service"] = 1
-	state.research["intern_training"] = int(GameConfig.RESEARCH.intern_training.max_level)
+func test_fully_resilient_intern_barely_notices_a_full_box() -> void:
+	state.set_upgrade("shredder_service", 1)
+	state.set_upgrade("intern_resilience", int(GameConfig.upgrade("intern_resilience").max))
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	_run(10.0)
 	assert_lt(state.intern.stress, 0.01)
 	assert_eq(state.intern.mood, ComplaintIntern.Mood.DESK)
 
 
+func test_trained_intern_shreds_more_complaints_per_trip() -> void:
+	state.set_upgrade("shredder_service", 1)
+	state.set_upgrade("intern_training", 2)
+	state.complaints = 5
+	state.intern.mood = ComplaintIntern.Mood.TO_SHREDDER
+	state.intern.position = layout.intern_shred_point()
+	sim.tick(0.05)
+	assert_eq(Formulas.intern_capacity(state), int(Formulas.track_value("intern_training", 2)))
+	assert_gt(Formulas.intern_capacity(state), 1)
+	assert_eq(state.complaints, 5 - Formulas.intern_capacity(state))
+	assert_eq(state.complaints_shredded, Formulas.intern_capacity(state))
+	assert_eq(state.intern.mood, ComplaintIntern.Mood.FROM_SHREDDER)
+
+
 func test_helper_breakdown_reports_its_slot() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	var helper := state.add_helper()
 	helper.stress = 0.9999
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
@@ -448,7 +471,7 @@ func test_helper_breakdown_reports_its_slot() -> void:
 
 
 func test_intern_calms_down_with_few_complaints() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.intern.stress = 0.5
 	_run(10.0)
 	assert_almost_eq(state.intern.stress, 0.5 - GameConfig.INTERN_CALM_RATE * 10.0, 0.01)
@@ -457,7 +480,7 @@ func test_intern_calms_down_with_few_complaints() -> void:
 	assert_eq(state.intern.stress, 0.0)
 
 
-func test_intern_stays_calm_without_research() -> void:
+func test_intern_stays_calm_without_shredder_service() -> void:
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	_run(20.0)
 	assert_eq(state.intern.stress, 0.0)
@@ -465,7 +488,7 @@ func test_intern_stays_calm_without_research() -> void:
 
 
 func test_intern_breaks_down_and_runs_to_the_toilet() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
 	state.intern.stress = 0.9999
 	watch_signals(sim)
@@ -474,28 +497,29 @@ func test_intern_breaks_down_and_runs_to_the_toilet() -> void:
 	assert_eq(state.breakdowns, 1)
 	assert_signal_emitted_with_parameters(sim, "intern_broke_down", [0])
 	assert_true(state.intern.is_away())
-	_run(15.0)
+	_run(layout.intern_home().distance_to(layout.intern_cry_point()) / GameConfig.INTERN_SPEED + 1.0)
 	assert_eq(state.intern.mood, ComplaintIntern.Mood.CRYING)
 	assert_eq(state.intern.position, layout.intern_cry_point())
 
 
 func test_shredding_pauses_while_the_intern_cries() -> void:
-	state.research["shredder_service"] = 3
+	state.set_upgrade("shredder_service", int(GameConfig.upgrade("shredder_service").max))
 	state.complaints = 2
 	state.intern.mood = ComplaintIntern.Mood.CRYING
 	state.intern.position = layout.intern_cry_point()
-	_run(GameConfig.SHREDDER_DELAYS[3] * 2.0, 0.5)
+	_run(Formulas.intern_cry_seconds(state) - 1.0, 0.5)
+	assert_eq(state.intern.mood, ComplaintIntern.Mood.CRYING)
 	assert_eq(state.complaints, 2)
 	assert_eq(state.shred_timer, 0.0)
 
 
 func test_intern_returns_and_shreds_again() -> void:
-	state.research["shredder_service"] = 3
+	state.set_upgrade("shredder_service", int(GameConfig.upgrade("shredder_service").max))
 	state.complaints = 2
 	state.intern.mood = ComplaintIntern.Mood.CRYING
 	state.intern.position = layout.intern_cry_point()
 	watch_signals(sim)
-	_run(GameConfig.INTERN_CRY_SECONDS + 1.0, 0.5)
+	_run(Formulas.intern_cry_seconds(state) + 1.0, 0.5)
 	assert_eq(state.intern.mood, ComplaintIntern.Mood.RETURNING)
 	assert_signal_emitted_with_parameters(sim, "intern_recovered", [0, false])
 	_run(45.0, 0.5)
@@ -506,7 +530,7 @@ func test_intern_returns_and_shreds_again() -> void:
 
 
 func test_player_comforts_the_crying_intern() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.intern.mood = ComplaintIntern.Mood.CRYING
 	state.intern.position = layout.intern_cry_point()
 	state.player.position = layout.intern_cry_point()
@@ -518,7 +542,7 @@ func test_player_comforts_the_crying_intern() -> void:
 
 
 func test_player_can_comfort_the_intern_while_running_away() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.intern.mood = ComplaintIntern.Mood.TO_LOO
 	state.intern.position = layout.intern_cry_point() + Vector2(0, 30)
 	state.player.position = layout.intern_cry_point()
@@ -528,7 +552,7 @@ func test_player_can_comfort_the_intern_while_running_away() -> void:
 
 
 func test_comfort_progress_resets_when_the_player_leaves() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.intern.mood = ComplaintIntern.Mood.CRYING
 	state.intern.position = layout.intern_cry_point()
 	state.player.position = layout.intern_cry_point()
@@ -541,7 +565,7 @@ func test_comfort_progress_resets_when_the_player_leaves() -> void:
 
 
 func test_intern_state_is_saved_and_sanitised() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.intern.mood = ComplaintIntern.Mood.CRYING
 	state.intern.stress = 0.7
 	state.intern.timer = 12.0
@@ -721,32 +745,47 @@ func test_coffee_interns_are_saved() -> void:
 	assert_eq(clamped.coffees_served, 0)
 
 
-func test_waiting_area_extends_the_lobby() -> void:
+func _places(upgrade_id: String, level: int) -> int:
+	return int(Formulas.track_value(upgrade_id, level))
+
+
+func _max_level(upgrade_id: String) -> int:
+	return int(GameConfig.upgrade(upgrade_id).max)
+
+
+func _assert_track_costs_and_limit(upgrade_id: String) -> void:
+	var actions := GameActions.new(state, sim)
+	var config := GameConfig.upgrade(upgrade_id)
+	state.money = 0.0
+	assert_eq(Progression.upgrade_block_reason(state, upgrade_id), "money")
+	assert_false(actions.buy_upgrade(upgrade_id))
+	state.money = 1.0e12
+	assert_eq(Formulas.track_cost(upgrade_id, 0), float(config.cost))
+	assert_true(actions.buy_upgrade(upgrade_id))
+	assert_eq(state.upgrade_level(upgrade_id), 1)
+	assert_almost_eq(Formulas.track_cost(upgrade_id, 1), float(config.cost) * float(config.growth), 0.001)
+	assert_true(actions.buy_upgrade(upgrade_id, "", _max_level(upgrade_id)))
+	assert_eq(state.upgrade_level(upgrade_id), _max_level(upgrade_id))
+	assert_eq(Progression.upgrade_block_reason(state, upgrade_id), "max")
+	assert_false(actions.buy_upgrade(upgrade_id))
+
+
+func test_waiting_places_extend_the_lobby() -> void:
 	var base := state.lobby_capacity()
-	state.waiting_level = 2
-	assert_eq(state.lobby_capacity(), base + 2 * GameConfig.WAITING_SEATS_PER_LEVEL)
+	state.set_upgrade("waiting_places", 2)
+	assert_eq(state.lobby_capacity(), base + _places("waiting_places", 2))
+	assert_gt(state.lobby_capacity(), base)
 
 
-func test_extra_seats_admit_more_citizens() -> void:
-	state.waiting_level = 1
+func test_extra_waiting_places_admit_more_citizens() -> void:
+	state.set_upgrade("waiting_places", 1)
 	_fill_lobby()
-	assert_eq(state.station(GameConfig.RECEPTION).inbox.size(), int(GameConfig.BUILDING_STAGES[0].lobby) + GameConfig.WAITING_SEATS_PER_LEVEL)
+	assert_eq(state.station(GameConfig.RECEPTION).inbox.size(), int(GameConfig.BUILDING_STAGES[0].lobby) + _places("waiting_places", 1))
 	assert_null(sim.spawn_case(state.department("general_services")))
 
 
-func test_waiting_area_upgrade_costs_and_limit() -> void:
-	var actions := GameActions.new(state, sim)
-	state.money = 0.0
-	assert_false(actions.can_upgrade_waiting_area())
-	assert_false(actions.upgrade_waiting_area())
-	state.money = 1.0e12
-	assert_eq(Formulas.waiting_area_cost(state), GameConfig.WAITING_COST)
-	assert_true(actions.upgrade_waiting_area())
-	assert_almost_eq(Formulas.waiting_area_cost(state), GameConfig.WAITING_COST * GameConfig.WAITING_GROWTH, 0.001)
-	while state.waiting_level < GameConfig.WAITING_MAX_LEVEL:
-		assert_true(actions.upgrade_waiting_area())
-	assert_false(actions.can_upgrade_waiting_area())
-	assert_false(actions.upgrade_waiting_area())
+func test_waiting_places_costs_and_limit() -> void:
+	_assert_track_costs_and_limit("waiting_places")
 
 
 func _seat_citizens(count: int) -> void:
@@ -759,8 +798,84 @@ func _seat_citizens(count: int) -> void:
 
 func test_seat_capacity_grows_with_level() -> void:
 	assert_eq(state.seat_capacity(), GameConfig.SEATING_BASE_SEATS)
-	state.seating_level = 2
-	assert_eq(state.seat_capacity(), GameConfig.SEATING_BASE_SEATS + 2 * GameConfig.SEATING_SEATS_PER_LEVEL)
+	state.set_upgrade("seating", 2)
+	assert_eq(state.seat_capacity(), _places("seating", 2))
+	assert_gt(state.seat_capacity(), GameConfig.SEATING_BASE_SEATS)
+
+
+func test_each_seating_level_adds_chairs() -> void:
+	assert_eq(_places("seating", 0), GameConfig.SEATING_BASE_SEATS)
+	for level in _max_level("seating"):
+		assert_gt(_places("seating", level + 1), _places("seating", level), str(level))
+
+
+func test_full_seating_serves_a_thousand_applications_per_minute() -> void:
+	assert_gte(_places("seating", _max_level("seating")), 250)
+
+
+func test_standing_places_grow_with_their_upgrade() -> void:
+	assert_eq(state.standing_capacity(), 0)
+	state.set_upgrade("standing_places", 3)
+	assert_eq(state.standing_capacity(), _places("standing_places", 3))
+	assert_gt(state.standing_capacity(), 0)
+
+
+func test_standing_counts_only_citizens_beyond_the_seats() -> void:
+	_seat_citizens(state.seat_capacity() - 2)
+	assert_eq(state.standing_citizens(), 0)
+	_seat_citizens(4)
+	assert_eq(state.standing_citizens(), 2)
+
+
+func test_reception_admits_into_standing_places_when_seats_are_full() -> void:
+	_seat_citizens(state.seat_capacity())
+	var reception := state.station(GameConfig.RECEPTION)
+	reception.inbox.append(sim.create_case(state.department("general_services")))
+	assert_false(state.reception_may_admit())
+	state.set_upgrade("standing_places", 1)
+	assert_true(state.reception_may_admit())
+	assert_true(sim.start_job(reception, 0))
+	_seat_citizens(state.standing_capacity())
+	assert_false(state.reception_may_admit())
+
+
+func test_standing_places_raise_the_number_served_at_once() -> void:
+	_seat_citizens(state.seat_capacity())
+	var before := ThroughputReport.seating_area(state)
+	state.set_upgrade("standing_places", 2)
+	var after := ThroughputReport.seating_area(state)
+	assert_eq(float(after.capacity) - float(before.capacity), float(_places("standing_places", 2)))
+
+
+func test_more_seats_raise_the_number_served_at_once() -> void:
+	var before := ThroughputReport.seating_area(state)
+	state.set_upgrade("seating", 5)
+	var after := ThroughputReport.seating_area(state)
+	assert_eq(float(after.capacity) - float(before.capacity), float(_places("seating", 5) - _places("seating", 0)))
+
+
+func test_crowding_shortens_patience() -> void:
+	assert_eq(Formulas.crowding_factor(state), 1.0)
+	state.set_upgrade("standing_places", 1)
+	assert_eq(Formulas.crowding_factor(state), 1.0)
+	_seat_citizens(state.seat_capacity() + state.standing_capacity())
+	assert_almost_eq(Formulas.crowding_factor(state), 1.0 - GameConfig.STANDING_PATIENCE_PENALTY, 0.0001)
+	_seat_citizens(state.standing_capacity())
+	assert_almost_eq(Formulas.crowding_factor(state), 1.0 - GameConfig.STANDING_PATIENCE_PENALTY, 0.0001)
+	var waiting := sim.create_case(state.department("general_services"))
+	assert_almost_eq(Formulas.citizen_patience(state, waiting, 0.5), Formulas.citizen_patience(state, waiting) * 0.5, 0.0001)
+
+
+func test_crowded_queue_leaves_earlier() -> void:
+	state.set_upgrade("standing_places", 1)
+	_seat_citizens(state.seat_capacity() + state.standing_capacity())
+	var reception := state.station(GameConfig.RECEPTION)
+	reception.staff = 0
+	var waiting := sim.create_case(state.department("general_services"))
+	waiting.waited = Formulas.patience(state) * Formulas.crowding_factor(state) + 0.01
+	reception.inbox.append(waiting)
+	sim.tick(0.01)
+	assert_false(reception.inbox.has(waiting))
 
 
 func test_full_seating_area_keeps_citizens_in_the_waiting_area() -> void:
@@ -785,7 +900,7 @@ func test_reception_waits_for_a_free_seat() -> void:
 	reception.inbox.append(sim.create_case(state.department("general_services")))
 	assert_false(state.reception_may_admit())
 	assert_false(sim.start_job(reception, 0))
-	state.seating_level = 1
+	state.set_upgrade("seating", 1)
 	assert_true(state.reception_may_admit())
 	assert_true(sim.start_job(reception, 0))
 
@@ -809,7 +924,8 @@ func test_free_seat_admits_citizens() -> void:
 
 func test_extra_seating_admits_more_citizens() -> void:
 	_seat_citizens(state.seat_capacity())
-	state.seating_level = 1
+	state.set_upgrade("seating", 1)
+	assert_true(state.has_free_seat())
 	assert_not_null(sim.spawn_case(state.department("general_services")))
 
 
@@ -824,36 +940,29 @@ func test_carried_cases_occupy_seats() -> void:
 	assert_eq(state.seated_citizens(), 1)
 
 
-func test_seating_upgrade_costs_and_limit() -> void:
-	var actions := GameActions.new(state, sim)
-	state.money = 0.0
-	assert_false(actions.can_upgrade_seating_area())
-	assert_false(actions.upgrade_seating_area())
-	state.money = 1.0e12
-	assert_eq(Formulas.seating_area_cost(state), GameConfig.SEATING_COST)
-	assert_true(actions.upgrade_seating_area())
-	assert_almost_eq(Formulas.seating_area_cost(state), GameConfig.SEATING_COST * GameConfig.SEATING_GROWTH, 0.001)
-	while state.seating_level < GameConfig.SEATING_MAX_LEVEL:
-		assert_true(actions.upgrade_seating_area())
-	assert_false(actions.can_upgrade_seating_area())
-	assert_false(actions.upgrade_seating_area())
+func test_seating_costs_and_limit() -> void:
+	_assert_track_costs_and_limit("seating")
 
 
-func test_seating_level_is_saved_and_clamped() -> void:
-	state.seating_level = 3
+func test_standing_places_costs_and_limit() -> void:
+	_assert_track_costs_and_limit("standing_places")
+
+
+func test_seating_upgrade_is_saved_and_clamped() -> void:
+	state.set_upgrade("seating", 3)
 	var data := state.to_dict()
-	assert_eq(GameState.from_dict(data).seating_level, 3)
-	data.seating_level = 99
-	assert_eq(GameState.from_dict(data).seating_level, GameConfig.SEATING_MAX_LEVEL)
-	data.seating_level = -2
-	assert_eq(GameState.from_dict(data).seating_level, 0)
-	data.erase("seating_level")
-	assert_eq(GameState.from_dict(data).seating_level, 0)
+	assert_eq(GameState.from_dict(data).upgrade_level("seating"), 3)
+	data.upgrades = {"seating": 99999}
+	assert_eq(GameState.from_dict(data).upgrade_level("seating"), _max_level("seating"))
+	data.upgrades = {"seating": -2}
+	assert_eq(GameState.from_dict(data).upgrade_level("seating"), 0)
+	data.erase("upgrades")
+	assert_eq(GameState.from_dict(data).upgrade_level("seating"), 0)
 
 
 func test_waiting_limits_allow_far_more_than_twenty_places() -> void:
-	assert_gte(GameConfig.SEATING_BASE_SEATS + GameConfig.SEATING_MAX_LEVEL * GameConfig.SEATING_SEATS_PER_LEVEL, 60)
-	var top_lobby := int(GameConfig.BUILDING_STAGES[GameConfig.BUILDING_STAGES.size() - 1].lobby) + GameConfig.WAITING_MAX_LEVEL * GameConfig.WAITING_SEATS_PER_LEVEL
+	assert_gte(_places("seating", _max_level("seating")), 60)
+	var top_lobby := int(GameConfig.BUILDING_STAGES[GameConfig.BUILDING_STAGES.size() - 1].lobby) + _places("waiting_places", _max_level("waiting_places"))
 	assert_eq(top_lobby, GameConfig.MAX_LOBBY_SLOTS)
 
 
@@ -879,7 +988,8 @@ func test_reputation_losses_are_mild() -> void:
 
 
 func test_seat_grid_fits_inside_the_hall() -> void:
-	var total := GameConfig.SEATING_BASE_SEATS + GameConfig.SEATING_MAX_LEVEL * GameConfig.SEATING_SEATS_PER_LEVEL
+	var total := mini(_places("seating", _max_level("seating")), WorldLayout.MAX_VISIBLE_SEATS)
+	assert_gt(total, GameConfig.SEATING_BASE_SEATS)
 	for i in total:
 		assert_true(layout.waiting_area.has_point(layout.waiting_seat(i)))
 	assert_true(layout.hall.encloses(layout.seating_sign_rect()))
@@ -891,23 +1001,23 @@ func test_seat_grid_fits_inside_the_hall() -> void:
 			assert_gt(layout.waiting_seat(i).distance_to(layout.waiting_seat(j)), 24.0)
 
 
-func test_waiting_level_is_saved_and_clamped() -> void:
-	state.waiting_level = 3
+func test_waiting_places_are_saved_and_clamped() -> void:
+	state.set_upgrade("waiting_places", 3)
 	state.walkouts = 4
 	state.breakdowns = 2
 	state.disputes_solved = 5
 	var data := state.to_dict()
 	var restored := GameState.from_dict(data)
-	assert_eq(restored.waiting_level, 3)
+	assert_eq(restored.upgrade_level("waiting_places"), 3)
 	assert_eq(restored.walkouts, 4)
 	assert_eq(restored.breakdowns, 2)
 	assert_eq(restored.disputes_solved, 5)
-	data.waiting_level = 99
+	data.upgrades = {"waiting_places": 99999}
 	data.walkouts = -1
-	assert_eq(GameState.from_dict(data).waiting_level, GameConfig.WAITING_MAX_LEVEL)
+	assert_eq(GameState.from_dict(data).upgrade_level("waiting_places"), _max_level("waiting_places"))
 	assert_eq(GameState.from_dict(data).walkouts, 0)
-	data.waiting_level = -3
-	assert_eq(GameState.from_dict(data).waiting_level, 0)
+	data.upgrades = {"waiting_places": -3}
+	assert_eq(GameState.from_dict(data).upgrade_level("waiting_places"), 0)
 
 
 func test_no_dispute_before_minimum_cases() -> void:
@@ -1043,36 +1153,51 @@ func test_dispute_fizzles_out_without_mediation() -> void:
 
 func test_mediation_board_ends_quarrels_early() -> void:
 	_staff_review(2)
-	state.research["mediation"] = 3
-	assert_eq(Formulas.dispute_limit(state), GameConfig.MEDIATION_DELAYS[3])
+	state.set_upgrade("mediation", 100)
+	var limit := Formulas.dispute_limit(state)
+	assert_eq(limit, Formulas.track_value("mediation", 100))
+	assert_lt(limit, GameConfig.DISPUTE_MAX_SECONDS)
 	var dispute := sim.start_dispute("stapler", "general_services")
-	dispute.elapsed = GameConfig.MEDIATION_DELAYS[3] - 0.05
+	dispute.elapsed = limit - 0.15
+	sim.tick(0.1)
+	assert_eq(state.disputes.size(), 1)
 	sim.tick(0.1)
 	assert_true(state.disputes.is_empty())
 
 
-func test_dispute_limit_per_mediation_level() -> void:
+func test_dispute_limit_shrinks_with_every_mediation_level() -> void:
 	assert_eq(Formulas.dispute_limit(state), GameConfig.DISPUTE_MAX_SECONDS)
-	state.research["mediation"] = 1
-	assert_eq(Formulas.dispute_limit(state), GameConfig.MEDIATION_DELAYS[1])
-	assert_eq(GameConfig.MEDIATION_DELAYS.size(), int(GameConfig.RESEARCH.mediation.max_level) + 1)
+	var previous := GameConfig.DISPUTE_MAX_SECONDS
+	for level in range(1, _max_level("mediation") + 1):
+		state.set_upgrade("mediation", level)
+		var limit := Formulas.dispute_limit(state)
+		assert_eq(limit, minf(GameConfig.DISPUTE_MAX_SECONDS, Formulas.track_value("mediation", level)), str(level))
+		assert_lt(limit, previous, str(level))
+		previous = limit
 
 
-func test_dispute_interval_scales_with_mediation() -> void:
+func test_dispute_interval_scales_with_climate_control() -> void:
 	assert_eq(Formulas.dispute_interval(state, 0.0), GameConfig.DISPUTE_MIN_INTERVAL)
 	assert_eq(Formulas.dispute_interval(state, 1.0), GameConfig.DISPUTE_MAX_INTERVAL)
 	assert_eq(Formulas.dispute_interval(state, 5.0), GameConfig.DISPUTE_MAX_INTERVAL)
-	state.research["mediation"] = 3
-	assert_almost_eq(Formulas.dispute_interval(state, 0.0), GameConfig.DISPUTE_MIN_INTERVAL * 1.75, 0.001)
+	state.set_upgrade("climate_control", 75)
+	assert_almost_eq(Formulas.dispute_interval(state, 0.0), GameConfig.DISPUTE_MIN_INTERVAL * Formulas.track_value("climate_control", 75), 0.001)
+	assert_gt(Formulas.dispute_interval(state, 0.0), GameConfig.DISPUTE_MIN_INTERVAL)
 
 
 func test_climate_control_blocks_window_and_thermostat_disputes() -> void:
 	for kind in GameConfig.DISPUTES:
 		assert_true(Formulas.dispute_allowed(state, kind), kind)
-	state.research["climate_control"] = 1
+	var window := int(GameConfig.DISPUTES.window.climate)
+	var thermostat := int(GameConfig.DISPUTES.thermostat.climate)
+	assert_lt(window, thermostat)
+	assert_lte(thermostat, _max_level("climate_control"))
+	state.set_upgrade("climate_control", window - 1)
+	assert_true(Formulas.dispute_allowed(state, "window"))
+	state.set_upgrade("climate_control", window)
 	assert_false(Formulas.dispute_allowed(state, "window"))
 	assert_true(Formulas.dispute_allowed(state, "thermostat"))
-	state.research["climate_control"] = 2
+	state.set_upgrade("climate_control", thermostat)
 	assert_false(Formulas.dispute_allowed(state, "thermostat"))
 	assert_true(Formulas.dispute_allowed(state, "fish_roll"))
 	_staff_review(2)
@@ -1140,7 +1265,7 @@ func test_guidance_leads_to_a_dispute() -> void:
 
 
 func test_guidance_leads_to_the_crying_intern() -> void:
-	state.research["shredder_service"] = 1
+	state.set_upgrade("shredder_service", 1)
 	state.intern.mood = ComplaintIntern.Mood.CRYING
 	state.intern.position = layout.intern_cry_point()
 	var task := Guidance.next_task(state)
@@ -1148,18 +1273,21 @@ func test_guidance_leads_to_the_crying_intern() -> void:
 	assert_eq(task.point, layout.intern_cry_point())
 
 
-func test_guidance_ignores_intern_without_research() -> void:
+func test_guidance_ignores_intern_without_shredder_service() -> void:
 	state.intern.mood = ComplaintIntern.Mood.CRYING
 	assert_ne(Guidance.next_task(state).get("action", ""), Guidance.COMFORT)
 
 
 func test_layout_points_lie_in_their_rooms() -> void:
-	assert_true(layout.hall.has_point(layout.intern_home()))
+	assert_true(layout.complaint_office.has_point(layout.intern_home()))
 	assert_true(layout.toilets.has_point(layout.intern_cry_point()))
+	assert_true(layout.shredder_room.has_point(layout.intern_shred_point()))
+	assert_true(layout.hall.has_point(layout.complaint_drop_spot()))
 	assert_true(layout.kitchen.has_point(layout.coffee_home()))
 	assert_true(layout.kitchen.has_point(layout.coffee_brew_point()))
 	for slot in GameConfig.VISITOR_SLOTS:
-		assert_true(layout.hall.has_point(layout.visitor_spot(slot)), str(slot))
+		assert_true(layout.complaint_office.has_point(layout.visitor_spot(slot)), str(slot))
+		assert_true(layout.complaint_office.has_point(layout.vent_spot(slot)), str(slot))
 		assert_false(layout.near(layout.visitor_spot(slot), layout.shredder_point()))
 	assert_eq(layout.visitor_spot(99), layout.visitor_spot(GameConfig.VISITOR_SLOTS - 1))
 	for dept_id in GameConfig.department_ids():
@@ -1169,8 +1297,10 @@ func test_layout_points_lie_in_their_rooms() -> void:
 func test_new_content_is_translated_and_has_icons() -> void:
 	var keys: Array[String] = [
 		"STAFF_COFFEE_INTERNS", "STAFF_DESC_COFFEE_INTERNS", "FMT_COFFEE_INTERN_INFO",
-		"RESEARCH_CLIMATE_CONTROL", "RESEARCH_DESC_CLIMATE_CONTROL", "RESEARCH_MEDIATION", "RESEARCH_DESC_MEDIATION",
-		"SECTION_WAITING", "WAITING_TITLE", "WAITING_DESC", "FMT_WAITING_INFO", "FMT_WAITING_LEVEL", "ACTION_BUILD_SEATS", "FMT_WAITING_SIGN",
+		"TRACK_CLIMATE_CONTROL", "TRACK_DESC_CLIMATE_CONTROL", "TRACK_MEDIATION", "TRACK_DESC_MEDIATION",
+		"SPOT_WAITING", "SPOT_DESC_WAITING", "SPOT_SEATING", "SPOT_DESC_SEATING",
+		"TRACK_WAITING_PLACES", "TRACK_DESC_WAITING_PLACES", "TRACK_SEATING", "TRACK_DESC_SEATING",
+		"TRACK_STANDING_PLACES", "TRACK_DESC_STANDING_PLACES", "FMT_WAITING_SIGN", "FMT_STANDING_SIGN",
 		"SIGN_INTERN_AWAY", "FLOAT_INTERN_BREAKDOWN", "FLOAT_INTERN_COMFORTED", "FLOAT_INTERN_BACK",
 		"FLOAT_DISPUTE_START", "FLOAT_DISPUTE_PEACE", "FLOAT_DISPUTE_OVER", "FMT_DISPUTE",
 	]
@@ -1199,8 +1329,10 @@ func test_new_content_is_translated_and_has_icons() -> void:
 		for key in keys:
 			assert_ne(TranslationServer.translate(key), key, "%s/%s" % [locale, key])
 	TranslationServer.set_locale(previous)
-	assert_true(Icons.RESEARCH.has("climate_control"))
-	assert_true(Icons.RESEARCH.has("mediation"))
+	for upgrade_id in ["climate_control", "mediation", "waiting_places", "seating", "standing_places"]:
+		assert_true(Icons.UPGRADES.has(upgrade_id), upgrade_id)
+	assert_true(Icons.SPOTS.has("waiting"))
+	assert_true(Icons.SPOTS.has("seating"))
 	assert_true(Icons.STAFF.has("coffee_interns"))
 
 
@@ -1232,7 +1364,7 @@ func _look_at(game: Game, world: WorldView, point: Vector2) -> void:
 func test_world_view_draws_the_hall_life() -> void:
 	var game := Game.new(GameState.create_new(4))
 	var hall_state := game.state
-	hall_state.research["shredder_service"] = 1
+	hall_state.set_upgrade("shredder_service", 1)
 	var world := _hall_world(game)
 	game.simulation.spawn_visitor(true, false)
 	game.simulation.spawn_visitor(false, false)
@@ -1331,22 +1463,28 @@ func test_world_view_floats_above_the_intern_concerned() -> void:
 	assert_eq(world._floaters[-1].pos, layout.intern_home(GameConfig.MAX_HELPERS + 1) + above)
 
 
-func test_sheets_offer_the_new_upgrades() -> void:
+func test_spot_sheets_offer_the_new_upgrades() -> void:
 	var game := Game.new(GameState.create_new(4))
 	game.state.money = 1.0e9
-	var team := TeamSheet.new().setup(game)
-	add_child_autofree(team)
-	var building := BuildingSheet.new().setup(game)
-	add_child_autofree(building)
+	var previous_amount := UpgradeEntryCard.amount_index
+	UpgradeEntryCard.amount_index = 0
+	var sheets: Array[Sheet] = []
+	for spot in ["coffee_interns", "waiting", "seating"]:
+		var sheet := SpotSheet.new().setup(game, spot)
+		add_child_autofree(sheet)
+		sheets.append(sheet)
 	await wait_physics_frames(2)
-	assert_true(game.actions.hire_coffee_intern())
-	assert_true(game.actions.upgrade_waiting_area())
-	assert_true(game.actions.upgrade_seating_area())
-	team.refresh()
-	building.refresh()
+	assert_true(UpgradeEntryCard.buy(game, "staff:coffee_interns"))
+	assert_true(UpgradeEntryCard.buy(game, "track:waiting_places"))
+	assert_true(UpgradeEntryCard.buy(game, "track:seating"))
+	assert_true(UpgradeEntryCard.buy(game, "track:standing_places"))
+	for sheet in sheets:
+		sheet.refresh()
+	UpgradeEntryCard.amount_index = previous_amount
 	assert_eq(game.state.coffee_interns.size(), 1)
-	assert_eq(game.state.waiting_level, 1)
-	assert_eq(game.state.seating_level, 1)
+	assert_eq(game.state.upgrade_level("waiting_places"), 1)
+	assert_eq(game.state.upgrade_level("seating"), 1)
+	assert_eq(game.state.upgrade_level("standing_places"), 1)
 
 
 func test_complaint_visitors_have_at_least_thirty_distinct_dialogs() -> void:
@@ -1375,3 +1513,143 @@ func test_spawned_visitors_use_every_dialog_range() -> void:
 	assert_gt(seen.size(), GameConfig.VISITOR_DIALOGS * 0.5)
 	for dialog: int in seen:
 		assert_between(dialog, 0, GameConfig.VISITOR_DIALOGS - 1)
+
+
+func _ruckus_ready() -> Station:
+	state.cases_completed = GameConfig.RUCKUS_MIN_CASES
+	var reception := state.station(GameConfig.RECEPTION)
+	reception.staff = 1
+	reception.inbox.append(sim.create_case(state.department("general_services")))
+	assert_true(sim.start_job(reception, 0))
+	return reception
+
+
+func test_ruckus_starts_on_a_reception_job_and_halts_the_reception() -> void:
+	var reception := _ruckus_ready()
+	watch_signals(sim)
+	assert_true(sim.start_ruckus())
+	assert_true(state.has_ruckus())
+	assert_eq(state.ruckus_desk, 0)
+	assert_signal_emitted_with_parameters(sim, "ruckus_started", [0])
+	assert_false(sim.start_ruckus())
+	assert_true(sim.is_halted(reception))
+	assert_false(sim.is_halted(state.station(REVIEW)))
+	var progress := reception.jobs[0].progress
+	state.player.position = Vector2(-500, -500)
+	_run(5.0)
+	assert_eq(reception.jobs[0].progress, progress)
+	assert_false(sim.work_desk(reception, 0, 10.0))
+	assert_true(state.has_ruckus())
+
+
+func test_ruckus_needs_a_citizen_at_the_reception() -> void:
+	assert_false(sim.start_ruckus())
+	var reception := state.station(GameConfig.RECEPTION)
+	var follow_up := sim.create_case(state.department("general_services"), true)
+	follow_up.mail = true
+	reception.jobs[0] = StationJob.new(follow_up, 1.0, false)
+	assert_false(follow_up.takes_seat())
+	assert_false(sim.start_ruckus())
+	state.stations.erase(GameConfig.RECEPTION)
+	assert_false(sim.start_ruckus())
+
+
+func test_player_calms_the_ruckus_by_standing_there() -> void:
+	_ruckus_ready()
+	sim.start_ruckus()
+	watch_signals(sim)
+	state.player.position = layout.ruckus_point(0)
+	_run(GameConfig.RUCKUS_CALM_TIME * 0.5)
+	assert_true(state.has_ruckus())
+	assert_gt(state.ruckus_progress, 0.0)
+	state.player.position = Vector2(-500, -500)
+	sim.tick(0.05)
+	assert_eq(state.ruckus_progress, 0.0)
+	state.player.position = layout.ruckus_point(0)
+	_run(GameConfig.RUCKUS_CALM_TIME + 0.2)
+	assert_false(state.has_ruckus())
+	assert_eq(state.ruckus_calmed, 1)
+	assert_signal_emitted_with_parameters(sim, "ruckus_calmed", [0])
+	assert_false(sim.calm_ruckus())
+
+
+func test_ruckus_timer_starts_ruckus_only_after_enough_cases() -> void:
+	var reception := state.station(GameConfig.RECEPTION)
+	reception.staff = 1
+	state.player.position = Vector2(-500, -500)
+	state.ruckus_timer = 0.0
+	reception.jobs[0] = StationJob.new(sim.create_case(state.department("general_services")), 1.0e6, false)
+	sim.tick(0.05)
+	assert_false(state.has_ruckus())
+	assert_eq(state.ruckus_timer, 0.0)
+	state.cases_completed = GameConfig.RUCKUS_MIN_CASES
+	sim.tick(0.05)
+	assert_true(state.has_ruckus())
+	assert_gte(state.ruckus_timer, GameConfig.RUCKUS_MIN_INTERVAL - 0.1)
+
+
+func test_ruckus_timer_retries_without_a_reception_job() -> void:
+	state.cases_completed = GameConfig.RUCKUS_MIN_CASES
+	state.station(GameConfig.RECEPTION).staff = 0
+	state.ruckus_timer = 0.0
+	sim.tick(0.05)
+	assert_false(state.has_ruckus())
+	assert_eq(state.ruckus_timer, GameConfig.RUCKUS_RETRY_SECONDS)
+
+
+func test_guards_make_ruckus_rarer() -> void:
+	var base := Formulas.ruckus_interval(state, 0.0)
+	assert_eq(base, GameConfig.RUCKUS_MIN_INTERVAL)
+	assert_eq(Formulas.ruckus_interval(state, 1.0), GameConfig.RUCKUS_MAX_INTERVAL)
+	assert_eq(Formulas.ruckus_interval(state, 5.0), GameConfig.RUCKUS_MAX_INTERVAL)
+	state.guards = 2
+	assert_almost_eq(Formulas.ruckus_interval(state, 0.0), base * (1.0 + 2.0 * GameConfig.RUCKUS_GUARD_RELIEF), 0.001)
+
+
+func test_guidance_points_to_the_ruckus() -> void:
+	_ruckus_ready()
+	sim.start_ruckus()
+	state.player.position = layout.ruckus_point(0) + Vector2(5, 0)
+	var task := Guidance.next_task(state)
+	assert_eq(task.action, Guidance.RUCKUS)
+	assert_eq(task.point, layout.ruckus_point(0))
+
+
+func test_ruckus_is_saved_and_repaired() -> void:
+	_ruckus_ready()
+	sim.start_ruckus()
+	state.ruckus_calmed = 3
+	state.ruckus_timer = 42.0
+	var loaded := GameState.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))
+	assert_eq(loaded.ruckus_desk, 0)
+	assert_eq(loaded.ruckus_calmed, 3)
+	assert_eq(loaded.ruckus_timer, 42.0)
+	assert_eq(loaded.ruckus_progress, 0.0)
+	var data := state.to_dict()
+	data.ruckus_desk = 99
+	data.ruckus_calmed = -1
+	data.ruckus_timer = -5.0
+	var repaired := GameState.from_dict(data)
+	assert_eq(repaired.ruckus_desk, -1)
+	assert_eq(repaired.ruckus_calmed, 0)
+	assert_eq(repaired.ruckus_timer, 0.0)
+	data.erase("ruckus_desk")
+	data.erase("ruckus_calmed")
+	data.erase("ruckus_timer")
+	var legacy := GameState.from_dict(data)
+	assert_false(legacy.has_ruckus())
+	assert_eq(legacy.ruckus_timer, GameConfig.RUCKUS_FIRST_SECONDS)
+
+
+func test_ruckus_and_standing_texts_exist() -> void:
+	assert_eq(Flavor.ruckus_line(0), TranslationServer.translate("RUCKUS_1"))
+	assert_eq(Flavor.ruckus_line(Flavor.RUCKUS_COUNT), TranslationServer.translate("RUCKUS_1"))
+	var keys: Array[String] = ["FLOAT_RUCKUS_START", "FLOAT_RUCKUS_CALMED", "LABEL_RUCKUS", "FMT_STANDING_SIGN"]
+	for index in Flavor.RUCKUS_COUNT:
+		keys.append("RUCKUS_%d" % (index + 1))
+	var original := TranslationServer.get_locale()
+	for locale in ["de", "en"]:
+		TranslationServer.set_locale(locale)
+		for key in keys:
+			assert_ne(TranslationServer.translate(key), key, "%s/%s" % [locale, key])
+	TranslationServer.set_locale(original)

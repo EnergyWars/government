@@ -19,8 +19,9 @@ func test_goal_progress_types() -> void:
 	state.staff_hired = 2
 	state.building_stage = 1
 	state.reputation = 7.9
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
+	state.set_upgrade("pneumatic_tubes", 1)
+	for room_id in GameConfig.upgrade_rooms("tube_station"):
+		state.set_upgrade("tube_station", 1, room_id)
 	state.add_runner()
 	state.station("general_services/review").level = 3
 	assert_eq(goals.progress_of({"type": "cases"}), 4.0)
@@ -31,8 +32,9 @@ func test_goal_progress_types() -> void:
 	assert_eq(goals.progress_of({"type": "department", "param": "general_services"}), 1.0)
 	assert_eq(goals.progress_of({"type": "department", "param": "tax_services"}), 0.0)
 	assert_eq(goals.progress_of({"type": "department", "param": "nope"}), 0.0)
-	assert_eq(goals.progress_of({"type": "research"}), 1.0)
-	assert_eq(goals.progress_of({"type": "research_level", "param": "pneumatic_tubes"}), 1.0)
+	assert_eq(goals.progress_of({"type": "upgrades"}), float(1 + GameConfig.upgrade_rooms("tube_station").size()))
+	assert_eq(goals.progress_of({"type": "upgrade_level", "param": "pneumatic_tubes"}), 1.0)
+	assert_eq(goals.progress_of({"type": "upgrade_level", "param": "kitchen"}), 0.0)
 	assert_eq(goals.progress_of({"type": "reputation"}), 7.0)
 	assert_eq(goals.progress_of({"type": "unknown"}), 0.0)
 

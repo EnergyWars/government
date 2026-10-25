@@ -536,8 +536,9 @@ func test_idle_runner_returns_home() -> void:
 
 
 func test_pneumatic_tubes_route_files_through_tubes() -> void:
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
+	state.set_upgrade("pneumatic_tubes", 1)
+	for room_id in GameConfig.upgrade_rooms("tube_station"):
+		state.set_upgrade("tube_station", 1, room_id)
 	var runner := state.add_runner()
 	runner.items.append(_case())
 	runner.target = "general_services/review"

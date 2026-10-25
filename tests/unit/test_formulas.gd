@@ -24,6 +24,13 @@ func _staff_everything() -> void:
 			station.staff = station.desks
 
 
+func _pipe_everything() -> void:
+	state.set_upgrade("pneumatic_tubes", 1)
+	state.set_upgrade("large_capsules", 1)
+	for room_id in GameConfig.upgrade_rooms("tube_station"):
+		state.set_upgrade("tube_station", 1, room_id)
+
+
 func test_station_costs_grow() -> void:
 	var review := state.station("general_services/review")
 	assert_almost_eq(Formulas.desk_cost(review), 120.0, 0.001)
@@ -69,28 +76,137 @@ func test_staff_multiplier_outgrows_cost_multiplier_for_later_departments() -> v
 		previous = multiplier
 
 
-func test_staff_and_research_costs() -> void:
+func test_staff_and_track_costs() -> void:
 	assert_almost_eq(Formulas.supervisor_cost(_gs()), GameConfig.SUPERVISOR_COST, 0.001)
 	_gs().supervisors = 1
 	assert_almost_eq(Formulas.supervisor_cost(_gs()), GameConfig.SUPERVISOR_COST * GameConfig.SUPERVISOR_GROWTH, 0.001)
 	assert_almost_eq(Formulas.runner_cost(state), GameConfig.RUNNER_COST, 0.001)
 	state.add_runner()
 	assert_almost_eq(Formulas.runner_cost(state), GameConfig.RUNNER_COST * GameConfig.RUNNER_GROWTH, 0.001)
-	assert_almost_eq(Formulas.research_cost("briefcase", 0), 150.0, 0.001)
-	assert_almost_eq(Formulas.research_cost("briefcase", 1), 375.0, 0.001)
+	var briefcase := GameConfig.upgrade("briefcase")
+	assert_almost_eq(Formulas.track_cost("briefcase", 0), float(briefcase.cost), 0.001)
+	assert_almost_eq(Formulas.track_cost("briefcase", 1), float(briefcase.cost) * float(briefcase.growth), 0.001)
+	assert_almost_eq(Formulas.track_cost("briefcase", 3), float(briefcase.cost) * pow(float(briefcase.growth), 3), 0.001)
 
 
-func test_station_speed_combines_level_research_and_supervisors() -> void:
+func test_track_values_follow_their_curves() -> void:
+	var briefcase := GameConfig.upgrade("briefcase")
+	assert_eq(Formulas.track_value("briefcase", 0), float(briefcase.base))
+	assert_almost_eq(Formulas.track_value("briefcase", 4), float(briefcase.base) + 4.0 * float(briefcase.step), 0.0001)
+	var ticket_speed := GameConfig.upgrade("ticket_speed")
+	assert_almost_eq(Formulas.track_value("ticket_speed", 0), float(ticket_speed.base), 0.0001)
+	assert_almost_eq(Formulas.track_value("ticket_speed", 3), float(ticket_speed.base) * pow(float(ticket_speed.rate), 3), 0.0001)
+	var service := GameConfig.upgrade("shredder_service")
+	assert_eq(Formulas.track_value("shredder_service", 0), -1.0)
+	assert_almost_eq(Formulas.track_value("shredder_service", 1), float(service.base), 0.0001)
+	assert_almost_eq(Formulas.track_value("shredder_service", 3), float(service.base) * pow(float(service.rate), 2), 0.0001)
+	var clerk := GameConfig.upgrade("complaint_clerk")
+	assert_almost_eq(Formulas.track_value("complaint_clerk", 0), float(clerk.base), 0.0001)
+	assert_almost_eq(Formulas.track_value("complaint_clerk", 10), 1.0 - (1.0 - float(clerk.base)) * pow(float(clerk.rate), 10), 0.0001)
+	assert_gt(Formulas.track_value("complaint_clerk", 10), Formulas.track_value("complaint_clerk", 9))
+	assert_lt(Formulas.track_value("complaint_clerk", int(clerk.max)), 1.0)
+	assert_eq(Formulas.track_value("pneumatic_tubes", 0), 0.0)
+	assert_eq(Formulas.track_value("pneumatic_tubes", 1), 1.0)
+	assert_eq(Formulas.track_value("nope", 5), 0.0)
+
+
+func test_track_values_clamp_the_level() -> void:
+	var briefcase := GameConfig.upgrade("briefcase")
+	var top := int(briefcase.max)
+	assert_eq(Formulas.track_value("briefcase", -3), Formulas.track_value("briefcase", 0))
+	assert_eq(Formulas.track_value("briefcase", top + 50), Formulas.track_value("briefcase", top))
+	var clerk := GameConfig.upgrade("complaint_clerk")
+	assert_eq(Formulas.track_value("complaint_clerk", -3), Formulas.track_value("complaint_clerk", 0))
+	assert_eq(Formulas.track_value("complaint_clerk", 999), Formulas.track_value("complaint_clerk", int(clerk.max)))
+	assert_eq(Formulas.track_value("shredder_service", -1), -1.0)
+	assert_eq(Formulas.track_value("pneumatic_tubes", 7), 1.0)
+
+
+func test_upgrade_value_reads_global_and_room_levels() -> void:
+	assert_eq(Formulas.upgrade_value(state, "briefcase"), Formulas.track_value("briefcase", 0))
+	state.set_upgrade("briefcase", 7)
+	assert_eq(Formulas.upgrade_value(state, "briefcase"), Formulas.track_value("briefcase", 7))
+	state.set_upgrade("office_equipment", 12, "general_services")
+	assert_almost_eq(Formulas.upgrade_value(state, "office_equipment", "general_services"), Formulas.track_value("office_equipment", 12), 0.0001)
+	assert_eq(Formulas.upgrade_value(state, "office_equipment", "tax_services"), Formulas.track_value("office_equipment", 0))
+	assert_eq(Formulas.upgrade_value(state, "office_equipment"), Formulas.track_value("office_equipment", 0))
+
+
+func test_track_costs_scale_with_level_and_room() -> void:
+	var equipment := GameConfig.upgrade("office_equipment")
+	var tax_multiplier := float(GameConfig.department("tax_services").cost_multiplier)
+	assert_eq(Formulas.track_room_factor("briefcase", ""), 1.0)
+	assert_eq(Formulas.track_room_factor("office_equipment", "general_services"), 1.0)
+	assert_eq(Formulas.track_room_factor("office_equipment", "tax_services"), tax_multiplier)
+	assert_almost_eq(Formulas.track_cost("office_equipment", 2, "tax_services"), float(equipment.cost) * tax_multiplier * pow(float(equipment.growth), 2), 0.01)
+	assert_gt(Formulas.track_cost("office_equipment", 0, "customs"), Formulas.track_cost("office_equipment", 0, "tax_services"))
+	assert_eq(Formulas.track_cost("tube_station", 0, GameConfig.ROOM_HALL), GameConfig.TUBE_STATION_MIN_COST)
+	assert_eq(Formulas.track_cost("tube_station", 0, GameConfig.ROOM_MAIL), GameConfig.TUBE_STATION_MIN_COST)
+	assert_eq(Formulas.track_cost("tube_station", 0, "general_services"), GameConfig.TUBE_STATION_MIN_COST)
+	assert_almost_eq(Formulas.track_cost("tube_station", 0, GameConfig.ROOM_INSPECTION), GameConfig.TUBE_STATION_MIN_COST * GameConfig.TUBE_STATION_INSPECTION_FACTOR, 0.01)
+	assert_almost_eq(Formulas.track_cost("tube_station", 0, "customs"), float(GameConfig.department("customs").unlock_cost) * GameConfig.TUBE_STATION_FACTOR, 0.01)
+
+
+func test_bulk_costs_add_up_consecutive_levels() -> void:
+	assert_eq(Formulas.geometric_sum(100.0, 2.0, 3), 700.0)
+	assert_eq(Formulas.geometric_sum(100.0, 1.0, 4), 400.0)
+	assert_eq(Formulas.geometric_sum(100.0, 2.0, 0), 0.0)
+	assert_eq(Formulas.geometric_sum(100.0, 2.0, -2), 0.0)
+	var expected := 0.0
+	for level in range(2, 7):
+		expected += Formulas.track_cost("briefcase", level)
+	assert_almost_eq(Formulas.track_bulk_cost("briefcase", 2, 5), expected, 0.01)
+	var room_expected := 0.0
+	for level in 3:
+		room_expected += Formulas.track_cost("office_equipment", level, "tax_services")
+	assert_almost_eq(Formulas.track_bulk_cost("office_equipment", 0, 3, "tax_services"), room_expected, 0.01)
+	assert_almost_eq(Formulas.track_bulk_cost("briefcase", 0, 1), Formulas.track_cost("briefcase", 0), 0.001)
+
+
+func test_affordable_levels_respect_money_and_remaining_levels() -> void:
+	assert_eq(Formulas.geometric_affordable(100.0, 2.0, 10, 99.0), 0)
+	assert_eq(Formulas.geometric_affordable(100.0, 2.0, 10, 100.0), 1)
+	assert_eq(Formulas.geometric_affordable(100.0, 2.0, 10, 699.0), 2)
+	assert_eq(Formulas.geometric_affordable(100.0, 2.0, 10, 700.0), 3)
+	assert_eq(Formulas.geometric_affordable(100.0, 2.0, 2, 1e9), 2)
+	assert_eq(Formulas.geometric_affordable(100.0, 2.0, 0, 1e9), 0)
+	assert_eq(Formulas.geometric_affordable(100.0, 1.0, 10, 450.0), 4)
+	assert_eq(Formulas.geometric_affordable(0.0, 2.0, 5, 0.0), 5)
+	var limit := int(GameConfig.upgrade("briefcase").max)
+	state.set_upgrade("briefcase", limit - 3)
+	assert_eq(UpgradeCatalog.track(state, "briefcase").affordable(1e30), 3)
+	state.set_upgrade("briefcase", limit)
+	assert_eq(UpgradeCatalog.track(state, "briefcase").affordable(1e30), 0)
+	state.set_upgrade("briefcase", 0)
+	var money := Formulas.track_bulk_cost("briefcase", 0, 4)
+	assert_eq(UpgradeCatalog.track(state, "briefcase").affordable(money), 4)
+	assert_eq(UpgradeCatalog.track(state, "briefcase").affordable(money - 1.0), 3)
+	var equipment := UpgradeCatalog.track(state, "office_equipment", "tax_services")
+	assert_eq(equipment.affordable(Formulas.track_cost("office_equipment", 0, "tax_services")), 1)
+	assert_eq(equipment.affordable(Formulas.track_cost("office_equipment", 0, "tax_services") - 1.0), 0)
+
+
+func test_station_speed_combines_level_upgrades_and_supervisors() -> void:
 	var review := state.station("general_services/review")
 	assert_almost_eq(Formulas.station_speed(state, review), 1.0, 0.001)
 	review.level = 3
-	state.research["digital_records"] = 1
+	state.set_upgrade("digital_records", 20)
 	_gs().supervisors = 1
-	assert_almost_eq(Formulas.station_speed(state, review), Formulas.level_speed(3) * 1.2 * 1.2, 0.001)
-	state.research["scanners"] = 2
-	assert_almost_eq(Formulas.research_speed_multiplier(state, "reception"), 1.6, 0.001)
-	assert_eq(Formulas.research_speed_multiplier(state, "inspection"), 1.0)
-	assert_almost_eq(Formulas.station_speed(state, state.station(GameConfig.RECEPTION)), 1.6, 0.001)
+	var records := Formulas.track_value("digital_records", 20)
+	assert_gt(records, 1.0)
+	assert_almost_eq(Formulas.station_speed(state, review), Formulas.level_speed(3) * records * (1.0 + GameConfig.SUPERVISOR_BONUS), 0.001)
+	state.set_upgrade("office_equipment", 10, "tax_services")
+	assert_almost_eq(Formulas.station_speed(state, review), Formulas.level_speed(3) * records * (1.0 + GameConfig.SUPERVISOR_BONUS), 0.001)
+	state.set_upgrade("office_equipment", 10, "general_services")
+	var equipment := Formulas.track_value("office_equipment", 10)
+	assert_gt(equipment, 1.0)
+	assert_almost_eq(Formulas.station_speed(state, review), Formulas.level_speed(3) * records * (1.0 + GameConfig.SUPERVISOR_BONUS) * equipment, 0.001)
+	state.set_upgrade("scanners", 60)
+	var scanners := Formulas.track_value("scanners", 60)
+	assert_almost_eq(Formulas.upgrade_speed_multiplier(state, "reception"), scanners, 0.001)
+	assert_almost_eq(Formulas.upgrade_speed_multiplier(state, "dock"), scanners, 0.001)
+	assert_eq(Formulas.upgrade_speed_multiplier(state, "inspection"), 1.0)
+	assert_almost_eq(Formulas.station_speed(state, state.station(GameConfig.RECEPTION)), scanners, 0.001)
 
 
 func test_base_and_required_times() -> void:
@@ -105,8 +221,11 @@ func test_base_and_required_times() -> void:
 	assert_almost_eq(Formulas.base_time(review, _gs(), false, false, state), 5.0 * 1.4, 0.001)
 	review.level = 2
 	assert_almost_eq(Formulas.required_time(state, review, _case()), 5.0 * 1.4 / Formulas.level_speed(2), 0.001)
-	state.research["ai_classification"] = 1
-	assert_almost_eq(Formulas.complex_time_factor(state, false), 1.5, 0.001)
+	assert_almost_eq(Formulas.complex_time_factor(state, false), 1.0 + GameConfig.COMPLEX_TIME_PENALTY, 0.001)
+	state.set_upgrade("ai_classification", 50)
+	var classification := Formulas.track_value("ai_classification", 50)
+	assert_lt(classification, 1.0)
+	assert_almost_eq(Formulas.complex_time_factor(state, false), 1.0 + GameConfig.COMPLEX_TIME_PENALTY * classification, 0.001)
 	assert_eq(Formulas.complex_time_factor(state, true), 1.0)
 
 
@@ -124,10 +243,13 @@ func test_referral_uses_station_time_with_case_thoroughness() -> void:
 func test_error_and_flag_chances() -> void:
 	assert_almost_eq(Formulas.error_chance(state, _gs()), 0.12, 0.0001)
 	assert_almost_eq(Formulas.error_chance(state, _gs(), true), 0.036, 0.0001)
-	state.research["quality_training"] = 1
-	assert_almost_eq(Formulas.error_chance(state, _gs()), 0.09, 0.0001)
-	state.research["ai_classification"] = 1
-	assert_almost_eq(Formulas.error_chance(state, _gs()), 0.045, 0.0001)
+	state.set_upgrade("quality_training", 30)
+	var training := Formulas.track_value("quality_training", 30)
+	assert_lt(training, 1.0)
+	assert_almost_eq(Formulas.error_chance(state, _gs()), 0.12 * training, 0.0001)
+	state.set_upgrade("ai_classification", 100)
+	assert_almost_eq(Formulas.error_chance(state, _gs()), 0.12 * training * Formulas.track_value("ai_classification", 100), 0.0001)
+	assert_almost_eq(Formulas.error_chance(state, _gs(), true), 0.12 * training * Formulas.track_value("ai_classification", 100) * GameConfig.SPECIALIST_ERROR_FACTOR, 0.0001)
 	state.unlock_department("customs")
 	var review := state.station("customs/review")
 	assert_almost_eq(Formulas.flag_chance(review), 0.6, 0.0001)
@@ -145,8 +267,10 @@ func test_reputation_drives_rewards_and_arrivals() -> void:
 	state.reputation = 1e6
 	assert_eq(Formulas.popularity(state), GameConfig.MAX_POPULARITY)
 	state.reputation = 0.0
-	state.research["online_portal"] = 1
-	assert_almost_eq(Formulas.arrival_interval(state, _gs()), 7.0 / 1.25, 0.0001)
+	state.set_upgrade("online_portal", 25)
+	var portal := Formulas.track_value("online_portal", 25)
+	assert_gt(portal, 1.0)
+	assert_almost_eq(Formulas.arrival_interval(state, _gs()), 7.0 / portal, 0.0001)
 
 
 func test_events_change_arrivals() -> void:
@@ -165,14 +289,53 @@ func test_player_and_runner_stats() -> void:
 	assert_eq(Formulas.carry_capacity(state), 6)
 	assert_eq(Formulas.runner_capacity(state), 2)
 	assert_eq(Formulas.work_power(state), 2.5)
-	state.research["comfortable_lobby"] = 1
-	state.research["briefcase"] = 2
-	state.research["trolleys"] = 1
-	state.research["work_ethic"] = 2
-	assert_almost_eq(Formulas.patience(state), GameConfig.BASE_PATIENCE * 1.4, 0.001)
+	assert_eq(Formulas.collector_capacity(state), GameConfig.COLLECTOR_CAPACITY)
+	state.set_upgrade("comfortable_lobby", 40)
+	state.set_upgrade("briefcase", 4)
+	state.set_upgrade("runner_trolleys", 1)
+	state.set_upgrade("collector_carts", 2)
+	state.set_upgrade("work_ethic", 40)
+	assert_almost_eq(Formulas.patience(state), GameConfig.BASE_PATIENCE * Formulas.track_value("comfortable_lobby", 40), 0.001)
+	assert_gt(Formulas.patience(state), GameConfig.BASE_PATIENCE)
 	assert_eq(Formulas.carry_capacity(state), 10)
 	assert_eq(Formulas.runner_capacity(state), 3)
-	assert_almost_eq(Formulas.work_power(state), 5.0, 0.001)
+	assert_eq(Formulas.collector_capacity(state), GameConfig.COLLECTOR_CAPACITY + 2)
+	assert_almost_eq(Formulas.work_power(state), GameConfig.PLAYER_WORK_POWER * Formulas.track_value("work_ethic", 40), 0.001)
+	assert_gt(Formulas.work_power(state), GameConfig.PLAYER_WORK_POWER)
+	assert_eq(Formulas.collector_capacity_limit(), GameConfig.COLLECTOR_CAPACITY + int(GameConfig.upgrade("collector_carts").max))
+
+
+func test_movement_speeds_follow_their_tracks_and_skates() -> void:
+	assert_eq(Formulas.player_speed(state), GameConfig.PLAYER_SPEED)
+	assert_eq(Formulas.runner_speed(state), GameConfig.RUNNER_SPEED)
+	assert_eq(Formulas.collector_speed(state), GameConfig.COLLECTOR_SPEED)
+	assert_eq(Formulas.coffee_intern_speed(state), GameConfig.COFFEE_INTERN_SPEED)
+	state.set_upgrade("sneakers", 20)
+	state.set_upgrade("runner_speed", 30)
+	state.set_upgrade("collector_speed", 40)
+	state.set_upgrade("coffee_intern_speed", 50)
+	var sneakers := Formulas.track_value("sneakers", 20)
+	var runners := Formulas.track_value("runner_speed", 30)
+	var collectors := Formulas.track_value("collector_speed", 40)
+	var coffee := Formulas.track_value("coffee_intern_speed", 50)
+	assert_almost_eq(Formulas.player_speed(state), GameConfig.PLAYER_SPEED * sneakers, 0.001)
+	assert_almost_eq(Formulas.runner_speed(state), GameConfig.RUNNER_SPEED * runners, 0.001)
+	assert_almost_eq(Formulas.collector_speed(state), GameConfig.COLLECTOR_SPEED * collectors, 0.001)
+	assert_almost_eq(Formulas.coffee_intern_speed(state), GameConfig.COFFEE_INTERN_SPEED * coffee, 0.001)
+	state.boosts["roller_skates"] = 10.0
+	assert_almost_eq(Formulas.player_speed(state), GameConfig.PLAYER_SPEED * sneakers * GameConfig.BOOST_PLAYER_SPEED, 0.001)
+	assert_almost_eq(Formulas.runner_speed(state), GameConfig.RUNNER_SPEED * runners * GameConfig.BOOST_RUNNER_SPEED, 0.001)
+	assert_almost_eq(Formulas.collector_speed(state), GameConfig.COLLECTOR_SPEED * collectors * GameConfig.BOOST_RUNNER_SPEED, 0.001)
+	assert_almost_eq(Formulas.coffee_intern_speed(state), GameConfig.COFFEE_INTERN_SPEED * coffee, 0.001)
+
+
+func test_loo_slots_follow_the_stall_track() -> void:
+	assert_eq(Formulas.loo_slots(state), GameConfig.LOO_SLOTS)
+	state.set_upgrade("toilet_stalls", 3)
+	assert_eq(Formulas.loo_slots(state), GameConfig.LOO_SLOTS + 3)
+	assert_eq(state.loo_slots(), Formulas.loo_slots(state))
+	state.set_upgrade("toilet_stalls", int(GameConfig.upgrade("toilet_stalls").max) + 4)
+	assert_eq(Formulas.loo_slots(state), GameConfig.MAX_LOO_SLOTS)
 
 
 func test_citizens_bring_their_own_patience() -> void:
@@ -208,8 +371,8 @@ func test_citizen_patience_and_complaint_chance_follow_the_factor() -> void:
 	hurried.patience_factor = GameConfig.PATIENCE_MIN_FACTOR
 	assert_almost_eq(Formulas.citizen_patience(state, calm), GameConfig.BASE_PATIENCE * GameConfig.PATIENCE_MAX_FACTOR, 0.001)
 	assert_almost_eq(Formulas.citizen_patience(state, hurried), GameConfig.BASE_PATIENCE * GameConfig.PATIENCE_MIN_FACTOR, 0.001)
-	state.research["comfortable_lobby"] = 1
-	assert_almost_eq(Formulas.citizen_patience(state, hurried), GameConfig.BASE_PATIENCE * 1.4 * GameConfig.PATIENCE_MIN_FACTOR, 0.001)
+	state.set_upgrade("comfortable_lobby", 40)
+	assert_almost_eq(Formulas.citizen_patience(state, hurried), GameConfig.BASE_PATIENCE * Formulas.track_value("comfortable_lobby", 40) * GameConfig.PATIENCE_MIN_FACTOR, 0.001)
 	assert_almost_eq(Formulas.leave_complaint_chance(calm), GameConfig.LEAVE_COMPLAINT_CHANCE * GameConfig.PATIENCE_MAX_FACTOR, 0.0001)
 	assert_almost_eq(Formulas.leave_complaint_chance(hurried), GameConfig.LEAVE_COMPLAINT_CHANCE * GameConfig.PATIENCE_MIN_FACTOR, 0.0001)
 	assert_almost_eq(Formulas.leave_complaint_chance(_case()), GameConfig.LEAVE_COMPLAINT_CHANCE, 0.0001)
@@ -309,12 +472,19 @@ func test_transport_capacity() -> void:
 	assert_eq(Formulas.transport_throughput(state), 0.0)
 	state.add_runner(Runner.OUTPUT)
 	assert_almost_eq(Formulas.transport_throughput(state), 6.0 / GameConfig.RUNNER_TRIP_ESTIMATE, 0.0001)
-	assert_eq(Formulas.transfers_per_case(_gs()), 3)
+	assert_almost_eq(Formulas.department_runner_transfers(state, _gs()), 3.0, 0.0001)
 	assert_almost_eq(Formulas.department_transport(state, _gs()), 6.0 / GameConfig.RUNNER_TRIP_ESTIMATE / 3.0, 0.0001)
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
+	_pipe_everything()
+	assert_eq(Formulas.department_runner_transfers(state, _gs()), 0.0)
 	assert_true(is_inf(Formulas.transport_throughput(state)))
 	assert_true(is_inf(Formulas.department_transport(state, _gs())))
+	state.set_upgrade("large_capsules", 0)
+	assert_almost_eq(Formulas.department_runner_transfers(state, _gs()), 3.0 * float(GameConfig.department("general_services").complex_chance), 0.0001)
+	assert_false(is_inf(Formulas.transport_throughput(state)))
+	state.set_upgrade("tube_station", 0, GameConfig.ROOM_HALL)
+	var route := RouteBuilder.build(CaseFile.new("general_services"))
+	assert_eq(Formulas.runner_share(state, _gs(), route[0], route[1]), 1.0)
+	assert_almost_eq(Formulas.runner_share(state, _gs(), route[1], route[2]), float(GameConfig.department("general_services").complex_chance), 0.0001)
 
 
 func test_department_transport_without_demand() -> void:
@@ -327,8 +497,7 @@ func test_department_transport_without_demand() -> void:
 func test_throughput_and_bottleneck() -> void:
 	assert_eq(Formulas.department_throughput(state, _gs()), 0.0)
 	assert_eq(Formulas.bottleneck(state, _gs()), "transport")
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
+	_pipe_everything()
 	assert_eq(Formulas.bottleneck(state, _gs()), GameConfig.RECEPTION)
 	_staff_everything()
 	var review := state.station("general_services/review")
@@ -346,8 +515,7 @@ func test_throughput_and_bottleneck() -> void:
 
 func test_customs_throughput_ignores_optional_inspection() -> void:
 	state.unlock_department("customs")
-	state.research["pneumatic_tubes"] = 1
-	state.connect_all_tubes()
+	_pipe_everything()
 	var customs := state.department("customs")
 	_staff_everything()
 	state.station(GameConfig.INSPECTION).staff = 0
