@@ -37,6 +37,11 @@ var _bonus_title: Label
 var _bonus_text: Label
 var _bonus_buttons: Array[Button] = []
 var _bonus_target: Array = []
+var _desk_card: PanelContainer
+var _letter_box: VBoxContainer
+var _letter_text: Label
+var _gift_box: VBoxContainer
+var _gift_text: Label
 var _rating_label: Label
 var _rating_chip: Control
 var _safe_top := 0.0
@@ -50,6 +55,10 @@ var _goal_double: Button
 var _sick_ad: Button
 var _highlighted: Control
 var _highlight_tween: Tween
+var _money_chip: Control
+var _money_roll := RollingNumber.new()
+var _money_pop: Tween
+var _claim_glow: Tween
 
 
 func setup(p_game: Game, safe_top: float) -> Hud:
@@ -85,6 +94,7 @@ func _build_top() -> void:
 	top_bar.add_child(column)
 	var row := UiKit.hbox(AppTheme.SPACING_SM)
 	_money_label = _resource_chip(row, Icons.PAID, AppTheme.MONEY)
+	_money_chip = _money_label.get_parent().get_parent()
 	_reputation_label = _resource_chip(row, Icons.STAR, AppTheme.accent("warning"))
 	_rating_label = _resource_chip(row, Icons.REVIEWS, AppTheme.accent("primary"))
 	_rating_chip = _rating_label.get_parent().get_parent()
@@ -160,6 +170,57 @@ func _build_top() -> void:
 	_review_banner.add_child(review_column)
 	column.add_child(_review_banner)
 	_build_bonus_card(column)
+	_build_desk_card(column)
+
+
+func _build_desk_card(column: VBoxContainer) -> void:
+	_desk_card = UiKit.card("BannerPrimary")
+	var desk_column := UiKit.vbox(AppTheme.SPACING_MD)
+	var letter := _desk_offer(tr("DESK_LETTER_TITLE"), func() -> void: game.perform(game.goals.claim), func() -> void: watch_ad(game.goals.claim_doubled))
+	_letter_box = letter[0]
+	_letter_text = letter[1]
+	desk_column.add_child(_letter_box)
+	var gift := _desk_offer(tr("DESK_GIFT_TITLE"), func() -> void: game.perform(game.simulation.claim_gift), func() -> void: watch_ad(game.simulation.claim_gift_doubled))
+	_gift_box = gift[0]
+	_gift_text = gift[1]
+	desk_column.add_child(_gift_box)
+	_desk_card.add_child(desk_column)
+	_desk_card.visible = false
+	column.add_child(_desk_card)
+
+
+func _desk_offer(title_text: String, take: Callable, double: Callable) -> Array:
+	var box := UiKit.vbox(AppTheme.SPACING_XS)
+	var title := UiKit.label(title_text, "TitleSmall", true)
+	title.add_theme_color_override(&"font_color", AppTheme.accent("primary"))
+	box.add_child(title)
+	var text := UiKit.label("", "BodySmall", true)
+	text.add_theme_color_override(&"font_color", AppTheme.on_container("primary"))
+	box.add_child(text)
+	var row := UiKit.hbox(AppTheme.SPACING_SM)
+	var take_button := UiKit.button(tr("ACTION_CLAIM"))
+	take_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	take_button.pressed.connect(take)
+	row.add_child(take_button)
+	var double_button := UiKit.button(tr("ACTION_CLAIM_DOUBLE"), "primary", "Outlined")
+	double_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	double_button.pressed.connect(double)
+	row.add_child(double_button)
+	box.add_child(row)
+	return [box, text]
+
+
+func _refresh_desk_card(state: GameState) -> void:
+	var at_desk := game.simulation.at_office_desk()
+	var letter := at_desk and game.goals.is_complete()
+	var gift := at_desk and state.gift_kind >= 0
+	_desk_card.visible = letter or gift
+	_letter_box.visible = letter
+	_gift_box.visible = gift
+	if letter:
+		_letter_text.text = GoalText.claim_reward(game.goals.current())
+	if gift:
+		_gift_text.text = tr("FMT_DESK_GIFT") % [Flavor.gift(state.gift_kind), UiKit.money(state.gift_money)]
 
 
 func _build_ruckus_banner(column: VBoxContainer) -> void:
@@ -351,9 +412,44 @@ func bottom_height() -> float:
 	return bottom_bar.size.y
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if task_panel != null:
 		task_panel.position = Vector2(AppTheme.SPACING_SM, top_bar.size.y + AppTheme.SPACING_SM)
+	if _money_roll.advance(delta):
+		_money_label.text = UiKit.money(_money_roll.value)
+
+
+func money_anchor() -> Vector2:
+	return _money_chip.get_global_rect().get_center()
+
+
+func goal_anchor() -> Vector2:
+	var source: Control = _goal_card if _goal_card.is_visible_in_tree() else _desk_card
+	if source.is_visible_in_tree():
+		return source.get_global_rect().get_center()
+	return get_viewport_rect().size * 0.5
+
+
+func pulse_money() -> void:
+	if _money_pop != null and _money_pop.is_valid():
+		_money_pop.kill()
+	_money_chip.scale = Vector2.ONE
+	_money_pop = Juice.pop(_money_chip)
+
+
+func pulse_goal() -> Tween:
+	return Juice.pop(_goal_card, Juice.BREATHE_SCALE)
+
+
+func _set_claim_glow(active: bool) -> void:
+	if active == (_claim_glow != null):
+		return
+	if _claim_glow != null:
+		_claim_glow.kill()
+		_claim_glow = null
+		_goal_claim.scale = Vector2.ONE
+		return
+	_claim_glow = Juice.breathe(_goal_claim)
 
 
 func income_per_minute() -> float:
@@ -364,13 +460,16 @@ func refresh() -> void:
 	if game == null:
 		return
 	var state := game.state
-	_money_label.text = UiKit.money(state.money)
+	_money_roll.set_target(state.money)
+	_money_label.text = UiKit.money(_money_roll.value)
 	_reputation_label.text = str(int(state.reputation))
 	_income_label.text = tr("FMT_INCOME") % UiKit.money(income_per_minute())
 	_refresh_boost_button(state)
 	task_panel.refresh()
 	_goal_card.visible = game.goals.has_goal()
-	if game.goals.has_goal():
+	if not game.goals.has_goal():
+		_set_claim_glow(false)
+	else:
 		var goal := game.goals.current()
 		var target := float(goal.target)
 		_goal_label.text = tr("FMT_GOAL_PROGRESS") % [GoalText.describe(goal), UiKit.number(minf(game.goals.current_progress(), target)), UiKit.number(target)]
@@ -378,6 +477,7 @@ func refresh() -> void:
 		var complete := game.goals.is_complete()
 		_goal_claim.disabled = not complete
 		_goal_double.disabled = not complete
+		_set_claim_glow(complete and is_inside_tree())
 		_goal_reward.visible = complete
 		if complete:
 			_goal_reward.text = GoalText.claim_reward(goal)
@@ -390,6 +490,7 @@ func refresh() -> void:
 	_rating_label.text = UiKit.decimal(state.average_rating()) if not state.reviews.is_empty() else "–"
 	var negative := state.negative_review_count()
 	_refresh_bonus_card(state)
+	_refresh_desk_card(state)
 	_review_banner.visible = negative > 0
 	if _review_banner.visible:
 		var newest := _newest_negative(state)

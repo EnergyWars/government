@@ -9,6 +9,7 @@ func before_each() -> void:
 	state = GameState.create_new(5)
 	sim = Simulation.new(state)
 	layout = WorldLayout.get_default()
+	state.station("general_services/review").staff = 1
 	_stop_arrivals()
 
 
@@ -42,20 +43,22 @@ func test_tick_counts_play_time() -> void:
 
 func test_events_start_and_end() -> void:
 	watch_signals(sim)
-	assert_eq(sim.eligible_events(), ["rush_hour"] as Array[String])
+	assert_true(sim.eligible_events().is_empty())
+	state.cases_completed = 20
+	assert_eq(sim.eligible_events(), ["printer_jam"] as Array[String])
 	state.event_cooldown = 0.0
 	sim.tick(0.1)
-	assert_eq(state.event_id, "rush_hour")
-	assert_signal_emitted_with_parameters(sim, "event_started", ["rush_hour"])
+	assert_eq(state.event_id, "printer_jam")
+	assert_signal_emitted_with_parameters(sim, "event_started", ["printer_jam"])
 	state.event_time_left = 0.05
 	sim.tick(0.1)
 	assert_eq(state.event_id, "")
-	assert_signal_emitted_with_parameters(sim, "event_ended", ["rush_hour"])
+	assert_signal_emitted_with_parameters(sim, "event_ended", ["printer_jam"])
 	assert_between(state.event_cooldown, GameConfig.EVENT_MIN_COOLDOWN, GameConfig.EVENT_MAX_COOLDOWN)
 	state.unlock_department("tax_services")
 	state.cases_completed = 100
 	var events := sim.eligible_events()
-	for event_id in ["rush_hour", "audit_visit", "tax_deadline", "printer_jam", "fire_drill"]:
+	for event_id in ["audit_visit", "printer_jam", "fire_drill"]:
 		assert_true(events.has(event_id), event_id)
 	assert_false(events.has("renovation"))
 
@@ -63,64 +66,46 @@ func test_events_start_and_end() -> void:
 func test_citizens_arrive_on_schedule() -> void:
 	watch_signals(sim)
 	var dept := state.department("general_services")
-	dept.arrival_timer = 0.0
-	sim.tick(Formulas.arrival_interval(state, dept) + 0.01)
-	assert_eq(state.station(GameConfig.RECEPTION).inbox.size(), 1)
+	dept.arrival_timer = Formulas.arrival_interval(state) - 0.01
+	sim.tick(0.02)
+	assert_eq(state.citizens.size(), 1)
+	assert_eq(state.ticket_line.size(), 1)
 	assert_signal_emitted_with_parameters(sim, "case_arrived", ["general_services"])
 
 
-func test_full_lobby_turns_citizens_away() -> void:
+func test_full_ticket_lines_turn_citizens_away() -> void:
 	watch_signals(sim)
 	var dept := state.department("general_services")
-	for i in state.lobby_capacity():
+	for i in Formulas.ticket_line_capacity(state):
 		assert_not_null(sim.spawn_case(dept))
 	assert_null(sim.spawn_case(dept))
 	assert_eq(state.citizens_lost, 1)
 	assert_signal_emitted(sim, "citizen_left")
 
 
-func test_impatient_citizens_leave() -> void:
-	var waiting := _case()
-	waiting.waited = Formulas.patience(state)
-	state.station(GameConfig.RECEPTION).inbox.append(waiting)
-	state.station(GameConfig.RECEPTION).inbox.append(_case())
+func test_impatient_cargo_leaves_the_dock() -> void:
+	state.unlock_department("customs")
+	var dock := state.station("customs/dock")
+	var waiting := _case("customs")
+	waiting.waited = GameConfig.BASE_PATIENCE
+	dock.inbox.append(waiting)
+	dock.inbox.append(_case("customs"))
 	state.reputation = 5.0
 	sim.tick(0.1)
-	assert_eq(state.station(GameConfig.RECEPTION).inbox.size(), 1)
+	assert_eq(dock.inbox.size(), 1)
 	assert_eq(state.citizens_lost, 1)
 	assert_almost_eq(state.reputation, 5.0 + GameConfig.REP_CITIZEN_LEFT * GameConfig.REP_LOSS_FACTOR, 0.001)
 
 
-func test_each_citizen_waits_as_long_as_their_own_patience() -> void:
-	var reception := state.station(GameConfig.RECEPTION)
-	var hurried := _case()
-	hurried.patience_factor = GameConfig.PATIENCE_MIN_FACTOR
-	hurried.waited = Formulas.citizen_patience(state, hurried)
-	var calm := _case()
-	calm.patience_factor = GameConfig.PATIENCE_MAX_FACTOR
-	calm.waited = Formulas.patience(state)
-	reception.inbox.append(hurried)
-	reception.inbox.append(calm)
+func test_mayor_speech_keeps_cargo_waiting() -> void:
+	state.unlock_department("customs")
+	var dock := state.station("customs/dock")
+	var waiting := _case("customs")
+	waiting.waited = GameConfig.BASE_PATIENCE
+	dock.inbox.append(waiting)
+	state.boosts["mayor_speech"] = 10.0
 	sim.tick(0.1)
-	assert_false(reception.inbox.has(hurried))
-	assert_true(reception.inbox.has(calm))
-	assert_eq(state.citizens_lost, 1)
-	calm.waited = Formulas.citizen_patience(state, calm)
-	sim.tick(0.1)
-	assert_false(reception.inbox.has(calm))
-	assert_eq(state.citizens_lost, 2)
-
-
-func test_patience_spread_starts_after_the_first_cases() -> void:
-	var dept := state.department("general_services")
-	assert_eq(sim.create_case(dept).patience_factor, 1.0)
-	state.cases_completed = GameConfig.PATIENCE_SPREAD_MIN_CASES
-	var factors := {}
-	for i in 30:
-		var case_file := sim.create_case(dept)
-		assert_eq(case_file.patience_factor, Formulas.patience_factor(state, state.cases_spawned))
-		factors[case_file.patience_factor] = true
-	assert_gt(factors.size(), 10)
+	assert_true(dock.inbox.has(waiting))
 
 
 func test_cases_age_everywhere() -> void:
@@ -161,7 +146,7 @@ func test_unstaffed_desk_waits_for_player() -> void:
 	_run(3.0)
 	assert_eq(reception.outbox.size(), 0)
 	assert_true(reception.needs_manual_work())
-	state.player.position = layout.work_point(GameConfig.RECEPTION)
+	state.player.position = layout.desk_work_point(GameConfig.RECEPTION, 0)
 	_run(2.5)
 	assert_eq(reception.outbox.size(), 1)
 	assert_eq(reception.outbox[0].handled, 1)
@@ -179,14 +164,14 @@ func test_staff_work_does_not_count_as_hand_work() -> void:
 func test_hand_made_case_pays_more() -> void:
 	var counter := state.station(GameConfig.COUNTER)
 	var manual := _at(GameConfig.COUNTER, _case())
-	manual.handled = 5
+	manual.handled = Formulas.hand_slots(manual) - 1
 	counter.inbox.append(manual)
-	state.player.position = layout.work_point(GameConfig.COUNTER)
+	state.player.position = layout.desk_work_point(GameConfig.COUNTER, 0)
 	state.reputation = 0.0
 	var money := state.money
 	_run(3.0)
 	assert_eq(state.cases_completed, 1)
-	assert_eq(manual.handled, 6)
+	assert_eq(manual.handled, Formulas.hand_slots(manual))
 	assert_almost_eq(state.money - money, 20.0 * (1.0 + GameConfig.HAND_REWARD_BONUS), 0.01)
 
 
@@ -194,22 +179,27 @@ func test_player_helps_at_a_staffed_desk() -> void:
 	var review := state.station("general_services/review")
 	var case_file := _at("general_services/review", _case())
 	review.inbox.append(case_file)
-	state.player.position = layout.work_point("general_services/review")
+	state.player.position = layout.desk_work_point("general_services/review", 0)
 	_run(2.0)
 	assert_eq(review.outbox.size(), 1)
 	assert_eq(case_file.handled, 1)
 
 
 func test_machines_are_not_helped_by_hand() -> void:
-	var signature := state.station("general_services/signature")
-	signature.inbox.append(_at("general_services/signature", _case()))
-	assert_false(sim.work(signature, 1.0))
+	state.unlock_department("tax_services")
+	var signature := state.station("tax_services/signature")
+	assert_true(signature.machine)
+	signature.inbox.append(_at("tax_services/signature", _case("tax_services")))
+	signature.staff = signature.desks
+	state.player.position = layout.desk_work_point("tax_services/signature", 0)
+	assert_false(sim.can_work_desk(signature, 0))
+	assert_false(sim.work_at_desk(1.0))
 	assert_true(signature.inbox.size() == 1)
 
 
 func test_guidance_sends_player_to_help_with_a_backlog() -> void:
 	var review := state.station("general_services/review")
-	state.player.position = layout.work_point("general_services/review")
+	state.player.position = layout.desk_work_point("general_services/review", 0)
 	review.inbox.append(_at("general_services/review", _case()))
 	assert_ne(str(Guidance.next_task(state).get("action", "")), Guidance.WORK)
 	for i in GameConfig.HELP_BACKLOG - 1:
@@ -217,16 +207,44 @@ func test_guidance_sends_player_to_help_with_a_backlog() -> void:
 	var task := Guidance.next_task(state)
 	assert_eq(task.action, Guidance.WORK)
 	assert_eq(task.key, "general_services/review")
+	assert_eq(task.point, layout.desk_work_point("general_services/review", 0))
 
 
-func test_work_only_affects_unstaffed_desks() -> void:
+func test_player_works_only_at_the_desk_they_stand_at() -> void:
 	var review := state.station("general_services/review")
-	assert_false(sim.work(review, 1.0))
 	review.add_desk()
 	review.inbox.append(_at("general_services/review", _case()))
-	assert_true(sim.work(review, 1.0))
+	state.player.position = Vector2.ZERO
+	assert_true(sim.player_desk().is_empty())
+	assert_false(sim.work_at_desk(1.0))
+	state.player.position = layout.desk_work_point("general_services/review", 1)
+	assert_eq(sim.player_desk(), ["general_services/review", 1])
+	assert_true(sim.work_at_desk(1.0))
 	assert_not_null(review.jobs[1])
 	assert_null(review.jobs[0])
+
+
+func test_player_looks_over_the_shoulder_of_a_working_official() -> void:
+	var review := state.station("general_services/review")
+	review.inbox.append(_at("general_services/review", _case()))
+	state.player.position = layout.desk_work_point("general_services/review", 0)
+	assert_eq(sim.player_desk(), ["general_services/review", 0])
+	assert_true(sim.work_at_desk(1.0))
+	assert_not_null(review.jobs[0])
+	review.moods[0].rest(DeskMood.ASLEEP)
+	assert_false(sim.can_work_desk(review, 0))
+	assert_true(sim.player_desk().is_empty())
+
+
+func test_the_room_floor_is_no_work_field() -> void:
+	var review := state.station("general_services/review")
+	review.add_desk()
+	review.inbox.append(_at("general_services/review", _case()))
+	var area := layout.area("general_services/review")
+	state.player.position = Vector2(area.get_center().x, area.end.y - 10.0)
+	assert_true(sim.player_desk().is_empty())
+	assert_false(sim.can_work_desk(review, -1))
+	assert_false(sim.can_work_desk(review, review.desks))
 
 
 func test_start_job_rules() -> void:
@@ -250,20 +268,21 @@ func test_specialist_desk_takes_complex_cases() -> void:
 	assert_true(review.jobs[1].by_specialist)
 
 
-func test_shared_station_uses_case_priority() -> void:
+func test_reception_calls_by_ticket_number_not_urgency() -> void:
 	var reception := state.station(GameConfig.RECEPTION)
 	reception.staff = 1
 	var normal := _case()
+	normal.phase = CaseFile.Phase.WAITING
+	normal.ticket = 1
+	normal.place = 0
 	var urgent := _case("general_services", false, true)
-	reception.inbox.append_array([normal, urgent])
-	sim.tick(0.01)
-	assert_eq(reception.jobs[0].case_file, urgent)
-	state.department("general_services").prioritize_urgent = false
-	reception.jobs[0] = null
-	reception.inbox.clear()
-	reception.inbox.append_array([normal, urgent])
-	sim.tick(0.01)
-	assert_eq(reception.jobs[0].case_file, normal)
+	urgent.phase = CaseFile.Phase.WAITING
+	urgent.ticket = 2
+	urgent.place = 1
+	state.citizens.append_array([urgent, normal])
+	assert_true(sim.call_citizens())
+	assert_eq(sim.desk_call(reception, 0), normal)
+	assert_eq(urgent.phase, CaseFile.Phase.WAITING)
 
 
 func test_full_outbox_blocks_finished_job() -> void:
@@ -391,10 +410,13 @@ func test_social_benefits_schedule_follow_ups() -> void:
 	assert_eq(dept.follow_ups.size(), 1)
 	dept.follow_ups[0] = 0.01
 	sim.tick(0.05)
+	assert_eq(dept.follow_ups, [0.0] as Array[float])
+	assert_true(state.ticket_line.is_empty())
+	dept.arrival_timer = Formulas.arrival_interval(state)
+	sim.tick(0.01)
 	assert_true(dept.follow_ups.is_empty())
-	var reception := state.station(GameConfig.RECEPTION)
-	assert_eq(reception.inbox.size(), 1)
-	assert_true(reception.inbox[0].follow_up)
+	assert_eq(state.ticket_line.size(), 1)
+	assert_true(state.ticket_line[0].follow_up)
 
 
 func test_move_case_respects_target_space() -> void:
@@ -564,7 +586,19 @@ func test_full_loop_earns_money_with_staff() -> void:
 			station.staff = 1
 	for role in Runner.ROLES:
 		state.add_runner(role)
+	_quiet_disruptions()
 	state.department("general_services").arrival_timer = 0.0
 	_run(180.0, 0.1)
 	assert_gt(state.cases_completed, 5)
 	assert_gt(state.money, GameConfig.START_MONEY)
+
+func _quiet_disruptions() -> void:
+	state.sick_timer = 1e6
+	state.kranz_timer = 1e6
+	state.complaint_timer = 1e6
+	state.complaint_letter_timer = 1e6
+	state.dispute_timer = 1e6
+	state.event_cooldown = 1e9
+	for key in state.stations:
+		for mood in state.stations[key].moods:
+			mood.alert = 1e9

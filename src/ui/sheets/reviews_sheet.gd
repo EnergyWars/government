@@ -97,8 +97,6 @@ func _build_list(container: VBoxContainer) -> void:
 	if banner != null:
 		container.add_child(banner)
 	container.add_child(_summary_card(state))
-	if state.review_fear > 0.0:
-		container.add_child(UiKit.banner(Icons.GAVEL, tr("REVIEW_FEAR_TITLE"), tr("FMT_REVIEW_FEAR") % UiKit.duration(state.review_fear), "success"))
 	var drain := state.review_drain() * GameConfig.REVIEW_DRAIN * 60.0
 	if drain > 0.0:
 		container.add_child(UiKit.banner(Icons.WARNING, tr("FMT_REVIEWS_TITLE") % state.negative_review_count(), tr("FMT_REVIEW_DRAIN") % UiKit.decimal(drain, 2), "error"))

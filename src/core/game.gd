@@ -9,7 +9,7 @@ var actions: GameActions
 var goals: GoalTracker
 var tutorial: Tutorial
 var boosts: Boosts
-const CHANGE_INTERVAL := 0.1
+const CHANGE_INTERVAL := 0.2
 
 var _accumulator := 0.0
 var _since_change := CHANGE_INTERVAL

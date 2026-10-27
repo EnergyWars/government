@@ -4,6 +4,7 @@ extends RefCounted
 signal case_arrived(dept_id: String)
 signal case_completed(dept_id: String, money: float, flawed: bool)
 signal citizen_left(dept_id: String)
+signal citizen_raged(dept_id: String, point: Vector2, line: int)
 signal contraband_found(dept_id: String)
 signal smuggling_missed(dept_id: String)
 signal department_unlocked(dept_id: String)
@@ -21,15 +22,17 @@ signal sick_call_answered(by_player: bool, key: String, desk: int, persuaded: bo
 signal sick_call_missed(key: String, desk: int)
 signal kranz_ended(by_player: bool)
 signal complaint_filed(overflow: bool)
-signal complaint_fended
 signal complaint_shredded(by_player: bool)
-signal complaint_piped
 signal dept_shredded(dept_id: String)
 signal review_posted(review: Review)
 signal review_removed(outcome: String)
 signal employee_woke(key: String, desk: int, by_player: bool)
+signal employee_returned(key: String, desk: int)
+signal employee_recalled(key: String, desk: int)
 signal visitor_arrived(angry: bool)
 signal visitor_stopped(angry: bool)
+signal visitor_respected(slot: int)
+signal outputs_jammed(key: String, count: int)
 signal intern_broke_down(slot: int)
 signal intern_recovered(slot: int, by_player: bool)
 signal coffee_served(key: String, desk: int)
@@ -48,11 +51,19 @@ signal ticket_drawn(number: int)
 signal ticket_called(number: int)
 signal ruckus_started(desk: int)
 signal ruckus_calmed(desk: int)
+signal lunch_called(count: int)
+signal complaint_absorbed(slot: int)
+signal gift_arrived(kind: int)
+signal gift_claimed(kind: int, money: float)
 
 var state: GameState
 var layout: WorldLayout
 var _wake_clock := 0.0
+var _seat_layout := Vector2i(-1, -1)
 var _pad_clock := 0.0
+var _shredder_rooms: Array[String] = []
+var _shredder_points: Array[Vector2] = []
+var _reject_detours: Dictionary = {}
 
 
 func _init(p_state: GameState) -> void:
@@ -78,6 +89,8 @@ func tick(delta: float) -> void:
 	_update_disputes(delta)
 	_update_ruckus(delta)
 	_update_kranz(delta)
+	_update_lunch(delta)
+	_update_gift(delta)
 	_update_sickness(delta)
 	_work_stations(delta)
 	_update_player(delta)
@@ -98,6 +111,9 @@ func _update_event(delta: float) -> void:
 	if state.event_cooldown > 0.0:
 		return
 	var candidates := eligible_events()
+	if candidates.is_empty():
+		state.event_cooldown = GameConfig.EVENT_MIN_COOLDOWN
+		return
 	start_event(candidates[state.rng.randi_range(0, candidates.size() - 1)])
 
 
@@ -194,8 +210,13 @@ func _add_big_case(dept_id: String) -> void:
 	entry.inbox.append(case_file)
 
 
+func _age_all(cases: Array[CaseFile], delta: float) -> void:
+	for case_file in cases:
+		case_file.age += delta
+
+
 func _age_cases(delta: float) -> void:
-	var limit := Formulas.patience(state) * Formulas.crowding_factor(state)
+	var frozen := state.is_boost_active("mayor_speech")
 	for key in state.stations:
 		var station := state.stations[key]
 		for case_file in station.inbox:
@@ -205,38 +226,22 @@ func _age_cases(delta: float) -> void:
 		for job in station.jobs:
 			if job != null:
 				job.case_file.age += delta
-		if not station.is_entry() or station.is_mailroom() or state.is_boost_active("mayor_speech"):
+		if station.kind != "dock" or frozen:
 			continue
 		var index := station.inbox.size() - 1
 		while index >= 0:
 			var waiting := station.inbox[index]
 			waiting.waited += delta
-			if waiting.waited > limit * waiting.patience_factor:
+			if waiting.waited > GameConfig.BASE_PATIENCE:
 				station.inbox.remove_at(index)
 				_lose_citizen(waiting.dept_id, GameConfig.REP_CITIZEN_LEFT)
-				complain_after_leaving(Formulas.leave_complaint_chance(waiting), false)
+				complain_after_leaving(GameConfig.LEAVE_COMPLAINT_CHANCE, false)
 			index -= 1
-	for case_file in state.carried_cases():
-		case_file.age += delta
-	if not state.is_boost_active("mayor_speech"):
-		_age_ticket_holders(state.ticket_line, delta, limit)
-		state.tickets_lapsed += _age_ticket_holders(state.ticket_waiting, delta, limit)
-
-
-func _age_ticket_holders(holders: Array[CaseFile], delta: float, limit: float) -> int:
-	var left := 0
-	var index := holders.size() - 1
-	while index >= 0:
-		var waiting := holders[index]
-		waiting.age += delta
-		waiting.waited += delta
-		if waiting.waited > limit * waiting.patience_factor:
-			holders.remove_at(index)
-			left += 1
-			_lose_citizen(waiting.dept_id, GameConfig.REP_CITIZEN_LEFT)
-			complain_after_leaving(Formulas.leave_complaint_chance(waiting), false)
-		index -= 1
-	return left
+	_age_all(state.player.items, delta)
+	for runner in state.runners:
+		_age_all(runner.items, delta)
+	for parcel in state.tube_parcels:
+		parcel.case_file.age += delta
 
 
 func complain_after_leaving(chance: float, angry: bool) -> bool:
@@ -245,25 +250,32 @@ func complain_after_leaving(chance: float, angry: bool) -> bool:
 	if state.life_rng.randf() >= chance:
 		return false
 	state.leave_complaint_cooldown = GameConfig.LEAVE_COMPLAINT_COOLDOWN
-	if spawn_visitor(angry, true) == null:
-		submit_complaint()
+	citizen_complains(angry)
 	return true
 
 
+func citizen_complains(angry: bool) -> void:
+	if spawn_visitor(angry, true) == null:
+		submit_complaint()
+
+
 func _spawn_citizens(delta: float) -> void:
+	var interval := Formulas.arrival_interval(state)
 	for dept in state.unlocked_departments():
-		var interval := Formulas.arrival_interval(state, dept)
+		for index in dept.follow_ups.size():
+			dept.follow_ups[index] = maxf(0.0, dept.follow_ups[index] - delta)
 		dept.arrival_timer += delta
 		while dept.arrival_timer >= interval:
 			dept.arrival_timer -= interval
-			spawn_case(dept)
-		var index := dept.follow_ups.size() - 1
-		while index >= 0:
-			dept.follow_ups[index] -= delta
-			if dept.follow_ups[index] <= 0.0:
-				dept.follow_ups.remove_at(index)
-				spawn_case(dept, true)
-			index -= 1
+			spawn_case(dept, _take_follow_up(dept))
+
+
+func _take_follow_up(dept: Department) -> bool:
+	for index in dept.follow_ups.size():
+		if dept.follow_ups[index] <= 0.0:
+			dept.follow_ups.remove_at(index)
+			return true
+	return false
 
 
 func create_case(dept: Department, follow_up: bool = false) -> CaseFile:
@@ -280,84 +292,356 @@ func create_case(dept: Department, follow_up: bool = false) -> CaseFile:
 	case_file.route = RouteBuilder.build(case_file)
 	state.cases_spawned += 1
 	case_file.invalid = not follow_up and not dept.is_customs() and Formulas.is_invalid_case(state, state.cases_spawned)
-	case_file.patience_factor = Formulas.patience_factor(state, state.cases_spawned)
 	return case_file
 
 
 func spawn_case(dept: Department, follow_up: bool = false) -> CaseFile:
 	var case_file := create_case(dept, follow_up)
-	var entry := state.station(case_file.route[0])
-	var ticketed := needs_ticket(case_file)
-	var has_space := state.ticket_line_has_space() if ticketed else (entry != null and entry.has_inbox_space(state.lobby_capacity()))
-	if has_space:
-		if not follow_up:
-			case_file.extras = roll_extras(dept)
-		if ticketed:
-			state.ticket_line.append(case_file)
-		else:
-			entry.inbox.append(case_file)
-		state.production.record(ProductionStats.ARRIVED, dept.id, state.play_time)
-		case_arrived.emit(dept.id)
-		return case_file
 	state.production.record(ProductionStats.ARRIVED, dept.id, state.play_time)
-	_lose_citizen(dept.id, GameConfig.REP_WALKED_OUT)
+	if not needs_ticket(case_file):
+		var entry := state.station(case_file.route[0]) if not case_file.route.is_empty() else null
+		if entry != null and entry.has_inbox_space(state.lobby_capacity()):
+			entry.inbox.append(case_file)
+			case_arrived.emit(dept.id)
+			return case_file
+		_walk_out(dept.id)
+		return null
+	var machine := state.shortest_line()
+	if machine < 0:
+		_walk_out(dept.id)
+		return null
+	if not follow_up:
+		case_file.extras = roll_extras(dept)
+	case_file.phase = CaseFile.Phase.LINE
+	case_file.machine = machine
+	case_file.line_slot = state.line_length(machine)
+	case_file.spot = layout.door_in()
+	_walk_to(case_file, layout.ticket_line_point(machine, case_file.line_slot))
+	state.ticket_line.append(case_file)
+	state.citizens.append(case_file)
+	case_arrived.emit(dept.id)
+	return case_file
+
+
+func _walk_out(dept_id: String) -> void:
+	_lose_citizen(dept_id, GameConfig.REP_WALKED_OUT)
 	state.walkouts += 1
-	complain_after_leaving(GameConfig.WALKOUT_COMPLAINT_CHANCE, true)
-	return null
+	citizen_complains(true)
 
 
 func needs_ticket(case_file: CaseFile) -> bool:
-	return state.tickets_unlocked() and case_file.takes_seat() and not case_file.route.is_empty() and case_file.route[0] == GameConfig.RECEPTION
+	return case_file.takes_seat() and not case_file.route.is_empty() and case_file.route[0] == GameConfig.RECEPTION
+
+
+func _walk_time(from: Vector2, to: Vector2) -> float:
+	return from.distance_to(to) / GameConfig.CITIZEN_SPEED
+
+
+func _walk_to(citizen: CaseFile, point: Vector2) -> void:
+	citizen.walk += _walk_time(citizen.spot, point)
+	citizen.spot = point
+
+
+func _update_citizens(delta: float) -> void:
+	var frozen := state.is_boost_active("mayor_speech")
+	var index := state.citizens.size() - 1
+	while index >= 0:
+		var citizen := state.citizens[index]
+		if citizen.phase == CaseFile.Phase.LINE or citizen.phase == CaseFile.Phase.WAITING:
+			citizen.age += delta
+		var waiting := Formulas.is_citizen_waiting(citizen)
+		citizen.walk = maxf(0.0, citizen.walk - delta)
+		if waiting and not frozen:
+			citizen.waited += delta
+			if citizen.waited >= Formulas.citizen_patience(citizen):
+				give_up(citizen)
+		index -= 1
+
+
+func give_up(citizen: CaseFile) -> void:
+	var key := GameConfig.COUNTER if citizen.waits_for_pickup() else GameConfig.RECEPTION
+	match citizen.phase:
+		CaseFile.Phase.LINE:
+			state.ticket_line.erase(citizen)
+			_close_line(citizen.machine)
+		CaseFile.Phase.CALLED:
+			_station_inbox_erase(GameConfig.RECEPTION, citizen)
+		CaseFile.Phase.CALLED_DOC:
+			_station_inbox_erase(GameConfig.COUNTER, citizen)
+		CaseFile.Phase.WAITING_DOC, CaseFile.Phase.SERVED, CaseFile.Phase.CALLED_PHOTO, CaseFile.Phase.PHOTO:
+			_abandon_file(citizen)
+	if citizen.ticket > 0:
+		state.tickets_lapsed += 1
+	var point := citizen.spot
+	citizen.raged = true
+	_release_citizen(citizen)
+	_pile_reject(key)
+	_record_loss(citizen.dept_id, GameConfig.REP_CITIZEN_LEFT)
+	citizen_raged.emit(citizen.dept_id, point, state.life_rng.randi_range(0, GameConfig.RAGE_LINES - 1))
+	if spawn_visitor(true, true, point, GameConfig.RAGE_SECONDS) == null:
+		submit_complaint()
+
+
+func _pile_reject(key: String) -> void:
+	var station := state.station(key)
+	if station != null and station.has_reject_pile() and station.has_reject_space():
+		station.rejects += 1
+
+
+func _station_inbox_erase(key: String, case_file: CaseFile) -> void:
+	var station := state.station(key)
+	if station != null:
+		station.inbox.erase(case_file)
+
+
+func _abandon_file(case_file: CaseFile) -> void:
+	case_file.abandoned = true
+	var station := state.station(case_file.current_key())
+	if station == null:
+		return
+	if station.inbox.has(case_file):
+		station.inbox.erase(case_file)
+	elif station.outbox.has(case_file):
+		station.outbox.erase(case_file)
+
+
+func _release_citizen(citizen: CaseFile) -> void:
+	state.citizens.erase(citizen)
+	citizen.phase = CaseFile.Phase.NONE
+	citizen.place = -1
+	citizen.desk = -1
+	citizen.walk = 0.0
+
+
+func dismiss_citizen(case_file: CaseFile) -> void:
+	if case_file.has_citizen():
+		_release_citizen(case_file)
+
+
+func _close_line(machine: int) -> void:
+	var slot := 0
+	for citizen in state.ticket_line:
+		if citizen.machine != machine:
+			continue
+		if citizen.line_slot != slot:
+			citizen.line_slot = slot
+			_walk_to(citizen, layout.ticket_line_point(machine, slot))
+		slot += 1
+
+
+func line_front(machine: int) -> CaseFile:
+	for citizen in state.ticket_line:
+		if citizen.machine == machine:
+			return citizen
+	return null
+
+
+func front_at_ticket_machine() -> bool:
+	for machine in Formulas.ticket_machines(state):
+		var front := line_front(machine)
+		if front != null and is_drawing(front):
+			return true
+	return false
+
+
+func is_drawing(case_file: CaseFile) -> bool:
+	return case_file.phase == CaseFile.Phase.LINE and case_file.line_slot == 0 and case_file.walk <= 0.0
 
 
 func _update_tickets(delta: float) -> void:
-	if not state.tickets_unlocked():
-		return
-	if state.ticket_line.is_empty():
-		state.ticket_progress = 0.0
-	else:
-		state.ticket_progress += delta * Formulas.ticket_speed(layout.near(state.player.position, layout.ticket_machine_point()))
-		if state.ticket_progress >= Formulas.ticket_draw_time(state):
-			draw_ticket()
-	var reception := state.station(GameConfig.RECEPTION)
-	if state.ticket_waiting.is_empty() or reception == null or reception.inbox.size() >= Formulas.ticket_call_slots(state):
-		state.ticket_call_progress = 0.0
-		return
-	state.ticket_call_progress += delta * Formulas.ticket_speed(layout.near(state.player.position, layout.ticket_display_point()))
-	if state.ticket_call_progress >= Formulas.ticket_call_time(state):
-		call_ticket()
+	_sync_places()
+	_update_citizens(delta)
+	for machine in Formulas.ticket_machines(state):
+		var front := line_front(machine)
+		if front == null or not is_drawing(front):
+			continue
+		front.draw_progress += delta * Formulas.ticket_speed(layout.near(state.player.position, layout.ticket_machine_point(machine)))
+		if front.draw_progress >= Formulas.ticket_draw_time(state, machine):
+			draw_ticket(front)
+	call_citizens()
 
 
-func draw_ticket() -> bool:
-	if state.ticket_line.is_empty():
+func draw_ticket(case_file: CaseFile = null) -> bool:
+	if case_file == null:
+		case_file = line_front(0)
+	if case_file == null or not state.ticket_line.has(case_file):
 		return false
-	state.ticket_progress = 0.0
-	var case_file: CaseFile = state.ticket_line.pop_front()
+	state.ticket_line.erase(case_file)
+	_close_line(case_file.machine)
+	case_file.draw_progress = 0.0
+	case_file.line_slot = -1
 	state.tickets_drawn += 1
 	case_file.ticket = state.tickets_drawn
-	state.ticket_waiting.append(case_file)
 	ticket_drawn.emit(state.tickets_drawn)
+	if not _take_place(case_file, CaseFile.Phase.WAITING):
+		give_up(case_file)
 	return true
 
 
-func call_ticket() -> bool:
-	var reception := state.station(GameConfig.RECEPTION)
-	if state.ticket_waiting.is_empty() or reception == null:
+func _take_place(citizen: CaseFile, phase: CaseFile.Phase) -> bool:
+	citizen.phase = phase
+	citizen.place = -1
+	var room := citizen.waiting_room()
+	var seat := state.free_place(true, room)
+	citizen.seated = seat >= 0
+	citizen.place = seat if seat >= 0 else state.free_place(false, room)
+	citizen.waited = 0.0
+	if citizen.place < 0:
 		return false
-	state.ticket_call_progress = 0.0
-	var batch := mini(Formulas.ticket_displays(state), maxi(1, Formulas.ticket_call_slots(state) - reception.inbox.size()))
-	while batch > 0 and not state.ticket_waiting.is_empty():
-		_call_next(reception)
-		batch -= 1
+	_walk_to(citizen, place_point(citizen))
 	return true
 
 
-func _call_next(reception: Station) -> void:
-	var case_file: CaseFile = state.ticket_waiting.pop_front()
-	reception.inbox.append(case_file)
-	state.tickets_called = mini(state.tickets_called + 1, state.tickets_drawn)
-	state.last_called_ticket = case_file.ticket if case_file.ticket > 0 else state.last_called_ticket + 1
-	ticket_called.emit(state.last_called_ticket)
+func place_point(citizen: CaseFile) -> Vector2:
+	var room := citizen.waiting_room()
+	if citizen.seated:
+		return layout.waiting_seat(citizen.place, room)
+	return layout.standing_point(citizen.place, state.seat_capacity(room), room)
+
+
+func _sync_places() -> void:
+	var seats := Vector2i(state.seat_capacity(GameConfig.HALL_INTAKE), state.seat_capacity(GameConfig.HALL_PICKUP))
+	if seats == _seat_layout:
+		return
+	var initial := _seat_layout.x < 0
+	_seat_layout = seats
+	if initial:
+		return
+	for citizen in state.citizens:
+		if not citizen.is_in_hall() or citizen.seated:
+			continue
+		var seat := state.free_place(true, citizen.waiting_room())
+		if seat >= 0:
+			citizen.seated = true
+			citizen.place = seat
+		_walk_to(citizen, place_point(citizen))
+
+
+func pickup_space() -> int:
+	var heading := 0
+	for citizen in state.citizens:
+		if citizen.phase == CaseFile.Phase.CALLED or citizen.phase == CaseFile.Phase.SERVED:
+			heading += 1
+	return state.places_left(GameConfig.HALL_PICKUP) - heading
+
+
+func call_citizens() -> bool:
+	var player_spot := []
+	var checked := false
+	var called := false
+	for key in GameConfig.CALL_STATIONS:
+		var station := state.station(key)
+		if station == null or is_halted(station):
+			continue
+		for desk in station.desks:
+			if station.jobs[desk] != null or desk_call(station, desk) != null:
+				continue
+			if not _desk_manned(station, desk):
+				if not checked:
+					player_spot = player_desk()
+					checked = true
+				if player_spot != [key, desk]:
+					continue
+			var citizen := _next_caller(station)
+			if citizen == null:
+				break
+			_call(citizen, station, desk)
+			called = true
+	return called
+
+
+func _desk_manned(station: Station, desk: int) -> bool:
+	return station.is_working(desk) or (state.is_boost_active("temp_workers") and _is_temp_desk(station, desk))
+
+
+func desk_call(station: Station, desk: int) -> CaseFile:
+	for case_file in station.inbox:
+		if case_file.desk == desk and _is_called(case_file):
+			return case_file
+	return null
+
+
+func _is_called(case_file: CaseFile) -> bool:
+	return case_file.phase == CaseFile.Phase.CALLED or case_file.phase == CaseFile.Phase.CALLED_DOC or case_file.phase == CaseFile.Phase.CALLED_PHOTO
+
+
+func _next_caller(station: Station) -> CaseFile:
+	if station.kind == "counter" or station.key == GameConfig.PHOTO_STATION:
+		for case_file in station.inbox:
+			if case_file.phase == CaseFile.Phase.WAITING_DOC:
+				return case_file
+		return null
+	if pickup_space() <= 0:
+		return null
+	var waiting: Array[CaseFile] = []
+	for citizen in state.citizens:
+		if citizen.phase == CaseFile.Phase.WAITING:
+			waiting.append(citizen)
+	if waiting.is_empty():
+		return null
+	var blocked := _saturated_targets(station, waiting)
+	var best: CaseFile = null
+	for citizen in waiting:
+		if not blocked.has(citizen.next_key()) and (best == null or citizen.ticket < best.ticket):
+			best = citizen
+	return best
+
+
+func _call(citizen: CaseFile, station: Station, desk: int) -> void:
+	citizen.desk = desk
+	if station.key == GameConfig.PHOTO_STATION:
+		citizen.phase = CaseFile.Phase.CALLED_PHOTO
+		_walk_to(citizen, layout.desk_front(station.key, desk))
+		ticket_called.emit(citizen.ticket)
+		return
+	citizen.waited = 0.0
+	citizen.place = -1
+	if station.kind == "counter":
+		citizen.phase = CaseFile.Phase.CALLED_DOC
+	else:
+		citizen.phase = CaseFile.Phase.CALLED
+		station.inbox.append(citizen)
+		state.tickets_called = mini(state.tickets_called + 1, state.tickets_drawn)
+	_walk_to(citizen, layout.desk_front(station.key, desk))
+	ticket_called.emit(citizen.ticket)
+
+
+func _take_called(station: Station, desk: int) -> CaseFile:
+	var fallback := -1
+	for index in station.inbox.size():
+		var case_file := station.inbox[index]
+		if case_file.desk == desk and _is_called(case_file):
+			if case_file.walk > 0.0:
+				return null
+			station.inbox.remove_at(index)
+			if case_file.phase == CaseFile.Phase.CALLED_PHOTO:
+				case_file.phase = CaseFile.Phase.PHOTO
+				return case_file
+			case_file.phase = CaseFile.Phase.SERVED if case_file.phase == CaseFile.Phase.CALLED else CaseFile.Phase.COLLECTING
+			case_file.waited = 0.0
+			return case_file
+		if fallback < 0 and not case_file.has_citizen():
+			fallback = index
+	if fallback < 0:
+		return null
+	var taken := station.inbox[fallback]
+	if _saturated_targets(station).has(taken.next_key()):
+		return null
+	station.inbox.remove_at(fallback)
+	return taken
+
+
+func _after_service(case_file: CaseFile) -> void:
+	if case_file.phase == CaseFile.Phase.PHOTO:
+		case_file.phase = CaseFile.Phase.WAITING_DOC
+		case_file.desk = -1
+		_walk_to(case_file, place_point(case_file))
+		return
+	if case_file.phase != CaseFile.Phase.SERVED:
+		return
+	case_file.desk = -1
+	if not _take_place(case_file, CaseFile.Phase.WAITING_DOC):
+		give_up(case_file)
 
 
 func roll_extras(dept: Department) -> Array[String]:
@@ -432,10 +716,14 @@ func pick_up_mail() -> bool:
 
 
 func _lose_citizen(dept_id: String, reputation_change: float) -> void:
+	_record_loss(dept_id, reputation_change)
+	citizen_left.emit(dept_id)
+
+
+func _record_loss(dept_id: String, reputation_change: float) -> void:
 	state.citizens_lost += 1
 	state.production.record(ProductionStats.LOST, dept_id, state.play_time)
 	state.add_reputation(reputation_change)
-	citizen_left.emit(dept_id)
 
 
 func _work_stations(delta: float) -> void:
@@ -443,20 +731,57 @@ func _work_stations(delta: float) -> void:
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
 		station.rush = maxf(0.0, station.rush - delta)
-		if is_halted(station):
+		if is_halted(station) or _update_jam(station):
 			continue
-		var speed := Formulas.work_speed(state, station)
-		for desk in station.jobs.size():
+		var step := delta * Formulas.work_speed(state, station)
+		var idle_failed := false
+		var specialist_failed := false
+		var jobs := station.jobs
+		for desk in jobs.size():
 			var working := station.is_working(desk) or (temps and _is_temp_desk(station, desk))
-			if station.jobs[desk] == null and working:
-				start_job(station, desk)
-			var job := station.jobs[desk]
+			var job := jobs[desk]
 			if job == null:
-				continue
+				if not working:
+					continue
+				var specialist := station.is_specialist_desk(desk)
+				if (specialist_failed if specialist else idle_failed) or not start_job(station, desk):
+					if specialist:
+						specialist_failed = true
+					else:
+						idle_failed = true
+					continue
+				job = jobs[desk]
 			if working:
-				job.progress += delta * speed * Formulas.official_speed(station.moods[desk])
-			if job.is_done():
-				finish_job(station, desk)
+				job.progress += step * Formulas.official_speed(station.moods[desk])
+			if job.progress >= job.required and finish_job(station, desk):
+				idle_failed = false
+				specialist_failed = false
+
+
+func _update_jam(station: Station) -> bool:
+	var jammed := station.is_output_jammed()
+	if jammed and not station.jammed:
+		outputs_jammed.emit(station.key, send_on_break(station))
+	station.jammed = jammed
+	return jammed
+
+
+func send_on_break(station: Station) -> int:
+	if station.machine:
+		return 0
+	var sent := 0
+	for desk in station.moods.size():
+		if not station.is_staffed(desk) or not station.moods[desk].is_on_duty():
+			continue
+		var lunch := state.rng.randf() < GameConfig.JAM_LUNCH_CHANCE
+		var rest_state := DeskMood.LUNCH if lunch else DeskMood.CHAT
+		var slot := state.free_kitchen_slot(GameConfig.LUNCH_SLOT if lunch else GameConfig.KITCHEN_TABLE_SLOT)
+		if slot < 0:
+			rest_state = DeskMood.COFFEE
+		station.moods[desk].rest(rest_state, slot)
+		employee_dozed.emit(station.key, desk, rest_state)
+		sent += 1
+	return sent
 
 
 func _is_temp_desk(station: Station, desk: int) -> bool:
@@ -474,7 +799,14 @@ func _update_moods(delta: float) -> void:
 			if not station.is_staffed(desk):
 				continue
 			var mood := station.moods[desk]
-			if mood.is_resting():
+			if mood.is_returning():
+				mood.resting += delta
+				if mood.resting >= mood.return_time:
+					mood.arrive()
+					employee_returned.emit(station.key, desk)
+			elif mood.is_disputing():
+				continue
+			elif mood.is_resting():
 				mood.resting += delta * (Formulas.sick_recovery_speed(mood.bonus) if mood.is_sick() else 1.0)
 				if mood.resting >= Formulas.rest_limit(state, mood.state):
 					wake_up(station, desk, false)
@@ -489,7 +821,7 @@ func _update_moods(delta: float) -> void:
 
 
 func doze_off(station: Station, desk: int) -> bool:
-	if station.machine or not station.is_staffed(desk) or station.moods[desk].is_resting():
+	if station.machine or not station.is_staffed(desk) or not station.moods[desk].is_on_duty():
 		return false
 	var rest_state := _roll_doze_state()
 	var slot := -1
@@ -519,7 +851,10 @@ func wake_up(station: Station, desk: int, by_player: bool) -> bool:
 	var mood := station.moods[desk]
 	if not mood.is_resting():
 		return false
+	var away_slot := mood.slot if mood.is_away() else -1
 	mood.wake(Formulas.wake_alert(state, mood.state))
+	if away_slot >= 0:
+		mood.start_return(Formulas.staff_walk_time(layout.slot_point(away_slot), layout.desk_position(station.key, desk)))
 	if by_player:
 		state.wakes += 1
 	employee_woke.emit(station.key, desk, by_player)
@@ -531,16 +866,19 @@ func _update_complaints(delta: float) -> void:
 	if state.cases_completed >= GameConfig.COMPLAINT_MIN_CASES:
 		state.complaint_timer -= delta
 		if state.complaint_timer <= 0.0:
-			state.complaint_timer = Formulas.complaint_interval(state, state.rng.randf())
+			state.complaint_timer = Formulas.complaint_interval(state.rng.randf())
 			if spawn_visitor(false, true) == null:
 				submit_complaint()
+		state.complaint_letter_timer -= delta
+		if state.complaint_letter_timer <= 0.0:
+			state.complaint_letter_timer = Formulas.complaint_letter_interval(state.rng.randf())
+			file_complaint()
 	var review_drain := state.review_drain()
 	if review_drain > 0.0:
 		state.add_reputation(-review_drain * GameConfig.REVIEW_DRAIN * delta)
-	state.review_fear = maxf(0.0, state.review_fear - delta)
+	_update_praise(delta)
 	if state.expire_reviews() > 0:
 		review_removed.emit("expired")
-	_update_complaint_tube(delta)
 	var player := state.player
 	player.complaint_timer -= delta
 	if player.complaint_timer <= 0.0 and move_complaints():
@@ -559,36 +897,23 @@ func _free_visitor_slot() -> int:
 	return -1
 
 
-func _free_guard() -> int:
-	for guard in state.guards:
-		var busy := false
-		for visitor in state.visitors:
-			if visitor.guard == guard and visitor.phase != ComplaintVisitor.Phase.LEAVING:
-				busy = true
-				break
-		if not busy:
-			return guard
-	return -1
+func _security_stops() -> bool:
+	var chance := Formulas.security_chance(state)
+	return chance > 0.0 and state.life_rng.randf() < chance
 
 
-func _stopping_guard() -> int:
-	var guard := _free_guard()
-	if guard < 0 or state.life_rng.randf() >= Formulas.guard_block_chance(state):
-		return -1
-	return guard
-
-
-func spawn_visitor(angry: bool, files_complaint: bool) -> ComplaintVisitor:
-	var guard := _stopping_guard()
-	var slot := -1 if guard >= 0 else _free_visitor_slot()
-	if guard < 0 and slot < 0:
+func spawn_visitor(angry: bool, files_complaint: bool, from: Vector2 = Vector2.INF, rage: float = 0.0) -> ComplaintVisitor:
+	var stopped := _security_stops()
+	var slot := -1 if stopped else _free_visitor_slot()
+	if not stopped and slot < 0:
 		return null
-	var visitor := ComplaintVisitor.new(layout.door_in())
+	var visitor := ComplaintVisitor.new(layout.door_in() if from == Vector2.INF else from)
+	visitor.rage_timer = maxf(0.0, rage)
 	visitor.angry = angry
-	visitor.files_complaint = files_complaint and guard < 0
+	visitor.files_complaint = files_complaint and not stopped
 	visitor.slot = slot
-	visitor.guard = guard
-	var dialogs := GameConfig.GUARD_DIALOGS if guard >= 0 else (GameConfig.YELL_DIALOGS if angry else GameConfig.VISITOR_DIALOGS)
+	visitor.stopped = stopped
+	var dialogs := GameConfig.GUARD_DIALOGS if stopped else (GameConfig.YELL_DIALOGS if angry else GameConfig.VISITOR_DIALOGS)
 	visitor.dialog = state.life_rng.randi_range(0, dialogs - 1)
 	visitor.look = state.life_rng.randi_range(0, 11)
 	state.visitors.append(visitor)
@@ -607,10 +932,14 @@ func _update_visitors(delta: float) -> void:
 	var index := state.visitors.size() - 1
 	while index >= 0:
 		var visitor := state.visitors[index]
+		if visitor.rage_timer > 0.0:
+			visitor.rage_timer = maxf(0.0, visitor.rage_timer - delta)
+			index -= 1
+			continue
 		match visitor.phase:
 			ComplaintVisitor.Phase.ARRIVING:
 				if visitor.is_stopped():
-					if visitor.move_towards(layout.guard_stop_spot(visitor.guard), GameConfig.VISITOR_SPEED, delta):
+					if visitor.move_towards(layout.security_stop_spot(), GameConfig.VISITOR_SPEED, delta):
 						_start_stop(visitor)
 				elif visitor.move_towards(layout.visitor_spot(visitor.slot), GameConfig.VISITOR_SPEED, delta):
 					_start_talking(visitor)
@@ -622,14 +951,6 @@ func _update_visitors(delta: float) -> void:
 				visitor.timer -= delta
 				if visitor.timer <= 0.0:
 					_finish_talking(visitor)
-			ComplaintVisitor.Phase.TO_INTERNS:
-				if visitor.move_towards(layout.vent_spot(visitor.slot), GameConfig.VISITOR_SPEED, delta):
-					_start_venting(visitor)
-			ComplaintVisitor.Phase.VENTING:
-				visitor.timer -= delta
-				_vent_at_interns(visitor, delta)
-				if visitor.timer <= 0.0:
-					visitor.phase = ComplaintVisitor.Phase.TO_BOX if visitor.files_complaint else ComplaintVisitor.Phase.LEAVING
 			ComplaintVisitor.Phase.TO_BOX:
 				if visitor.move_towards(layout.complaint_drop_spot(), GameConfig.VISITOR_SPEED, delta):
 					visitor.files_complaint = false
@@ -641,114 +962,117 @@ func _update_visitors(delta: float) -> void:
 		index -= 1
 
 
-func _calmest_intern_at_desk() -> ComplaintIntern:
+func desk_intern() -> ComplaintIntern:
 	var best: ComplaintIntern = null
-	for unit in state.all_interns():
-		if unit.is_at_desk() and (best == null or unit.stress < best.stress):
+	for unit in state.interns:
+		if unit.is_at_desk() and (best == null or unit.handled < best.handled):
 			best = unit
 	return best
 
 
 func _start_stop(visitor: ComplaintVisitor) -> void:
 	visitor.phase = ComplaintVisitor.Phase.STOPPED
-	visitor.duration = GameConfig.GUARD_STOP_SECONDS
+	visitor.duration = GameConfig.SECURITY_STOP_SECONDS
 	visitor.timer = visitor.duration
 	state.visitors_stopped += 1
 	visitor_stopped.emit(visitor.angry)
 
 
+func player_at_complaint_counter() -> bool:
+	return layout.near(state.player.position, layout.complaint_player_point())
+
+
 func _start_talking(visitor: ComplaintVisitor) -> void:
+	if desk_intern() == null and not player_at_complaint_counter():
+		visitor.phase = ComplaintVisitor.Phase.TO_BOX if visitor.files_complaint else ComplaintVisitor.Phase.LEAVING
+		return
 	visitor.phase = ComplaintVisitor.Phase.TALKING
 	visitor.duration = GameConfig.VISITOR_ANGRY_TALK_SECONDS if visitor.angry else GameConfig.VISITOR_TALK_SECONDS
 	visitor.timer = visitor.duration
 
 
 func _finish_talking(visitor: ComplaintVisitor) -> void:
-	if state.is_boost_active("complaint_amnesty"):
-		visitor.files_complaint = false
-	if (not visitor.files_complaint and not visitor.angry) or _clerk_fends_off():
-		visitor.files_complaint = false
-		visitor.phase = ComplaintVisitor.Phase.LEAVING
-	elif state.has_upgrade("shredder_service"):
-		visitor.phase = ComplaintVisitor.Phase.TO_INTERNS
-	else:
-		visitor.phase = ComplaintVisitor.Phase.TO_BOX if visitor.files_complaint else ComplaintVisitor.Phase.LEAVING
-
-
-func _start_venting(visitor: ComplaintVisitor) -> void:
-	visitor.phase = ComplaintVisitor.Phase.VENTING
-	visitor.duration = GameConfig.VISITOR_VENT_SECONDS
-	visitor.timer = visitor.duration
-
-
-func _vent_at_interns(visitor: ComplaintVisitor, delta: float) -> void:
-	var target := _calmest_intern_at_desk()
-	if target == null:
+	if state.is_boost_active("complaint_amnesty") or (not visitor.files_complaint and not visitor.angry):
+		_send_away(visitor)
 		return
-	var rate := GameConfig.INTERN_YELL_RATE if visitor.angry else GameConfig.INTERN_VENT_RATE
-	target.stress = minf(1.0, target.stress + rate * Formulas.intern_stress_factor(state) * delta)
+	if player_at_complaint_counter():
+		_send_away(visitor)
+		state.visitors_respected += 1
+		visitor_respected.emit(visitor.slot)
+		return
+	if _fend_off():
+		_send_away(visitor)
+		return
+	visitor.phase = ComplaintVisitor.Phase.TO_BOX if visitor.files_complaint else ComplaintVisitor.Phase.LEAVING
+
+
+func _send_away(visitor: ComplaintVisitor) -> void:
+	visitor.files_complaint = false
+	visitor.phase = ComplaintVisitor.Phase.LEAVING
+
+
+func _fend_off() -> bool:
+	var intern := desk_intern()
+	if intern == null:
+		return false
+	intern.handled += 1
+	state.complaints_absorbed += 1
+	complaint_absorbed.emit(intern.slot)
+	if intern.handled >= Formulas.intern_steadfast(state):
+		intern.mood = ComplaintIntern.Mood.TO_LOO
+		intern.comfort_progress = 0.0
+		state.breakdowns += 1
+		intern_broke_down.emit(intern.slot)
+	return true
 
 
 func _update_intern(delta: float) -> void:
-	if not state.has_upgrade("shredder_service"):
+	for unit in state.interns:
+		_update_intern_unit(unit, delta)
+	_dispatch_box_run()
+
+
+func _dispatch_box_run() -> void:
+	var size := Formulas.intern_run_size(state)
+	if size <= 0 or state.interns_at_desk() < 2:
 		return
-	var units := state.all_interns()
-	for unit in units:
-		_update_intern_unit(unit, units.size(), delta)
+	var reserved := 0
+	for unit in state.interns:
+		if unit.mood == ComplaintIntern.Mood.TO_BOX:
+			reserved += size
+	if state.complaints <= reserved:
+		return
+	for index in range(state.interns.size() - 1, -1, -1):
+		var unit := state.interns[index]
+		if unit.is_at_desk():
+			unit.mood = ComplaintIntern.Mood.TO_BOX
+			return
 
 
-func _update_intern_unit(intern: ComplaintIntern, team_size: int, delta: float) -> void:
+func _update_intern_unit(intern: ComplaintIntern, delta: float) -> void:
+	var speed := Formulas.intern_speed(state)
 	match intern.mood:
 		ComplaintIntern.Mood.DESK:
-			intern.move_towards(layout.intern_home(intern.slot), GameConfig.INTERN_SPEED, delta)
-			var over := float(state.complaints) / team_size - Formulas.intern_stress_free(state)
-			if over > 0.0:
-				intern.stress += over * GameConfig.INTERN_STRESS_RATE * Formulas.intern_stress_factor(state) * delta
-			else:
-				intern.stress -= GameConfig.INTERN_CALM_RATE * delta
-			intern.stress = clampf(intern.stress, 0.0, 1.0)
-			if intern.stress >= 1.0:
-				intern.mood = ComplaintIntern.Mood.TO_LOO
-				intern.comfort_progress = 0.0
-				state.breakdowns += 1
-				intern_broke_down.emit(intern.slot)
-				return
-			_tick_shred_clock(intern, delta)
+			intern.move_towards(layout.intern_home(intern.slot), speed, delta)
+		ComplaintIntern.Mood.TO_BOX:
+			if intern.move_towards(layout.intern_box_point(intern.slot), speed, delta):
+				intern.carried = mini(Formulas.intern_run_size(state), state.complaints)
+				state.complaints -= intern.carried
+				intern.mood = ComplaintIntern.Mood.TO_SHREDDER if intern.carried > 0 else ComplaintIntern.Mood.RETURNING
 		ComplaintIntern.Mood.TO_SHREDDER:
-			if intern.move_towards(layout.intern_shred_point(intern.slot), GameConfig.INTERN_SPEED, delta):
-				var left := Formulas.intern_capacity(state)
-				left -= shred_complaints(left, false)
-				if left > 0:
-					shred_rejects(left, false)
+			if intern.move_towards(layout.intern_shred_point(intern.slot), speed, delta):
+				_book_complaints(intern.carried, false)
+				intern.carried = 0
 				intern.mood = ComplaintIntern.Mood.FROM_SHREDDER
-		ComplaintIntern.Mood.FROM_SHREDDER:
-			if intern.move_towards(layout.intern_home(intern.slot), GameConfig.INTERN_SPEED, delta):
+		ComplaintIntern.Mood.FROM_SHREDDER, ComplaintIntern.Mood.RETURNING:
+			if intern.move_towards(layout.intern_home(intern.slot), speed, delta):
 				intern.mood = ComplaintIntern.Mood.DESK
 		ComplaintIntern.Mood.TO_LOO:
-			if intern.move_towards(layout.intern_cry_point(intern.slot), GameConfig.INTERN_SPEED, delta):
+			if intern.move_towards(layout.intern_cry_point(intern.slot), speed, delta):
 				intern.mood = ComplaintIntern.Mood.CRYING
-				intern.timer = 0.0
 			_comfort_intern(intern, delta)
 		ComplaintIntern.Mood.CRYING:
-			intern.timer += delta
-			if intern.timer >= Formulas.intern_cry_seconds(state):
-				_recover_intern(intern, GameConfig.INTERN_RECOVERED_STRESS, false)
-			else:
-				_comfort_intern(intern, delta)
-		ComplaintIntern.Mood.RETURNING:
-			if intern.move_towards(layout.intern_home(intern.slot), GameConfig.INTERN_SPEED, delta):
-				intern.mood = ComplaintIntern.Mood.DESK
-
-
-func _tick_shred_clock(intern: ComplaintIntern, delta: float) -> void:
-	var delay := Formulas.upgrade_value(state, "shredder_service")
-	if delay > 0.0 and (state.complaints > 0 or state.rejects_waiting() > 0):
-		intern.work_timer += delta
-		if intern.work_timer >= delay:
-			intern.work_timer = 0.0
-			intern.mood = ComplaintIntern.Mood.TO_SHREDDER
-	else:
-		intern.work_timer = 0.0
+			_comfort_intern(intern, delta)
 
 
 func _comfort_intern(intern: ComplaintIntern, delta: float) -> void:
@@ -757,15 +1081,10 @@ func _comfort_intern(intern: ComplaintIntern, delta: float) -> void:
 		return
 	intern.comfort_progress += delta
 	if intern.comfort_progress >= GameConfig.INTERN_COMFORT_TIME:
-		_recover_intern(intern, GameConfig.INTERN_COMFORT_STRESS, true)
-
-
-func _recover_intern(intern: ComplaintIntern, stress: float, by_player: bool) -> void:
-	intern.mood = ComplaintIntern.Mood.RETURNING
-	intern.stress = stress
-	intern.timer = 0.0
-	intern.comfort_progress = 0.0
-	intern_recovered.emit(intern.slot, by_player)
+		intern.mood = ComplaintIntern.Mood.RETURNING
+		intern.handled = 0
+		intern.comfort_progress = 0.0
+		intern_recovered.emit(intern.slot, true)
 
 
 func _update_coffee_interns(delta: float) -> void:
@@ -815,7 +1134,7 @@ func _coffee_target_valid(key: String, desk: int) -> bool:
 	if station == null or station.machine or desk < 0 or desk >= station.moods.size():
 		return false
 	var mood := station.moods[desk]
-	return station.is_staffed(desk) and not mood.is_resting() and mood.alert < Formulas.coffee_threshold(state)
+	return station.is_staffed(desk) and mood.is_on_duty() and mood.alert < Formulas.coffee_threshold(state)
 
 
 func _assign_coffee_target(intern: CoffeeIntern) -> bool:
@@ -963,13 +1282,51 @@ func start_dispute(kind: String = "", dept_id: String = "") -> Dispute:
 		return null
 	var dispute := Dispute.new(kind, dept_id)
 	state.disputes.append(dispute)
+	_gather_dispute_crew(dept_id)
 	state.production.record(ProductionStats.DISPUTE, dept_id, state.play_time)
 	dispute_started.emit(kind, dept_id)
 	return dispute
 
 
+func _gather_dispute_crew(dept_id: String) -> int:
+	var joined := 0
+	for key in GameConfig.department_station_keys(dept_id):
+		var station := state.station(key)
+		if station == null or station.machine:
+			continue
+		for desk in station.moods.size():
+			if joined >= GameConfig.DISPUTE_CREW:
+				return joined
+			if station.is_staffed(desk) and station.moods[desk].join_dispute():
+				joined += 1
+	return joined
+
+
+func dispute_crew(dept_id: String) -> Array[Dictionary]:
+	var crew: Array[Dictionary] = []
+	for key in GameConfig.department_station_keys(dept_id):
+		var station := state.station(key)
+		if station == null or station.machine:
+			continue
+		for desk in station.moods.size():
+			if station.is_staffed(desk) and station.moods[desk].is_disputing():
+				crew.append({"key": key, "desk": desk})
+	return crew
+
+
+func _release_dispute_crew(dept_id: String) -> void:
+	var crew := dispute_crew(dept_id)
+	for index in crew.size():
+		var key := str(crew[index].key)
+		var desk := int(crew[index].desk)
+		var mood := state.station(key).moods[desk]
+		mood.arrive()
+		mood.start_return(Formulas.staff_walk_time(layout.dispute_spot(dept_id, index), layout.desk_position(key, desk)))
+
+
 func end_dispute(dispute: Dispute, by_player: bool) -> void:
 	state.disputes.erase(dispute)
+	_release_dispute_crew(dispute.dept_id)
 	state.disputes_solved += 1
 	if by_player:
 		state.add_reputation(GameConfig.MEDIATE_REPUTATION)
@@ -977,17 +1334,10 @@ func end_dispute(dispute: Dispute, by_player: bool) -> void:
 
 
 func submit_complaint() -> void:
-	if state.is_boost_active("complaint_amnesty") or _clerk_fends_off():
+	if state.is_boost_active("complaint_amnesty") or player_at_complaint_counter():
 		return
-	file_complaint()
-
-
-func _clerk_fends_off() -> bool:
-	if state.life_rng.randf() >= Formulas.complaint_fend_chance(state.upgrade_level("complaint_clerk")):
-		return false
-	state.complaints_fended += 1
-	complaint_fended.emit()
-	return true
+	if not _fend_off():
+		file_complaint()
 
 
 func file_complaint() -> void:
@@ -1004,36 +1354,22 @@ func file_complaint() -> void:
 
 
 func _post_negative_review() -> void:
-	if state.negative_review_count() >= GameConfig.MAX_NEGATIVE_REVIEWS:
-		return
-	if state.review_fear > 0.0 and state.review_rng.randf() >= GameConfig.REVIEW_FEAR_FACTOR:
-		return
 	var stars := 1 if state.review_rng.randf() < GameConfig.REVIEW_ONE_STAR_SHARE else 2
 	review_posted.emit(state.add_review(stars))
 
 
-func _maybe_praise(case_file: CaseFile) -> void:
-	if case_file.flawed:
-		if state.review_rng.randf() < GameConfig.REVIEW_FLAWED_CHANCE:
-			review_posted.emit(state.add_review(3))
+func _update_praise(delta: float) -> void:
+	state.praise_timer -= delta
+	if state.praise_timer > 0.0:
 		return
-	if state.review_rng.randf() >= GameConfig.REVIEW_PRAISE_CHANCE:
-		return
-	var roll := state.review_rng.randf()
-	var stars := 5 if roll < 0.6 else (4 if roll < 0.9 else 3)
-	review_posted.emit(state.add_review(stars))
+	state.praise_timer = Formulas.praise_interval(state.review_rng.randf())
+	post_praise()
 
 
-func _update_complaint_tube(delta: float) -> void:
-	var delay := Formulas.upgrade_value(state, "complaint_tube")
-	if delay > 0.0 and state.complaints > 0:
-		state.complaint_tube_timer += delta
-		if state.complaint_tube_timer >= delay:
-			state.complaint_tube_timer = 0.0
-			complaint_piped.emit()
-			shred_complaints(1, false)
-	else:
-		state.complaint_tube_timer = 0.0
+func post_praise() -> Review:
+	var review := state.add_review(Formulas.praise_stars(state.review_rng.randf()))
+	review_posted.emit(review)
+	return review
 
 
 func can_delete_review(review_id: int) -> bool:
@@ -1075,7 +1411,6 @@ func sue_for_defamation(review_id: int) -> bool:
 
 func win_lawsuit(review: Review, refund: float) -> void:
 	review.force_praise(state.review_rng.randi_range(0, GameConfig.REVIEW_FORCED_TEXTS - 1))
-	state.review_fear = GameConfig.REVIEW_FEAR_SECONDS
 	state.earn(refund)
 	state.add_reputation(GameConfig.REVIEW_LAWSUIT_REPUTATION)
 	review_removed.emit("won")
@@ -1090,12 +1425,18 @@ func shred_complaints(count: int, by_player: bool) -> int:
 		state.player.complaints -= shredded
 	else:
 		state.complaints -= shredded
+	_book_complaints(shredded, by_player)
+	return shredded
+
+
+func _book_complaints(shredded: int, by_player: bool) -> void:
+	if shredded <= 0:
+		return
 	state.complaints_shredded += shredded
 	state.production.record(ProductionStats.COMPLAINT_SHREDDED, ProductionStats.BY_PLAYER if by_player else ProductionStats.BY_STAFF, state.play_time, shredded)
 	state.earn(GameConfig.COMPLAINT_REWARD * shredded)
 	state.add_reputation(GameConfig.COMPLAINT_REPUTATION * shredded)
 	complaint_shredded.emit(by_player)
-	return shredded
 
 
 func shred_rejects(count: int, by_player: bool) -> int:
@@ -1118,6 +1459,7 @@ func shred_rejects(count: int, by_player: bool) -> int:
 
 
 func shred_case(case_file: CaseFile) -> bool:
+	dismiss_citizen(case_file)
 	state.cases_shredded += 1
 	_lose_citizen(case_file.dept_id, -GameConfig.SHRED_CASE_PENALTY)
 	case_shredded.emit(case_file.dept_id)
@@ -1141,20 +1483,42 @@ func _update_collectors(delta: float) -> void:
 
 
 func shredder_points() -> Array[Vector2]:
-	return layout.shredder_points(state.shredder_rooms())
+	var rooms := state.shredder_rooms()
+	if not is_same(rooms, _shredder_rooms):
+		_shredder_rooms = rooms
+		_shredder_points = layout.shredder_points(rooms)
+		_reject_detours.clear()
+	return _shredder_points
+
+
+func _reject_to_shredder(key: String) -> float:
+	var points := shredder_points()
+	var cached: Variant = _reject_detours.get(key)
+	if cached == null:
+		var point := layout.reject_point(key)
+		cached = point.distance_to(WorldLayout.nearest_of(point, layout.shredder_point(), points))
+		_reject_detours[key] = cached
+	return cached
 
 
 func nearest_shredder(from: Vector2) -> Vector2:
-	return layout.nearest_shredder(from, state.shredder_rooms())
+	return WorldLayout.nearest_of(from, layout.shredder_point(), shredder_points())
 
 
 func near_shredder(position: Vector2) -> bool:
-	return shredder_points().any(func(point: Vector2) -> bool: return layout.near(position, point))
+	for point in shredder_points():
+		if layout.near(position, point):
+			return true
+	return false
 
 
 func _update_dept_shredders(delta: float) -> void:
-	for dept_id in state.shredder_rooms():
-		var station := _dept_reject_station(dept_id)
+	var rooms := state.shredder_rooms()
+	if rooms.is_empty():
+		return
+	var reject_stations := _reject_stations()
+	for dept_id in rooms:
+		var station: Station = reject_stations.get(dept_id)
 		if station == null:
 			state.shredder_timers[dept_id] = 0.0
 			continue
@@ -1170,12 +1534,15 @@ func _update_dept_shredders(delta: float) -> void:
 		state.shredder_timers[dept_id] = timer
 
 
-func _dept_reject_station(dept_id: String) -> Station:
-	var best: Station = null
+func _reject_stations() -> Dictionary:
+	var best := {}
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
-		if station.dept_id == dept_id and station.rejects > 0 and (best == null or station.rejects > best.rejects):
-			best = station
+		if station.rejects <= 0:
+			continue
+		var current: Station = best.get(station.dept_id)
+		if current == null or station.rejects > current.rejects:
+			best[station.dept_id] = station
 	return best
 
 
@@ -1204,12 +1571,13 @@ func collector_target(collector: RejectCollector, capacity: int) -> String:
 	var best := ""
 	var best_urgent := false
 	var best_score := 0.0
+	var claimed := _claimed_sources(collector)
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
-		if station.rejects <= 0 or not collector.serves(station.dept_id) or _collector_claimed(collector, key):
+		if station.rejects <= 0 or claimed.has(key) or not collector.serves(station.dept_id):
 			continue
 		var point := layout.reject_point(key)
-		var detour := collector.position.distance_to(point) + point.distance_to(nearest_shredder(point)) - straight
+		var detour := collector.position.distance_to(point) + _reject_to_shredder(key) - straight
 		var urgent := station.rejects >= GameConfig.REJECT_CAPACITY - GameConfig.COLLECTOR_URGENT_MARGIN
 		if collector.loaded > 0 and not urgent and detour > GameConfig.COLLECTOR_MAX_DETOUR:
 			continue
@@ -1221,11 +1589,12 @@ func collector_target(collector: RejectCollector, capacity: int) -> String:
 	return best
 
 
-func _collector_claimed(collector: RejectCollector, key: String) -> bool:
+func _claimed_sources(collector: RejectCollector) -> Dictionary:
+	var claimed := {}
 	for other in state.collectors:
-		if other != collector and other.source == key:
-			return true
-	return false
+		if other != collector and not other.source.is_empty():
+			claimed[other.source] = true
+	return claimed
 
 
 func move_complaints() -> bool:
@@ -1275,7 +1644,7 @@ func report_sick() -> bool:
 			if not station.is_staffed(desk):
 				continue
 			staffed += 1
-			if not station.moods[desk].is_resting():
+			if station.moods[desk].is_on_duty():
 				candidates.append([station, desk])
 				if overloaded:
 					swamped.append([station, desk])
@@ -1377,7 +1746,7 @@ func _longest_callable() -> Array:
 		var station := state.station(key)
 		for desk in station.moods.size():
 			var mood := station.moods[desk]
-			if station.is_staffed(desk) and mood.can_be_called() and mood.resting > longest and state.call_for(key, desk) == null:
+			if mood.state == DeskMood.SICK and mood.reported and mood.resting > longest and station.is_staffed(desk) and state.call_for(key, desk) == null:
 				longest = mood.resting
 				best = [key, desk]
 	return best
@@ -1437,7 +1806,7 @@ func call_kranz() -> bool:
 		if station.machine:
 			continue
 		for desk in station.moods.size():
-			if station.is_staffed(desk) and not station.moods[desk].is_resting():
+			if station.is_staffed(desk) and station.moods[desk].is_on_duty():
 				candidates.append([station, desk])
 	if candidates.size() < GameConfig.KRANZ_MIN_PARTICIPANTS:
 		return false
@@ -1479,21 +1848,107 @@ func _finish_kranz(by_player: bool) -> void:
 	kranz_ended.emit(by_player)
 
 
+func _update_lunch(delta: float) -> void:
+	if state.is_boost_active("works_outing"):
+		return
+	state.lunch_timer -= delta
+	if state.lunch_timer <= 0.0:
+		state.lunch_timer = Formulas.lunch_interval(state.rng.randf()) if call_lunch() > 0 else GameConfig.LUNCH_RETRY_SECONDS
+
+
+func call_lunch() -> int:
+	var candidates: Array = []
+	for key in state.ordered_station_keys():
+		var station := state.station(key)
+		if station.machine:
+			continue
+		for desk in station.moods.size():
+			if station.is_staffed(desk) and station.moods[desk].is_on_duty():
+				candidates.append([station, desk])
+	if candidates.size() < GameConfig.LUNCH_MIN_STAFF:
+		return 0
+	var joined := 0
+	while joined < GameConfig.LUNCH_SIZE and candidates.size() > GameConfig.LUNCH_KEEP_WORKING:
+		var slot := state.free_kitchen_slot(GameConfig.LUNCH_SLOT)
+		if slot < 0:
+			break
+		var pick: Array = candidates.pop_at(state.rng.randi_range(0, candidates.size() - 1))
+		var station: Station = pick[0]
+		station.moods[pick[1]].rest(DeskMood.LUNCH, slot)
+		employee_dozed.emit(station.key, pick[1], DeskMood.LUNCH)
+		joined += 1
+	if joined > 0:
+		state.lunches += joined
+		lunch_called.emit(joined)
+	return joined
+
+
+func _update_gift(delta: float) -> void:
+	if state.gift_kind >= 0:
+		return
+	state.gift_timer -= delta
+	if state.gift_timer <= 0.0:
+		state.gift_timer = Formulas.gift_interval(state.life_rng.randf())
+		place_gift(state.life_rng.randi_range(0, GameConfig.GIFT_KINDS - 1))
+
+
+func place_gift(kind: int) -> bool:
+	if state.gift_kind >= 0:
+		return false
+	state.gift_kind = clampi(kind, 0, GameConfig.GIFT_KINDS - 1)
+	state.gift_money = Formulas.gift_value(state)
+	gift_arrived.emit(state.gift_kind)
+	return true
+
+
+func at_office_desk() -> bool:
+	return layout.near(state.player.position, layout.office_desk_point())
+
+
+func claim_gift(money_factor: float = 1.0) -> bool:
+	if state.gift_kind < 0:
+		return false
+	var kind := state.gift_kind
+	var money := state.gift_money * money_factor
+	state.gift_kind = -1
+	state.gift_money = 0.0
+	state.gifts_opened += 1
+	state.grant(money)
+	gift_claimed.emit(kind, money)
+	return true
+
+
+func claim_gift_doubled() -> bool:
+	if not claim_gift(GameConfig.AD_REWARD_FACTOR):
+		return false
+	state.ads_watched += 1
+	return true
+
+
 func _wake_nearby(delta: float) -> void:
 	var position := state.player.position
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
 		if station.machine:
 			continue
+		var near_area := layout.desk_reach(key, station.moods.size()).has_point(position)
 		for desk in station.moods.size():
 			var mood := station.moods[desk]
-			if not mood.needs_help() or not station.is_staffed(desk):
+			if not station.is_staffed(desk):
 				continue
-			var spot := layout.slot_point(mood.slot) if mood.is_away() else layout.desk_position(key, desk)
+			if mood.can_be_recalled() and near_area and layout.near(position, layout.desk_position(key, desk)):
+				mood.recall_progress += delta
+				if mood.recall_progress >= GameConfig.RECALL_TIME:
+					recall(station, desk)
+				continue
+			mood.recall_progress = 0.0
+			if not mood.needs_help():
+				continue
+			var close := layout.near(position, layout.slot_point(mood.slot)) if mood.is_away() else near_area and layout.near(position, layout.desk_position(key, desk))
 			if mood.state == DeskMood.SLOW:
-				if layout.near(position, spot):
+				if close:
 					mood.resting += delta * (GameConfig.DRIVE_FACTOR - 1.0)
-			elif layout.near(position, spot):
+			elif close:
 				mood.wake_progress += delta
 				if mood.wake_progress >= Formulas.wake_time(mood.state):
 					wake_up(station, desk, true)
@@ -1501,20 +1956,31 @@ func _wake_nearby(delta: float) -> void:
 				mood.wake_progress = 0.0
 
 
-func start_job(station: Station, desk: int) -> bool:
-	if station.jobs[desk] != null:
+func recall(station: Station, desk: int) -> bool:
+	if station.machine or desk < 0 or desk >= station.moods.size() or not station.is_staffed(desk) or not station.moods[desk].can_be_recalled():
 		return false
-	if station.kind == "reception" and not state.reception_may_admit():
+	state.recalls += 1
+	wake_up(station, desk, true)
+	employee_recalled.emit(station.key, desk)
+	return true
+
+
+func start_job(station: Station, desk: int) -> bool:
+	if station.jobs[desk] != null or station.inbox.is_empty():
 		return false
 	var for_specialist := station.is_specialist_desk(desk)
-	var case_file := station.take_next_case(_prioritize_for(station), for_specialist, _saturated_targets(station))
+	var case_file: CaseFile = null
+	if station.calls_citizens():
+		case_file = _take_called(station, desk)
+	else:
+		case_file = station.take_next_case(_prioritize_for(station), for_specialist, _saturated_targets(station))
 	if case_file == null:
 		return false
 	station.jobs[desk] = StationJob.new(case_file, Formulas.required_time(state, station, case_file, for_specialist), for_specialist)
 	return true
 
 
-func _saturated_targets(station: Station) -> Array[String]:
+func _saturated_targets(station: Station, candidates: Array[CaseFile] = []) -> Array[String]:
 	var blocked: Array[String] = []
 	if not station.is_entry():
 		return blocked
@@ -1525,6 +1991,8 @@ func _saturated_targets(station: Station) -> Array[String]:
 		if job != null:
 			pending[job.case_file.next_key()] = int(pending.get(job.case_file.next_key(), 0)) + 1
 	for case_file in station.inbox:
+		pending[case_file.next_key()] = int(pending.get(case_file.next_key(), 0)) + (1 if case_file.has_citizen() else 0)
+	for case_file in candidates:
 		if not pending.has(case_file.next_key()):
 			pending[case_file.next_key()] = 0
 	var lobby := state.lobby_capacity()
@@ -1548,6 +2016,10 @@ func finish_job(station: Station, desk: int) -> bool:
 	if job == null or not job.is_done():
 		return false
 	var case_file := job.case_file
+	if case_file.abandoned:
+		station.jobs[desk] = null
+		_record_output(station, desk)
+		return true
 	if case_file.invalid and station.has_reject_pile() and station.dept_id == case_file.dept_id:
 		if not station.has_reject_space():
 			return false
@@ -1565,6 +2037,7 @@ func finish_job(station: Station, desk: int) -> bool:
 	apply_station_effect(station, case_file, job.by_specialist)
 	if _misses_form(station, case_file):
 		state.mail_promised.append(case_file.dept_id)
+		dismiss_citizen(case_file)
 		form_missing.emit(case_file.dept_id)
 		return true
 	if case_file.is_final_step():
@@ -1572,6 +2045,7 @@ func finish_job(station: Station, desk: int) -> bool:
 	else:
 		station.outbox.append(case_file)
 		_split_bundle(station, case_file)
+		_after_service(case_file)
 	return true
 
 
@@ -1645,6 +2119,7 @@ func apply_station_effect(station: Station, case_file: CaseFile, by_specialist: 
 
 func _reject_case(case_file: CaseFile) -> void:
 	var dept := state.department(case_file.dept_id)
+	dismiss_citizen(case_file)
 	state.cases_rejected += 1
 	state.production.record(ProductionStats.REJECTED, dept.id, state.play_time)
 	state.earn(Formulas.reject_fee(state, dept))
@@ -1653,6 +2128,7 @@ func _reject_case(case_file: CaseFile) -> void:
 
 func complete_case(case_file: CaseFile) -> void:
 	var dept := state.department(case_file.dept_id)
+	dismiss_citizen(case_file)
 	var smuggled := dept.is_customs() and case_file.suspicious and not case_file.scanned and state.rng.randf() < GameConfig.CONTRABAND_CHANCE
 	var outcome := Formulas.case_outcome(state, case_file, smuggled)
 	state.earn(outcome.money)
@@ -1670,7 +2146,6 @@ func complete_case(case_file: CaseFile) -> void:
 	if case_file.mail:
 		mail_answered.emit(case_file.dept_id, outcome.money)
 		return
-	_maybe_praise(case_file)
 	case_completed.emit(case_file.dept_id, outcome.money, case_file.flawed)
 
 
@@ -1685,6 +2160,8 @@ func move_case(from: Station, case_index: int) -> bool:
 
 
 func deliver(case_file: CaseFile, target: Station, carrier: String) -> void:
+	if case_file.abandoned:
+		return
 	case_file.step += 1
 	if carrier == ProductionStats.BY_PLAYER:
 		case_file.handled += 1
@@ -1700,14 +2177,10 @@ func _update_player(delta: float) -> void:
 	player.transfer_timer -= delta
 	if player.transfer_timer <= 0.0 and player_transfer():
 		player.transfer_timer = GameConfig.TRANSFER_INTERVAL
-	for key in state.ordered_station_keys():
-		var station := state.station(key)
-		if (station.needs_manual_work() or station.can_be_helped()) and layout.near(player.position, layout.work_point(key)):
-			work(station, Formulas.work_power(state) * delta)
+	work_at_desk(Formulas.work_power(state) * delta)
 	_wake_clock += delta
 	if _wake_clock >= GameConfig.WAKE_CHECK_INTERVAL:
 		_wake_nearby(_wake_clock)
-		_cover_absent_desks(_wake_clock)
 		_wake_clock = 0.0
 	_pad_clock += delta
 	if _pad_clock >= GameConfig.WAKE_CHECK_INTERVAL:
@@ -1742,24 +2215,41 @@ func player_transfer() -> bool:
 	return false
 
 
-func work(station: Station, power: float) -> bool:
-	for desk in range(station.staff, station.desks):
-		if work_desk(station, desk, power):
-			return true
-	if not station.machine:
-		return _help_staffed_desk(station, power)
-	return false
+func work_at_desk(power: float) -> bool:
+	var spot := player_desk()
+	if spot.is_empty():
+		return false
+	return work_desk(state.station(spot[0]), spot[1], power)
 
 
-func _help_staffed_desk(station: Station, power: float) -> bool:
-	for desk in mini(station.staff, station.desks):
-		if station.is_working(desk) and work_desk(station, desk, power):
-			return true
-	return false
+func player_desk() -> Array:
+	var position := state.player.position
+	var best: Array = []
+	var best_distance := GameConfig.INTERACT_RADIUS * GameConfig.INTERACT_RADIUS
+	for key in state.ordered_station_keys():
+		if not layout.area(key).grow(GameConfig.INTERACT_RADIUS).has_point(position):
+			continue
+		var station := state.station(key)
+		for desk in station.desks:
+			if not can_work_desk(station, desk):
+				continue
+			var distance := position.distance_squared_to(layout.desk_work_point(key, desk))
+			if distance <= best_distance:
+				best_distance = distance
+				best = [key, desk]
+	return best
+
+
+func can_work_desk(station: Station, desk: int) -> bool:
+	if desk < 0 or desk >= station.desks:
+		return false
+	if not station.is_staffed(desk):
+		return true
+	return not station.machine and (station.is_working(desk) or station.can_cover(desk))
 
 
 func work_desk(station: Station, desk: int, power: float) -> bool:
-	if is_halted(station):
+	if is_halted(station) or station.is_output_jammed():
 		return false
 	if station.jobs[desk] == null:
 		start_job(station, desk)
@@ -1768,18 +2258,6 @@ func work_desk(station: Station, desk: int, power: float) -> bool:
 		return false
 	job.work_by_hand(power)
 	return true
-
-
-func _cover_absent_desks(delta: float) -> void:
-	var position := state.player.position
-	var power := Formulas.work_power(state) * delta
-	for key in state.ordered_station_keys():
-		var station := state.station(key)
-		if station.machine:
-			continue
-		for desk in station.moods.size():
-			if station.can_cover(desk) and layout.near(position, layout.desk_position(key, desk)):
-				work_desk(station, desk, power)
 
 
 func sick_desk_near(position: Vector2) -> Array:
@@ -1849,17 +2327,22 @@ func rank_up(dept_id: String) -> bool:
 
 
 func _update_runners(delta: float) -> void:
+	var unassignable := {}
+	var speed := _runner_speed()
 	for runner in state.runners:
 		match runner.task:
 			Runner.Task.IDLE:
-				if not assign_runner(runner):
-					runner.move_towards(layout.runner_home(), _runner_speed(), delta)
+				var group := "%s|%s" % [runner.role, runner.dept_id]
+				if unassignable.has(group) or not assign_runner(runner):
+					unassignable[group] = true
+					runner.move_towards(layout.runner_home(), speed, delta)
 			Runner.Task.TO_SOURCE:
 				if _reservation_lost(runner):
 					runner.clear_task()
-					runner.move_towards(layout.runner_home(), _runner_speed(), delta)
-				else:
-					_runner_to_source(runner, delta)
+					unassignable.clear()
+					runner.move_towards(layout.runner_home(), speed, delta)
+				elif _runner_to_source(runner, delta):
+					unassignable.clear()
 			Runner.Task.TO_TARGET:
 				_runner_to_target(runner, delta)
 
@@ -1913,7 +2396,12 @@ func assign_runner(runner: Runner) -> bool:
 
 func _reservation_lost(runner: Runner) -> bool:
 	var station := state.station(runner.source)
-	return station == null or not station.outbox.any(func(case_file: CaseFile) -> bool: return case_file.next_key() == runner.target and runner_takes(runner, case_file, runner.source))
+	if station == null:
+		return true
+	for case_file in station.outbox:
+		if case_file.next_key() == runner.target and runner_takes(runner, case_file, runner.source):
+			return false
+	return true
 
 
 func runner_takes(runner: Runner, case_file: CaseFile, source_key: String) -> bool:
@@ -1925,9 +2413,9 @@ func runner_takes(runner: Runner, case_file: CaseFile, source_key: String) -> bo
 	return source != null and source.is_backlogged()
 
 
-func _runner_to_source(runner: Runner, delta: float) -> void:
+func _runner_to_source(runner: Runner, delta: float) -> bool:
 	if not runner.move_towards(layout.output_point(runner.source), _runner_speed(), delta):
-		return
+		return false
 	var station := state.station(runner.source)
 	var capacity := Formulas.runner_load(state, runner)
 	var others := reserved_for(runner.source, runner.target) - runner.reserved
@@ -1939,11 +2427,12 @@ func _runner_to_source(runner: Runner, delta: float) -> void:
 		_load_runner(runner, station, target_key, mini(capacity, runner.items.size() + free))
 	if runner.items.is_empty():
 		runner.clear_task()
-		return
+		return true
 	runner.task = Runner.Task.TO_TARGET
 	runner.reserved = 0
 	if runner.items_for(runner.target).is_empty():
 		runner.target = _next_runner_target(runner)
+	return true
 
 
 func _waiting_for(runner: Runner, station: Station, target_key: String) -> int:
@@ -2042,11 +2531,14 @@ func _launch_parcels() -> void:
 		while index < station.outbox.size():
 			var case_file := station.outbox[index]
 			var target_key := case_file.next_key()
-			var parcel := TubeParcel.new(case_file, key, target_key)
-			var tube_id := parcel.tube_id()
-			if not state.is_piped(case_file) or target_key.is_empty() or state.station(target_key) == null or int(load.get(tube_id, 0)) >= Formulas.tube_segment_capacity(state, tube_id):
+			if target_key.is_empty() or not state.is_piped(case_file) or state.station(target_key) == null:
 				index += 1
 				continue
+			var tube_id := RouteBuilder.tube_id(key, target_key)
+			if int(load.get(tube_id, 0)) >= Formulas.tube_segment_capacity(state, tube_id):
+				index += 1
+				continue
+			var parcel := TubeParcel.new(case_file, key, target_key)
 			station.outbox.remove_at(index)
 			parcel.left = maxf(0.2, WorldLayout.path_length(layout.tube_path(key, target_key)) / Formulas.tube_segment_speed(state, tube_id))
 			load[tube_id] = int(load.get(tube_id, 0)) + 1

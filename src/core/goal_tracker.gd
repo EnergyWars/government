@@ -1,6 +1,8 @@
 class_name GoalTracker
 extends RefCounted
 
+signal claimed(money: float, reputation: float, seals: int)
+
 var state: GameState
 
 
@@ -26,8 +28,6 @@ func progress_of(goal: Dictionary) -> float:
 			return state.runners.size()
 		"station_level":
 			return state.max_station_level()
-		"building_stage":
-			return state.building_stage
 		"department":
 			var dept := state.department(goal.param)
 			return 1.0 if dept != null and dept.unlocked else 0.0
@@ -63,8 +63,10 @@ func _claim(money_factor: float) -> bool:
 	if not is_complete():
 		return false
 	var goal := current()
-	state.grant(float(goal.money) * money_factor)
+	var money := float(goal.money) * money_factor
+	state.grant(money)
 	state.add_reputation(float(goal.reputation))
 	state.seals += GameConfig.GOAL_SEALS
 	state.goal_index += 1
+	claimed.emit(money, float(goal.reputation), GameConfig.GOAL_SEALS)
 	return true

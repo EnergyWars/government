@@ -348,13 +348,11 @@ func test_tube_station_spot_installs_the_station() -> void:
 	var spot := UpgradeCatalog.TUBE_PREFIX + "tax_services"
 	var entry_id := "track:tube_station@tax_services"
 	state.unlock_department("tax_services")
-	assert_eq(UpgradeCatalog.resolve_spot(state, spot), UpgradeCatalog.DEPT_PREFIX + "tax_services")
 	var sheet := _sheet(SpotSheet.new(), spot)
 	assert_has(_texts(sheet.content), sheet.tr("STATUS_TUBES_LOCKED"))
 	assert_has(_texts(sheet.content), UpgradeTexts.title(UpgradeCatalog.find(state, entry_id)))
 	assert_null(_button_starting_with(sheet.content, sheet.tr("ACTION_BUY")))
 	state.set_upgrade("pneumatic_tubes", 1)
-	assert_eq(UpgradeCatalog.resolve_spot(state, spot), spot)
 	sheet.rebuild()
 	assert_has(_texts(sheet.content), sheet.tr("STATUS_TUBE_MISSING"))
 	var button := _button_starting_with(sheet.content, UpgradeTexts.button_text(state, UpgradeCatalog.find(state, entry_id), 1))

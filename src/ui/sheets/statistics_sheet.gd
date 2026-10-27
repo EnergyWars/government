@@ -44,9 +44,9 @@ func build(container: VBoxContainer) -> void:
 	container.add_child(_phone_card())
 	container.add_child(_hall_card(ThroughputReport.SEATING, Icons.SEAT))
 	container.add_child(_hall_card(ThroughputReport.WAITING, Icons.HOURGLASS))
-	if game.state.tickets_unlocked():
-		container.add_child(_ticket_card(ThroughputReport.TICKETS, Icons.TICKET))
-		container.add_child(_ticket_card(ThroughputReport.CALLS, Icons.CALL_DISPLAY))
+	container.add_child(_hall_card(ThroughputReport.PICKUP_SEATING, Icons.SEAT))
+	container.add_child(_hall_card(ThroughputReport.PICKUP_WAITING, Icons.HOURGLASS))
+	container.add_child(_ticket_card())
 	container.add_child(UiKit.label(tr("STATS_SECTION_ABSENCES"), "TitleMedium"))
 	container.add_child(_absence_card())
 	container.add_child(UiKit.label(tr("STATS_SECTION_OFFICIALS"), "TitleMedium"))
@@ -472,7 +472,7 @@ func _transport_card() -> Control:
 
 
 func _complaint_card() -> Control:
-	var parts := _area_card(ThroughputReport.COMPLAINTS, Icons.STAFF.helpers)
+	var parts := _area_card(ThroughputReport.COMPLAINTS, Icons.SPOTS.complaint_desk)
 	var column: VBoxContainer = parts.column
 	var incoming := _metric(column, "STATS_AREA_INCOMING")
 	var measured := _metric(column, "STATS_AREA_MEASURED")
@@ -482,7 +482,7 @@ func _complaint_card() -> Control:
 		incoming.text = _rate(ProductionStats.COMPLAINT)
 		measured.text = _rate(ProductionStats.COMPLAINT_SHREDDED)
 		var extra: Array[String] = [tr("FMT_STATS_HANDLED_BY") % [_rate(ProductionStats.COMPLAINT_SHREDDED, ProductionStats.BY_PLAYER), _rate(ProductionStats.COMPLAINT_SHREDDED, ProductionStats.BY_STAFF)]]
-		extra.append(tr("FMT_STATS_COMPLAINT_STATE") % [state.complaints, Formulas.complaint_cap(state), state.all_interns().size(), state.guards])
+		extra.append(tr("FMT_STATS_COMPLAINT_STATE") % [state.complaints, Formulas.complaint_cap(state), state.interns.size(), UiKit.percent(Formulas.security_chance(state)) if state.has_upgrade("complaint_security") else tr("STATS_SECURITY_NONE")])
 		footer.call(extra)
 	)
 	return parts.card
@@ -505,12 +505,12 @@ func _reject_card() -> Control:
 	return parts.card
 
 
-func _ticket_card(kind: String, icon_code: String) -> Control:
-	var parts := _area_card(kind, icon_code)
-	var footer := _area_footer(parts.column, kind)
+func _ticket_card() -> Control:
+	var parts := _area_card(ThroughputReport.TICKETS, Icons.TICKET)
+	var footer := _area_footer(parts.column, ThroughputReport.TICKETS)
 	track(func() -> void:
 		var state := game.state
-		var extra: Array[String] = [tr("FMT_STATS_TICKETS") % [state.ticket_line.size(), state.ticket_waiting.size(), state.tickets_called, state.tickets_lapsed]]
+		var extra: Array[String] = [tr("FMT_STATS_TICKETS") % [state.ticket_line.size(), state.citizens.size() - state.ticket_line.size(), state.tickets_called, state.tickets_lapsed]]
 		footer.call(extra)
 	)
 	return parts.card

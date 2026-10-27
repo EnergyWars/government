@@ -292,6 +292,28 @@ func test_gain_per_second_follows_the_fee_factor() -> void:
 	assert_eq(DepartmentRank.gain_per_second(state, dept), 0.0)
 
 
+func test_rank_slows_down_the_departments_own_desks() -> void:
+	assert_eq(DepartmentRank.time_factor(1), 1.0)
+	assert_eq(DepartmentRank.time_factor(0), 1.0)
+	assert_almost_eq(DepartmentRank.time_factor(11), pow(GameConfig.RANK_LEVEL_TIME_FACTOR, 10), 0.000001)
+	assert_eq(DepartmentRank.time_factor(999), DepartmentRank.time_factor(GameConfig.MAX_DEPARTMENT_RANK))
+	var dept := state.department("general_services")
+	var review := state.station("general_services/review")
+	var reception := state.station(GameConfig.RECEPTION)
+	var case_file := CaseFile.new(dept.id)
+	var review_time := Formulas.required_time(state, review, case_file)
+	var reception_time := Formulas.required_time(state, reception, case_file)
+	dept.rank = 11
+	assert_almost_eq(Formulas.required_time(state, review, case_file), review_time * DepartmentRank.time_factor(11), 0.000001)
+	assert_almost_eq(Formulas.required_time(state, reception, case_file), reception_time, 0.000001)
+	assert_gt(Formulas.station_case_time(state, review, false), 0.0)
+
+
+func test_rank_still_pays_off_despite_slower_desks() -> void:
+	for level in [2, 25, 100, GameConfig.MAX_DEPARTMENT_RANK]:
+		assert_gt(DepartmentRank.fee_factor(level) / DepartmentRank.time_factor(level), DepartmentRank.fee_factor(level - 1) / DepartmentRank.time_factor(level - 1), str(level))
+
+
 func test_potential_income_is_demand_times_case_value() -> void:
 	var dept := state.department("tax_services")
 	assert_almost_eq(Formulas.potential_income(state, dept), Formulas.demand(state, dept) * Formulas.expected_case_value(state, dept), 0.000001)
@@ -529,17 +551,17 @@ func test_bulk_rank_purchase_stops_at_the_reputation_limit() -> void:
 	assert_false(UpgradeEntryCard.can_buy(state, blocked, 1))
 
 
-func test_expansion_lists_ranks_the_next_unlock_and_the_stage() -> void:
+func test_expansion_lists_ranks_and_the_next_unlock() -> void:
 	state.money = 1e12
 	state.reputation = 1e6
 	var ids := _ids(UpgradeCatalog.expansion_entries(state))
+	assert_eq(ids.size(), 2)
 	assert_true(ids.has("rank:general_services"))
 	assert_true(ids.has("unlock:tax_services"))
-	assert_true(ids.has("stage:building"))
+	assert_false(ids.has("stage:building"))
 	assert_false(ids.has("unlock:business_licences"))
 	assert_false(ids.has("track:briefcase"))
 	assert_false(ids.has("supervisor:general_services"))
-	assert_eq(ids.back(), "stage:building")
 
 
 func test_expansion_is_sorted_by_payback() -> void:
@@ -547,7 +569,7 @@ func test_expansion_is_sorted_by_payback() -> void:
 		state.unlock_department(dept_id)
 	state.department("general_services").rank = 3
 	var list := UpgradeCatalog.expansion_entries(state)
-	assert_eq(list.size(), 6)
+	assert_eq(list.size(), 5)
 	for index in range(1, list.size()):
 		assert_true(UpgradeCatalog.payback(state, list[index - 1]) <= UpgradeCatalog.payback(state, list[index]), list[index].id)
 
@@ -566,7 +588,6 @@ func test_is_expansion() -> void:
 	assert_true(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "rank:general_services")))
 	assert_true(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "unlock:tax_services")))
 	assert_false(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "unlock:business_licences")))
-	assert_true(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "stage:building")))
 	assert_false(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "track:briefcase")))
 	assert_false(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "level:shared/reception")))
 
@@ -579,9 +600,6 @@ func test_income_gain_and_payback() -> void:
 	assert_almost_eq(UpgradeCatalog.payback(state, rank), rank.cost / gain, 0.001)
 	var unlock := UpgradeCatalog.find(state, "unlock:tax_services")
 	assert_almost_eq(UpgradeCatalog.income_gain(state, unlock), Formulas.potential_income(state, state.department("tax_services")), 0.000001)
-	var stage := UpgradeCatalog.find(state, "stage:building")
-	assert_eq(UpgradeCatalog.income_gain(state, stage), 0.0)
-	assert_eq(UpgradeCatalog.payback(state, stage), INF)
 	assert_eq(UpgradeCatalog.income_gain(state, UpgradeCatalog.find(state, "supervisor:general_services")), 0.0)
 	dept.rank = GameConfig.MAX_DEPARTMENT_RANK
 	assert_eq(UpgradeCatalog.payback(state, UpgradeCatalog.find(state, "rank:general_services")), INF)
@@ -604,7 +622,9 @@ func test_rank_texts() -> void:
 	assert_eq(UpgradeTexts.milestone_text(1), milestone)
 	var gain := UpgradeTexts.gain_text("FMT_EFFECT_RANK_GAIN", UpgradeCatalog.income_gain(state, entry), entry.cost)
 	assert_false(gain.is_empty())
-	assert_eq(UpgradeTexts.effect(state, entry), change + "\n" + milestone + "\n" + gain)
+	var slower := _t("FMT_EFFECT_RANK_TIME") % ["×" + UiKit.decimal(1.0, 2), "×" + UiKit.decimal(GameConfig.RANK_LEVEL_TIME_FACTOR, 2)]
+	assert_eq(UpgradeTexts.time_text(1), slower)
+	assert_eq(UpgradeTexts.effect(state, entry), change + "\n" + slower + "\n" + milestone + "\n" + gain)
 
 
 func test_maxed_rank_texts() -> void:
@@ -664,7 +684,7 @@ func test_rank_names_are_translated_and_clamped() -> void:
 
 
 func test_rank_texts_exist_in_both_languages() -> void:
-	var keys: Array[String] = ["FMT_ENTRY_RANK", "ENTRY_DESC_RANK", "FMT_EFFECT_RANK", "FMT_EFFECT_RANK_MAX", "FMT_EFFECT_RANK_GAIN", "FMT_EFFECT_UNLOCK_GAIN", "UPGRADE_MODE_EXPANSION", "UPGRADE_MODE_HINT_EXPANSION", "UPGRADES_NONE_EXPANSION", "FMT_FLOAT_RANK", "STATS_DEPT_RANK", "FMT_STATS_RANK", "FMT_EFFECT_RANK_MILESTONE", "FMT_RANK_TITLE"]
+	var keys: Array[String] = ["FMT_ENTRY_RANK", "ENTRY_DESC_RANK", "FMT_EFFECT_RANK", "FMT_EFFECT_RANK_MAX", "FMT_EFFECT_RANK_GAIN", "FMT_EFFECT_UNLOCK_GAIN", "UPGRADE_MODE_EXPANSION", "UPGRADE_MODE_HINT_EXPANSION", "UPGRADES_NONE_EXPANSION", "FMT_FLOAT_RANK", "STATS_DEPT_RANK", "FMT_STATS_RANK", "FMT_EFFECT_RANK_MILESTONE", "FMT_EFFECT_RANK_TIME", "FMT_RANK_TITLE"]
 	for title_index in range(1, GameConfig.RANK_TITLES + 1):
 		keys.append("DEPT_RANK_%d" % title_index)
 	var previous := TranslationServer.get_locale()

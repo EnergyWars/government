@@ -15,7 +15,6 @@ const COMFORT := "comfort"
 const DISPUTE := "dispute"
 const COVER := "cover"
 const TICKET := "ticket"
-const TICKET_CALL := "ticket_call"
 const RUCKUS := "ruckus"
 const MAIL_FLOOR := "mail_floor"
 
@@ -42,18 +41,18 @@ static func next_task(state: GameState) -> Dictionary:
 					options.append({"action": WAKE, "key": key, "point": spot})
 				if mood.is_sick() and station.can_cover(desk):
 					options.append({"action": COVER, "key": key, "point": layout.desk_position(key, desk)})
-			if station.needs_manual_work() or station.needs_help():
-				options.append({"action": WORK, "key": key, "point": layout.work_point(key)})
+			var work_desk := _work_desk(station)
+			if work_desk >= 0:
+				options.append({"action": WORK, "key": key, "point": layout.desk_work_point(key, work_desk)})
 			if room and not station.outbox.is_empty() and not _automated(state, station):
 				options.append({"action": PICKUP, "key": key, "point": layout.output_point(key)})
 			if station.rejects > 0 and state.collectors.is_empty() and player.rejects == 0 and player.complaints == 0 and room:
 				options.append({"action": REJECT, "key": key, "point": layout.reject_point(key)})
 	if state.ringing_count() > 0 or state.reported_sick_count() > 0:
 		options.append({"action": CALL, "key": "", "point": layout.phone_point()})
-	if state.has_upgrade("shredder_service"):
-		for unit in state.all_interns():
-			if unit.is_away():
-				options.append({"action": COMFORT, "key": "", "point": unit.position})
+	for unit in state.interns:
+		if unit.is_away():
+			options.append({"action": COMFORT, "key": "", "point": unit.position})
 	var mailroom := state.mailroom()
 	if not state.mail_floor.is_empty() and mailroom != null and mailroom.has_inbox_space(state.lobby_capacity()):
 		options.append({"action": MAIL_FLOOR, "key": GameConfig.MAILROOM, "point": layout.mail_floor_point()})
@@ -61,12 +60,9 @@ static func next_task(state: GameState) -> Dictionary:
 		options.append({"action": DISPUTE, "key": dispute.dept_id, "point": layout.dispute_point(dispute.dept_id)})
 	if state.kranz:
 		options.append({"action": KRANZ, "key": "", "point": layout.kranz_point()})
-	if state.tickets_unlocked():
-		if state.ticket_line.size() >= GameConfig.TICKET_RUSH:
-			options.append({"action": TICKET, "key": "", "point": layout.ticket_machine_point()})
-		var reception := state.station(GameConfig.RECEPTION)
-		if state.ticket_waiting.size() >= GameConfig.TICKET_RUSH and reception != null and reception.inbox.size() < Formulas.ticket_call_slots(state):
-			options.append({"action": TICKET_CALL, "key": "", "point": layout.ticket_display_point()})
+	var busiest := _busiest_line(state)
+	if busiest >= 0:
+		options.append({"action": TICKET, "key": "", "point": layout.ticket_machine_point(busiest)})
 	if player.complaints > 0 or player.rejects > 0:
 		options.append({"action": SHRED, "key": "", "point": layout.nearest_shredder(player.position, state.shredder_rooms())})
 	elif state.complaints > 0 and player.items.size() < Formulas.carry_capacity(state):
@@ -93,3 +89,24 @@ static func _automated(state: GameState, station: Station) -> bool:
 		if waiting.is_empty() or waiting.any(func(case_file: CaseFile) -> bool: return runner.serves(case_file, station.key)):
 			carried += Formulas.runner_load(state, runner)
 	return carried > 0 and carried >= waiting.size()
+
+
+static func _work_desk(station: Station) -> int:
+	if station.needs_manual_work():
+		return station.staff
+	if station.needs_help():
+		for desk in mini(station.staff, station.desks):
+			if station.is_working(desk):
+				return desk
+	return -1
+
+
+static func _busiest_line(state: GameState) -> int:
+	var best := -1
+	var best_length := GameConfig.TICKET_RUSH - 1
+	for machine in Formulas.ticket_machines(state):
+		var length := state.line_length(machine)
+		if length > best_length:
+			best = machine
+			best_length = length
+	return best

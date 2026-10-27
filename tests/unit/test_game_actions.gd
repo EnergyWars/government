@@ -39,7 +39,8 @@ func test_hire_needs_free_desk_and_no_machine() -> void:
 	assert_eq(state.station(GameConfig.RECEPTION).staff, 1)
 	assert_eq(state.staff_hired, 1)
 	assert_false(actions.hire(GameConfig.RECEPTION))
-	assert_false(actions.can_hire("general_services/signature"))
+	state.unlock_department("tax_services")
+	assert_false(actions.can_hire("tax_services/signature"))
 	assert_false(actions.hire("nope"))
 	state.money = 0.0
 	assert_false(actions.hire(GameConfig.COUNTER))
@@ -103,11 +104,11 @@ func test_department_settings() -> void:
 
 
 func test_unlock_department_spends_money() -> void:
-	state.building_stage = 1
-	state.reputation = 15.0
+	state.reputation = float(GameConfig.department("tax_services").unlock_reputation)
 	state.money = 800.0
 	assert_true(actions.unlock_department("tax_services"))
 	assert_eq(state.money, 0.0)
+	assert_eq(state.building_stage, 1)
 	assert_not_null(state.station("tax_services/review"))
 	assert_false(actions.unlock_department("tax_services"))
 
@@ -153,8 +154,7 @@ func test_room_upgrades_need_an_open_room() -> void:
 	assert_eq(state.upgrade_level("office_equipment", "general_services"), 1)
 	assert_eq(state.upgrade_level("office_equipment"), 0)
 	assert_almost_eq(state.money, 1e9 - cost, 0.01)
-	state.building_stage = 1
-	state.reputation = 15.0
+	state.reputation = float(GameConfig.department("tax_services").unlock_reputation)
 	assert_true(actions.unlock_department("tax_services"))
 	assert_true(actions.buy_upgrade("office_equipment", "tax_services"))
 	assert_true(actions.buy_upgrade("shredder", "tax_services"))
@@ -178,13 +178,24 @@ func test_upgrades_need_their_requirements() -> void:
 	assert_true(state.has_tube_station(GameConfig.ROOM_MAIL))
 
 
-func test_expand_building() -> void:
-	state.money = 2500.0
-	assert_false(actions.expand_building())
-	state.reputation = 10.0
-	assert_true(actions.expand_building())
-	assert_eq(state.building_stage, 1)
-	assert_eq(state.money, 0.0)
+func test_opening_departments_expands_the_building_implicitly() -> void:
+	state.money = 1e12
+	state.reputation = 1e6
+	assert_eq(state.building_stage, 0)
+	assert_null(state.mailroom())
+	var expected := [0, 1, 1, 2, 2, 3, 3, 4]
+	var ids := GameConfig.department_ids()
+	for index in range(1, ids.size()):
+		assert_true(actions.unlock_department(ids[index]), ids[index])
+		assert_eq(state.building_stage, expected[index], ids[index])
+	assert_not_null(state.mailroom())
+	assert_eq(state.max_desks(), int(GameConfig.BUILDING_STAGES[-1].max_desks))
+
+
+func test_opening_departments_never_lowers_a_bought_stage() -> void:
+	state.building_stage = 3
+	state.unlock_department("tax_services")
+	assert_eq(state.building_stage, 3)
 
 
 func test_player_input_is_limited() -> void:
@@ -197,10 +208,8 @@ func test_player_input_is_limited() -> void:
 func test_unlock_block_reasons() -> void:
 	assert_eq(Progression.unlock_block_reason(state, "nope"), "unknown")
 	assert_eq(Progression.unlock_block_reason(state, "general_services"), "unlocked")
-	assert_eq(Progression.unlock_block_reason(state, "tax_services"), "space")
-	state.building_stage = 1
 	assert_eq(Progression.unlock_block_reason(state, "tax_services"), "reputation")
-	state.reputation = 15.0
+	state.reputation = float(GameConfig.department("tax_services").unlock_reputation)
 	assert_eq(Progression.unlock_block_reason(state, "tax_services"), "money")
 	state.money = 800.0
 	assert_eq(Progression.unlock_block_reason(state, "tax_services"), "")
@@ -221,7 +230,7 @@ func test_upgrade_block_reasons() -> void:
 	assert_eq(Progression.upgrade_block_reason(state, "office_equipment", "tax_services"), "room")
 	assert_eq(Progression.upgrade_block_reason(state, "letter_opener"), "room")
 	assert_eq(Progression.upgrade_block_reason(state, "tube_station", GameConfig.ROOM_INSPECTION), "room")
-	assert_eq(Progression.upgrade_block_reason(state, "ticket_speed"), "stage")
+	assert_eq(Progression.upgrade_block_reason(state, "ticket_speed"), "money")
 	assert_eq(Progression.upgrade_block_reason(state, "tube_capacity"), "requires")
 	assert_eq(Progression.upgrade_block_reason(state, "runner_trolleys"), "reputation")
 	assert_eq(Progression.upgrade_block_reason(state, "briefcase"), "money")
@@ -237,16 +246,16 @@ func test_upgrade_block_reasons() -> void:
 
 
 func test_upgrade_block_reasons_check_requirements_before_reputation() -> void:
-	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "requires")
-	state.set_upgrade("shredder_service", 1)
-	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "reputation")
-	state.reputation = float(GameConfig.upgrade("complaint_tube").reputation)
-	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "money")
+	assert_eq(Progression.upgrade_block_reason(state, "large_capsules"), "requires")
+	state.set_upgrade("pneumatic_tubes", 1)
+	assert_eq(Progression.upgrade_block_reason(state, "large_capsules"), "reputation")
+	state.reputation = float(GameConfig.upgrade("large_capsules").reputation)
+	assert_eq(Progression.upgrade_block_reason(state, "large_capsules"), "money")
 	state.reputation = 0.0
-	state.reputation_peak = float(GameConfig.upgrade("complaint_tube").reputation)
-	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "money")
-	state.money = Formulas.track_cost("complaint_tube", 0)
-	assert_eq(Progression.upgrade_block_reason(state, "complaint_tube"), "")
+	state.reputation_peak = float(GameConfig.upgrade("large_capsules").reputation)
+	assert_eq(Progression.upgrade_block_reason(state, "large_capsules"), "money")
+	state.money = Formulas.track_cost("large_capsules", 0)
+	assert_eq(Progression.upgrade_block_reason(state, "large_capsules"), "")
 
 
 func test_room_availability() -> void:
@@ -267,16 +276,6 @@ func test_room_availability() -> void:
 	assert_true(Progression.room_available(state, GameConfig.ROOM_INSPECTION))
 
 
-func test_expansion_block_reasons() -> void:
-	assert_eq(Progression.expansion_block_reason(state), "reputation")
-	state.reputation = 10.0
-	assert_eq(Progression.expansion_block_reason(state), "money")
-	state.money = 2500.0
-	assert_eq(Progression.expansion_block_reason(state), "")
-	state.building_stage = GameConfig.BUILDING_STAGES.size() - 1
-	assert_eq(Progression.expansion_block_reason(state), "max")
-
-
 func test_guidance_is_empty_without_work() -> void:
 	assert_true(Guidance.next_task(state).is_empty())
 
@@ -286,7 +285,7 @@ func test_guidance_points_to_manual_work() -> void:
 	var task := Guidance.next_task(state)
 	assert_eq(task.action, Guidance.WORK)
 	assert_eq(task.key, GameConfig.RECEPTION)
-	assert_eq(task.point, WorldLayout.get_default().work_point(GameConfig.RECEPTION))
+	assert_eq(task.point, WorldLayout.get_default().desk_work_point(GameConfig.RECEPTION, 0))
 
 
 func test_guidance_prefers_delivering_carried_files() -> void:
@@ -330,8 +329,7 @@ func test_guidance_pickups_depend_on_automation() -> void:
 
 
 func test_guidance_points_to_unlock_pad() -> void:
-	state.building_stage = 1
-	state.reputation = 15.0
+	state.reputation = float(GameConfig.department("tax_services").unlock_reputation)
 	state.money = 800.0
 	var task := Guidance.next_task(state)
 	assert_eq(task.action, Guidance.PAD)
@@ -345,7 +343,7 @@ func test_guidance_picks_nearest_option() -> void:
 	var finished := _case()
 	finished.step = finished.route.size() - 1
 	counter.inbox.append(finished)
-	state.player.position = layout.work_point(GameConfig.COUNTER)
+	state.player.position = layout.desk_work_point(GameConfig.COUNTER, 0)
 	assert_eq(Guidance.next_task(state).key, GameConfig.COUNTER)
-	state.player.position = layout.work_point(GameConfig.RECEPTION)
+	state.player.position = layout.desk_work_point(GameConfig.RECEPTION, 0)
 	assert_eq(Guidance.next_task(state).key, GameConfig.RECEPTION)

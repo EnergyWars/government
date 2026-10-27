@@ -51,8 +51,6 @@ func _buy(game: Game) -> void:
 	for dept_id in GameConfig.department_ids():
 		if actions.unlock_department(dept_id):
 			return
-	if actions.expand_building():
-		return
 	for entry in UpgradeCatalog.expansion_entries(state):
 		if entry.kind == UpgradeCatalog.RANK and entry.is_buyable() and actions.buy_entry(entry.id):
 			return

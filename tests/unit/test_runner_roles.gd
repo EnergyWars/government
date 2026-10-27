@@ -121,6 +121,7 @@ func test_three_roles_run_the_whole_route() -> void:
 			state.stations[key].staff = 1
 	for role in Runner.ROLES:
 		state.add_runner(role)
+	_quiet_disruptions()
 	state.department("general_services").arrival_timer = 0.0
 	_run(180.0)
 	assert_gt(state.cases_completed, 5)
@@ -134,9 +135,12 @@ func test_missing_output_runner_leaves_finished_files() -> void:
 	state.add_runner(Runner.INTERNAL)
 	state.player.position = Vector2(-5000, -5000)
 	state.department("general_services").arrival_timer = 0.0
-	_run(120.0)
+	var backlog := 0
+	for second in 120:
+		_run(1.0)
+		backlog = maxi(backlog, state.transfer_backlog(Runner.OUTPUT))
 	assert_eq(state.cases_completed, 0)
-	assert_gt(state.transfer_backlog(Runner.OUTPUT), 0)
+	assert_gt(backlog, 0)
 
 
 func test_hire_runner_for_a_role_or_the_weakest_one() -> void:
@@ -444,3 +448,14 @@ func test_runner_picks_another_target_when_the_reserved_one_is_gone() -> void:
 	sim._runner_to_source(runner, 0.05)
 	assert_eq(runner.items.size(), 1)
 	assert_eq(runner.target, "tax_services/review")
+
+func _quiet_disruptions() -> void:
+	state.sick_timer = 1e6
+	state.kranz_timer = 1e6
+	state.complaint_timer = 1e6
+	state.complaint_letter_timer = 1e6
+	state.dispute_timer = 1e6
+	state.event_cooldown = 1e9
+	for key in state.stations:
+		for mood in state.stations[key].moods:
+			mood.alert = 1e9

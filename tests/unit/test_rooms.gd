@@ -156,7 +156,6 @@ func test_room_entries_skip_locked_rooms() -> void:
 
 
 func test_staff_entries_cover_every_board() -> void:
-	game.state.set_upgrade("shredder_service", 1)
 	var boards: Array[String] = []
 	for staff_type: String in UpgradeCatalog.STAFF_SPOTS:
 		var entry := UpgradeCatalog.find(game.state, "%s:%s" % [UpgradeCatalog.STAFF, staff_type])
@@ -173,11 +172,14 @@ func test_staff_entries_cover_every_board() -> void:
 
 func test_staff_status_texts_follow_upgrades() -> void:
 	assert_eq(SpotStatus.runners(game.state), TranslationServer.translate("FMT_RUNNER_INFO") % [Formulas.runner_capacity(game.state), UiKit.decimal(Formulas.transport_throughput(game.state) * 60.0)])
-	assert_eq(SpotStatus.interns(game.state), TranslationServer.translate("LABEL_NEEDS_SHREDDER_SERVICE"))
+	assert_eq(SpotStatus.security(game.state), TranslationServer.translate("STATUS_NO_SECURITY"))
+	assert_eq(SpotStatus.complaint_desk(game.state).size(), 1)
 	_install_tubes()
-	game.state.set_upgrade("shredder_service", 1)
+	game.state.set_upgrade("complaint_interns", 2)
+	game.state.set_upgrade("complaint_security", 1)
 	assert_eq(SpotStatus.runners(game.state), TranslationServer.translate("LABEL_TUBES_ACTIVE"))
-	assert_eq(SpotStatus.interns(game.state), TranslationServer.translate("FMT_HELPER_INFO") % Formulas.intern_capacity(game.state))
+	assert_eq(SpotStatus.complaint_desk(game.state).size(), 3)
+	assert_eq(SpotStatus.security(game.state), TranslationServer.translate("FMT_SECURITY_INFO") % [roundi(Formulas.security_chance(game.state) * 100.0), game.state.visitors_stopped])
 
 
 func test_buy_button_text_reflects_block_reason() -> void:
@@ -226,7 +228,7 @@ func test_locked_room_spots_explain_why_they_are_closed() -> void:
 	var mail := _sheet(UpgradeCatalog.room_spot(GameConfig.ROOM_MAIL))
 	var mail_labels := _label_set(mail.content)
 	assert_true(mail_labels.has(mail.tr("ROOM_LOCKED_TITLE")))
-	assert_true(mail_labels.has(mail.tr("FMT_MAIL_LOCKED") % (GameConfig.MAIL_UNLOCK_STAGE + 1)))
+	assert_true(mail_labels.has(mail.tr("FMT_MAIL_LOCKED") % GameConfig.departments_for_stage(GameConfig.MAIL_UNLOCK_STAGE)))
 	assert_false(mail_labels.has(mail.tr("SPOT_EMPTY")))
 	var shelf := _sheet("mail_shelf")
 	assert_true(_has_label(shelf.content, shelf.tr("ROOM_LOCKED_TITLE")))
@@ -251,13 +253,11 @@ func test_room_spot_actions_buy_upgrades() -> void:
 	assert_eq(game.state.coffee_interns.size(), 1)
 	assert_eq(game.state.upgrade_level("coffee"), 1)
 	var hall := _sheet(UpgradeCatalog.room_spot(GameConfig.ROOM_HALL))
-	_buy(hall, "%s:waiting_places" % UpgradeCatalog.TRACK)
+	_buy(hall, "%s:ticket_speed" % UpgradeCatalog.TRACK)
 	_buy(hall, "%s:seating" % UpgradeCatalog.TRACK)
-	_buy(hall, "%s:guards" % UpgradeCatalog.STAFF)
 	hall.refresh()
-	assert_eq(game.state.upgrade_level("waiting_places"), 1)
+	assert_eq(game.state.upgrade_level("ticket_speed"), 1)
 	assert_eq(game.state.upgrade_level("seating"), 1)
-	assert_eq(game.state.guards, 1)
 	assert_true(_has_label(hall.content, UpgradeTexts.level_text(UpgradeCatalog.find(game.state, "%s:seating" % UpgradeCatalog.TRACK))))
 	await wait_physics_frames(2)
 
@@ -284,12 +284,37 @@ func test_upgrade_overview_groups_only_open_rooms() -> void:
 	var sheet := UpgradesSheet.new()
 	sheet.setup(game)
 	add_child_autofree(sheet)
-	for room_id: String in [GameConfig.ROOM_PLAYER, GameConfig.ROOM_HALL, GameConfig.ROOM_TECH, GameConfig.ROOM_KITCHEN, GameConfig.ROOM_TOILETS, GameConfig.ROOM_PHONE, "general_services"]:
+	for room_id: String in [GameConfig.ROOM_PLAYER, GameConfig.ROOM_HALL, GameConfig.ROOM_STAFF, GameConfig.ROOM_TECH, GameConfig.ROOM_KITCHEN, GameConfig.ROOM_TOILETS, GameConfig.ROOM_PHONE, "general_services"]:
 		assert_true(_has_label(sheet.content, UpgradeTexts.room_title(room_id)), room_id)
 	assert_false(_has_label(sheet.content, UpgradeTexts.room_title(GameConfig.ROOM_INSPECTION)))
 	game.state.unlock_department("business_licences")
 	sheet.rebuild()
 	assert_true(_has_label(sheet.content, UpgradeTexts.room_title(GameConfig.ROOM_INSPECTION)))
+	await wait_physics_frames(2)
+
+
+func test_staff_room_offers_every_staff_upgrade() -> void:
+	var ids: Array[String] = []
+	for entry in UpgradeCatalog.entries_for_spot(game.state, UpgradeCatalog.room_spot(GameConfig.ROOM_STAFF)):
+		ids.append(entry.id)
+		assert_eq(entry.room, GameConfig.ROOM_STAFF, entry.id)
+	for id: String in ["staff:runners", "staff:collectors", "staff:coffee_interns", "staff:hr", "track:runner_speed", "track:runner_trolleys", "track:collector_speed", "track:collector_carts", "track:coffee_intern_speed", "track:quality_training", "track:mediation"]:
+		assert_true(ids.has(id), id)
+	var spots := UpgradeCatalog.spots_of(UpgradeCatalog.entries_for_spot(game.state, UpgradeCatalog.room_spot(GameConfig.ROOM_STAFF)))
+	var expected: Array[String] = GameConfig.STAFF_ROOM_BOARDS.duplicate()
+	spots.sort()
+	expected.sort()
+	assert_eq(spots, expected)
+
+
+func test_staff_room_header_opens_the_grouped_boards() -> void:
+	var world := _world()
+	watch_signals(world)
+	world._handle_tap(layout.room_header(GameConfig.ROOM_STAFF).get_center())
+	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.room_spot(GameConfig.ROOM_STAFF)])
+	var sheet := _sheet(UpgradeCatalog.room_spot(GameConfig.ROOM_STAFF))
+	for board in GameConfig.STAFF_ROOM_BOARDS:
+		assert_true(_has_label(sheet.content, UpgradeTexts.spot_title(board)), board)
 	await wait_physics_frames(2)
 
 
@@ -334,24 +359,35 @@ func test_tapping_room_headers_opens_their_room_spots() -> void:
 	assert_signal_emit_count(world, "open_spot", 5)
 
 
-func test_tapping_a_room_body_opens_a_spot_of_that_room() -> void:
+func test_tapping_inside_a_room_opens_its_smallest_spot() -> void:
 	var world := _world()
 	for room_id in GameConfig.SERVICE_ROOMS:
-		if room_id == GameConfig.ROOM_PLAYER:
+		var body := layout.service_room(room_id)
+		if not body.has_area():
 			continue
-		var spot := world.tap_spot(layout.service_room(room_id).get_center())
+		var spot := world.tap_spot(body.get_center())
 		assert_false(spot.is_empty(), room_id)
-		assert_eq(GameConfig.spot_room(spot), room_id, spot)
-	for dept_id: String in ["general_services", "tax_services"]:
-		assert_eq(GameConfig.spot_room(world.tap_spot(layout.room(dept_id).get_center())), dept_id)
-	world._handle_tap(layout.kitchen.get_center())
-	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.room_spot(GameConfig.ROOM_KITCHEN)])
+		assert_eq(GameConfig.spot_room(spot), room_id, room_id)
+	assert_eq(world.tap_spot(layout.room("general_services").get_center()), "station:general_services/review")
+	assert_eq(world.tap_spot(layout.room("tax_services").get_center()), "dept:tax_services")
+	assert_eq(world.tap_spot(layout.runners_board().get_center()), "runners")
+	assert_eq(world.tap_spot(layout.complaint_read_rect().get_center()), "complaint_desk")
+	world._handle_tap(layout.area("general_services/review").get_center())
+	assert_signal_emitted_with_parameters(world, "open_spot", ["station:general_services/review"])
+	assert_signal_not_emitted(world, "open_sheet")
 
 
-func test_tapping_complaint_pile_opens_the_complaint_desk() -> void:
+func test_tapping_the_complaint_box_opens_the_complaints() -> void:
 	var world := _world()
-	world._handle_tap(layout.complaint_read_rect().get_center())
-	assert_signal_emitted_with_parameters(world, "open_spot", ["complaint_desk"])
+	watch_signals(world)
+	var box: Rect2 = layout.spot_rects("complaint_box")[0]
+	assert_eq(world.tap_spot(box.get_center()), "complaint_box")
+	world._handle_tap(box.get_center())
+	assert_signal_emitted_with_parameters(world, "open_sheet", ["complaints"])
+	assert_signal_not_emitted(world, "open_spot")
+
+
+func test_complaint_desk_sheet_links_to_the_complaints() -> void:
 	var sheet := _sheet("complaint_desk")
 	watch_signals(sheet)
 	var read := _find_button(sheet.content, sheet.tr("ACTION_READ_COMPLAINTS"))

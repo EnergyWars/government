@@ -1,6 +1,8 @@
 class_name CaseFile
 extends RefCounted
 
+enum Phase { NONE, LINE, WAITING, CALLED, SERVED, WAITING_DOC, CALLED_DOC, COLLECTING, CALLED_PHOTO, PHOTO }
+
 var dept_id: String
 var complex: bool
 var urgent: bool
@@ -21,9 +23,19 @@ var companion := false
 var extras: Array[String] = []
 var age := 0.0
 var waited := 0.0
-var patience_factor := 1.0
 var handled := 0
 var ticket := 0
+var walk := 0.0
+var draw_progress := 0.0
+var line_slot := -1
+var machine := -1
+var phase := Phase.NONE
+var place := -1
+var seated := false
+var desk := -1
+var spot := Vector2.ZERO
+var abandoned := false
+var raged := false
 
 
 func _init(p_dept_id: String = "", p_complex: bool = false, p_urgent: bool = false, p_suspicious: bool = false) -> void:
@@ -56,6 +68,30 @@ func needs_referral() -> bool:
 
 func is_overdue() -> bool:
 	return urgent and age > GameConfig.URGENT_DEADLINE
+
+
+func has_citizen() -> bool:
+	return phase != Phase.NONE
+
+
+func is_before_reception() -> bool:
+	return phase == Phase.LINE or phase == Phase.WAITING or phase == Phase.CALLED
+
+
+func waits_for_pickup() -> bool:
+	return phase == Phase.WAITING_DOC or phase == Phase.CALLED_DOC or is_at_photo()
+
+
+func is_at_photo() -> bool:
+	return phase == Phase.CALLED_PHOTO or phase == Phase.PHOTO
+
+
+func waiting_room() -> String:
+	return GameConfig.HALL_PICKUP if phase == Phase.WAITING_DOC or is_at_photo() else GameConfig.HALL_INTAKE
+
+
+func is_in_hall() -> bool:
+	return place >= 0 and (phase == Phase.WAITING or phase == Phase.WAITING_DOC)
 
 
 func takes_seat() -> bool:
@@ -96,7 +132,6 @@ func to_dict() -> Dictionary:
 		"extras": extras.duplicate(),
 		"age": age,
 		"waited": waited,
-		"patience_factor": patience_factor,
 		"handled": handled,
 		"ticket": ticket,
 	}
@@ -129,7 +164,6 @@ static func from_dict(data: Dictionary) -> CaseFile:
 			case_file.extras.append(extra_id)
 	case_file.age = float(data.get("age", 0.0))
 	case_file.waited = float(data.get("waited", 0.0))
-	case_file.patience_factor = clampf(float(data.get("patience_factor", 1.0)), GameConfig.PATIENCE_MIN_FACTOR, GameConfig.PATIENCE_MAX_FACTOR)
 	case_file.handled = maxi(0, int(data.get("handled", 0)))
 	case_file.ticket = maxi(0, int(data.get("ticket", 0)))
 	return case_file

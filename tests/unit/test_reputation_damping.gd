@@ -93,29 +93,25 @@ func test_peak_and_budget_are_saved_and_validated() -> void:
 	assert_eq(loaded.reputation_peak, 12.0)
 
 
-func test_rating_factor_drives_arrivals() -> void:
-	var gs := state.department("general_services")
-	assert_eq(Formulas.rating_factor(state), 1.0)
-	var base := Formulas.arrival_interval(state, gs)
+func test_review_factor_drives_arrivals() -> void:
+	assert_eq(Formulas.review_arrival_factor(state), 1.0)
+	var base := Formulas.arrival_interval(state)
 	state.add_review(5)
-	assert_almost_eq(Formulas.rating_factor(state), GameConfig.RATING_ARRIVAL_MAX, 0.0001)
-	assert_almost_eq(Formulas.arrival_interval(state, gs), base / GameConfig.RATING_ARRIVAL_MAX, 0.0001)
+	assert_eq(Formulas.arrival_interval(state), base)
 	state.reviews.clear()
 	state.add_review(1)
-	assert_almost_eq(Formulas.rating_factor(state), GameConfig.RATING_ARRIVAL_MIN, 0.0001)
-	assert_gt(Formulas.arrival_interval(state, gs), base)
+	assert_almost_eq(Formulas.arrival_interval(state), base / 0.4, 0.0001)
 
 
-func test_good_reputation_still_brings_more_citizens() -> void:
-	var gs := state.department("general_services")
-	var base := Formulas.arrival_interval(state, gs)
+func test_reputation_no_longer_brings_more_citizens() -> void:
+	var base := Formulas.arrival_interval(state)
 	state.add_reputation(100.0)
-	assert_lt(Formulas.arrival_interval(state, gs), base)
+	assert_eq(Formulas.arrival_interval(state), base)
 
 
 func test_kranz_ends_on_its_own_and_rewards_the_player() -> void:
 	var review := state.station("general_services/review")
-	for i in 3:
+	while review.desks < GameConfig.KRANZ_SIZE + GameConfig.KRANZ_MIN_PARTICIPANTS:
 		review.add_desk()
 	review.staff = review.desks
 	assert_true(sim.call_kranz())

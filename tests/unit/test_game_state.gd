@@ -12,10 +12,11 @@ func test_new_game_starts_with_citizen_services() -> void:
 	assert_eq(state.unlocked_count(), 1)
 	assert_true(state.department("general_services").unlocked)
 	assert_eq(state.stations.size(), 4)
-	assert_eq(state.station("general_services/review").staff, 1)
+	assert_eq(state.station("general_services/review").staff, 0)
 	assert_eq(state.station(GameConfig.RECEPTION).staff, 0)
 	assert_eq(state.station(GameConfig.COUNTER).staff, 0)
-	assert_true(state.station("general_services/signature").machine)
+	assert_false(state.station("general_services/signature").machine)
+	assert_eq(state.station("general_services/signature").staff, 0)
 	assert_eq(state.player.position, WorldLayout.get_default().player_start())
 	assert_true(state.runners.is_empty())
 	assert_true(state.upgrades.is_empty())
@@ -50,9 +51,12 @@ func test_departments_using_shared_stations() -> void:
 
 
 func test_ordered_station_keys_are_unique() -> void:
+	var first := state.ordered_station_keys()
+	assert_eq(first[0], GameConfig.RECEPTION)
 	state.unlock_department("housing")
 	var keys := state.ordered_station_keys()
-	assert_eq(keys[0], GameConfig.RECEPTION)
+	assert_eq(keys[0], GameConfig.MAILROOM)
+	assert_eq(keys[1], GameConfig.RECEPTION)
 	for key in keys:
 		assert_eq(keys.count(key), 1, key)
 	assert_eq(keys.size(), state.stations.size())
@@ -63,14 +67,11 @@ func test_stage_helpers() -> void:
 	assert_eq(state.max_desks(), int(GameConfig.BUILDING_STAGES[0].max_desks))
 	state.building_stage = 2
 	assert_eq(state.stage_config().id, GameConfig.BUILDING_STAGES[2].id)
-	state.set_upgrade("waiting_places", 5)
-	assert_eq(state.lobby_capacity(), int(GameConfig.BUILDING_STAGES[2].lobby) + 5)
-	assert_eq(state.ticket_line_capacity(), GameConfig.TICKET_LINE_SLOTS)
-	state.set_upgrade("ticket_line", 3)
-	assert_eq(state.ticket_line_capacity(), GameConfig.TICKET_LINE_SLOTS + 3)
+	assert_eq(state.lobby_capacity(), int(GameConfig.BUILDING_STAGES[2].lobby))
 
 
 func test_counting_helpers() -> void:
+	state.station("general_services/review").staff = 1
 	assert_eq(state.total_staff(), 1)
 	state.add_runner()
 	state.station("general_services/review").add_specialist()
@@ -158,7 +159,7 @@ func test_roundtrip_keeps_everything() -> void:
 	state.player.items.append(case_file)
 	state.station(GameConfig.RECEPTION).inbox.append(case_file)
 	state.add_runner()
-	state.event_id = "rush_hour"
+	state.event_id = "printer_jam"
 	state.event_time_left = 10.0
 	state.cases_completed = 50
 	state.contraband_seized = 2
@@ -168,6 +169,24 @@ func test_roundtrip_keeps_everything() -> void:
 	assert_eq(JSON.stringify(copy.to_dict()), JSON.stringify(data))
 	assert_eq(copy.upgrades, state.upgrades)
 	assert_eq(copy.rng.randf(), state.rng.randf())
+
+
+func test_load_raises_the_stage_to_the_opened_departments() -> void:
+	for dept_id in GameConfig.department_ids().slice(0, 4):
+		state.departments[dept_id].unlocked = true
+	var data := state.to_dict()
+	data.building_stage = 0
+	var loaded := GameState.from_dict(data)
+	assert_eq(loaded.building_stage, GameConfig.stage_for_departments(4))
+	assert_not_null(loaded.mailroom())
+
+
+func test_load_keeps_a_bought_stage_above_the_departments() -> void:
+	var data := state.to_dict()
+	data.building_stage = 3
+	var loaded := GameState.from_dict(data)
+	assert_eq(loaded.building_stage, 3)
+	assert_eq(loaded.max_desks(), int(GameConfig.BUILDING_STAGES[3].max_desks))
 
 
 func test_load_validates_input() -> void:

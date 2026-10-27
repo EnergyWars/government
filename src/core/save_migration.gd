@@ -6,7 +6,6 @@ const LEVEL_SCALES := {
 	"work_ethic": 20.0,
 	"coffee": 35.0,
 	"scanners": 30.0,
-	"comfortable_lobby": 40.0,
 	"digital_records": 20.0,
 	"quality_training": 28.6,
 	"coffee_machine": 22.0,
@@ -16,7 +15,6 @@ const LEVEL_SCALES := {
 	"pneumatic_tubes": 1.0,
 	"tube_capacity": 2.0,
 	"intern_training": 1.0,
-	"online_portal": 25.0,
 	"ai_classification": 99.0,
 	"letter_opener": 40.0,
 	"mail_subscription": 2.0,
@@ -40,7 +38,6 @@ const CLERK_STEPS: Array[int] = [0, 19, 38, 57, 75, 94]
 const TICKET_SCALE := 13.1
 const BOX_SCALE := 10
 const STORAGE_SCALE := 8
-const WAITING_SCALE := 3
 const TUBE_LEVEL_SCALE := 2
 const TRAINING_SCALE := 10
 const LEGACY_RANK_FEE_FACTOR := 2.5
@@ -60,6 +57,12 @@ const RENAMED_TUTORIAL := {
 	"departments_open": "expand_info",
 	"departments_info": "expand_info",
 }
+const V3_REMOVED_UPGRADES: Array[String] = ["shredder_service", "intern_training", "intern_resilience", "complaint_tube", "complaint_clerk", "guard_training"]
+const V3_REMOVED_KEYS: Array[String] = ["intern", "helpers", "guards", "complaints_fended"]
+const RESILIENCE_PER_STEADFAST := 25
+const LEGACY_GUARD_CHANCE := 0.35
+const LEGACY_GUARD_STEP := 0.003
+const LEGACY_GUARD_LEVELS := 150
 const REMOVED_KEYS: Array[String] = ["research", "waiting_level", "seating_level", "ticket_machine_level", "ticket_display_level", "complaint_clerk_level", "complaint_box_level"]
 
 
@@ -71,12 +74,8 @@ static func migrate_v2(data: Dictionary) -> Dictionary:
 		_convert_research(upgrades, str(research_id), int(research[research_id]))
 	var box := maxi(int(data.get("complaint_box_level", 0)), int(research.get("complaint_desk", 0)))
 	_raise(upgrades, "complaint_box", box * BOX_SCALE)
-	var waiting := int(data.get("waiting_level", 0))
-	_raise(upgrades, "waiting_places", waiting * WAITING_SCALE)
-	_raise(upgrades, "standing_places", waiting * WAITING_SCALE)
 	_raise(upgrades, "seating", seats_for_level(int(data.get("seating_level", 0))))
 	_raise(upgrades, "ticket_speed", roundi(int(data.get("ticket_machine_level", 0)) * TICKET_SCALE))
-	_raise(upgrades, "ticket_call_speed", roundi(int(data.get("ticket_display_level", 0)) * TICKET_SCALE))
 	_raise(upgrades, "complaint_clerk", CLERK_STEPS[clampi(int(data.get("complaint_clerk_level", 0)), 0, CLERK_STEPS.size() - 1)])
 	_migrate_tubes(result, upgrades, int(research.get("pneumatic_tubes", 0)) > 0)
 	_migrate_stations(result)
@@ -85,8 +84,53 @@ static func migrate_v2(data: Dictionary) -> Dictionary:
 	for key in REMOVED_KEYS:
 		result.erase(key)
 	result["upgrades"] = upgrades
+	result["version"] = GameState.PREVIOUS_SAVE_VERSION
+	return result
+
+
+static func migrate_v3(data: Dictionary) -> Dictionary:
+	var result := data.duplicate(true)
+	var upgrades := _dictionary(result.get("upgrades"))
+	var helpers: Variant = data.get("helpers", [])
+	var helper_count: int = helpers.size() if helpers is Array else 0
+	var interns := 0
+	if int(upgrades.get("shredder_service", 0)) > 0:
+		interns = mini(GameConfig.MAX_DESK_INTERNS, 1 + helper_count)
+	_raise(upgrades, "complaint_interns", interns)
+	_raise(upgrades, "intern_steadfast", mini(int(GameConfig.upgrade("intern_steadfast").max), floori(int(upgrades.get("intern_resilience", 0)) / float(RESILIENCE_PER_STEADFAST))))
+	if interns >= 2:
+		_raise(upgrades, "intern_box_runs", mini(GameConfig.MAX_INTERN_RUN, int(upgrades.get("intern_training", 0)) + 1))
+	var box := mini(GameConfig.COMPLAINT_BOX_LEVELS, ceili(int(upgrades.get("complaint_box", 0)) / float(GameConfig.COMPLAINT_BOX_STEP)))
+	upgrades.erase("complaint_box")
+	_raise(upgrades, "complaint_box", box)
+	var guards := maxi(0, int(data.get("guards", 0)))
+	if guards > 0:
+		upgrades["complaint_security"] = 1
+		_raise(upgrades, "security_training", security_level(guards, int(upgrades.get("guard_training", 0))))
+	for key in V3_REMOVED_UPGRADES:
+		upgrades.erase(key)
+	for key in V3_REMOVED_KEYS:
+		result.erase(key)
+	result["upgrades"] = upgrades
 	result["version"] = GameState.SAVE_VERSION
 	return result
+
+
+static func split_seating(upgrades: Dictionary) -> Dictionary:
+	var result := upgrades.duplicate()
+	var level := int(result.get("seating", 0))
+	var limit := int(GameConfig.upgrade("seating").max)
+	if level > limit:
+		result["seating"] = limit
+		result["pickup_seating"] = mini(limit, maxi(int(result.get("pickup_seating", 0)), level - limit))
+	return result
+
+
+static func security_level(guards: int, training: int) -> int:
+	var single := LEGACY_GUARD_CHANCE + LEGACY_GUARD_STEP * clampi(training, 0, LEGACY_GUARD_LEVELS)
+	var combined := 1.0 - pow(1.0 - single, maxi(0, guards))
+	var step := float(GameConfig.upgrade("security_training").step)
+	return clampi(roundi((combined - GameConfig.SECURITY_BASE_CHANCE) / step), 0, GameConfig.SECURITY_LEVELS)
 
 
 static func tutorial_step(legacy: int) -> int:

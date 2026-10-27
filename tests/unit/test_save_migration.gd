@@ -16,9 +16,9 @@ func _upgrades(extra: Dictionary) -> Dictionary:
 	return SaveMigration.migrate_v2(_legacy(extra)).upgrades
 
 
-func test_result_is_current_version_without_legacy_keys() -> void:
+func test_result_is_previous_version_without_legacy_keys() -> void:
 	var result := SaveMigration.migrate_v2(_legacy({"research": {"briefcase": 1}, "waiting_level": 1, "seating_level": 1, "ticket_machine_level": 1, "ticket_display_level": 1, "complaint_clerk_level": 1, "complaint_box_level": 1}))
-	assert_eq(int(result.version), GameState.SAVE_VERSION)
+	assert_eq(int(result.version), GameState.PREVIOUS_SAVE_VERSION)
 	assert_true(result.has("upgrades"))
 	for key in SaveMigration.REMOVED_KEYS:
 		assert_false(result.has(key), key)
@@ -76,11 +76,11 @@ func test_unknown_and_empty_research_is_dropped() -> void:
 
 func test_hall_levels_become_tracks() -> void:
 	var upgrades := _upgrades({"waiting_level": 2, "seating_level": 3, "ticket_machine_level": 2, "ticket_display_level": 1})
-	assert_eq(int(upgrades.waiting_places), 2 * SaveMigration.WAITING_SCALE)
-	assert_eq(int(upgrades.standing_places), 2 * SaveMigration.WAITING_SCALE)
+	assert_false(upgrades.has("waiting_places"))
+	assert_false(upgrades.has("standing_places"))
 	assert_eq(int(upgrades.seating), SaveMigration.seats_for_level(3))
 	assert_eq(int(upgrades.ticket_speed), roundi(2 * SaveMigration.TICKET_SCALE))
-	assert_eq(int(upgrades.ticket_call_speed), roundi(SaveMigration.TICKET_SCALE))
+	assert_false(upgrades.has("ticket_call_speed"))
 
 
 func test_complaint_levels_become_tracks() -> void:
@@ -176,16 +176,21 @@ func test_every_migrated_track_exists() -> void:
 		research[research_id] = 3
 	for research_id: String in SaveMigration.SPLITS:
 		research[research_id] = 3
-	var upgrades := _upgrades({"research": research, "waiting_level": 4, "seating_level": 4, "ticket_machine_level": 4, "ticket_display_level": 4, "complaint_clerk_level": 4, "complaint_box_level": 4, "departments": {"general_services": {"unlocked": true, "tube": true}}})
+	var legacy := _legacy({"research": research, "waiting_level": 4, "seating_level": 4, "ticket_machine_level": 4, "ticket_display_level": 4, "complaint_clerk_level": 4, "complaint_box_level": 4, "guards": 2, "helpers": [{}], "departments": {"general_services": {"unlocked": true, "tube": true}}})
+	var upgrades: Dictionary = SaveMigration.migrate_v3(SaveMigration.migrate_v2(legacy)).upgrades
 	for key: String in upgrades:
 		assert_false(GameConfig.upgrade(key.get_slice("@", 0)).is_empty(), key)
 
 
 func test_game_state_loads_legacy_saves() -> void:
-	var state := GameState.from_dict(_legacy({"research": {"briefcase": 2, "pneumatic_tubes": 1}, "waiting_level": 1, "complaint_clerk_level": 1}))
+	var state := GameState.from_dict(_legacy({"research": {"briefcase": 2, "pneumatic_tubes": 1, "shredder_service": 1}, "waiting_level": 1, "complaint_clerk_level": 1, "complaint_box_level": 1}))
 	assert_eq(state.upgrade_level("briefcase"), 4)
-	assert_eq(state.upgrade_level("waiting_places"), SaveMigration.WAITING_SCALE)
-	assert_eq(state.upgrade_level("complaint_clerk"), SaveMigration.CLERK_STEPS[1])
+	assert_false(state.upgrades.has("waiting_places"))
+	assert_false(state.upgrades.has("complaint_clerk"))
+	assert_false(state.upgrades.has("shredder_service"))
+	assert_eq(state.upgrade_level("complaint_interns"), 1)
+	assert_eq(state.interns.size(), 1)
+	assert_eq(state.upgrade_level("complaint_box"), ceili(SaveMigration.BOX_SCALE / float(GameConfig.COMPLAINT_BOX_STEP)))
 	assert_true(state.has_tube_station("general_services"))
 	assert_true(state.has_tube_station(GameConfig.ROOM_HALL))
 	assert_true(state.department("general_services").unlocked)
@@ -193,8 +198,12 @@ func test_game_state_loads_legacy_saves() -> void:
 
 
 func test_migrated_levels_are_capped_on_load() -> void:
-	var state := GameState.from_dict(_legacy({"research": {"ai_classification": 50}}))
+	var state := GameState.from_dict(_legacy({"research": {"ai_classification": 50, "comfortable_lobby": 3, "online_portal": 2}, "seating_level": 9, "ticket_machine_level": 20}))
 	assert_eq(state.upgrade_level("ai_classification"), int(GameConfig.upgrade("ai_classification").max))
+	assert_eq(state.upgrade_level("seating"), int(GameConfig.upgrade("seating").max))
+	assert_eq(state.upgrade_level("ticket_speed"), GameConfig.TICKET_MACHINE_LEVELS)
+	assert_false(state.upgrades.has("comfortable_lobby"))
+	assert_false(state.upgrades.has("online_portal"))
 
 
 func test_current_save_round_trips_upgrades() -> void:

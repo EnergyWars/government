@@ -226,6 +226,8 @@ class FeedbackAppTest(TempDirCase, unittest.TestCase):
 
     def test_apk_download(self) -> None:
         self.assertEqual(self.request("GET", "/apk/latest").status, HTTPStatus.SEE_OTHER)
+        wrong = self.request("GET", "/apk/latest", {"authorization": "Bearer falsch"})
+        self.assertEqual(wrong.status, HTTPStatus.UNAUTHORIZED)
         self.assertEqual(self.api("GET", "/apk/latest").status, HTTPStatus.NOT_FOUND)
         job = self.store.create(JobKind.BUILD)
         self.store.record_apk(job.id, "idle-germany-1.apk")

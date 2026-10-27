@@ -72,7 +72,7 @@ func test_every_content_id_is_translated() -> void:
 	for mode_id in UpgradesSheet.MODES:
 		keys.append("UPGRADE_MODE_" + mode_id.to_upper())
 		keys.append("UPGRADE_MODE_HINT_" + mode_id.to_upper())
-	for kind: String in [UpgradeCatalog.LEVEL, UpgradeCatalog.DESK, UpgradeCatalog.HIRE, UpgradeCatalog.RUNNER_LEVEL, UpgradeCatalog.SEGMENT, UpgradeCatalog.STORAGE, UpgradeCatalog.UNLOCK, UpgradeCatalog.RANK, UpgradeCatalog.STAGE]:
+	for kind: String in [UpgradeCatalog.LEVEL, UpgradeCatalog.DESK, UpgradeCatalog.HIRE, UpgradeCatalog.RUNNER_LEVEL, UpgradeCatalog.SEGMENT, UpgradeCatalog.STORAGE, UpgradeCatalog.UNLOCK, UpgradeCatalog.RANK]:
 		keys.append("ENTRY_DESC_" + kind.to_upper())
 	for reason: String in UpgradeTexts.BLOCK_KEYS:
 		keys.append(str(UpgradeTexts.BLOCK_KEYS[reason]))
@@ -117,7 +117,6 @@ func test_goal_texts() -> void:
 	assert_eq(GoalText.describe({"type": "upgrade_level", "target": 1.0, "param": "pneumatic_tubes"}), "Führe ein: Rohrpost")
 	assert_eq(GoalText.describe({"type": "upgrade_level", "target": 5.0, "param": "coffee"}), "Kaffeequalität auf Stufe 5")
 	assert_eq(GoalText.describe({"type": "upgrades", "target": 1.0}), "Kaufe 1 Upgrade-Stufe")
-	assert_eq(GoalText.describe({"type": "building_stage", "target": 1.0}), "Erweitere zu: Bürgeramt")
 	assert_eq(GoalText.describe({"type": "runners", "target": 1.0}), "Stelle 1 Boten ein")
 	assert_eq(GoalText.describe({"type": "reputation", "target": 30.0}), "Erreiche 30 Ansehen")
 	assert_eq(GoalText.reward({"money": 60.0, "reputation": 1.0}), "Belohnung: 60 € und 1 Ansehen")
@@ -221,8 +220,6 @@ func test_ui_kit_builds_components() -> void:
 func test_flavor_texts_exist_in_both_languages() -> void:
 	for locale in ["de", "en"]:
 		TranslationServer.set_locale(locale)
-		for i in Flavor.QUIP_COUNT:
-			assert_ne(Flavor.quip(i), "QUIP_%d" % (i + 1), "%s quip %d" % [locale, i])
 		for i in Flavor.DONE_COUNT:
 			assert_ne(Flavor.done(i), "FLOAT_DONE_%d" % (i + 1), "%s done %d" % [locale, i])
 		for i in Flavor.FLAWED_COUNT:
@@ -263,7 +260,7 @@ func test_flavor_texts_exist_in_both_languages() -> void:
 			assert_false(Flavor.complaint_subject(i).begins_with("COMPLAINT_SUBJECT_"), "%s subject %d" % [locale, i])
 		for i in Flavor.SHRED_COUNT:
 			assert_ne(Flavor.shred(i), "SHRED_%d" % (i + 1), "%s shred %d" % [locale, i])
-		for key in ["SIGN_COMPLAINTS", "SIGN_SHREDDER", "FLOAT_COMPLAINT_OVERFLOW", "TRACK_SHREDDER_SERVICE", "TRACK_DESC_SHREDDER_SERVICE"]:
+		for key in ["SIGN_COMPLAINTS", "SIGN_SHREDDER", "FLOAT_COMPLAINT_OVERFLOW", "TRACK_COMPLAINT_INTERNS", "TRACK_DESC_COMPLAINT_INTERNS", "TRACK_COMPLAINT_SECURITY", "TRACK_DESC_SECURITY_TRAINING"]:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
 		for key in ["AREA_KITCHEN", "SIGN_COFFEE_FUND", "SIGN_KITCHEN_RULES"]:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
@@ -279,8 +276,6 @@ func test_flavor_texts_exist_in_both_languages() -> void:
 
 func test_flavor_selection_wraps_and_changes_daily() -> void:
 	TranslationServer.set_locale("de")
-	assert_eq(Flavor.quip(0), Flavor.quip(Flavor.QUIP_COUNT))
-	assert_eq(Flavor.quip(-1), Flavor.quip(Flavor.QUIP_COUNT - 1))
 	assert_eq(Flavor.done(Flavor.DONE_COUNT), Flavor.done(0))
 	assert_eq(Flavor.flawed(Flavor.FLAWED_COUNT), Flavor.flawed(0))
 	assert_eq(Flavor.nap(Flavor.NAP_COUNT), Flavor.nap(0))
@@ -308,8 +303,6 @@ func test_speech_and_floater_flavor_fits_on_one_line() -> void:
 	var floaters: Array[String] = []
 	for locale in ["de", "en"]:
 		TranslationServer.set_locale(locale)
-		for i in Flavor.QUIP_COUNT:
-			speech.append(Flavor.quip(i))
 		for i in Flavor.SICK_CALL_COUNT:
 			speech.append(Flavor.sick_excuse(i))
 			speech.append(Flavor.sick_reply(i))
@@ -321,8 +314,8 @@ func test_speech_and_floater_flavor_fits_on_one_line() -> void:
 			speech.append(Flavor.intern_cry(i))
 		for i in Flavor.INTERN_NERVOUS_COUNT:
 			speech.append(Flavor.intern_nervous(i))
-		for i in GameConfig.VENT_DIALOGS:
-			speech.append(Flavor.vent(i))
+		for i in Flavor.INTERN_ENDURE_COUNT:
+			speech.append(Flavor.intern_endure(i))
 		for i in Flavor.CHAT_COUNT:
 			speech.append(Flavor.chat(i))
 		for i in Flavor.SLOW_COUNT:

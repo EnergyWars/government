@@ -17,7 +17,9 @@ Bewusst **nicht** umgesetzt, weil es Engpässe abbauen würde: größere Fächer
 | Mechanik | Wirkung |
 |---|---|
 | Einweihungs-Euphorie | 45 s ×1,5 nach jedem Ausbau, die nächste Station läuft voll |
-| Meilensteine | ×1,5 alle 10 Stufen, das Tempo springt sprunghaft |
+| Meilensteine | ×1,25 alle 10 Stufen (`LEVEL_MILESTONE_BONUS`), das Tempo springt sprunghaft |
+| Gedämpftes Ausbau-Tempo | +6 % je Stufe (`LEVEL_SPEED_BONUS`), damit Stationen nicht sofort alles abarbeiten |
+| Ablagen | +2 Plätze in Eingang/Ausgang je Stufe (`TRAY_CAPACITY_PER_LEVEL`, bis 50), Preis Tisch × Faktor × 0,6 × 1,22^Stufe |
 | Land unter | ab 75 % vollem Eingang: rote Plakette, ×1,5 Müdigkeit, bevorzugt krank |
 | Mehrfachanträge | bis zu 2 Zusatzanträge, die parallel in andere Abteilungen strömen |
 | Fehlende Unterlagen | 5 % der Akten erzeugen einen Nachreich-Brief |
@@ -122,7 +124,7 @@ Schlussfolgerung: Es gibt **drei unabhängige Blocker**, die jeder für sich das
 - [ ] Zielkurve festlegen: jede Freischaltung (Abteilung oder Gebäudestufe) nach 15–45 min aktiver Spielzeit bzw. 1 Offline-Nacht; Kosten der nächsten Abteilung ≈ 20–30 min aktuelles Gesamteinkommen.
 - [ ] `unlock_cost` neu setzen (Vorschlag): Steuer 600, Gewerbe 5 000, Kfz 30 000, Bauamt 150 000, Wohnungsamt 600 000, Sozialamt 2,5 Mio., Zoll 10 Mio.; `cost_multiplier` entsprechend abflachen (1, 2,5, 6, 15, 40, 100, 250, 600).
 - [ ] Ansehensschwellen auf Ziel „erreichbar nach ~70 % der Geld-Wartezeit“ eichen: 10, 40, 100, 200, 320, 480, 700 (nach Umsetzung 2.2 neu messen).
-- [ ] Gebäudestufen-Kosten in dieselbe Kurve legen (2 500 → 2 000, 50 000 → 30 000, 1,5 Mio. → 500 000, 40 Mio. → 6 Mio.).
+- [~] Gebäudestufen-Kosten in dieselbe Kurve legen. **Entfallen (4.17):** Gebäudestufen sind nicht mehr kaufbar.
 - [ ] Balance-Bot um Ausgabe „Minuten bis nächste Freischaltung“ erweitern und als Regressions-Check (nicht als Unit-Test) in `tests/tools` dokumentieren.
 
 ### 3.3 [H] Kein Spielziel nach Ziel 21, keine Wiederkehr-Belohnung
@@ -144,9 +146,7 @@ Schlussfolgerung: Es gibt **drei unabhängige Blocker**, die jeder für sich das
 ### 3.5 [H] Positive Rückkopplung Ansehen → Andrang überlastet unbeaufsichtigt
 **Befund.** Andrang `1 + √Ansehen/8` (bis ×8) und Nachfragewachstum (bis ×2,2) vervielfachen die Ankünfte, Eingangsfach `6 + 2·Tische`, Lobby 16–64. Jede Erhöhung des Ansehens bringt mehr Bürger, die bei ausgelasteten Stationen gehen und Ansehen abziehen. Das System schwingt um einen Gleichgewichtspunkt, bei dem ständig Bürger verloren gehen – Dauerfrust statt Flow.
 **Todos.**
-- [ ] Andrang an die **Kapazität** koppeln: Ankunftsrate = min(Nachfrage, 1,15 × realistische Kapazität des langsamsten Schritts). Überschuss wird nicht als „verloren“, sondern als „Terminvergabe“ gezählt (kein Malus, Hinweis „Mehr Bürger möglich, wenn du ausbaust“).
-- [ ] Geduld `BASE_PATIENCE` 90 s → 150 s, Warteraum-Technik +40 % je Stufe beibehalten.
-- [ ] Sitzbereich 24 Plätze blockiert den Empfang bereits bei einer Abteilung mit vollen Fächern; Basis 24 → 36 und +6 je Gebäudestufe automatisch, Ausbau bleibt zusätzlich.
+- Entfallen durch 4.16: Ansehen, Nachfrage, Ereignisse und Boosts beeinflussen den Zulauf nicht mehr; Geduld und Sitzbereich sind neu geregelt.
 
 ---
 
@@ -246,7 +246,7 @@ Ergebnis: Bürger gehen jetzt auch bei nachlässigem Spiel regelmäßig (früh 0
 ### 4.11 [M] Wartemarken als zusätzlicher Engpass ab Ausbaustufe 3
 Ziel: Vor dem Empfang ein weiterer Engpass, der früh in der Regionalverwaltung spürbar wird und per Hand oder Ausbau gelöst wird.
 - [x] Automat 3 s je Nummer (max. 20/Min.), Aufruf 3,5 s je Nummer (max. ≈ 17/Min.), Hand ×2,5, je Stufe −18 % (10 Stufen, Endwert ≈ 0,41 s bzw. 0,48 s). Kosten 30 000 bzw. 35 000 · 1,7^Stufe. Aufruf nur bei < 4 Anstehenden am Empfang. Konstanten `TICKET_*` in `game_config.gd`.
-- [ ] Mit Balance-Bot prüfen, ob die Kombination aus Ankunftsrate und Aufrufzeit ab Stufe 3 zu häufigem Abhauen führt; ggf. Startwerte senken.
+- Ersetzt durch 4.16 (Automaten von Anfang an, 0,4–1 Bürger/s je Automat).
 
 ### 4.12 [H] Tester-Feedback Halle, Rohrpost, Poststelle
 Befund: Der Wartebereich-Ausbau änderte nichts am Durchsatz, allein der Sitzbereich begrenzte ihn (ein Platz bedient etwa 3–4 Bürger/Min.; für 1000 Anträge/Min. braucht es mindestens 250 Plätze). Rohrpost war nur global ausbaubar, und fertige Bescheide teilten sich die Röhren mit der Gegenrichtung.
@@ -270,7 +270,7 @@ Befund: Der Wartebereich-Ausbau änderte nichts am Durchsatz, allein der Sitzber
 
 ### 4.14 [H] Amtsstufen: Aufwerten statt Eröffnen
 **Befund (Spieler-Feedback).** Große Ausbauschritte gab es nur als nächste Abteilung oder Gebäudestufe; nach dem Zoll war Schluss. Gewünscht: Jedes Amt lässt sich für viel Geld aufwerten, sodass „4. Amt eröffnen“ und „1. Amt auf Stufe 2“ ähnlich viel kosten und einbringen und abgewogen werden müssen. Zweites Feedback: Stufen bis 250, jede Stufe etwas wertvoller, alle 25 Stufen ein großer Multiplikator (×1,5 bis ×3).
-- [x] Jede eröffnete Abteilung hat eine Amtsstufe 1–250 (`GameConfig.MAX_DEPARTMENT_RANK`). Jede Stufe multipliziert alle Gebühren der Abteilung mit `RANK_LEVEL_FEE_FACTOR` = 1,02, jeder 25. Stufe (`RANK_MILESTONE_STEP`) zusätzlich mit `RANK_MILESTONE_FACTORS` (1,5 / 1,5 / 2 / 2 / 2 / 2,5 / 2,5 / 2,5 / 3 / 3); Stufe 250 ≈ ×350 572. Der Andrang bleibt gleich, damit keine zusätzliche Überlastung entsteht.
+- [x] Jede eröffnete Abteilung hat eine Amtsstufe 1–250 (`GameConfig.MAX_DEPARTMENT_RANK`). Jede Stufe multipliziert alle Gebühren der Abteilung mit `RANK_LEVEL_FEE_FACTOR` = 1,02, jeder 25. Stufe (`RANK_MILESTONE_STEP`) zusätzlich mit `RANK_MILESTONE_FACTORS` (1,5 / 1,5 / 2 / 2 / 2 / 2,5 / 2,5 / 2,5 / 3 / 3); Stufe 250 ≈ ×350 572. Der Andrang bleibt gleich, damit keine zusätzliche Überlastung entsteht. Gegengewicht: `RANK_LEVEL_TIME_FACTOR` = 1,01 je Stufe verlängert die Bearbeitung an den eigenen Stationen der Abteilung (Stufe 100 ≈ ×2,7 Zeit bei ×64 Gebühr). Netto bleibt jede Stufe lohnend, der Durchsatz verlangt aber weitere Tische, Ausbau und Personal.
 - [x] Preise: `base_cost` × 1,07^(Stufe − 1) (`RANK_LEVEL_COST_GROWTH`), die ersten 24 Stufen kosten zusammen die Eröffnung der nächsten Abteilung (`ladder_cost(i + 1)`, jenseits des Zolls ×`RANK_LADDER_GROWTH` = 5). Ansehen je 25er-Block aus der Eröffnungsleiter (`level_reputation`). Wird `unlock_cost` neu gesetzt, wandern die Preise automatisch mit.
 - [x] Abwägung: Der erste Meilenstein bringt 43–101 % dessen, was die gleich teure nächste Abteilung bei voller Besetzung bringt (Test erlaubt 40–125 %). Innerhalb eines Blocks wächst die Amortisation je Stufe um ×1,07/1,02; der Kauf, der den Meilenstein erreicht, amortisiert sich schnell; je Block wächst die Amortisation um ×1,1 (Meilenstein ×3) bis ×2,2 (×1,5). Per Test abgesichert.
 - [x] Mehrfachkauf ×10/Max über die geometrische Summe; endet an der nächsten Ansehensschwelle (`reachable_level`, `UpgradeEntry.cap`).
@@ -283,9 +283,36 @@ Befund: Der Wartebereich-Ausbau änderte nichts am Durchsatz, allein der Sitzber
 ### 4.15 [M] Wartemarken realistischer, Aufrufanzeige im Spätspiel (Kunden-Feedback)
 **Befund.** „Leute ziehen sich nur eine Wartemarke, wenn sie dann auch aufgerufen werden.“ Ursache: Die Anzeige zeigte die Zahl der Aufrufe statt der Nummer des Aufgerufenen; wer mit Marke ging, hinterließ keine sichtbare Lücke. Außerdem soll die Aufrufanzeige gegen Ende etwa 10-mal so viel schaffen.
 - [x] Fortlaufende Nummer je Bürger (`CaseFile.ticket`), Anzeige zeigt die Nummer des Aufgerufenen (`last_called_ticket`), Abgänge mit Marke zählen als verfallen (`tickets_lapsed`, Statistik). Wie viele Marken verfallen, ergibt sich aus Geduld und Aufruftempo; ein festes Verhältnis (z. B. 2,5-mal so viele Marken, 2/3 verfallen) ist bewusst nicht eingebaut, weil jeder Abgang Ansehen kostet.
-- [x] Neue Spur *Weitere Anzeigetafel* (bis 10 Tafeln, 80 000 · ×3): je Aufruf so viele Nummern wie Tafeln, Anstehplätze am Empfang `TICKET_CALL_SLOTS` × Tafeln.
+- [x] Aufrufanzeige entfernt (Spuren *Schnellere Aufrufanzeige*/*Weitere Anzeigetafel* gestrichen): Bürger mit Nummer rücken sofort zum Empfang nach, Anstehplätze `TICKET_CALL_SLOTS` × Empfangstische.
 
 ---
+
+### 4.16 [H] Fester Zulauf, Bürger-Timer und Bewertungen als Bremse
+Vorgabe: höchstens 180 Bürger/min, nur abhängig von der Zahl eröffneter Abteilungen; harte Timer je Phase; Bewertungen senken den Zulauf.
+- [x] Zulauf 22,5/min je eröffneter Abteilung (`MAX_ARRIVALS_PER_MINUTE` ÷ 8), alle Abteilungen = 180/min. Bewertungsstufen `REVIEW_ARRIVAL_TIERS`: ≥ 4,6 → 100 %, ≥ 4,3 → 80 %, ≥ 3,5 → 65 %, darunter 40 %.
+- [x] Automaten: 0,32 → 1 Bürger/s in 100 Stufen je Automat (Start 19,2/min, also knapp unter den 22,5/min der ersten Abteilung; ab Stufe 9 reicht er), höchstens 3 Automaten (3 × 60/min = 180/min), nächster erst nach Vollausbau (`requires`). 12 Plätze je Automat; volle Schlangen → wütend weg.
+- [x] Timer: Schlange 30 s, Sitzplatz 60 s, Stehplatz 20 s, am Schalter 20 s. Wer geht, beschwert sich immer (Briefkasten voll → schlechte Bewertung).
+- [x] Halle: zwei Warteräume (Annahme, Abholung) mit je 40 Plätzen, Start je 15 Sitz- und 25 Stehplätze, je 25 Stufen *Sitzplatz statt Stehplatz* (500 · ×1,1). Der Empfang ruft nur auf, solange die Abholung Platz hat.
+- [x] Geduld abgelaufen: Akte auf den Ablehnungsstapel von Empfang bzw. Ausgabe, Bürger geht als wütender Besucher direkt zur Beschwerdestelle.
+- [ ] Mit Balance-Bot prüfen, ob 40 Plätze in der Abholung reichen: Sie halten alle Bürger, deren Akte gerade durch die Abteilungen läuft. Wird sie zum Dauer-Engpass, Plätze je Raum getrennt anheben.
+- [ ] Mit Balance-Bot prüfen: Bei 22,5/min je Abteilung ist der Start-Automat (24/min) knapp ausgelastet, der Empfang mit einem Beamten (≈ 18/min) nicht. Das ist gewollt (früher Engpass), aber Abgänge und die daraus folgenden Bewertungen können den Zulauf schnell auf 65 % oder 40 % drücken. Prüfen, ob das Frühspiel ohne Dauerfrust spielbar bleibt; ggf. Preise von *Druckgeschwindigkeit* und Empfangsausbau senken.
+- [ ] Preise der Automaten 2/3 (100 000 bzw. 20 000 000) und ihrer Stufen gegen den Zeitpunkt der 4. bzw. 7. Abteilung abgleichen.
+
+### 4.17 [H] Frühspiel ohne Personal, Stau-Pausen und harte Bewertungen (Kunden-Feedback)
+- [x] Neues Spiel ohne Personal im Bürgerservice; Passfoto braucht Fotografen (kein Automat), die Bürger zum Foto aufrufen.
+- [x] Volle Ausgangsablage oder voller Ablehnungs-Ausgang an einer Sachbearbeitung schickt das ganze Team in Mittag/Kaffeeklatsch, Arbeit dort blockiert bis beide Ablagen Platz haben. Ablehnungsstapel ausbaubar (+2 je Stufe, 50 Stufen, 0,5 × Tischpreis · ×1,22).
+- [x] Jeder nicht abgewimmelte Beschwerdeführer vor vollem Briefkasten → 1–2 Sterne, keine Obergrenze, keine Abschreckung nach Klagen mehr. Lob 3–5 Sterne zufällig alle 45–120 s, unabhängig vom Spiel.
+- [x] Spieler am Beschwerdetresen: alle Besucher gehen ohne Beschwerde.
+- [ ] Mit Balance-Bot prüfen: Durch die harte Bewertungsregel kann der Durchschnitt schnell unter 4,3/3,5 fallen und den Zulauf auf 65 %/40 % drücken; Lob (Ø ≈ 4,5 Sterne, ≈ 0,7/min) gleicht nur teilweise aus. Ggf. Lob-Intervall oder Briefkasten-Startgröße anpassen.
+- [ ] Mit Balance-Bot prüfen, wie oft Stau-Pausen im Frühspiel auftreten (Ausgang 8 Plätze bei einem Tisch) und ob Ablagen/Ablehnungsstapel früh genug bezahlbar sind.
+
+### 4.17 [H] Gebäudeausbau entfällt, Ansehen als Langzeit-Bremse (Spieler-Feedback)
+Vorgabe: Abteilungen direkt kaufen, das Gebäude wächst implizit mit; Ansehen soll weitere Stufen stark begrenzen und das Spiel strecken.
+- [x] Gebäudestufe nicht mehr kaufbar: `GameState.sync_building_stage` hebt sie bei jeder Eröffnung auf `GameConfig.stage_for_departments` (1 / 2–3 / 4–5 / 6–7 / 8 Abteilungen), Poststelle ab der zweiten Abteilung. Platz-Sperre („space“), Katalogart `stage`, `expand_building` und die Stufen-Feier entfallen.
+- [x] Ansehensschwellen der Eröffnungen angehoben: 15/60/150/300/500/800/1 300 → 20/120/350/700/1 200/2 000/3 500 (mindestens ×1,5 je Abteilung, Test `test_reputation_strongly_limits_department_openings`). Die Amtsstufen-Blöcke erben sie über die Eröffnungsleiter, ab dem Zoll 3 500.
+- [x] Ziele „Gebäude erweitern“ durch Ansehens-Ziele ersetzt (10, 60, 250, 1 000, 3 000; Indizes unverändert, alte Spielstände behalten ihren Zielstand).
+- Bot-Messung (`--hours=8 --active=480`): Finanzamt nach 22 min, Ansehen 60 nach 44 min, danach pendelt das Ansehen des Bots bei ≈ 126 (hohe Bürgerverluste, Einkommen ≈ 48/s); die Kfz-Zulassung (350) erreicht er in 8 h nicht. Der Bot spielt deutlich schlechter als ein Mensch, die Bremse greift aber spürbar.
+- [ ] Mit dem Balance-Bot über längere Zeit messen, ob die Ansehensschwellen ab Kfz-Zulassung (350) nicht zu einer reinen Wartezeit ohne sinnvolle Käufe werden; ggf. Ansehensquellen (Einarbeitung, Kränzchen, Bewertungen) als aktive Beschleuniger stärken.
 
 ## 5. Niedrige Priorität / Feinschliff
 
@@ -295,6 +322,7 @@ Befund: Der Wartebereich-Ausbau änderte nichts am Durchsatz, allein der Sitzber
 - [ ] [N] Ziel „Ansehen 40“ (Ziel 9) ohne Ansehensbelohnung ist nach 2.2 leicht; Reihenfolge der Ziele gegen die neue Kostenkurve aus 3.2 neu prüfen.
 - [x] [N] Bewertungs-Drain 0,0006/s je Gewicht = −2,2 Ansehen/h je 1-Stern-Bewertung, bis zu 5 → −11/h; nach 2.2 auf −0,5/h je Bewertung senken, dafür Andrang ×(Durchschnitt/5) koppeln (sichtbarer Effekt). **Umgesetzt:** Drain unterliegt der Dämpfung; Andrang × Bewertungsfaktor 0,85–1,25.
 - [ ] [N] Einwohnerzahl (`POPULATION_PER_CASE`) wächst linear mit Fällen; Metropole erst bei 50 000 Fällen; Ränge an Meilensteine aus 3.3 binden und mit kleinem Bonus (+Lobbyplätze) versehen.
+- [x] [N] Markendruck: `ticket_speed` 400 Stufen, 300 · ×1,035, −0,7 % je Stufe (3 s → 0,18 s); jeder Automat zieht parallel, zwei Automaten = doppelte Rate.
 - [x] [N] `MAX_STATION_LEVEL = 50` nach 4.1 auf 100 anheben (Schwellen alle 10). **Umgesetzt:** 100 Stufen.
 
 ---

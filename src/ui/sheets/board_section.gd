@@ -11,10 +11,6 @@ static func build(sheet: Sheet, container: VBoxContainer, spot: String) -> void:
 			_collectors(sheet, container)
 		"coffee_interns":
 			_coffee_interns(sheet, container)
-		"interns":
-			_interns(sheet, container)
-		"guards":
-			_guards(sheet, container)
 		"phone_clerks":
 			_phone_clerks(sheet, container)
 
@@ -125,31 +121,6 @@ static func _coffee_interns(sheet: Sheet, container: VBoxContainer) -> void:
 		(row.get_meta(&"column") as VBoxContainer).add_child(focus)
 		container.add_child(row)
 		sheet.track(func() -> void: status.text = sheet.tr("COFFEE_TASK_" + str(CoffeeIntern.Task.keys()[coffee_intern.task])))
-
-
-static func _interns(sheet: Sheet, container: VBoxContainer) -> void:
-	var state := sheet.game.state
-	container.add_child(UiKit.label(sheet.tr("INTERNS_INTRO"), "BodySmall", true))
-	if not state.has_upgrade("shredder_service"):
-		empty_hint(sheet, container, "INTERNS_EMPTY")
-		return
-	var units := state.all_interns()
-	for index in units.size():
-		var unit := units[index]
-		var row := _member_row(sheet, Icons.STAFF.helpers, sheet.tr("FMT_INTERN_NAME") % (index + 1))
-		var status: Label = row.get_meta(&"status")
-		container.add_child(row)
-		sheet.track(func() -> void: status.text = sheet.tr("FMT_INTERN_STATUS") % [sheet.tr("INTERN_MOOD_" + str(ComplaintIntern.Mood.keys()[unit.mood])), UiKit.percent(unit.stress)])
-
-
-static func _guards(sheet: Sheet, container: VBoxContainer) -> void:
-	var state := sheet.game.state
-	container.add_child(UiKit.label(sheet.tr("GUARDS_INTRO"), "BodySmall", true))
-	if state.guards <= 0:
-		empty_hint(sheet, container, "GUARDS_EMPTY")
-		return
-	for guard in state.guards:
-		container.add_child(_member_row(sheet, Icons.STAFF.guards, sheet.tr("FMT_GUARD_NAME") % (guard + 1)))
 
 
 static func _phone_clerks(sheet: Sheet, container: VBoxContainer) -> void:

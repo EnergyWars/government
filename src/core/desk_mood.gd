@@ -9,7 +9,10 @@ const FETCH := "fetch"
 const SLOW := "slow"
 const SICK := "sick"
 const LOO := "loo"
-const STATES: Array[String] = [AWAKE, ASLEEP, COFFEE, CHAT, FETCH, SLOW, SICK, LOO]
+const LUNCH := "lunch"
+const DISPUTE := "dispute"
+const RETURNING := "returning"
+const STATES: Array[String] = [AWAKE, ASLEEP, COFFEE, CHAT, FETCH, SLOW, SICK, LOO, LUNCH, DISPUTE, RETURNING]
 
 var state := AWAKE
 var alert := GameConfig.BASE_ALERT_SECONDS
@@ -23,14 +26,28 @@ var training := {}
 var output := RateCounter.new()
 var sick_count := 0
 var doze_count := 0
+var return_time := 0.0
+var recall_progress := 0.0
 
 
 static func is_away_state(p_state: String) -> bool:
-	return p_state == CHAT or p_state == FETCH or p_state == SLOW or p_state == LOO
+	return p_state == CHAT or p_state == FETCH or p_state == SLOW or p_state == LOO or p_state == LUNCH
 
 
 func is_resting() -> bool:
-	return state != AWAKE
+	return state != AWAKE and state != DISPUTE and state != RETURNING
+
+
+func is_on_duty() -> bool:
+	return state == AWAKE
+
+
+func is_returning() -> bool:
+	return state == RETURNING
+
+
+func is_disputing() -> bool:
+	return state == DISPUTE
 
 
 func is_away() -> bool:
@@ -42,7 +59,11 @@ func is_sick() -> bool:
 
 
 func is_absent() -> bool:
-	return is_away() or is_sick()
+	return is_away() or is_sick() or is_disputing() or is_returning()
+
+
+func can_be_recalled() -> bool:
+	return is_away()
 
 
 func can_be_called() -> bool:
@@ -71,6 +92,29 @@ func wake(p_alert: float) -> void:
 	reported = false
 	bonus = 0
 	alert = p_alert
+
+
+func start_return(seconds: float) -> void:
+	recall_progress = 0.0
+	state = RETURNING
+	resting = 0.0
+	wake_progress = 0.0
+	return_time = maxf(0.0, seconds)
+
+
+func join_dispute() -> bool:
+	if not is_on_duty():
+		return false
+	state = DISPUTE
+	resting = 0.0
+	wake_progress = 0.0
+	return true
+
+
+func arrive() -> void:
+	state = AWAKE
+	resting = 0.0
+	return_time = 0.0
 
 
 func training_level(track: String) -> int:
@@ -102,7 +146,7 @@ static func from_dict(data: Variant) -> DeskMood:
 	if not data is Dictionary:
 		return mood
 	var saved_state := str(data.get("state", AWAKE))
-	mood.state = saved_state if STATES.has(saved_state) else AWAKE
+	mood.state = saved_state if STATES.has(saved_state) and saved_state != RETURNING else AWAKE
 	mood.alert = clampf(float(data.get("alert", GameConfig.BASE_ALERT_SECONDS)), 0.0, GameConfig.MAX_ALERT_SECONDS)
 	mood.resting = maxf(0.0, float(data.get("resting", 0.0)))
 	mood.reported = bool(data.get("reported", true)) and mood.is_sick()

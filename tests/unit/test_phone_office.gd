@@ -20,6 +20,7 @@ func before_each() -> void:
 	state.sick_timer = 1e6
 	state.kranz_timer = 1e6
 	state.complaint_timer = 1e6
+	state.complaint_letter_timer = 1e6
 	state.player.position = Vector2(50, 50)
 
 
@@ -353,12 +354,12 @@ func test_phone_office_is_own_room() -> void:
 		assert_false(office.intersects(layout.rooms[slot]), slot)
 	assert_true(Rect2(Vector2.ZERO, layout.size).encloses(office))
 	assert_gt(office.position.y, layout.kitchen.end.y)
-	assert_gt(layout.hall.position.y, office.end.y)
+	assert_gte(office.position.x, WorldLayout.MAIN_WIDTH)
 	assert_eq(layout.phone_header().size.y, WorldLayout.HEADER)
 	assert_eq(layout.phone_header().position, office.position)
-	assert_true(office.has_point(layout.phone_point()))
+	assert_true(layout.player_office.has_point(layout.phone_point()))
 	assert_true(office.has_point(layout.switchboard_point()))
-	assert_true(office.encloses(layout.sick_board()))
+	assert_true(layout.staff_room.encloses(layout.sick_board()))
 	for line in GameConfig.MAX_HR:
 		var point := layout.operator_point(line)
 		assert_true(office.has_point(point), str(line))

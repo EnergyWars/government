@@ -9,7 +9,11 @@ var office: WorldView
 var joystick: JoystickView
 var hud: Hud
 var tutorial_card: TutorialCard
+var intro: IntroScreen
 var overlay: Control
+var sfx: SfxPlayer
+var celebrations: CelebrationLayer
+var rewards: RewardDirector
 var _sheet: Sheet
 var _autosave_timer := 0.0
 var _resetting := false
@@ -18,6 +22,8 @@ var _resetting := false
 func _ready() -> void:
 	settings = AppSettings.new().load_settings()
 	settings.apply()
+	sfx = SfxPlayer.new().setup(settings)
+	add_child(sfx)
 	save_service = SaveService.new()
 	var state := save_service.load_state()
 	if state == null:
@@ -55,12 +61,21 @@ func _build_scene() -> void:
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(overlay)
+	celebrations = CelebrationLayer.new()
+	root.add_child(celebrations)
 	office.setup(game, joystick)
 	office.open_spot.connect(func(spot: String) -> void: open_sheet("spot", spot))
+	office.open_sheet.connect(open_sheet)
 	game.changed.connect(hud.refresh)
 	tutorial_card = TutorialCard.new().setup(game, hud, _safe_top())
 	tutorial_card.highlight_changed.connect(hud.highlight)
 	root.add_child(tutorial_card)
+	rewards = RewardDirector.new().setup(game, sfx, celebrations, hud, office)
+	add_child(rewards)
+	if IntroScreen.should_show(game.state):
+		intro = IntroScreen.new().setup(game.state, _safe_top())
+		intro.finished.connect(save)
+		root.add_child(intro)
 
 
 func _safe_top() -> float:
@@ -73,13 +88,19 @@ func _safe_top() -> float:
 
 
 func _process(delta: float) -> void:
-	game.advance(delta)
+	if not is_intro_open():
+		game.advance(delta)
 	office.top_inset = hud.top_height()
 	office.bottom_inset = hud.bottom_height()
+	celebrations.top_inset = hud.top_height()
 	_autosave_timer += delta
 	if _autosave_timer >= AUTOSAVE_INTERVAL:
 		_autosave_timer = 0.0
 		save()
+
+
+func is_intro_open() -> bool:
+	return is_instance_valid(intro) and not intro.is_queued_for_deletion()
 
 
 func save() -> void:
@@ -150,11 +171,15 @@ func _show_offline(offline: Dictionary) -> AppDialog:
 	var text := tr("FMT_OFFLINE_TEXT") % [UiKit.duration(offline.seconds), UiKit.money(offline.money)]
 	var dialog := _dialog(AppDialog.new().configure(Icons.SCHEDULE, tr("OFFLINE_TITLE"), text, tr("ACTION_DOUBLE_AD"), tr("ACTION_OK")))
 	dialog.confirmed.connect(func() -> void: AdPlaceholder.play(overlay, game.perform.bind(_double_offline.bind(offline))))
+	dialog.dismissed.connect(rewards.windfall)
 	return dialog
 
 
 func _double_offline(offline: Dictionary) -> bool:
-	return OfflineCalculator.double_up(game.state, offline) > 0.0
+	if OfflineCalculator.double_up(game.state, offline) <= 0.0:
+		return false
+	rewards.windfall()
+	return true
 
 
 func _confirm_reset() -> void:

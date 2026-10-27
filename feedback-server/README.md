@@ -23,6 +23,8 @@ cp config.example.json config.json   # Passwort unter "token" eintragen
 python3 -m feedback_server            # liest config.json, alternativ --config <pfad>
 ```
 
+Aus dem Projektstamm geht es auch mit `make feedback-server`.
+
 Das Passwort (mindestens 3 Zeichen) kann auch über die Umgebungsvariable `FEEDBACK_TOKEN` gesetzt werden (hat Vorrang). Unter 16 Zeichen warnt der Server beim Start: dann nur über VPN erreichbar machen. Beim Start werden alle LAN-Adressen protokolliert (`Reachable at http://…`).
 
 ## Auto-Discovery (wie beim Commander)
@@ -69,7 +71,7 @@ Alle Endpunkte außer `/api/health` und `/status` brauchen entweder das Session-
 | GET | `/api/jobs` | Letzte 50 Aufträge + `latest_apk` |
 | GET | `/api/jobs/<id>` | Auftrag + Protokoll-Ende |
 | POST | `/api/jobs/<id>/cancel` | Wartenden oder laufenden Auftrag abbrechen |
-| GET | `/apk/latest`, `/apk/<id>` | APK herunterladen |
+| GET | `/apk/latest`, `/apk/<id>` | APK herunterladen; ohne Anmeldung Weiterleitung zur Anmeldung, mit falschem Bearer-Passwort `401` |
 
 Beispiel (z. B. aus einer Kurzbefehle-/Tasker-Automation):
 
@@ -78,6 +80,19 @@ curl -X POST http://192.168.178.55:8787/api/feedback \
   -H "Authorization: Bearer 123" -H "Content-Type: application/json" \
   -d '{"feedback": "Der Kaffee-Button soll größer sein"}'
 ```
+
+## Android-App „Feedback Commander“
+
+Minimaler Klon des Commanders in `android/` (Kotlin, Jetpack Compose). Die App findet den Server per Auto-Discovery im WLAN, meldet sich mit dem Passwort an, sendet Feedback, zeigt die Aufträge mit Modellwahl und Protokoll und lädt bzw. installiert die gebaute APK direkt.
+
+```sh
+cd android
+./gradlew assembleDebug        # APK unter app/build/outputs/apk/debug/
+./gradlew testDebugUnitTest    # Unit-Tests
+./verify-theme.sh              # WaffleHQ-Styling-Prüfung
+```
+
+`local.properties` enthält `sdk.dir`; für einen Release-Build zusätzlich `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`.
 
 ## Konfiguration (`config.json`)
 

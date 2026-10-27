@@ -103,8 +103,6 @@ const PLATE_BLUE := Color("#1e5fd8")
 const WINDOW := Color("#bfe3f5")
 const SIGN_BOARD := Color("#33475b")
 const SIGN_TEXT := Color("#fff8e1")
-const CALL_DISPLAY_BG := Color("#1b2631")
-const CALL_DISPLAY_TEXT := Color("#ffab40")
 const POST_YELLOW := Color("#f6c400")
 const POST_HORN := Color("#1d1d1b")
 const TILE_SHADE := Color(0.0, 0.0, 0.0, 0.035)
@@ -159,6 +157,10 @@ static func on_container(name: String) -> Color:
 
 static func department_color(dept_id: String) -> Color:
 	return DEPARTMENT_COLORS.get(dept_id, DEPARTMENT_COLORS.shared)
+
+
+static func confetti_colors() -> Array[Color]:
+	return [accent("primary"), accent("success"), accent("warning"), accent("tertiary"), accent("secondary"), accent("error"), FLAG_GOLD]
 
 
 static func outline_soft() -> Color:

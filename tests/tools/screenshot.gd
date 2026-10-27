@@ -13,6 +13,7 @@ var _camera := Vector2.INF
 var _rest := false
 var _tubes := false
 var _spot := ""
+var _intro := false
 
 
 func _initialize() -> void:
@@ -35,6 +36,8 @@ func _initialize() -> void:
 			_rest = true
 		elif arg.begins_with("--spot="):
 			_spot = arg.trim_prefix("--spot=")
+		elif arg == "--intro":
+			_intro = true
 		elif arg == "--tubes":
 			_tubes = true
 		elif arg.begins_with("--camera="):
@@ -53,6 +56,7 @@ func _process(_delta: float) -> bool:
 			TranslationServer.set_locale(_locale)
 		for child in _main.overlay.get_children():
 			child.queue_free()
+		_show_intro(_intro)
 		if _rich:
 			var state: GameState = _main.game.state
 			state.money = 5000000.0
@@ -111,23 +115,32 @@ func _process(_delta: float) -> bool:
 	return false
 
 
+func _show_intro(visible: bool) -> void:
+	if is_instance_valid(_main.intro):
+		_main.intro.queue_free()
+	if visible:
+		_main.game.state.intro_seen = false
+		_main.intro = IntroScreen.new().setup(_main.game.state, 0.0)
+		_main.overlay.get_parent().add_child(_main.intro)
+
+
 func _stage_complaint_flow() -> void:
 	var state: GameState = _main.game.state
 	var layout: WorldLayout = _main.office.layout
 	state.tutorial_step = -1
 	_main.tutorial_card.visible = false
-	state.set_upgrade("shredder_service", 1)
+	state.set_upgrade("complaint_interns", GameConfig.MAX_DESK_INTERNS)
 	state.complaints = 6
-	while state.helpers.size() < GameConfig.MAX_HELPERS:
-		state.add_helper()
-	for unit in state.all_interns():
+	for unit in state.interns:
 		unit.position = layout.intern_home(unit.slot)
-	var venting: ComplaintVisitor = _main.game.simulation.spawn_visitor(true, false)
-	venting.phase = ComplaintVisitor.Phase.VENTING
-	venting.position = layout.vent_spot(venting.slot)
-	venting.duration = GameConfig.VISITOR_VENT_SECONDS
-	venting.timer = GameConfig.VISITOR_VENT_SECONDS * (0.2 if _argument == "reply" else 0.9)
+	state.interns[1].handled = 1
+	var talking: ComplaintVisitor = _main.game.simulation.spawn_visitor(true, false)
+	talking.phase = ComplaintVisitor.Phase.TALKING
+	talking.position = layout.visitor_spot(talking.slot)
+	talking.duration = GameConfig.VISITOR_ANGRY_TALK_SECONDS
+	talking.timer = GameConfig.VISITOR_ANGRY_TALK_SECONDS * (0.2 if _argument == "reply" else 0.9)
 	var dropping: ComplaintVisitor = _main.game.simulation.spawn_visitor(false, true)
 	dropping.phase = ComplaintVisitor.Phase.TO_BOX
 	dropping.position = layout.complaint_drop_spot() + Vector2(-20, 6)
+	state.set_upgrade("complaint_security", 1)
 	_camera = layout.complaint_desk_point() + Vector2(110, 140)

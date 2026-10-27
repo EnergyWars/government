@@ -204,16 +204,20 @@ func test_returning_employee_walks_back_and_desk_stays_empty() -> void:
 	add_child_autofree(world)
 	world.setup(game, joystick)
 	var review := game.state.station("general_services/review")
+	review.staff = 1
 	review.moods[0].rest(DeskMood.CHAT, 2)
 	game.simulation.wake_up(review, 0, true)
-	assert_true(world._returning.has("general_services/review#0"))
+	assert_true(review.moods[0].is_returning())
+	assert_true(review.moods[0].is_absent())
+	assert_false(review.is_working(0))
 	var walkers := world._walkers.size()
 	assert_gt(walkers, 0)
+	assert_almost_eq(float(world._walkers.back().duration), review.moods[0].return_time, 0.0001)
 	world._process(0.1)
 	world.queue_redraw()
 	await wait_physics_frames(2)
-	world._process(10.0)
-	assert_false(world._returning.has("general_services/review#0"))
+	game.simulation.tick(review.moods[0].return_time + 0.1)
+	assert_true(review.moods[0].is_on_duty())
 	review.moods[0].rest(DeskMood.ASLEEP)
 	var before := world._walkers.size()
 	game.simulation.wake_up(review, 0, false)
@@ -267,12 +271,12 @@ func test_tapping_inspection_room_opens_inspection_room() -> void:
 	var body := world.layout.room("inspection").get_center()
 	world._handle_tap(world.layout.header("inspection").get_center())
 	assert_signal_emitted_with_parameters(world, "open_spot", [inspection_spot])
-	assert_eq(world.tap_spot(body), inspection_spot)
+	assert_eq(world.tap_spot(body), "station:" + GameConfig.INSPECTION)
 	var locked := _sheet(SpotSheet.new(), inspection_spot)
 	assert_true(_has_label(locked.content, locked.tr("ROOM_LOCKED_INSPECTION")))
 	game.state.unlock_department("business_licences")
 	assert_not_null(game.state.station(GameConfig.INSPECTION))
-	assert_eq(world.tap_spot(body), UpgradeCatalog.STATION_PREFIX + GameConfig.INSPECTION)
+	assert_eq(world.tap_spot(body), "station:" + GameConfig.INSPECTION)
 	var opened := _sheet(SpotSheet.new(), inspection_spot)
 	assert_false(_has_label(opened.content, opened.tr("ROOM_LOCKED_INSPECTION")))
 	assert_true(_has_label(opened.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:%s" % [UpgradeCatalog.LEVEL, GameConfig.INSPECTION]))))
@@ -295,11 +299,11 @@ func test_world_view_layers_are_created_and_redrawn_selectively() -> void:
 	var world := WorldView.new()
 	add_child_autofree(world)
 	world.setup(game, joystick)
-	assert_eq(world._layers.size(), 11 + world.layout.rooms.size())
+	assert_eq(world._layers.size(), 13 + world.layout.rooms.size())
 	var layer_ids: Array[String] = []
 	for layer in world._layers:
 		layer_ids.append(str(layer.id))
-	for id: String in [WorldView.SHELL_LAYER, WorldView.KITCHEN_LAYER, WorldView.TOILETS_LAYER, WorldView.PHONE_LAYER, WorldView.MAIL_LAYER, WorldView.COMPLAINT_LAYER, WorldView.SHREDDER_LAYER, WorldView.TECH_LAYER, WorldView.HALL_STATIC_LAYER, WorldView.HALL_LAYER, WorldView.TUBES_LAYER]:
+	for id: String in [WorldView.SHELL_LAYER, WorldView.KITCHEN_LAYER, WorldView.TOILETS_LAYER, WorldView.PHONE_LAYER, WorldView.MAIL_LAYER, WorldView.COMPLAINT_LAYER, WorldView.SHREDDER_LAYER, WorldView.TECH_LAYER, WorldView.OFFICE_LAYER, WorldView.STAFF_LAYER, WorldView.HALL_STATIC_LAYER, WorldView.HALL_LAYER, WorldView.TUBES_LAYER]:
 		assert_has(layer_ids, id)
 	world._process(0.016)
 	await wait_physics_frames(2)
@@ -367,12 +371,16 @@ func test_world_view_draws_complaint_corner() -> void:
 	game.simulation.complaint_filed.emit(true)
 	game.simulation.complaint_shredded.emit(true)
 	var floaters := world._floaters.size()
-	game.simulation.complaint_fended.emit()
+	game.state.set_upgrade("complaint_interns", 1)
+	game.simulation.complaint_absorbed.emit(0)
 	assert_eq(world._floaters.size(), floaters + 1)
 	for outcome in ["expired", "lost", "deleted"]:
 		game.simulation.review_removed.emit(outcome)
 	assert_eq(world._floaters.size(), floaters + 4)
-	game.state.set_upgrade("complaint_clerk", int(GameConfig.upgrade("complaint_clerk").max))
+	game.state.set_upgrade("complaint_interns", GameConfig.MAX_DESK_INTERNS)
+	game.state.set_upgrade("complaint_security", 1)
+	game.state.interns[0].mood = ComplaintIntern.Mood.CRYING
+	game.state.interns[0].handled = Formulas.intern_steadfast(game.state)
 	game.state.complaints = Formulas.complaint_cap(game.state)
 	assert_gt(world._shred_time, 0.0)
 	world._process(0.1)
@@ -544,18 +552,17 @@ func test_world_view_tap_opens_department() -> void:
 	add_child_autofree(world)
 	world.setup(game, joystick)
 	watch_signals(world)
-	var tax_body := world.tap_spot(world.layout.room("tax_services").get_center())
-	assert_true(tax_body.begins_with(UpgradeCatalog.STATION_PREFIX), tax_body)
-	assert_eq(GameConfig.spot_room(tax_body), "tax_services")
+	assert_eq(world.tap_spot(world.layout.room("tax_services").get_center()), "station:tax_services/review")
 	world._handle_tap(world.layout.header("tax_services").get_center())
 	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.DEPT_PREFIX + "tax_services"])
 	game.state.department("customs").unlocked = false
 	for key in GameConfig.department_station_keys("customs"):
 		game.state.stations.erase(key)
 	assert_eq(world.tap_spot(world.layout.room("customs").get_center()), UpgradeCatalog.DEPT_PREFIX + "customs")
+	assert_eq(world.tap_spot(world.layout.area("customs/dock").get_center()), UpgradeCatalog.DEPT_PREFIX + "customs")
 	world._handle_tap(world.layout.header("customs").get_center())
 	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.DEPT_PREFIX + "customs"])
-	assert_eq(GameConfig.spot_room(world.tap_spot(world.layout.hall.get_center())), GameConfig.ROOM_HALL)
+	assert_eq(world.tap_spot(world.layout.place_area(GameConfig.HALL_INTAKE).get_center()), "seating")
 	assert_signal_emit_count(world, "open_spot", 2)
 
 
@@ -620,7 +627,6 @@ func test_office_painter_draws_every_element() -> void:
 		OfficePainter.waiting_chair(canvas, Vector2(30, 30), 1.0)
 		OfficePainter.queue_mark(canvas, Vector2(60, 30), 0.5)
 		OfficePainter.ticket_dispenser(canvas, Vector2(30, 30))
-		OfficePainter.call_display(canvas, Rect2(10, 10, 120, 30))
 		for occupied in [true, false]:
 			OfficePainter.desk(canvas, Vector2(50, 50), occupied, occupied, 0.1)
 		for dept_id in GameConfig.department_ids() + ["unknown"]:
@@ -816,9 +822,9 @@ func test_department_spot_shows_jam_and_legend() -> void:
 	await wait_physics_frames(2)
 
 
-func test_complaint_spots_offer_clerk_and_box_upgrades() -> void:
+func test_complaint_spots_offer_intern_and_box_upgrades() -> void:
 	game.state.money = 1.0e9
-	var clerk_id := "%s:complaint_clerk" % UpgradeCatalog.TRACK
+	var clerk_id := "%s:complaint_interns" % UpgradeCatalog.TRACK
 	var sheet := _sheet(SpotSheet.new(), "complaint_desk")
 	var clerk := UpgradeCatalog.find(game.state, clerk_id)
 	assert_eq(clerk.level, 0)
@@ -829,11 +835,12 @@ func test_complaint_spots_offer_clerk_and_box_upgrades() -> void:
 	_buy(sheet, clerk_id)
 	clerk = UpgradeCatalog.find(game.state, clerk_id)
 	assert_eq(clerk.level, 1)
-	assert_eq(game.state.upgrade_level("complaint_clerk"), 1)
+	assert_eq(game.state.upgrade_level("complaint_interns"), 1)
+	assert_eq(game.state.interns.size(), 1)
 	assert_true(_has_label(sheet.content, UpgradeTexts.level_text(clerk)))
 	assert_true(_has_label(sheet.content, UpgradeTexts.effect(game.state, clerk)))
 	assert_true(_has_label(sheet.content, "\n".join(SpotStatus.lines(game.state, "complaint_desk"))))
-	game.state.set_upgrade("complaint_clerk", clerk.max_level)
+	game.state.set_upgrade("complaint_interns", clerk.max_level)
 	sheet.refresh()
 	var maxed := UpgradeCatalog.find(game.state, clerk_id)
 	assert_true(maxed.is_maxed())
@@ -843,6 +850,9 @@ func test_complaint_spots_offer_clerk_and_box_upgrades() -> void:
 	var box_sheet := _sheet(SpotSheet.new(), "complaint_box")
 	assert_true(_has_label(box_sheet.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:complaint_box" % UpgradeCatalog.TRACK))))
 	assert_true(_has_label(box_sheet.content, "\n".join(SpotStatus.lines(game.state, "complaint_box"))))
+	var security_sheet := _sheet(SpotSheet.new(), "security")
+	assert_true(_has_label(security_sheet.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:complaint_security" % UpgradeCatalog.TRACK))))
+	assert_true(_has_label(security_sheet.content, SpotStatus.security(game.state)))
 	await wait_physics_frames(2)
 
 
@@ -914,8 +924,7 @@ func test_world_view_reacts_to_rejections() -> void:
 	world.setup(game, joystick)
 	game.simulation.case_rejected.emit("general_services")
 	assert_eq(world._floaters.size(), 1)
-	assert_eq(world._walkers.size(), 1)
-	assert_eq(world._walkers[0].to, world.layout.door_out())
+	assert_true(world._walkers.is_empty())
 	await wait_physics_frames(2)
 
 
@@ -926,11 +935,10 @@ func test_citizens_enter_left_and_leave_right() -> void:
 	add_child_autofree(world)
 	world.setup(game, joystick)
 	world._sync_citizens(game.state)
-	var citizen := game.simulation.create_case(game.state.department("general_services"))
-	game.state.station(GameConfig.RECEPTION).inbox.append(citizen)
+	var citizen := game.simulation.spawn_case(game.state.department("general_services"))
 	world._sync_citizens(game.state)
 	assert_eq(world._citizens.entry_for(citizen).pos, world.layout.door_in())
-	game.state.station(GameConfig.RECEPTION).inbox.clear()
+	game.state.citizens.clear()
 	world._sync_citizens(game.state)
 	var leaver: Dictionary = world._walkers[world._walkers.size() - 1]
 	assert_eq(leaver.from, world.layout.door_in())
@@ -998,19 +1006,6 @@ func test_hud_shows_review_banner_and_rating_chip() -> void:
 	game.state.reviews.clear()
 	hud.refresh()
 	assert_false(hud._review_banner.visible)
-
-
-func test_intern_board_shows_helper_card() -> void:
-	var helpers_title := UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:helpers" % UpgradeCatalog.STAFF))
-	var waiting := _sheet(SpotSheet.new(), "interns")
-	assert_true(_has_label(waiting.content, waiting.tr("INTERNS_EMPTY")))
-	assert_true(_has_label(waiting.content, helpers_title))
-	game.state.set_upgrade("shredder_service", 1)
-	var sheet := _sheet(SpotSheet.new(), "interns")
-	sheet.refresh()
-	assert_true(_has_label(sheet.content, helpers_title))
-	assert_false(_has_label(sheet.content, sheet.tr("INTERNS_EMPTY")))
-	await wait_physics_frames(2)
 
 
 func test_world_view_draws_sick_timer_bonus_and_cover_hint() -> void:
@@ -1140,12 +1135,12 @@ func test_progress_ring_of_phone_call_ends_with_the_call() -> void:
 	var outgoing := PhoneCall.new(PhoneCall.OUTGOING, "general_services/review", 0)
 	outgoing.line = PhoneCall.PLAYER
 	game.state.calls.append(outgoing)
-	_layer_node(world, WorldView.PHONE_LAYER).queue_redraw()
+	_layer_node(world, WorldView.OFFICE_LAYER).queue_redraw()
 	await wait_physics_frames(2)
 	outgoing.progress = outgoing.duration() * 0.6
-	assert_almost_eq(_ring_ratios(world, WorldView.PHONE_LAYER).max(), 0.6, 0.001)
+	assert_almost_eq(_ring_ratios(world, WorldView.OFFICE_LAYER).max(), 0.6, 0.001)
 	game.state.calls.clear()
-	assert_eq(_ring_ratios(world, WorldView.PHONE_LAYER).max(), 0.0)
+	assert_eq(_ring_ratios(world, WorldView.OFFICE_LAYER).max(), 0.0)
 
 
 func test_progress_ring_draws_directly_outside_layers() -> void:
@@ -1189,59 +1184,85 @@ func _stage_of(placements: Array[Dictionary], case_file: CaseFile) -> String:
 	return ""
 
 
-func test_world_view_places_every_citizen_along_the_ticket_flow() -> void:
+func _in_phase(phase: CaseFile.Phase, seated: bool = false) -> CaseFile:
+	var citizen := _citizen()
+	citizen.phase = phase
+	citizen.seated = seated
+	citizen.spot = Vector2(100 + game.state.citizens.size() * 30, 400)
+	game.state.citizens.append(citizen)
+	return citizen
+
+
+func test_world_view_places_every_citizen_by_phase() -> void:
+	var world := _world()
+	var state := game.state
+	var in_line := _in_phase(CaseFile.Phase.LINE)
+	var standing := _in_phase(CaseFile.Phase.WAITING)
+	var seated := _in_phase(CaseFile.Phase.WAITING, true)
+	var called := _in_phase(CaseFile.Phase.CALLED)
+	var at_desk := _in_phase(CaseFile.Phase.SERVED)
+	var waiting_doc := _in_phase(CaseFile.Phase.WAITING_DOC, true)
+	var called_doc := _in_phase(CaseFile.Phase.CALLED_DOC)
+	var collecting := _in_phase(CaseFile.Phase.COLLECTING)
+	state.player.items.append(_citizen())
+	var placements := world.citizen_placements(state)
+	assert_eq(placements.size(), 8)
+	assert_eq(_stage_of(placements, in_line), WorldView.STAGE_TICKET)
+	assert_eq(_stage_of(placements, standing), WorldView.STAGE_WAITING)
+	assert_eq(_stage_of(placements, seated), WorldView.STAGE_SEATED)
+	assert_eq(_stage_of(placements, called), WorldView.STAGE_CALLED)
+	assert_eq(_stage_of(placements, at_desk), WorldView.STAGE_DESK)
+	assert_eq(_stage_of(placements, waiting_doc), WorldView.STAGE_SEATED)
+	assert_eq(_stage_of(placements, called_doc), WorldView.STAGE_CALLED)
+	assert_eq(_stage_of(placements, collecting), WorldView.STAGE_COUNTER)
+	for placement in placements:
+		assert_eq(placement.target, (placement.case as CaseFile).spot)
+
+
+func test_patience_ring_shrinks_and_changes_colour() -> void:
+	var citizen := _citizen()
+	assert_eq(WorldView.patience_ratio(citizen), -1.0)
+	citizen.phase = CaseFile.Phase.LINE
+	assert_eq(WorldView.patience_ratio(citizen), 1.0)
+	citizen.waited = GameConfig.LINE_PATIENCE * 0.5
+	assert_almost_eq(WorldView.patience_ratio(citizen), 0.5, 0.0001)
+	citizen.waited = GameConfig.LINE_PATIENCE * 2.0
+	assert_eq(WorldView.patience_ratio(citizen), 0.0)
+	assert_eq(WorldView.patience_color(0.9), AppTheme.accent("success"))
+	assert_eq(WorldView.patience_color(0.4), AppTheme.accent("warning"))
+	assert_eq(WorldView.patience_color(0.1), AppTheme.accent("error"))
+
+
+func test_desks_show_the_called_number() -> void:
 	var world := _world()
 	var state := game.state
 	var reception := state.station(GameConfig.RECEPTION)
-	var counter := state.station(GameConfig.COUNTER)
-	var review := state.station("general_services/review")
-	var in_line := _citizen()
-	var waiting := _citizen()
-	var called := _citizen()
-	var at_desk := _citizen()
-	var processed := _citizen()
-	var at_counter := _citizen()
-	var carried := _citizen()
-	var letter := game.simulation.create_mail_case(state.department("general_services"))
-	state.ticket_line.append(in_line)
-	state.ticket_waiting.append(waiting)
-	reception.inbox.append(called)
-	reception.jobs[0] = StationJob.new(at_desk)
-	review.inbox.append(processed)
-	review.inbox.append(letter)
-	counter.jobs[0] = StationJob.new(at_counter)
-	state.player.items.append(carried)
-	var placements := world.citizen_placements(state)
-	assert_eq(_stage_of(placements, in_line), WorldView.STAGE_TICKET)
-	assert_eq(_stage_of(placements, waiting), WorldView.STAGE_WAITING)
-	assert_eq(_stage_of(placements, called), WorldView.STAGE_CALLED)
-	assert_eq(_stage_of(placements, at_desk), WorldView.STAGE_DESK)
-	assert_eq(_stage_of(placements, processed), WorldView.STAGE_SEATED)
-	assert_eq(_stage_of(placements, at_counter), WorldView.STAGE_COUNTER)
-	assert_eq(_stage_of(placements, carried), WorldView.STAGE_SEATED)
-	assert_eq(_stage_of(placements, letter), "")
-	for placement in placements:
-		if placement.case == called:
-			assert_eq(placement.target, world.layout.queue_point(0))
-		if placement.case == waiting:
-			assert_eq(placement.target, world.layout.queue_point(1))
-		if placement.case == in_line:
-			assert_eq(placement.target, world.layout.ticket_line_point(0))
+	assert_eq(world.called_number(reception, 0), 0)
+	var citizen := game.simulation.spawn_case(state.department("general_services"))
+	citizen.walk = 0.0
+	assert_true(game.simulation.draw_ticket(citizen))
+	citizen.walk = 0.0
+	reception.staff = 1
+	assert_true(game.simulation.call_citizens())
+	assert_eq(world.called_number(reception, 0), citizen.ticket)
+	citizen.walk = 0.0
+	assert_true(game.simulation.start_job(reception, 0))
+	assert_eq(world.called_number(reception, 0), citizen.ticket)
+	reception.jobs[0] = StationJob.new(_citizen())
+	assert_eq(world.called_number(reception, 0), 0)
+	world._draw_queue()
+	await wait_physics_frames(1)
 
 
 func test_world_view_citizens_walk_out_in_their_own_colour() -> void:
 	var world := _world()
 	var state := game.state
-	var counter := state.station(GameConfig.COUNTER)
-	var leaving := _citizen()
-	var angry := _citizen()
-	counter.jobs[0] = StationJob.new(leaving)
-	state.ticket_waiting.append(angry)
+	var leaving := _in_phase(CaseFile.Phase.COLLECTING)
+	var angry := _in_phase(CaseFile.Phase.WAITING)
 	world._sync_citizens(state)
 	var look := int(world._citizens.entry_for(leaving).look)
 	var angry_look := int(world._citizens.entry_for(angry).look)
-	counter.jobs[0] = null
-	state.ticket_waiting.clear()
+	state.citizens.clear()
 	var before := world._walkers.size()
 	world._sync_citizens(state)
 	assert_eq(world._walkers.size(), before + 2)
@@ -1258,16 +1279,24 @@ func test_world_view_citizens_walk_out_in_their_own_colour() -> void:
 func test_world_view_draws_the_ticket_corner_and_moving_citizens() -> void:
 	var world := _world()
 	var state := game.state
+	var dept := state.department("general_services")
 	for i in 3:
-		state.ticket_line.append(_citizen())
-		state.ticket_waiting.append(_citizen())
-	state.station(GameConfig.RECEPTION).inbox.append(_citizen())
-	state.ticket_progress = 1.0
-	state.ticket_call_progress = 1.0
-	state.tickets_called = 42
+		game.simulation.spawn_case(dept)
+	for i in 3:
+		var citizen := game.simulation.spawn_case(dept)
+		citizen.walk = 0.0
+		game.simulation.draw_ticket(citizen)
+	state.set_upgrade("ticket_speed", 100)
+	state.set_upgrade("ticket_machine_2", 1)
+	state.ticket_line[0].walk = 0.0
+	state.ticket_line[0].draw_progress = 0.5
+	assert_gt(world.ticket_ratio(state, 0), 0.0)
+	assert_eq(world.ticket_ratio(state, 1), 0.0)
+	assert_eq(world.ticket_ratio(state, 2), 0.0)
+	assert_eq(world.furnishing_signature(state), Vector3i(GameConfig.BASE_SEATS, GameConfig.BASE_SEATS, 2))
 	world._process(0.1)
 	world._sync_citizens(state)
-	state.ticket_waiting.append(_citizen())
+	game.simulation.spawn_case(dept)
 	for step in 5:
 		world._process(0.1)
 		world.queue_redraw()
@@ -1277,7 +1306,7 @@ func test_world_view_draws_the_ticket_corner_and_moving_citizens() -> void:
 		if CitizenTracker.is_walking(entry):
 			walking += 1
 	assert_gt(walking, 0)
-	assert_eq(world._citizens.entries.size(), 8)
+	assert_eq(world._citizens.entries.size(), state.citizens.size())
 
 
 func test_away_walk_hides_the_kitchen_guest_until_arrival() -> void:
@@ -1308,7 +1337,7 @@ func test_waking_during_the_walk_turns_the_employee_around() -> void:
 	game.simulation.employee_dozed.emit("general_services/review", 0, DeskMood.CHAT)
 	game.simulation.wake_up(review, 0, true)
 	assert_false(world.is_guest_arriving("general_services/review", 0))
-	assert_true(world.is_desk_hidden("general_services/review", 0))
+	assert_true(review.moods[0].is_absent())
 	assert_eq(world._walkers.back().to, world.layout.desk_position("general_services/review", 0) + Vector2(0, -24))
 
 
@@ -1318,41 +1347,57 @@ func test_dispute_crew_walks_over_and_back() -> void:
 	while review.desks < 2:
 		review.add_desk()
 	review.staff = 2
-	game.simulation.dispute_started.emit("coffee", "general_services")
+	var dispute := game.simulation.start_dispute("radio", "general_services")
+	assert_not_null(dispute)
 	var crew := world.dispute_crew("general_services")
 	assert_eq(crew.size(), 2)
 	for member in crew:
-		assert_true(world.is_desk_hidden(str(member.key), int(member.desk)))
+		var station := game.state.station(str(member.key))
+		assert_true(station.moods[int(member.desk)].is_disputing())
+		assert_false(station.is_working(int(member.desk)))
 	assert_true(world._leaving.has("dispute#general_services"))
 	var walkers := world._walkers.size()
 	world.queue_redraw()
 	await wait_physics_frames(2)
 	world._advance_effects(20.0)
 	assert_false(world._leaving.has("dispute#general_services"))
-	game.simulation.dispute_ended.emit("coffee", "general_services", true)
+	game.simulation.end_dispute(dispute, true)
 	assert_eq(world._walkers.size(), 2)
 	for walker in world._walkers:
 		assert_eq(walker.kind, "staff")
-		assert_eq(walker.from.distance_to(world.layout.dispute_point("general_services")), WorldView.DISPUTE_OFFSET)
+		assert_almost_eq(float(walker.from.distance_to(world.layout.dispute_point("general_services"))), GameConfig.DISPUTE_CREW_OFFSET, 0.001)
 	for member in crew:
-		assert_true(world._returning.has(WorldView.desk_key(str(member.key), int(member.desk))))
+		assert_true(game.state.station(str(member.key)).moods[int(member.desk)].is_returning())
 	assert_false(world._dispute_crews.has("general_services"))
 	assert_gt(walkers, 0)
 
 
-func test_dispute_crew_member_leaving_for_the_kitchen_starts_at_the_dispute() -> void:
+func test_absent_desks_say_where_the_official_is() -> void:
+	var mood := DeskMood.new()
+	for rest_state in [DeskMood.LOO, DeskMood.CHAT, DeskMood.FETCH, DeskMood.SLOW, DeskMood.LUNCH]:
+		mood.rest(rest_state, 1)
+		assert_eq(WorldView.absence_text(mood), TranslationServer.translate("OFFICIAL_STATE_" + rest_state.to_upper()))
+	mood.wake(1.0)
+	assert_true(mood.join_dispute())
+	assert_eq(WorldView.absence_text(mood), TranslationServer.translate("OFFICIAL_STATE_DISPUTE"))
+	mood.arrive()
+	mood.start_return(2.0)
+	assert_eq(WorldView.absence_text(mood), TranslationServer.translate("OFFICIAL_STATE_RETURNING"))
+	assert_ne(WorldView.absence_text(mood), "OFFICIAL_STATE_RETURNING")
+
+
+func test_world_view_draws_every_absence_state() -> void:
 	var world := _world()
 	var review := game.state.station("general_services/review")
-	while review.desks < 2:
+	while review.desks < 3:
 		review.add_desk()
-	review.staff = 2
-	world.dispute_crew("general_services")
-	assert_eq(world._dispute_crews.general_services.size(), 2)
-	review.moods[0].rest(DeskMood.CHAT, 1)
-	game.simulation.employee_dozed.emit("general_services/review", 0, DeskMood.CHAT)
-	assert_eq(world._walkers.back().from, world._crew_spot("general_services", 0))
-	assert_eq(world._dispute_crews.general_services.size(), 1)
-	review.moods[1].rest(DeskMood.SICK)
-	game.simulation.dispute_ended.emit("coffee", "general_services", false)
-	assert_false(world.is_desk_hidden("general_services/review", 1))
-	assert_false(world._returning.has("general_services/review#1"))
+	review.staff = 3
+	for rest_state in [DeskMood.LUNCH, DeskMood.ASLEEP, DeskMood.COFFEE]:
+		review.moods[0].wake(1.0)
+		review.moods[0].rest(rest_state, GameConfig.LUNCH_SLOT if rest_state == DeskMood.LUNCH else -1)
+		review.moods[1].wake(1.0)
+		review.moods[1].join_dispute()
+		review.moods[2].start_return(3.0)
+		world.queue_redraw()
+		await wait_physics_frames(2)
+	assert_true(is_instance_valid(world))

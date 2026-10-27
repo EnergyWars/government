@@ -1,7 +1,7 @@
 extends GutTest
 
 const REVIEW := "general_services/review"
-const SIGNATURE := "general_services/signature"
+const SIGNATURE := "tax_services/signature"
 
 var state: GameState
 var game: Game
@@ -12,6 +12,8 @@ func before_each() -> void:
 	for dept_id in state.departments:
 		state.departments[dept_id].arrival_timer = -1e9
 	state.money = 1.0e9
+	state.unlock_department("tax_services")
+	state.station(REVIEW).staff = 1
 	game = Game.new(state)
 
 

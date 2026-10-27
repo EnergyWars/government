@@ -9,8 +9,6 @@ static func unlock_block_reason(state: GameState, dept_id: String) -> String:
 	if dept.unlocked:
 		return "unlocked"
 	var config := dept.config()
-	if state.unlocked_count() >= int(state.stage_config().max_departments):
-		return "space"
 	if state.standing() < float(config.unlock_reputation):
 		return "reputation"
 	if not state.can_afford(float(config.unlock_cost)):
@@ -36,8 +34,6 @@ static func upgrade_block_reason(state: GameState, upgrade_id: String, room_id: 
 		return "max"
 	if not room_available(state, room_id) or not room_available(state, GameConfig.spot_room(GameConfig.upgrade_spot(upgrade_id, room_id))):
 		return "room"
-	if state.building_stage < int(config.get("stage", 0)):
-		return "stage"
 	var requires: Dictionary = config.get("requires", {})
 	for required_id: String in requires:
 		if state.upgrade_level(required_id) < int(requires[required_id]):
@@ -60,15 +56,3 @@ static func room_available(state: GameState, room_id: String) -> bool:
 		return true
 	var dept := state.department(room_id)
 	return dept != null and dept.unlocked
-
-
-static func expansion_block_reason(state: GameState) -> String:
-	var next := state.building_stage + 1
-	if next >= GameConfig.BUILDING_STAGES.size():
-		return "max"
-	var config := GameConfig.building_stage(next)
-	if state.standing() < float(config.reputation):
-		return "reputation"
-	if not state.can_afford(float(config.cost)):
-		return "money"
-	return ""

@@ -111,11 +111,12 @@ func test_room_track_entry_uses_room_spot_and_cost() -> void:
 
 func test_station_entries_depend_on_station_type() -> void:
 	var ids := _ids(UpgradeCatalog.station_entries(state, GameConfig.RECEPTION))
-	assert_eq(ids, ["level:shared/reception", "desk:shared/reception", "hire:shared/reception"] as Array[String])
-	var machine := _ids(UpgradeCatalog.station_entries(state, "general_services/signature"))
-	assert_true(machine.has("level:general_services/signature"))
-	assert_false(machine.has("hire:general_services/signature"))
-	assert_false(machine.has("specialist:general_services/signature"))
+	assert_eq(ids, ["level:shared/reception", "desk:shared/reception", "hire:shared/reception", "trays:shared/reception", "reject_pile:shared/reception"] as Array[String])
+	state.unlock_department("tax_services")
+	var machine := _ids(UpgradeCatalog.station_entries(state, "tax_services/signature"))
+	assert_true(machine.has("level:tax_services/signature"))
+	assert_false(machine.has("hire:tax_services/signature"))
+	assert_false(machine.has("specialist:tax_services/signature"))
 	assert_true(_ids(UpgradeCatalog.station_entries(state, "general_services/review")).has("specialist:general_services/review"))
 	assert_true(UpgradeCatalog.station_entries(state, "nope/review").is_empty())
 
@@ -128,6 +129,61 @@ func test_station_entries_point_to_station_spot() -> void:
 	assert_eq(level.room, GameConfig.ROOM_HALL)
 	assert_eq(level.max_level, GameConfig.MAX_STATION_LEVEL)
 	assert_almost_eq(level.cost, Formulas.upgrade_cost(state.station(GameConfig.RECEPTION)), 0.001)
+
+
+func test_tray_entries_exist_for_every_station_and_grow_capacity() -> void:
+	for key in state.ordered_station_keys():
+		assert_true(_ids(UpgradeCatalog.station_entries(state, key)).has("trays:" + key), key)
+	var review := state.station("general_services/review")
+	var entry := UpgradeCatalog.find(state, "trays:general_services/review")
+	assert_eq(entry.kind, UpgradeCatalog.TRAYS)
+	assert_eq(entry.topic, "building")
+	assert_eq(entry.room, "general_services")
+	assert_eq(entry.max_level, GameConfig.MAX_TRAY_LEVEL)
+	assert_almost_eq(entry.cost, Formulas.tray_cost(review), 0.001)
+	assert_eq(entry.growth, GameConfig.TRAY_GROWTH)
+	var inbox := review.inbox_capacity(state.lobby_capacity())
+	var outbox := review.outbox_capacity()
+	state.money = 1e12
+	assert_true(UpgradeCatalog.buy(actions, entry.id, 3))
+	assert_eq(review.tray_level, 3)
+	assert_eq(review.inbox_capacity(state.lobby_capacity()), inbox + 3 * GameConfig.TRAY_CAPACITY_PER_LEVEL)
+	assert_eq(review.outbox_capacity(), outbox + 3 * GameConfig.TRAY_CAPACITY_PER_LEVEL)
+	assert_gt(Formulas.tray_cost(review), entry.cost)
+
+
+func test_tray_upgrade_respects_money_and_maximum() -> void:
+	var review := state.station("general_services/review")
+	state.money = 0.0
+	assert_false(actions.upgrade_trays("general_services/review"))
+	assert_eq(UpgradeCatalog.find(state, "trays:general_services/review").reason, "money")
+	state.money = 1e15
+	review.tray_level = GameConfig.MAX_TRAY_LEVEL
+	assert_false(actions.upgrade_trays("general_services/review"))
+	assert_eq(UpgradeCatalog.find(state, "trays:general_services/review").reason, "max")
+	assert_false(actions.upgrade_trays("nope/review"))
+	assert_null(UpgradeCatalog.find(state, "trays:nope/review"))
+
+
+func test_entry_stations_only_widen_their_out_tray() -> void:
+	var reception := state.station(GameConfig.RECEPTION)
+	var inbox := reception.inbox_capacity(state.lobby_capacity())
+	reception.tray_level = 2
+	assert_eq(reception.inbox_capacity(state.lobby_capacity()), inbox)
+	assert_eq(reception.outbox_capacity(), GameConfig.OUTBOX_BASE + GameConfig.OUTBOX_PER_DESK * reception.desks + 2 * GameConfig.TRAY_CAPACITY_PER_LEVEL)
+
+
+func test_tray_texts() -> void:
+	var entry := UpgradeCatalog.find(state, "trays:general_services/review")
+	assert_eq(UpgradeTexts.title(entry), TranslationServer.translate("FMT_ENTRY_TRAYS") % StationCard.label_for("general_services/review"))
+	assert_eq(UpgradeTexts.icon(entry), Icons.INBOX)
+	assert_eq(UpgradeTexts.description(entry), TranslationServer.translate("ENTRY_DESC_TRAYS"))
+	assert_eq(UpgradeTexts.effect(state, entry), TranslationServer.translate("FMT_EFFECT_TRAYS") % ["0", str(GameConfig.TRAY_CAPACITY_PER_LEVEL)])
+	state.station("general_services/review").tray_level = GameConfig.MAX_TRAY_LEVEL
+	entry = UpgradeCatalog.find(state, "trays:general_services/review")
+	assert_eq(UpgradeTexts.effect(state, entry), TranslationServer.translate("FMT_EFFECT_TRAYS_MAX") % str(GameConfig.MAX_TRAY_LEVEL * GameConfig.TRAY_CAPACITY_PER_LEVEL))
+	for key in ["FMT_ENTRY_TRAYS", "ENTRY_DESC_TRAYS", "FMT_EFFECT_TRAYS", "FMT_EFFECT_TRAYS_MAX"]:
+		assert_ne(TranslationServer.translate(key), key)
 
 
 func test_desk_entry_needs_next_stage_when_full() -> void:
@@ -156,7 +212,6 @@ func test_hire_entry_reasons() -> void:
 	assert_eq(hire.reason, "")
 	state.station(GameConfig.RECEPTION).staff = state.station(GameConfig.RECEPTION).desks
 	assert_eq(UpgradeCatalog.find(state, "hire:shared/reception").reason, "desks")
-	state.building_stage = 1
 	state.unlock_department("tax_services")
 	assert_eq(UpgradeCatalog.find(state, "hire:tax_services/review").reason, "onboarding")
 	state.department("tax_services").hands_on = GameConfig.HANDS_ON_CASES
@@ -189,22 +244,27 @@ func test_staff_counts_follow_state() -> void:
 	state.add_runner()
 	state.add_collector()
 	state.add_coffee_intern()
-	state.add_helper()
-	state.guards = 2
 	state.hr = 3
 	assert_eq(UpgradeCatalog.staff_count(state, "runners"), 1)
 	assert_eq(UpgradeCatalog.staff_count(state, "collectors"), 1)
 	assert_eq(UpgradeCatalog.staff_count(state, "coffee_interns"), 1)
-	assert_eq(UpgradeCatalog.staff_count(state, "helpers"), 1)
-	assert_eq(UpgradeCatalog.staff_count(state, "guards"), 2)
 	assert_eq(UpgradeCatalog.staff_count(state, "hr"), 3)
 
 
-func test_helpers_need_shredder_service() -> void:
+func test_complaint_tracks_need_desk_interns_and_security() -> void:
 	state.money = 1e9
-	assert_eq(UpgradeCatalog.find(state, "staff:helpers").reason, "requires")
-	state.set_upgrade("shredder_service", 1)
-	assert_eq(UpgradeCatalog.find(state, "staff:helpers").reason, "")
+	assert_eq(UpgradeCatalog.find(state, "track:complaint_interns").reason, "")
+	assert_eq(UpgradeCatalog.find(state, "track:intern_steadfast").reason, "requires")
+	assert_eq(UpgradeCatalog.find(state, "track:intern_box_runs").reason, "requires")
+	assert_eq(UpgradeCatalog.find(state, "track:security_training").reason, "requires")
+	state.set_upgrade("complaint_interns", 1)
+	assert_eq(UpgradeCatalog.find(state, "track:intern_steadfast").reason, "")
+	assert_eq(UpgradeCatalog.find(state, "track:intern_speed").reason, "")
+	assert_eq(UpgradeCatalog.find(state, "track:intern_box_runs").reason, "requires")
+	state.set_upgrade("complaint_interns", 2)
+	assert_eq(UpgradeCatalog.find(state, "track:intern_box_runs").reason, "")
+	state.set_upgrade("complaint_security", 1)
+	assert_eq(UpgradeCatalog.find(state, "track:security_training").reason, "")
 
 
 func test_runner_level_entries_exist_per_runner() -> void:
@@ -269,17 +329,20 @@ func test_unlock_entries_only_offer_the_next_department() -> void:
 	assert_null(UpgradeCatalog.find(state, "unlock:nope"))
 
 
-func test_stage_entry_until_final_stage() -> void:
-	var entry := UpgradeCatalog.find(state, "stage:building")
-	assert_eq(entry.spot, "entrance")
-	assert_eq(entry.room, GameConfig.ROOM_HALL)
-	assert_true(entry.single)
-	assert_eq(entry.max_level, GameConfig.BUILDING_STAGES.size() - 1)
-	assert_almost_eq(entry.cost, float(GameConfig.building_stage(1).cost), 0.001)
-	assert_eq(entry.reason, Progression.expansion_block_reason(state))
-	state.building_stage = GameConfig.BUILDING_STAGES.size() - 1
+func test_building_stage_is_not_for_sale() -> void:
 	assert_null(UpgradeCatalog.find(state, "stage:building"))
-	assert_false(_ids(UpgradeCatalog.entries(state)).has("stage:building"))
+	for entry in UpgradeCatalog.entries(state):
+		assert_false(entry.id.begins_with("stage:"), entry.id)
+	assert_false(UpgradeCatalog.buy(actions, "stage:building"))
+	assert_eq(state.building_stage, 0)
+
+
+func test_unlock_is_not_blocked_by_the_building() -> void:
+	state.money = 1e12
+	state.reputation = float(GameConfig.department("tax_services").unlock_reputation)
+	assert_eq(UpgradeCatalog.find(state, "unlock:tax_services").reason, "")
+	assert_true(actions.buy_entry("unlock:tax_services"))
+	assert_eq(state.building_stage, GameConfig.stage_for_departments(2))
 
 
 func test_find_rejects_malformed_ids() -> void:
@@ -290,10 +353,12 @@ func test_find_rejects_malformed_ids() -> void:
 func test_entries_for_room_spot() -> void:
 	var entries := UpgradeCatalog.entries_for_spot(state, "room:hall")
 	var ids := _ids(entries)
-	assert_true(ids.has("track:waiting_places"))
+	assert_true(ids.has("track:seating"))
+	assert_true(ids.has("track:ticket_speed"))
+	assert_true(ids.has("track:ticket_machine_2"))
 	assert_true(ids.has("level:shared/reception"))
-	assert_true(ids.has("staff:guards"))
-	assert_true(ids.has("stage:building"))
+	assert_false(ids.has("track:complaint_security"))
+	assert_false(ids.has("stage:building"))
 	for entry in entries:
 		assert_eq(entry.room, GameConfig.ROOM_HALL, entry.id)
 
@@ -336,10 +401,12 @@ func test_spots_of_follows_the_map_order() -> void:
 	var spots := UpgradeCatalog.spots_of(UpgradeCatalog.entries_for_spot(state, "room:player"))
 	assert_eq(spots, ["player"] as Array[String])
 	var hall := UpgradeCatalog.spots_of(UpgradeCatalog.entries_for_spot(state, "room:hall"))
-	var expected: Array[String] = ["entrance", "waiting", "seating", "tickets", "ticket_display", "complaint_box", "guards", "archive", "training", "station:" + GameConfig.RECEPTION, "station:" + GameConfig.COUNTER, "tube:hall"]
+	var expected: Array[String] = ["seating", "pickup_seating", "tickets", "archive", "station:" + GameConfig.RECEPTION, "station:" + GameConfig.COUNTER, "tube:hall"]
 	assert_eq(hall, expected)
 	var kitchen := UpgradeCatalog.spots_of(UpgradeCatalog.entries_for_spot(state, "room:kitchen"))
-	assert_eq(kitchen, ["coffee_machine", "kitchen", "coffee_interns", "works_council"] as Array[String])
+	assert_eq(kitchen, ["coffee_machine", "kitchen", "canteen"] as Array[String])
+	var complaints := UpgradeCatalog.spots_of(UpgradeCatalog.entries_for_spot(state, "room:complaint_office"))
+	assert_eq(complaints, ["complaint_desk", "complaint_box", "security"] as Array[String])
 	assert_true(UpgradeCatalog.spots_of([] as Array[UpgradeEntry]).is_empty())
 
 
@@ -355,22 +422,6 @@ func test_spot_kind_and_target() -> void:
 	assert_eq(GameConfig.spot_room("shredder"), GameConfig.ROOM_SHREDDER)
 	assert_eq(GameConfig.spot_room("shredder:housing"), "housing")
 	assert_eq(GameConfig.spot_room("nope"), "")
-
-
-func test_resolve_spot_falls_back_to_room() -> void:
-	assert_eq(UpgradeCatalog.resolve_spot(state, "station:" + GameConfig.MAILROOM), "room:mail")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "station:tax_services/review"), "dept:tax_services")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "station:general_services/review"), "station:general_services/review")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "shredder:tax_services"), "dept:tax_services")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "shredder:general_services"), "shredder:general_services")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "tube:general_services"), "dept:general_services")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "tube:hall"), "room:hall")
-	state.set_upgrade("pneumatic_tubes", 1)
-	assert_eq(UpgradeCatalog.resolve_spot(state, "tube:general_services"), "tube:general_services")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "tube:hall"), "tube:hall")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "tube:mail"), "room:mail")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "entrance"), "entrance")
-	assert_eq(UpgradeCatalog.resolve_spot(state, "room:hall"), "room:hall")
 
 
 func test_room_spot() -> void:
@@ -413,8 +464,6 @@ func test_buy_repeats_until_money_runs_out() -> void:
 func test_buy_single_kinds_only_once() -> void:
 	state.money = 1e12
 	state.reputation = 1e6
-	assert_true(actions.buy_entry("stage:building", 5))
-	assert_eq(state.building_stage, 1)
 	assert_true(actions.buy_entry("unlock:tax_services", 3))
 	assert_true(state.department("tax_services").unlocked)
 	assert_false(state.department("business_licences").unlocked)
@@ -426,7 +475,6 @@ func test_buy_every_other_kind() -> void:
 	_connect_all_tubes()
 	state.building_stage = GameConfig.MAIL_UNLOCK_STAGE
 	state.ensure_mailroom()
-	state.set_upgrade("shredder_service", 1)
 	assert_true(actions.buy_entry("desk:shared/reception"))
 	assert_true(actions.buy_entry("hire:shared/reception"))
 	assert_true(actions.buy_entry("specialist:general_services/review"))

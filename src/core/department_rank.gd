@@ -36,6 +36,10 @@ static func fee_factor(level: int) -> float:
 	return factor
 
 
+static func time_factor(level: int) -> float:
+	return pow(GameConfig.RANK_LEVEL_TIME_FACTOR, clamp_level(level) - 1)
+
+
 static func department_index(dept_id: String) -> int:
 	return maxi(0, GameConfig.department_ids().find(dept_id))
 

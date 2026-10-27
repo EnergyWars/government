@@ -1,13 +1,12 @@
 class_name ComplaintIntern
 extends Carrier
 
-enum Mood { DESK, TO_LOO, CRYING, RETURNING, TO_SHREDDER, FROM_SHREDDER }
+enum Mood { DESK, TO_LOO, CRYING, RETURNING, TO_BOX, TO_SHREDDER, FROM_SHREDDER }
 
 var mood := Mood.DESK
-var stress := 0.0
-var timer := 0.0
+var handled := 0
+var carried := 0
 var comfort_progress := 0.0
-var work_timer := 0.0
 var slot := 0
 
 
@@ -19,8 +18,12 @@ func is_away() -> bool:
 	return mood == Mood.TO_LOO or mood == Mood.CRYING
 
 
+func is_running() -> bool:
+	return mood == Mood.TO_BOX or mood == Mood.TO_SHREDDER or mood == Mood.FROM_SHREDDER
+
+
 func to_dict() -> Dictionary:
-	return {"x": position.x, "y": position.y, "mood": mood, "stress": stress, "timer": timer}
+	return {"x": position.x, "y": position.y, "mood": mood, "handled": handled}
 
 
 static func from_dict(data: Variant, fallback: Vector2, p_slot: int = 0) -> ComplaintIntern:
@@ -31,8 +34,7 @@ static func from_dict(data: Variant, fallback: Vector2, p_slot: int = 0) -> Comp
 	intern.position = WorldLayout.get_default().clamp_to_world(Vector2(float(data.get("x", fallback.x)), float(data.get("y", fallback.y))))
 	var saved_mood := int(data.get("mood", Mood.DESK))
 	intern.mood = saved_mood if Mood.values().has(saved_mood) else Mood.DESK
-	intern.stress = clampf(float(data.get("stress", 0.0)), 0.0, 1.0)
-	intern.timer = clampf(float(data.get("timer", 0.0)), 0.0, GameConfig.INTERN_CRY_SECONDS)
-	if intern.mood == Mood.TO_SHREDDER or intern.mood == Mood.FROM_SHREDDER:
+	intern.handled = clampi(int(data.get("handled", 0)), 0, GameConfig.INTERN_MAX_STEADFAST)
+	if intern.is_running():
 		intern.mood = Mood.RETURNING
 	return intern

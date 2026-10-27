@@ -16,32 +16,38 @@ static func lines(state: GameState, spot: String) -> Array[String]:
 		"tube":
 			result.append(tube_station(state, target))
 			return result
+		"station":
+			var station := state.station(target)
+			if station != null and station.is_output_jammed():
+				result.append(t("STATUS_OUTPUTS_JAMMED"))
+			return result
 	match spot:
 		"player":
 			result.append(t("FMT_STATUS_PLAYER") % [Formulas.carry_capacity(state), UiKit.decimal(Formulas.player_speed(state) / GameConfig.PLAYER_SPEED, 2)])
 		"entrance":
-			result.append(t("FMT_STATUS_STAGE") % [state.building_stage + 1, GameConfig.BUILDING_STAGES.size(), state.unlocked_count(), int(state.stage_config().max_departments)])
+			result.append(t("FMT_STATUS_STAGE") % [t("STAGE_" + str(state.stage_config().id).to_upper()), state.unlocked_count(), GameConfig.DEPARTMENTS.size()])
 			result.append(population(state))
-		"waiting":
-			result.append(t("FMT_STATUS_WAITING") % [state.lobby_capacity(), state.standing_citizens(), state.standing_capacity(), state.walkouts])
 		"seating":
-			result.append(t("FMT_STATUS_SEATING") % [mini(state.seated_citizens(), state.seat_capacity()), state.seat_capacity()])
+			result.append(waiting_room(state, GameConfig.HALL_INTAKE))
+			result.append(t("FMT_STATUS_WALKOUTS") % state.walkouts)
+		"pickup_seating":
+			result.append(waiting_room(state, GameConfig.HALL_PICKUP))
 		"tickets":
 			result.append(tickets(state))
-		"ticket_display":
-			result.append(ticket_display(state))
 		"complaint_box":
 			result.append(t("FMT_STATUS_COMPLAINT_BOX") % [state.complaints, Formulas.complaint_cap(state)])
 		"complaint_desk":
-			result.append(t("FMT_STATUS_COMPLAINT_DESK") % [UiKit.percent(Formulas.complaint_fend_chance(state.upgrade_level("complaint_clerk"))), state.complaints_fended])
-		"interns":
-			result.append(interns(state))
+			result.append_array(complaint_desk(state))
+		"security":
+			result.append(security(state))
 		"shredder":
 			result.append(t("FMT_STATUS_SHREDDER") % [state.rejects_waiting(), state.shredder_rooms().size()])
 		"collectors":
 			result.append(t("FMT_COLLECTOR_INFO") % [Formulas.collector_capacity(state), state.rejects_waiting()])
 		"coffee_interns":
 			result.append(t("FMT_COFFEE_INTERN_INFO") % state.coffees_served)
+		"canteen":
+			result.append(t("FMT_STATUS_CANTEEN") % [state.lunches, UiKit.decimal(Formulas.upgrade_value(state, "canteen_speed")), UiKit.decimal(Formulas.upgrade_value(state, "canteen_menu"), 2)])
 		"runners":
 			result.append(runners(state))
 		"tube_hub":
@@ -52,29 +58,32 @@ static func lines(state: GameState, spot: String) -> Array[String]:
 			result.append(t("FMT_STATUS_TOILETS") % state.loo_slots())
 		"phone", "phone_clerks":
 			result.append(t("FMT_HR_INFO") % [state.sick_count(), state.reported_sick_count(), state.ringing_count()])
-		"guards":
-			result.append(t("FMT_GUARD_INFO") % [roundi(Formulas.guard_block_chance(state) * 100.0), state.visitors_stopped])
 		"mail_shelf", "mailbox":
 			result.append(mail(state))
 	return result
 
 
 static func tickets(state: GameState) -> String:
-	if not state.tickets_unlocked():
-		return t("FMT_TICKETS_LOCKED") % (GameConfig.TICKET_UNLOCK_STAGE + 1)
-	return t("FMT_STATUS_TICKETS") % [Formulas.ticket_machines(state), UiKit.decimal(Formulas.ticket_draw_time(state)), state.ticket_line.size(), state.ticket_line_capacity()]
+	return t("FMT_STATUS_TICKETS") % [Formulas.ticket_machines(state), UiKit.decimal(Formulas.ticket_draw_rate(state) * 60.0, 0), state.ticket_line.size(), Formulas.ticket_line_capacity(state)]
 
 
-static func ticket_display(state: GameState) -> String:
-	if not state.tickets_unlocked():
-		return t("FMT_TICKETS_LOCKED") % (GameConfig.TICKET_UNLOCK_STAGE + 1)
-	return t("FMT_STATUS_TICKET_DISPLAY") % [Formulas.ticket_displays(state), UiKit.decimal(Formulas.ticket_call_time(state)), state.ticket_waiting.size(), state.last_called_ticket]
+static func waiting_room(state: GameState, room: String) -> String:
+	return t("FMT_STATUS_SEATING") % [state.seated_citizens(room), state.seat_capacity(room), state.standing_citizens(room), state.standing_capacity(room)]
 
 
-static func interns(state: GameState) -> String:
-	if not state.has_upgrade("shredder_service"):
-		return t("LABEL_NEEDS_SHREDDER_SERVICE")
-	return t("FMT_HELPER_INFO") % Formulas.intern_capacity(state)
+static func complaint_desk(state: GameState) -> Array[String]:
+	var steadfast := Formulas.intern_steadfast(state)
+	var result: Array[String] = [t("FMT_STATUS_COMPLAINT_DESK") % [state.interns_at_desk(), state.interns.size(), steadfast, state.complaints_absorbed]]
+	for unit in state.interns:
+		var mood := t("INTERN_MOOD_" + str(ComplaintIntern.Mood.keys()[unit.mood]))
+		result.append(t("FMT_INTERN_STATUS") % [t("FMT_INTERN_NAME") % (unit.slot + 1), mood, unit.handled, steadfast])
+	return result
+
+
+static func security(state: GameState) -> String:
+	if not state.has_upgrade("complaint_security"):
+		return t("STATUS_NO_SECURITY")
+	return t("FMT_SECURITY_INFO") % [roundi(Formulas.security_chance(state) * 100.0), state.visitors_stopped]
 
 
 static func runners(state: GameState) -> String:
@@ -111,7 +120,7 @@ static func dept_shredder(state: GameState, dept_id: String) -> String:
 static func mail(state: GameState) -> String:
 	var room := state.mailroom()
 	if room == null:
-		return t("FMT_MAIL_LOCKED") % (GameConfig.MAIL_UNLOCK_STAGE + 1)
+		return t("FMT_MAIL_LOCKED") % GameConfig.departments_for_stage(GameConfig.MAIL_UNLOCK_STAGE)
 	return t("FMT_MAIL_STORAGE_INFO") % [room.inbox.size(), room.storage_capacity(), GameConfig.MAIL_STORAGE_PER_LEVEL, Formulas.mail_batch(state), UiKit.duration(state.mail_timer), state.mail_floor.size(), state.mail_returned, UiKit.percent(Formulas.mail_reward_factor(state))]
 
 

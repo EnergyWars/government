@@ -20,6 +20,7 @@ func before_each() -> void:
 	state.sick_timer = 1e6
 	state.kranz_timer = 1e6
 	state.complaint_timer = 1e6
+	state.complaint_letter_timer = 1e6
 	state.dispute_timer = 1e6
 	state.player.position = Vector2(50, 50)
 
@@ -366,12 +367,12 @@ func test_work_desk_reports_progress() -> void:
 	assert_false(sim.work_desk(review, 0, 1.0))
 
 
-func test_awake_colleague_is_not_covered_by_player() -> void:
+func test_player_helps_an_awake_colleague_over_the_shoulder() -> void:
 	var review := state.station(REVIEW)
 	review.jobs[0] = StationJob.new(_case_at_review(), 100.0)
 	_stand_at(0)
 	_run(1.0, 0.1)
-	assert_almost_eq(review.jobs[0].progress, 1.0, 0.2)
+	assert_gt(review.jobs[0].progress, 1.0 + Formulas.work_power(state) * 0.5)
 
 
 func test_any_toilet_guest_can_be_chased_out() -> void:
@@ -406,11 +407,9 @@ func test_staff_reduces_sickness_disputes_kranz_and_complaints() -> void:
 	assert_eq(Formulas.kranz_interval(state, 1.0), GameConfig.KRANZ_MAX_INTERVAL)
 	state.coffee_interns.append(CoffeeIntern.new())
 	assert_almost_eq(Formulas.kranz_interval(state, 0.0), GameConfig.KRANZ_MIN_INTERVAL * (1.0 + GameConfig.KRANZ_COFFEE_RELIEF), 0.001)
-	assert_almost_eq(Formulas.complaint_interval(state, 0.0), GameConfig.COMPLAINT_INTERVAL * 0.7, 0.001)
-	assert_almost_eq(Formulas.complaint_interval(state, 1.0), GameConfig.COMPLAINT_INTERVAL * 1.3, 0.001)
-	state.guards = 1
-	state.helpers.append(ComplaintIntern.new(Vector2.ZERO))
-	assert_almost_eq(Formulas.complaint_interval(state, 0.5), GameConfig.COMPLAINT_INTERVAL * (1.0 + 2.0 * GameConfig.COMPLAINT_STAFF_RELIEF), 0.001)
+	assert_almost_eq(Formulas.complaint_interval(0.0), GameConfig.COMPLAINT_INTERVAL * 0.7, 0.001)
+	assert_almost_eq(Formulas.complaint_interval(1.0), GameConfig.COMPLAINT_INTERVAL * 1.3, 0.001)
+	assert_almost_eq(Formulas.complaint_interval(0.5), GameConfig.COMPLAINT_INTERVAL, 0.001)
 	assert_eq(Formulas.total_supervisors(state), 0)
 	state.department("general_services").supervisors = 2
 	assert_eq(Formulas.total_supervisors(state), 2)
@@ -438,11 +437,11 @@ func test_kranz_and_complaint_timers_use_relief() -> void:
 		state.coffee_interns.append(CoffeeIntern.new())
 	sim.end_kranz(false)
 	assert_gte(state.kranz_timer, GameConfig.KRANZ_MIN_INTERVAL * (1.0 + GameConfig.MAX_COFFEE_INTERNS * GameConfig.KRANZ_COFFEE_RELIEF) - 0.01)
-	state.guards = GameConfig.MAX_GUARDS
+	state.set_upgrade("complaint_security", 1)
 	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
 	state.complaint_timer = 0.0
 	sim.tick(0.05)
-	assert_gte(state.complaint_timer, GameConfig.COMPLAINT_INTERVAL * 0.7 * (1.0 + GameConfig.MAX_GUARDS * GameConfig.COMPLAINT_STAFF_RELIEF) - 0.1)
+	assert_between(state.complaint_timer, GameConfig.COMPLAINT_INTERVAL * 0.7 - 0.1, GameConfig.COMPLAINT_INTERVAL * 1.3)
 
 
 func test_clock_format() -> void:

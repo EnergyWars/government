@@ -38,6 +38,47 @@ func test_complaints_are_filed_after_minimum_cases() -> void:
 	assert_signal_emitted_with_parameters(sim, "complaint_filed", [false])
 
 
+func test_complaint_letters_arrive_without_a_reason() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	state.complaint_timer = 1e6
+	state.complaint_letter_timer = 1.0
+	watch_signals(sim)
+	_run(1.5, 0.5)
+	assert_eq(state.complaints, 1)
+	assert_eq(state.complaints_filed, 1)
+	assert_signal_emitted_with_parameters(sim, "complaint_filed", [false])
+	assert_between(state.complaint_letter_timer, GameConfig.COMPLAINT_LETTER_MIN_INTERVAL - 1.0, GameConfig.COMPLAINT_LETTER_MAX_INTERVAL)
+
+
+func test_no_complaint_letters_before_minimum_cases() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES - 1
+	state.complaint_letter_timer = 0.5
+	_run(2.0, 0.5)
+	assert_eq(state.complaints, 0)
+	assert_eq(state.complaint_letter_timer, 0.5)
+
+
+func test_complaint_letters_respect_the_amnesty() -> void:
+	state.cases_completed = GameConfig.COMPLAINT_MIN_CASES
+	state.complaint_timer = 1e6
+	state.boosts["complaint_amnesty"] = 60.0
+	state.complaint_letter_timer = 0.5
+	_run(1.0, 0.5)
+	assert_eq(state.complaints, 0)
+	assert_gt(state.complaint_letter_timer, GameConfig.COMPLAINT_LETTER_MIN_INTERVAL - 1.0)
+
+
+func test_complaint_letters_come_now_and_then() -> void:
+	assert_gte(GameConfig.COMPLAINT_LETTER_MIN_INTERVAL, 120.0)
+	assert_lt(GameConfig.COMPLAINT_LETTER_MIN_INTERVAL, GameConfig.COMPLAINT_LETTER_MAX_INTERVAL)
+	assert_eq(Formulas.complaint_letter_interval(0.0), GameConfig.COMPLAINT_LETTER_MIN_INTERVAL)
+	assert_eq(Formulas.complaint_letter_interval(1.0), GameConfig.COMPLAINT_LETTER_MAX_INTERVAL)
+	assert_eq(Formulas.complaint_letter_interval(-3.0), GameConfig.COMPLAINT_LETTER_MIN_INTERVAL)
+	assert_eq(Formulas.complaint_letter_interval(7.0), GameConfig.COMPLAINT_LETTER_MAX_INTERVAL)
+	assert_almost_eq(Formulas.complaint_letter_interval(0.5), (GameConfig.COMPLAINT_LETTER_MIN_INTERVAL + GameConfig.COMPLAINT_LETTER_MAX_INTERVAL) * 0.5, 0.001)
+	assert_almost_eq(Formulas.complaint_letter_rate(), 1.0 / Formulas.complaint_letter_interval(0.5), 0.0001)
+
+
 func test_full_box_costs_no_reputation() -> void:
 	state.reputation = 5.0
 	state.complaints = GameConfig.COMPLAINT_BOX_CAPACITY
@@ -100,37 +141,43 @@ func test_shred_complaints_edge_cases() -> void:
 	assert_eq(state.complaints, 0)
 
 
-func test_shredder_intern_shreds_automatically() -> void:
-	state.set_upgrade("shredder_service", 3)
+func test_box_running_interns_shred_automatically() -> void:
+	state.set_upgrade("complaint_interns", 2)
+	state.set_upgrade("intern_box_runs", 3)
 	state.complaints = 2
-	_run(Formulas.upgrade_value(state, "shredder_service") * 2.0 + 15.0, 0.5)
+	watch_signals(sim)
+	_run(Formulas.intern_trip_time(state) * 2.0 + 15.0, 0.5)
 	assert_eq(state.complaints, 0)
 	assert_eq(state.complaints_shredded, 2)
+	assert_signal_emitted_with_parameters(sim, "complaint_shredded", [false])
 
 
 func test_without_intern_nothing_is_shredded_automatically() -> void:
 	state.complaints = 2
 	_run(120.0, 1.0)
 	assert_eq(state.complaints_shredded, 0)
-	assert_eq(state.shred_timer, 0.0)
+	assert_true(state.interns.is_empty())
 
 
-func test_shredder_service_is_a_long_track_that_keeps_speeding_up() -> void:
-	var config := GameConfig.upgrade("shredder_service")
+func test_intern_speed_is_a_long_track_that_keeps_speeding_up() -> void:
+	var config := GameConfig.upgrade("intern_speed")
 	var max_level := int(config.max)
-	assert_eq(str(config.spot), "interns")
+	assert_eq(str(config.spot), "complaint_desk")
 	assert_gte(max_level, 100)
-	assert_lt(Formulas.track_value("shredder_service", 0), 0.0)
+	assert_eq(Formulas.track_value("intern_speed", 0), 1.0)
 	var faster := true
-	for level in range(2, max_level + 1):
-		faster = faster and Formulas.track_value("shredder_service", level) < Formulas.track_value("shredder_service", level - 1)
+	for level in range(1, max_level + 1):
+		faster = faster and Formulas.track_value("intern_speed", level) > Formulas.track_value("intern_speed", level - 1)
 	assert_true(faster)
-	assert_gt(Formulas.track_value("shredder_service", max_level), 0.0)
+	state.set_upgrade("complaint_interns", 1)
+	var slow := Formulas.intern_trip_time(state)
+	state.set_upgrade("intern_speed", max_level)
+	assert_lt(Formulas.intern_trip_time(state), slow)
 
 
 func test_complaint_layout_uses_office_hall_and_shredder_room() -> void:
 	assert_true(layout.complaint_office.has_point(layout.complaint_desk_point()))
-	assert_true(layout.hall.has_point(layout.complaint_box_point()))
+	assert_true(layout.complaint_office.has_point(layout.complaint_box_point()))
 	assert_true(layout.shredder_room.has_point(layout.shredder_point()))
 	assert_false(layout.near(layout.complaint_desk_point(), layout.shredder_point()))
 	assert_false(layout.near(layout.complaint_box_point(), layout.shredder_point()))
@@ -140,11 +187,13 @@ func test_complaint_state_is_saved() -> void:
 	state.complaints = 4
 	state.complaints_shredded = 9
 	state.complaint_timer = 12.0
+	state.complaint_letter_timer = 33.0
 	state.player.complaints = 2
 	var loaded := GameState.from_dict(state.to_dict())
 	assert_eq(loaded.complaints, 4)
 	assert_eq(loaded.complaints_shredded, 9)
 	assert_almost_eq(loaded.complaint_timer, 12.0, 0.001)
+	assert_almost_eq(loaded.complaint_letter_timer, 33.0, 0.001)
 	assert_eq(loaded.player.complaints, 2)
 
 
@@ -153,13 +202,16 @@ func test_old_saves_and_invalid_values_are_tolerated() -> void:
 	data.erase("complaints")
 	data.erase("complaints_shredded")
 	data.erase("complaint_timer")
+	data.erase("complaint_letter_timer")
 	data.player.erase("complaints")
 	var loaded := GameState.from_dict(data)
 	assert_eq(loaded.complaints, 0)
+	assert_eq(loaded.complaint_letter_timer, GameConfig.COMPLAINT_LETTER_MAX_INTERVAL)
 	assert_eq(loaded.player.complaints, 0)
 	data.complaints = 999
 	data.complaints_shredded = -4
 	data.complaint_timer = 1e9
+	data.complaint_letter_timer = -5.0
 	data.complaints_filed = -7
 	data.player.complaints = -3
 	loaded = GameState.from_dict(data)
@@ -167,6 +219,7 @@ func test_old_saves_and_invalid_values_are_tolerated() -> void:
 	assert_eq(loaded.complaints_shredded, 0)
 	assert_eq(loaded.complaints_filed, GameConfig.COMPLAINT_BOX_CAPACITY)
 	assert_eq(loaded.complaint_timer, GameConfig.COMPLAINT_INTERVAL)
+	assert_eq(loaded.complaint_letter_timer, 0.0)
 	assert_eq(loaded.player.complaints, 0)
 
 
@@ -204,8 +257,7 @@ func test_complaints_are_rare_and_harmless() -> void:
 
 
 func test_leaving_citizens_complain_only_occasionally() -> void:
-	assert_lte(GameConfig.LEAVE_COMPLAINT_CHANCE * GameConfig.PATIENCE_MAX_FACTOR, 0.6)
-	assert_lte(GameConfig.WALKOUT_COMPLAINT_CHANCE, GameConfig.LEAVE_COMPLAINT_CHANCE)
+	assert_lte(GameConfig.LEAVE_COMPLAINT_CHANCE, 0.6)
 	assert_gte(GameConfig.LEAVE_COMPLAINT_COOLDOWN, 30.0)
 	assert_lte(GameConfig.LEAVE_COMPLAINT_COOLDOWN, GameConfig.COMPLAINT_INTERVAL)
 
@@ -213,6 +265,7 @@ func test_leaving_citizens_complain_only_occasionally() -> void:
 func test_overcrowded_office_does_not_flood_the_box() -> void:
 	state.cases_completed = 50
 	state.complaint_timer = 1e6
+	state.complaint_letter_timer = 1e6
 	state.event_cooldown = 1e6
 	state.sick_timer = 1e6
 	state.kranz_timer = 1e6
@@ -220,7 +273,7 @@ func test_overcrowded_office_does_not_flood_the_box() -> void:
 	state.department("general_services").arrival_timer = 0.0
 	var seconds := 600.0
 	_run(seconds, 0.1)
-	var received := state.complaints_filed + state.complaints_fended
+	var received := state.complaints_filed + state.complaints_absorbed
 	for visitor in state.visitors:
 		if visitor.files_complaint:
 			received += 1
@@ -293,6 +346,7 @@ func test_sheet_shows_empty_box_and_pile_texts() -> void:
 	add_child_autofree(sheet)
 	assert_eq(sheet.title(), sheet.tr("SHEET_COMPLAINTS"))
 	assert_true(_has_label(sheet.content, sheet.tr("COMPLAINTS_EMPTY")))
+	state.set_upgrade("complaint_box", 2)
 	for i in GameConfig.COMPLAINT_READ_MAX + 2:
 		sim.file_complaint()
 	sheet.rebuild()

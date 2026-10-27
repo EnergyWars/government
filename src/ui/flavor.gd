@@ -1,7 +1,6 @@
 class_name Flavor
 extends RefCounted
 
-const QUIP_COUNT := 12
 const DONE_COUNT := 6
 const FLAWED_COUNT := 3
 const WISDOM_COUNT := 12
@@ -18,7 +17,6 @@ const SLOW_COUNT := 3
 const KRANZ_COUNT := 3
 const COMPLAINT_COUNT := 50
 const SHRED_COUNT := 4
-const FEND_COUNT := 12
 const REJECT_COUNT := 4
 const GO_KITCHEN_COUNT := 3
 const FETCH_COUNT := 3
@@ -27,19 +25,14 @@ const INTERN_NERVOUS_COUNT := 6
 const COFFEE_SERVED_COUNT := 3
 const DISPUTE_LINES := 4
 const RUCKUS_COUNT := 8
+const LUNCH_COUNT := 4
+const LUNCH_TALK_COUNT := 6
+const INTERN_ENDURE_COUNT := 6
 const SECONDS_PER_DAY := 86400
-
-
-static func quip(index: int) -> String:
-	return TranslationServer.translate("QUIP_%d" % (posmod(index, QUIP_COUNT) + 1))
 
 
 static func done(index: int) -> String:
 	return TranslationServer.translate("FLOAT_DONE_%d" % (posmod(index, DONE_COUNT) + 1))
-
-
-static func fend(index: int) -> String:
-	return TranslationServer.translate("CLERK_FEND_%d" % (posmod(index, FEND_COUNT) + 1))
 
 
 static func flawed(index: int) -> String:
@@ -110,6 +103,22 @@ static func chat(index: int) -> String:
 	return TranslationServer.translate("CHAT_%d" % (posmod(index, CHAT_COUNT) + 1))
 
 
+static func lunch(index: int) -> String:
+	return TranslationServer.translate("LUNCH_%d" % (posmod(index, LUNCH_COUNT) + 1))
+
+
+static func lunch_talk(index: int) -> String:
+	return TranslationServer.translate("LUNCH_TALK_%d" % (posmod(index, LUNCH_TALK_COUNT) + 1))
+
+
+static func intern_endure(index: int) -> String:
+	return TranslationServer.translate("INTERN_ENDURE_%d" % (posmod(index, INTERN_ENDURE_COUNT) + 1))
+
+
+static func gift(kind: int) -> String:
+	return TranslationServer.translate("GIFT_%d" % (posmod(kind, GameConfig.GIFT_KINDS) + 1))
+
+
 static func go_kitchen(index: int) -> String:
 	return TranslationServer.translate("GO_KITCHEN_%d" % (posmod(index, GO_KITCHEN_COUNT) + 1))
 
@@ -121,10 +130,6 @@ static func fetch(index: int) -> String:
 static func visit_line(angry: bool, dialog: int, line: int) -> String:
 	var prefix := "YELL" if angry else "VISIT"
 	return TranslationServer.translate("%s_%d_%d" % [prefix, dialog + 1, line + 1])
-
-
-static func vent(index: int) -> String:
-	return TranslationServer.translate("VENT_%d" % (posmod(index, GameConfig.VENT_DIALOGS) + 1))
 
 
 static func guard_line(dialog: int, line: int) -> String:
@@ -149,6 +154,10 @@ static func dispute_line(kind: String, index: int) -> String:
 
 static func ruckus_line(index: int) -> String:
 	return TranslationServer.translate("RUCKUS_%d" % (posmod(index, RUCKUS_COUNT) + 1))
+
+
+static func rage(index: int) -> String:
+	return TranslationServer.translate("RAGE_%d" % (posmod(index, GameConfig.RAGE_LINES) + 1))
 
 
 static func wisdom(unix_time: float) -> String:

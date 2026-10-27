@@ -9,9 +9,10 @@ config/name_localized={
 "de": "Idle Germany",
 "en": "Idle Germany"
 }
+config/version="1.0.0"
 config/description="Grow a tiny civil service office into a sprawling, automated government complex."
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.7", "Mobile")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://assets/icon.svg"
 config/quit_on_go_back=false
 run/low_processor_mode=false
@@ -26,6 +27,10 @@ window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/build_info/plugin.cfg")
 
 [gui]
 
@@ -43,7 +48,8 @@ locale/fallback="en"
 
 [rendering]
 
-renderer/rendering_method="mobile"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_2d=0
 2d/snap/snap_2d_transforms_to_pixel=true

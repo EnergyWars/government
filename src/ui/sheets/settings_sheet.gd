@@ -22,6 +22,13 @@ func build(container: VBoxContainer) -> void:
 		rebuild()
 	))
 	container.add_child(card)
+	container.add_child(UiKit.label(tr("SECTION_FEEDBACK"), "TitleMedium"))
+	var feedback_card := UiKit.card()
+	var feedback := UiKit.vbox(AppTheme.SPACING_SM)
+	feedback.add_child(UiKit.switch(tr("SETTING_SOUND"), settings.sound, settings.set_sound))
+	feedback.add_child(UiKit.switch(tr("SETTING_HAPTICS"), settings.haptics, settings.set_haptics))
+	feedback_card.add_child(feedback)
+	container.add_child(feedback_card)
 	container.add_child(UiKit.label(tr("SECTION_GAME"), "TitleMedium"))
 	var game_card := UiKit.card()
 	var column := UiKit.vbox(AppTheme.SPACING_SM)
@@ -38,5 +45,23 @@ func build(container: VBoxContainer) -> void:
 	container.add_child(game_card)
 	container.add_child(UiKit.label(tr("SECTION_ABOUT"), "TitleMedium"))
 	var about := UiKit.card()
-	about.add_child(UiKit.label(tr("ABOUT_TEXT"), "BodySmall", true))
+	var about_column := UiKit.vbox(AppTheme.SPACING_SM)
+	about_column.add_child(UiKit.label(tr("ABOUT_TEXT"), "BodySmall", true))
+	var bias := int(Time.get_time_zone_from_system().get("bias", 0))
+	about_column.add_child(UiKit.label(version_text(BuildInfo.load_from(), bias), "BodySmall", true))
+	about.add_child(about_column)
 	container.add_child(about)
+
+
+func version_text(info: BuildInfo, bias_minutes: int) -> String:
+	if not info.has_timestamp():
+		return tr("ABOUT_VERSION") % info.version
+	var date := info.local_datetime(bias_minutes)
+	var stamp := tr("ABOUT_BUILD_DATE").format({
+		"year": "%04d" % date.year,
+		"month": "%02d" % date.month,
+		"day": "%02d" % date.day,
+		"hour": "%02d" % date.hour,
+		"minute": "%02d" % date.minute,
+	})
+	return tr("ABOUT_VERSION_BUILT") % [info.version, stamp]

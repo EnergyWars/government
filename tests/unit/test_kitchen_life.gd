@@ -105,7 +105,7 @@ func test_player_drives_slow_walker_on() -> void:
 func test_driving_requires_being_close() -> void:
 	var review := state.station(REVIEW)
 	review.moods[0].rest(DeskMood.SLOW, 3)
-	state.player.position = layout.desk_position(REVIEW, 0)
+	state.player.position = layout.desk_position(GameConfig.COUNTER, 0)
 	_run(GameConfig.SLOW_SECONDS / GameConfig.DRIVE_FACTOR + 1.0, 0.1)
 	assert_true(review.moods[0].is_resting())
 

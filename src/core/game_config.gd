@@ -2,15 +2,15 @@ class_name GameConfig
 extends RefCounted
 
 const TICK := 1.0 / 30.0
-const MAX_STEPS_PER_FRAME := 300
+const MAX_STEPS_PER_FRAME := 8
 const START_MONEY := 120.0
 const MAX_STATION_LEVEL := 100
 const MAX_SPECIALISTS := 3
 const MAX_SUPERVISORS := 4
 const MAX_RUNNERS := 30
-const LEVEL_SPEED_BONUS := 0.12
+const LEVEL_SPEED_BONUS := 0.06
 const LEVEL_MILESTONE_STEP := 10
-const LEVEL_MILESTONE_BONUS := 1.5
+const LEVEL_MILESTONE_BONUS := 1.25
 const UPGRADE_RUSH_SECONDS := 45.0
 const UPGRADE_RUSH_SPEED := 1.5
 const SWAMPED_SHARE := 0.75
@@ -24,6 +24,7 @@ const RANK_LEVEL_FEE_FACTOR := 1.02
 const RANK_MILESTONE_STEP := 25
 const RANK_MILESTONE_FACTORS: Array[float] = [1.5, 1.5, 2.0, 2.0, 2.0, 2.5, 2.5, 2.5, 3.0, 3.0]
 const RANK_LEVEL_COST_GROWTH := 1.07
+const RANK_LEVEL_TIME_FACTOR := 1.01
 const RANK_LADDER_GROWTH := 5.0
 const RANK_TITLES := 11
 const MULTI_BASE_CHANCE := 0.12
@@ -48,17 +49,26 @@ const FLAG_PER_SPECIALIST := 0.12
 const CONTRABAND_REWARD_FACTOR := 3.0
 const FLAWED_REWARD_FACTOR := 0.4
 const REPUTATION_REWARD_DIVISOR := 20.0
-const POPULARITY_DIVISOR := 8.0
-const MAX_POPULARITY := 8.0
 const BASE_PATIENCE := 90.0
-const PATIENCE_MIN_FACTOR := 0.3
-const PATIENCE_MAX_FACTOR := 1.7
-const PATIENCE_SPREAD_MIN_CASES := 10
-const PATIENCE_HASH_SALT := 7919
+const MAX_ARRIVALS_PER_MINUTE := 180.0
+const LINE_PATIENCE := 30.0
+const SEAT_PATIENCE := 60.0
+const STAND_PATIENCE := 20.0
+const DESK_PATIENCE := 20.0
+const REVIEW_ARRIVAL_TIERS: Array[Dictionary] = [
+	{"min": 4.6, "factor": 1.0},
+	{"min": 4.3, "factor": 0.8},
+	{"min": 3.5, "factor": 0.65},
+	{"min": 0.0, "factor": 0.4},
+]
 const INBOX_BASE := 6
 const INBOX_PER_DESK := 2
 const OUTBOX_BASE := 6
 const OUTBOX_PER_DESK := 2
+const TRAY_CAPACITY_PER_LEVEL := 2
+const MAX_TRAY_LEVEL := 50
+const TRAY_COST_FACTOR := 0.6
+const TRAY_GROWTH := 1.22
 const TUBE_OVERFLOW_SHARE := 0.5
 const DESK_GROWTH := 2.2
 const HIRE_GROWTH := 2.0
@@ -90,8 +100,23 @@ const KRANZ_MIN_PARTICIPANTS := 2
 const KRANZ_END_TIME := 1.2
 const KRANZ_MAX_SECONDS := 75.0
 const KRANZ_END_REPUTATION := 0.2
-const KITCHEN_SLOTS := 12
+const KITCHEN_SLOTS := 18
 const KITCHEN_TABLE_SLOT := 6
+const LUNCH_SLOT := 12
+const LUNCH_SIZE := 6
+const LUNCH_KEEP_WORKING := 1
+const LUNCH_FIRST_SECONDS := 150.0
+const LUNCH_MIN_INTERVAL := 140.0
+const LUNCH_MAX_INTERVAL := 240.0
+const LUNCH_RETRY_SECONDS := 30.0
+const LUNCH_SECONDS := 25.0
+const LUNCH_MIN_STAFF := 3
+const GIFT_FIRST_SECONDS := 120.0
+const GIFT_MIN_INTERVAL := 180.0
+const GIFT_MAX_INTERVAL := 420.0
+const GIFT_KINDS := 6
+const GIFT_INCOME_SECONDS := 20.0
+const GIFT_MIN_MONEY := 25.0
 const SICK_FIRST_SECONDS := 180.0
 const SICK_MIN_PER_OFFICIAL := 1200.0
 const SICK_MAX_PER_OFFICIAL := 2400.0
@@ -102,7 +127,7 @@ const SICK_BONUS_MINUTES: Array[float] = [0.0, 0.3, 0.6, 1.0]
 const SICK_BONUS_SPEED: Array[float] = [1.0, 2.0, 4.0, 10.0]
 const SICK_BONUS_MIN_INCOME := 50.0
 const CALL_TIME := 1.5
-const MAX_HR := 4
+const MAX_HR := 1
 const HR_COST := 900.0
 const HR_GROWTH := 2.2
 const HR_CALL_SECONDS := 12.0
@@ -110,22 +135,24 @@ const HR_ANSWER_SECONDS := 4.0
 const SICK_RING_SECONDS := 30.0
 const SICK_TALK_CHANCE := 0.3
 const COMPLAINT_INTERVAL := 150.0
-const COMPLAINT_STAFF_RELIEF := 0.3
 const COMPLAINT_MIN_CASES := 10
+const COMPLAINT_LETTER_MIN_INTERVAL := 240.0
+const COMPLAINT_LETTER_MAX_INTERVAL := 540.0
 const LEAVE_COMPLAINT_CHANCE := 0.3
-const WALKOUT_COMPLAINT_CHANCE := 0.1
 const LEAVE_COMPLAINT_COOLDOWN := 45.0
-const COMPLAINT_BOX_CAPACITY := 20
+const COMPLAINT_BOX_CAPACITY := 6
+const COMPLAINT_BOX_STEP := 4
+const COMPLAINT_BOX_LEVELS := 6
 const COMPLAINT_PILE_DRAWN := 20
 const REVIEW_LIFETIME := 7200.0
 const MAX_NEGATIVE_REVIEWS := 5
 const MAX_STORED_REVIEWS := 80
 const REVIEW_NEGATIVE_MAX_STARS := 2
 const REVIEW_ONE_STAR_SHARE := 0.7
-const REVIEW_PRAISE_CHANCE := 0.18
-const REVIEW_FLAWED_CHANCE := 0.3
-const REVIEW_FEAR_SECONDS := 420.0
-const REVIEW_FEAR_FACTOR := 0.1
+const REVIEW_PRAISE_MIN_INTERVAL := 45.0
+const REVIEW_PRAISE_MAX_INTERVAL := 120.0
+const REVIEW_PRAISE_MIN_STARS := 3
+const REVIEW_PRAISE_WEIGHTS: Array[float] = [0.1, 0.3, 0.6]
 const REVIEW_DELETE_REPUTATION := 0.15
 const REVIEW_AUTHORS := 12
 const REVIEW_FORCED_TEXTS := 6
@@ -157,12 +184,17 @@ const FETCH_ALERT_FACTOR := 1.5
 const COFFEE_BREAK_SECONDS := 60.0
 const WAKE_TIME := 0.7
 const WAKE_CHECK_INTERVAL := 0.1
+const RECALL_TIME := 1.5
+const STAFF_WALK_SPEED := 200.0
+const STAFF_WALK_MIN_SECONDS := 0.4
+const STAFF_WALK_MAX_SECONDS := 8.0
 const SUPERVISOR_DROWSY_FACTOR := 0.7
 const OFFLINE_CAP_SECONDS := 4.0 * 3600.0
 const OFFLINE_EFFICIENCY := 0.7
 const OFFLINE_MIN_SECONDS := 60.0
 
 const PLAYER_SPEED := 420.0
+const CITIZEN_SPEED := 200.0
 const PLAYER_BASE_CAPACITY := 6
 const PLAYER_WORK_POWER := 2.5
 const TRANSFER_INTERVAL := 0.08
@@ -186,8 +218,6 @@ const REP_SMUGGLED := -1.0
 const REP_CITIZEN_LEFT := -0.3
 const REP_LOSS_FACTOR := 0.05
 const REP_MAX_LOSS_PER_MINUTE := 0.05
-const RATING_ARRIVAL_MIN := 0.85
-const RATING_ARRIVAL_MAX := 1.25
 
 const EVENT_FIRST_COOLDOWN := 240.0
 const EVENT_MIN_COOLDOWN := 180.0
@@ -204,6 +234,11 @@ const BIG_CASE_TIME_FACTOR := 3.0
 const REJECT_CHANCE := 0.1
 const REJECT_MIN_CASES := 10
 const REJECT_CAPACITY := 6
+const REJECT_CAPACITY_PER_LEVEL := 2
+const MAX_REJECT_LEVEL := 50
+const REJECT_PILE_COST_FACTOR := 0.5
+const REJECT_PILE_GROWTH := 1.22
+const JAM_LUNCH_CHANCE := 0.5
 const REJECT_FEE_FACTOR := 0.15
 const REJECT_SHRED_REWARD := 2.0
 const TUBE_SPEED := 520.0
@@ -227,53 +262,47 @@ const COLLECTOR_URGENT_MARGIN := 1
 const COLLECTOR_MAX_DETOUR := 420.0
 const COLLECTOR_DISTANCE_BIAS := 100.0
 const SHRED_CASE_PENALTY := 1.0
-const MAX_LOBBY_SLOTS := 160
-const STANDING_PATIENCE_PENALTY := 0.35
-const SEATING_BASE_SEATS := 24
-const TICKET_UNLOCK_STAGE := 2
-const TICKET_DRAW_SECONDS := 3.0
-const TICKET_CALL_SECONDS := 3.5
+const WAITING_PLACES := 40
+const BASE_SEATS := 15
+const HALL_INTAKE := "intake"
+const HALL_PICKUP := "pickup"
+const WAITING_ROOMS: Array[String] = [HALL_INTAKE, HALL_PICKUP]
+const SEATING_TRACKS := {HALL_INTAKE: "seating", HALL_PICKUP: "pickup_seating"}
+const TICKET_BASE_RATE := 0.32
+const TICKET_MAX_RATE := 1.0
+const TICKET_MACHINE_LEVELS := 100
 const TICKET_HAND_FACTOR := 2.5
-const TICKET_CALL_SLOTS := 4
 const TICKET_RUSH := 4
-const TICKET_LINE_SLOTS := 10
-const MAX_TICKET_LINE_SLOTS := 50
-const MAX_TICKET_MACHINES := 5
-const MAX_TICKET_DISPLAYS := 10
+const TICKET_LINE_SLOTS := 12
+const MAX_TICKET_MACHINES := 3
+const TICKET_SPEED_TRACKS: Array[String] = ["ticket_speed", "ticket_speed_2", "ticket_speed_3"]
+const TICKET_MACHINE_TRACKS: Array[String] = ["", "ticket_machine_2", "ticket_machine_3"]
 const REP_WALKED_OUT := -0.3
 const VISITOR_SPEED := 120.0
 const VISITOR_SLOTS := 3
+const RAGE_SECONDS := 2.5
+const RAGE_LINES := 10
 const VISITOR_TALK_SECONDS := 7.5
 const VISITOR_ANGRY_TALK_SECONDS := 6.0
-const VISITOR_VENT_SECONDS := 5.0
-const VENT_DIALOGS := 10
 const VISITOR_DIALOGS := 30
 const YELL_DIALOGS := 10
 const VISITOR_LINES := 3
 const YELL_COMPLAINTS := 8
 const YELL_INTERVAL := 14.0
-const MAX_GUARDS := 6
-const GUARD_COST := 1100.0
-const GUARD_GROWTH := 2.0
-const GUARD_BLOCK_CHANCE := 0.35
-const GUARD_STOP_SECONDS := 4.0
+const SECURITY_BASE_CHANCE := 0.1
+const SECURITY_MAX_CHANCE := 0.8
+const SECURITY_LEVELS := 100
+const SECURITY_STOP_SECONDS := 4.0
 const GUARD_DIALOGS := 5
 const GUARD_LINES := 2
-const INTERN_STRESS_FREE := 3
-const INTERN_STRESS_FREE_STEP := 10
-const INTERN_STRESS_RATE := 0.0002
-const INTERN_CALM_RATE := 0.004
-const INTERN_YELL_RATE := 0.006
-const INTERN_VENT_RATE := 0.005
-const INTERN_SPEED := 150.0
-const INTERN_TRIP_ESTIMATE := 8.0
-const INTERN_CRY_SECONDS := 20.0
-const MAX_HELPERS := 5
-const HELPER_COST := 1300.0
-const HELPER_GROWTH := 2.2
-const INTERN_RECOVERED_STRESS := 0.25
+const MAX_DESK_INTERNS := 3
+const INTERN_BASE_STEADFAST := 2
+const INTERN_MAX_STEADFAST := 8
+const MAX_INTERN_RUN := 6
+const INTERN_SPEED := 90.0
+const INTERN_SPEED_LEVELS := 100
+const INTERN_SPEED_STEP := 0.02
 const INTERN_COMFORT_TIME := 2.0
-const INTERN_COMFORT_STRESS := 0.35
 const MAX_COFFEE_INTERNS := 8
 const COFFEE_INTERN_COST := 700.0
 const COFFEE_INTERN_GROWTH := 1.9
@@ -284,6 +313,8 @@ const COFFEE_SERVE_BONUS := 1.25
 const MAX_DISPUTES := 2
 const DISPUTE_MIN_CASES := 15
 const DISPUTE_MIN_STAFF := 2
+const DISPUTE_CREW := 2
+const DISPUTE_CREW_OFFSET := 26.0
 const DISPUTE_FIRST_SECONDS := 150.0
 const DISPUTE_MIN_INTERVAL := 90.0
 const DISPUTE_MAX_INTERVAL := 200.0
@@ -296,7 +327,7 @@ const RUCKUS_FIRST_SECONDS := 120.0
 const RUCKUS_MIN_INTERVAL := 120.0
 const RUCKUS_MAX_INTERVAL := 260.0
 const RUCKUS_RETRY_SECONDS := 5.0
-const RUCKUS_GUARD_RELIEF := 0.3
+const RUCKUS_SECURITY_RELIEF := 0.3
 const RUCKUS_CALM_TIME := 2.5
 const MEDIATE_REPUTATION := 0.2
 const DISPUTES := {
@@ -310,8 +341,6 @@ const DISPUTES := {
 const POPULATION_BASE := 1000
 const POPULATION_PER_CASE := 12
 const POPULATION_PER_LOST := 20
-const DEMAND_GROWTH_SCALE := 0.5
-const DEMAND_GROWTH_DIVISOR := 200.0
 const SETTLEMENT_RANKS: Array[Dictionary] = [
 	{"id": "village", "population": 0},
 	{"id": "small_town", "population": 5000},
@@ -324,6 +353,8 @@ const RECEPTION := "shared/reception"
 const COUNTER := "shared/counter"
 const INSPECTION := "shared/inspection"
 const MAILROOM := "shared/mailroom"
+const PHOTO_STATION := "general_services/signature"
+const CALL_STATIONS: Array[String] = [RECEPTION, COUNTER, PHOTO_STATION]
 
 const MAIL_UNLOCK_STAGE := 1
 const MAIL_FIRST_SECONDS := 30.0
@@ -352,7 +383,6 @@ const BOOST_OVERTIME_SPEED := 2.0
 const BOOST_STAMP_SPEED := 3.0
 const BOOST_POST_SPEED := 4.0
 const BOOST_FEE_FACTOR := 2.0
-const BOOST_ARRIVAL_FACTOR := 2.0
 const BOOST_RUNNER_SPEED := 2.0
 const BOOST_PLAYER_SPEED := 1.5
 const BOOST_BUDGET_MINUTES := 5.0
@@ -369,11 +399,10 @@ const BOOSTS := {
 	"roller_skates": {"duration": 180.0, "seals": 2, "cooldown": 300.0},
 	"complaint_amnesty": {"duration": 300.0, "seals": 2, "cooldown": 360.0},
 	"weekend_shift": {"duration": 0.0, "seals": 3, "cooldown": 420.0},
-	"gazette_ad": {"duration": 120.0, "seals": 3, "cooldown": 360.0},
 	"fee_increase": {"duration": 120.0, "seals": 4, "cooldown": 480.0},
 	"budget_injection": {"duration": 0.0, "seals": 5, "cooldown": 600.0},
 }
-const BOOST_ORDER: Array[String] = ["overtime", "temp_workers", "stamp_turbo", "express_post", "coffee_round", "doctor_visit", "works_outing", "mayor_speech", "roller_skates", "complaint_amnesty", "weekend_shift", "gazette_ad", "fee_increase", "budget_injection"]
+const BOOST_ORDER: Array[String] = ["overtime", "temp_workers", "stamp_turbo", "express_post", "coffee_round", "doctor_visit", "works_outing", "mayor_speech", "roller_skates", "complaint_amnesty", "weekend_shift", "fee_increase", "budget_injection"]
 
 const THOROUGHNESS := [
 	{"id": "fast", "time": 0.6, "error": 0.2},
@@ -400,25 +429,27 @@ const SHARED_STATIONS := {
 }
 
 const DEPARTMENTS := [
-	{"id": "general_services", "kinds": ["review", "signature"], "review_time": 5.0, "signature_time": 4.0, "signature_machine": true, "reward": 20.0, "arrival_interval": 7.0, "complex_chance": 0.1, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 0.0, "unlock_reputation": 0.0, "cost_multiplier": 1.0, "staff_multiplier": 1.0, "inspection": false, "referral": "", "follow_up": false},
-	{"id": "tax_services", "kinds": ["review", "signature"], "review_time": 6.0, "signature_time": 4.0, "signature_machine": true, "reward": 50.0, "arrival_interval": 9.0, "complex_chance": 0.2, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 800.0, "unlock_reputation": 15.0, "cost_multiplier": 3.0, "staff_multiplier": 4.0, "inspection": false, "referral": "", "follow_up": false},
-	{"id": "business_licences", "kinds": ["review", "signature"], "review_time": 6.0, "signature_time": 3.5, "signature_machine": true, "reward": 130.0, "arrival_interval": 11.0, "complex_chance": 0.2, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 8000.0, "unlock_reputation": 60.0, "cost_multiplier": 9.0, "staff_multiplier": 30.0, "inspection": true, "referral": "", "follow_up": false},
-	{"id": "vehicle_registration", "kinds": ["review", "signature"], "review_time": 6.5, "signature_time": 5.0, "signature_machine": true, "reward": 350.0, "arrival_interval": 12.0, "complex_chance": 0.15, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 60000.0, "unlock_reputation": 150.0, "cost_multiplier": 27.0, "staff_multiplier": 200.0, "inspection": false, "referral": "", "follow_up": false},
-	{"id": "building_permits", "kinds": ["review", "signature"], "review_time": 8.0, "signature_time": 6.0, "signature_machine": false, "reward": 900.0, "arrival_interval": 15.0, "complex_chance": 0.35, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 400000.0, "unlock_reputation": 300.0, "cost_multiplier": 80.0, "staff_multiplier": 1200.0, "inspection": true, "referral": "", "follow_up": false},
-	{"id": "housing", "kinds": ["review", "signature"], "review_time": 7.0, "signature_time": 4.0, "signature_machine": true, "reward": 2000.0, "arrival_interval": 13.0, "complex_chance": 0.3, "urgent_chance": 0.15, "suspicious_chance": 0.0, "unlock_cost": 2000000.0, "unlock_reputation": 500.0, "cost_multiplier": 220.0, "staff_multiplier": 6000.0, "inspection": false, "referral": "general_services/review", "follow_up": false},
-	{"id": "social_benefits", "kinds": ["review", "signature"], "review_time": 7.0, "signature_time": 5.0, "signature_machine": false, "reward": 5000.0, "arrival_interval": 14.0, "complex_chance": 0.2, "urgent_chance": 0.35, "suspicious_chance": 0.0, "unlock_cost": 12000000.0, "unlock_reputation": 800.0, "cost_multiplier": 650.0, "staff_multiplier": 35000.0, "inspection": false, "referral": "", "follow_up": true},
-	{"id": "customs", "kinds": ["dock", "review", "signature", "clearance"], "review_time": 6.0, "signature_time": 5.0, "signature_machine": true, "reward": 14000.0, "arrival_interval": 12.0, "complex_chance": 0.2, "urgent_chance": 0.1, "suspicious_chance": 0.25, "unlock_cost": 80000000.0, "unlock_reputation": 1300.0, "cost_multiplier": 1900.0, "staff_multiplier": 230000.0, "inspection": false, "referral": "", "follow_up": false},
+	{"id": "general_services", "kinds": ["review", "signature"], "review_time": 5.0, "signature_time": 4.0, "signature_machine": false, "reward": 20.0, "complex_chance": 0.1, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 0.0, "unlock_reputation": 0.0, "cost_multiplier": 1.0, "staff_multiplier": 1.0, "inspection": false, "referral": "", "follow_up": false},
+	{"id": "tax_services", "kinds": ["review", "signature"], "review_time": 6.0, "signature_time": 4.0, "signature_machine": true, "reward": 50.0, "complex_chance": 0.2, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 800.0, "unlock_reputation": 20.0, "cost_multiplier": 3.0, "staff_multiplier": 4.0, "inspection": false, "referral": "", "follow_up": false},
+	{"id": "business_licences", "kinds": ["review", "signature"], "review_time": 6.0, "signature_time": 3.5, "signature_machine": true, "reward": 130.0, "complex_chance": 0.2, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 8000.0, "unlock_reputation": 120.0, "cost_multiplier": 9.0, "staff_multiplier": 30.0, "inspection": true, "referral": "", "follow_up": false},
+	{"id": "vehicle_registration", "kinds": ["review", "signature"], "review_time": 6.5, "signature_time": 5.0, "signature_machine": true, "reward": 350.0, "complex_chance": 0.15, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 60000.0, "unlock_reputation": 350.0, "cost_multiplier": 27.0, "staff_multiplier": 200.0, "inspection": false, "referral": "", "follow_up": false},
+	{"id": "building_permits", "kinds": ["review", "signature"], "review_time": 8.0, "signature_time": 6.0, "signature_machine": false, "reward": 900.0, "complex_chance": 0.35, "urgent_chance": 0.04, "suspicious_chance": 0.0, "unlock_cost": 400000.0, "unlock_reputation": 700.0, "cost_multiplier": 80.0, "staff_multiplier": 1200.0, "inspection": true, "referral": "", "follow_up": false},
+	{"id": "housing", "kinds": ["review", "signature"], "review_time": 7.0, "signature_time": 4.0, "signature_machine": true, "reward": 2000.0, "complex_chance": 0.3, "urgent_chance": 0.15, "suspicious_chance": 0.0, "unlock_cost": 2000000.0, "unlock_reputation": 1200.0, "cost_multiplier": 220.0, "staff_multiplier": 6000.0, "inspection": false, "referral": "general_services/review", "follow_up": false},
+	{"id": "social_benefits", "kinds": ["review", "signature"], "review_time": 7.0, "signature_time": 5.0, "signature_machine": false, "reward": 5000.0, "complex_chance": 0.2, "urgent_chance": 0.35, "suspicious_chance": 0.0, "unlock_cost": 12000000.0, "unlock_reputation": 2000.0, "cost_multiplier": 650.0, "staff_multiplier": 35000.0, "inspection": false, "referral": "", "follow_up": true},
+	{"id": "customs", "kinds": ["dock", "review", "signature", "clearance"], "review_time": 6.0, "signature_time": 5.0, "signature_machine": true, "reward": 14000.0, "complex_chance": 0.2, "urgent_chance": 0.1, "suspicious_chance": 0.25, "unlock_cost": 80000000.0, "unlock_reputation": 3500.0, "cost_multiplier": 1900.0, "staff_multiplier": 230000.0, "inspection": false, "referral": "", "follow_up": false},
 ]
+
+const UNLOCK_REPUTATION_MIN_GROWTH := 1.5
 
 const CUSTOMS_VARIANTS: Array[String] = ["general_cargo", "electronics", "vehicles"]
 const CUSTOMS_VARIANT_SUSPICION := {"general_cargo": 0.8, "electronics": 1.6, "vehicles": 0.8}
 
 const BUILDING_STAGES := [
-	{"id": "service_counter", "cost": 0.0, "reputation": 0.0, "max_departments": 1, "max_desks": 2, "lobby": 16},
-	{"id": "multi_service_office", "cost": 2500.0, "reputation": 10.0, "max_departments": 3, "max_desks": 3, "lobby": 22},
-	{"id": "regional_administration", "cost": 50000.0, "reputation": 100.0, "max_departments": 5, "max_desks": 4, "lobby": 28},
-	{"id": "public_services_centre", "cost": 1500000.0, "reputation": 400.0, "max_departments": 7, "max_desks": 5, "lobby": 34},
-	{"id": "citywide_administration", "cost": 40000000.0, "reputation": 1000.0, "max_departments": 8, "max_desks": 6, "lobby": 40},
+	{"id": "service_counter", "max_departments": 1, "max_desks": 2, "lobby": 16},
+	{"id": "multi_service_office", "max_departments": 3, "max_desks": 3, "lobby": 22},
+	{"id": "regional_administration", "max_departments": 5, "max_desks": 4, "lobby": 28},
+	{"id": "public_services_centre", "max_departments": 7, "max_desks": 5, "lobby": 34},
+	{"id": "citywide_administration", "max_departments": 8, "max_desks": 6, "lobby": 40},
 ]
 
 const ROOM_PLAYER := "player"
@@ -431,43 +462,46 @@ const ROOM_TOILETS := "toilets"
 const ROOM_PHONE := "phone"
 const ROOM_MAIL := "mail"
 const ROOM_INSPECTION := "inspection"
-const SERVICE_ROOMS: Array[String] = [ROOM_PLAYER, ROOM_HALL, ROOM_COMPLAINTS, ROOM_SHREDDER, ROOM_TECH, ROOM_KITCHEN, ROOM_TOILETS, ROOM_PHONE, ROOM_MAIL, ROOM_INSPECTION]
+const ROOM_OFFICE := "player_office"
+const ROOM_STAFF := "staff_room"
+const SERVICE_ROOMS: Array[String] = [ROOM_PLAYER, ROOM_HALL, ROOM_STAFF, ROOM_COMPLAINTS, ROOM_SHREDDER, ROOM_TECH, ROOM_KITCHEN, ROOM_TOILETS, ROOM_PHONE, ROOM_MAIL, ROOM_OFFICE, ROOM_INSPECTION]
 const TUBE_ROOMS: Array[String] = [ROOM_HALL, ROOM_MAIL, ROOM_INSPECTION]
 const TOPICS: Array[String] = ["player", "citizens", "speed", "staff", "transport", "comfort", "complaints", "mail", "quality", "building"]
 
 const SPOTS := {
 	"player": ROOM_PLAYER,
 	"entrance": ROOM_HALL,
-	"waiting": ROOM_HALL,
 	"seating": ROOM_HALL,
+	"pickup_seating": ROOM_HALL,
 	"tickets": ROOM_HALL,
-	"ticket_display": ROOM_HALL,
-	"complaint_box": ROOM_HALL,
-	"guards": ROOM_HALL,
-	"archive": ROOM_HALL,
-	"training": ROOM_HALL,
 	"complaint_desk": ROOM_COMPLAINTS,
-	"interns": ROOM_COMPLAINTS,
+	"complaint_box": ROOM_COMPLAINTS,
+	"security": ROOM_COMPLAINTS,
+	"archive": ROOM_HALL,
+	"runners": ROOM_STAFF,
+	"collectors": ROOM_STAFF,
+	"coffee_interns": ROOM_STAFF,
+	"phone_clerks": ROOM_STAFF,
+	"training": ROOM_STAFF,
+	"works_council": ROOM_STAFF,
 	"shredder": ROOM_SHREDDER,
-	"collectors": ROOM_SHREDDER,
 	"tube_hub": ROOM_TECH,
 	"server": ROOM_TECH,
 	"climate": ROOM_TECH,
-	"runners": ROOM_TECH,
 	"coffee_machine": ROOM_KITCHEN,
 	"kitchen": ROOM_KITCHEN,
-	"coffee_interns": ROOM_KITCHEN,
-	"works_council": ROOM_KITCHEN,
+	"canteen": ROOM_KITCHEN,
 	"toilets": ROOM_TOILETS,
 	"phone": ROOM_PHONE,
-	"phone_clerks": ROOM_PHONE,
 	"mail_shelf": ROOM_MAIL,
 	"mailbox": ROOM_MAIL,
 }
-const BOARD_SPOTS: Array[String] = ["runners", "collectors", "interns", "coffee_interns", "guards", "phone_clerks"]
+const BOARD_SPOTS: Array[String] = ["runners", "collectors", "coffee_interns", "phone_clerks"]
+const STAFF_ROOM_BOARDS: Array[String] = ["runners", "collectors", "coffee_interns", "phone_clerks", "training", "works_council"]
 const BOOST_ROOMS := {
-	ROOM_PLAYER: ["overtime", "roller_skates"],
-	ROOM_HALL: ["mayor_speech", "gazette_ad", "fee_increase", "budget_injection"],
+	ROOM_PLAYER: ["roller_skates"],
+	ROOM_OFFICE: ["overtime"],
+	ROOM_HALL: ["mayor_speech", "fee_increase", "budget_injection"],
 	ROOM_COMPLAINTS: ["complaint_amnesty"],
 	ROOM_TECH: ["stamp_turbo", "temp_workers", "weekend_shift"],
 	ROOM_KITCHEN: ["coffee_round", "works_outing"],
@@ -488,22 +522,20 @@ const UPGRADES := {
 	"digital_signatures": {"spot": "station:shared/counter", "topic": "speed", "max": 200, "cost": 25000.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 80.0},
 	"letter_opener": {"spot": "station:shared/mailroom", "topic": "speed", "max": 200, "cost": 900.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 10.0},
 	"office_equipment": {"spot": "dept:%s", "topic": "speed", "max": 200, "cost": 500.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "rooms": ROOMS_ALL_DEPARTMENTS},
-	"waiting_places": {"spot": "waiting", "topic": "citizens", "max": 120, "cost": 400.0, "growth": 1.1, "curve": "linear", "base": 0.0, "step": 1.0, "unit": "count"},
-	"comfortable_lobby": {"spot": "waiting", "topic": "citizens", "max": 200, "cost": 800.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 10.0},
-	"seating": {"spot": "seating", "topic": "citizens", "max": 300, "cost": 500.0, "growth": 1.04, "curve": "linear", "base": SEATING_BASE_SEATS, "step": 1.0, "unit": "count"},
-	"standing_places": {"spot": "seating", "topic": "citizens", "max": 150, "cost": 450.0, "growth": 1.07, "curve": "linear", "base": 0.0, "step": 2.0, "unit": "count"},
-	"ticket_speed": {"spot": "tickets", "topic": "citizens", "max": 200, "cost": 30000.0, "growth": 1.06, "curve": "decay", "base": TICKET_DRAW_SECONDS, "rate": 0.985, "unit": "seconds", "stage": TICKET_UNLOCK_STAGE},
-	"ticket_machines": {"spot": "tickets", "topic": "citizens", "max": MAX_TICKET_MACHINES - 1, "cost": 60000.0, "growth": 4.0, "curve": "linear", "base": 1.0, "step": 1.0, "unit": "count", "stage": TICKET_UNLOCK_STAGE},
-	"ticket_line": {"spot": "tickets", "topic": "citizens", "max": MAX_TICKET_LINE_SLOTS - TICKET_LINE_SLOTS, "cost": 20000.0, "growth": 1.15, "curve": "linear", "base": TICKET_LINE_SLOTS, "step": 1.0, "unit": "count", "stage": TICKET_UNLOCK_STAGE},
-	"ticket_call_speed": {"spot": "ticket_display", "topic": "citizens", "max": 200, "cost": 35000.0, "growth": 1.06, "curve": "decay", "base": TICKET_CALL_SECONDS, "rate": 0.985, "unit": "seconds", "stage": TICKET_UNLOCK_STAGE},
-	"ticket_displays": {"spot": "ticket_display", "topic": "citizens", "max": MAX_TICKET_DISPLAYS - 1, "cost": 80000.0, "growth": 3.0, "curve": "linear", "base": 1.0, "step": 1.0, "unit": "count", "stage": TICKET_UNLOCK_STAGE},
-	"online_portal": {"spot": "entrance", "topic": "citizens", "max": 100, "cost": 1000000.0, "growth": 1.1, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 500.0},
-	"complaint_box": {"spot": "complaint_box", "topic": "complaints", "max": 200, "cost": 900.0, "growth": 1.05, "curve": "linear", "base": COMPLAINT_BOX_CAPACITY, "step": 1.0, "unit": "count"},
-	"complaint_tube": {"spot": "complaint_box", "topic": "complaints", "max": 150, "cost": 6000.0, "growth": 1.08, "curve": "unlock_decay", "base": 60.0, "rate": 0.98, "unit": "seconds", "reputation": 50.0, "requires": {"shredder_service": 1}},
-	"complaint_clerk": {"spot": "complaint_desk", "topic": "complaints", "max": 150, "cost": 500.0, "growth": 1.08, "curve": "chance", "base": 0.15, "rate": 0.99, "unit": "chance"},
-	"shredder_service": {"spot": "interns", "topic": "complaints", "max": 200, "cost": 800.0, "growth": 1.07, "curve": "unlock_decay", "base": 40.0, "rate": 0.985, "unit": "seconds", "reputation": 10.0},
-	"intern_training": {"spot": "interns", "topic": "complaints", "max": 50, "cost": 3000.0, "growth": 1.2, "curve": "linear", "base": 1.0, "step": 1.0, "unit": "count", "reputation": 40.0, "requires": {"shredder_service": 1}},
-	"intern_resilience": {"spot": "interns", "topic": "complaints", "max": 150, "cost": 2500.0, "growth": 1.08, "curve": "decay", "base": 1.0, "rate": 0.985, "unit": "reduction", "requires": {"shredder_service": 1}},
+	"seating": {"spot": "seating", "topic": "citizens", "max": WAITING_PLACES - BASE_SEATS, "cost": 500.0, "growth": 1.1, "curve": "linear", "base": BASE_SEATS, "step": 1.0, "unit": "count"},
+	"pickup_seating": {"spot": "pickup_seating", "topic": "citizens", "max": WAITING_PLACES - BASE_SEATS, "cost": 500.0, "growth": 1.1, "curve": "linear", "base": BASE_SEATS, "step": 1.0, "unit": "count"},
+	"ticket_speed": {"spot": "tickets", "topic": "citizens", "max": TICKET_MACHINE_LEVELS, "cost": 300.0, "growth": 1.06, "curve": "linear", "base": TICKET_BASE_RATE, "step": (TICKET_MAX_RATE - TICKET_BASE_RATE) / TICKET_MACHINE_LEVELS, "unit": "per_second"},
+	"ticket_machine_2": {"spot": "tickets", "topic": "citizens", "max": 1, "cost": 100000.0, "growth": 1.0, "curve": "unlock", "base": 0.0, "unit": "unlock", "requires": {"ticket_speed": TICKET_MACHINE_LEVELS}},
+	"ticket_speed_2": {"spot": "tickets", "topic": "citizens", "max": TICKET_MACHINE_LEVELS, "cost": 20000.0, "growth": 1.06, "curve": "linear", "base": TICKET_BASE_RATE, "step": (TICKET_MAX_RATE - TICKET_BASE_RATE) / TICKET_MACHINE_LEVELS, "unit": "per_second", "requires": {"ticket_machine_2": 1}},
+	"ticket_machine_3": {"spot": "tickets", "topic": "citizens", "max": 1, "cost": 20000000.0, "growth": 1.0, "curve": "unlock", "base": 0.0, "unit": "unlock", "requires": {"ticket_speed_2": TICKET_MACHINE_LEVELS}},
+	"ticket_speed_3": {"spot": "tickets", "topic": "citizens", "max": TICKET_MACHINE_LEVELS, "cost": 4000000.0, "growth": 1.06, "curve": "linear", "base": TICKET_BASE_RATE, "step": (TICKET_MAX_RATE - TICKET_BASE_RATE) / TICKET_MACHINE_LEVELS, "unit": "per_second", "requires": {"ticket_machine_3": 1}},
+	"complaint_interns": {"spot": "complaint_desk", "topic": "complaints", "max": MAX_DESK_INTERNS, "cost": 600.0, "growth": 2.5, "curve": "linear", "base": 0.0, "step": 1.0, "unit": "count"},
+	"intern_steadfast": {"spot": "complaint_desk", "topic": "complaints", "max": INTERN_MAX_STEADFAST - INTERN_BASE_STEADFAST, "cost": 1500.0, "growth": 1.8, "curve": "linear", "base": INTERN_BASE_STEADFAST, "step": 1.0, "unit": "count", "requires": {"complaint_interns": 1}},
+	"intern_speed": {"spot": "complaint_desk", "topic": "complaints", "max": INTERN_SPEED_LEVELS, "cost": 400.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": INTERN_SPEED_STEP, "unit": "bonus", "requires": {"complaint_interns": 1}},
+	"complaint_box": {"spot": "complaint_box", "topic": "complaints", "max": COMPLAINT_BOX_LEVELS, "cost": 900.0, "growth": 2.0, "curve": "linear", "base": COMPLAINT_BOX_CAPACITY, "step": COMPLAINT_BOX_STEP, "unit": "count"},
+	"intern_box_runs": {"spot": "complaint_box", "topic": "complaints", "max": MAX_INTERN_RUN, "cost": 2500.0, "growth": 1.9, "curve": "linear", "base": 0.0, "step": 1.0, "unit": "count", "requires": {"complaint_interns": 2}},
+	"complaint_security": {"spot": "security", "topic": "complaints", "max": 1, "cost": 3000.0, "growth": 1.0, "curve": "unlock", "unit": "unlock"},
+	"security_training": {"spot": "security", "topic": "complaints", "max": SECURITY_LEVELS, "cost": 800.0, "growth": 1.06, "curve": "linear", "base": SECURITY_BASE_CHANCE, "step": (SECURITY_MAX_CHANCE - SECURITY_BASE_CHANCE) / SECURITY_LEVELS, "unit": "chance", "requires": {"complaint_security": 1}},
 	"shredder_blades": {"spot": "shredder", "topic": "complaints", "max": 100, "cost": 1000.0, "growth": 1.1, "curve": "decay", "base": 1.0, "rate": 0.985, "unit": "reduction"},
 	"shredder": {"spot": "shredder:%s", "topic": "building", "max": 100, "cost": 600.0, "growth": 1.1, "curve": "unlock_decay", "base": 30.0, "rate": 0.98, "unit": "seconds", "rooms": ROOMS_SHREDDERS},
 	"collector_carts": {"spot": "collectors", "topic": "transport", "max": 40, "cost": 1200.0, "growth": 1.18, "curve": "linear", "base": COLLECTOR_CAPACITY, "step": 1.0, "unit": "count", "reputation": 15.0},
@@ -524,12 +556,13 @@ const UPGRADES := {
 	"coffee_machine": {"spot": "coffee_machine", "topic": "comfort", "max": 150, "cost": 700.0, "growth": 1.08, "curve": "decay", "base": 1.0, "rate": 0.99, "unit": "reduction", "reputation": 8.0},
 	"espresso": {"spot": "coffee_machine", "topic": "comfort", "max": 200, "cost": 900.0, "growth": 1.06, "curve": "linear", "base": FETCH_ALERT_FACTOR, "step": 0.005, "unit": "bonus", "reputation": 8.0},
 	"kitchen": {"spot": "kitchen", "topic": "comfort", "max": 200, "cost": 1200.0, "growth": 1.06, "curve": "linear", "base": 1.0, "step": -0.0045, "unit": "reduction", "reputation": 15.0},
+	"canteen_menu": {"spot": "canteen", "topic": "comfort", "max": 200, "cost": 1400.0, "growth": 1.06, "curve": "linear", "base": 1.2, "step": 0.01, "unit": "bonus", "reputation": 12.0},
+	"canteen_speed": {"spot": "canteen", "topic": "comfort", "max": 150, "cost": 1100.0, "growth": 1.08, "curve": "decay", "base": LUNCH_SECONDS, "rate": 0.99, "unit": "seconds"},
 	"coffee_intern_speed": {"spot": "coffee_interns", "topic": "comfort", "max": 200, "cost": 700.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus"},
 	"toilet_stalls": {"spot": "toilets", "topic": "comfort", "max": MAX_LOO_SLOTS - LOO_SLOTS, "cost": 1500.0, "growth": 2.2, "curve": "linear", "base": LOO_SLOTS, "step": 1.0, "unit": "count"},
 	"toilet_speed": {"spot": "toilets", "topic": "comfort", "max": 150, "cost": 1000.0, "growth": 1.08, "curve": "decay", "base": LOO_SECONDS, "rate": 0.99, "unit": "seconds"},
 	"toilet_hygiene": {"spot": "toilets", "topic": "comfort", "max": 100, "cost": 2000.0, "growth": 1.1, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 20.0},
 	"wake_service": {"spot": "toilets", "topic": "comfort", "max": 150, "cost": 1500.0, "growth": 1.08, "curve": "unlock_decay", "base": 45.0, "rate": 0.98, "unit": "seconds", "reputation": 20.0},
-	"guard_training": {"spot": "guards", "topic": "staff", "max": 150, "cost": 2000.0, "growth": 1.08, "curve": "linear", "base": GUARD_BLOCK_CHANCE, "step": 0.003, "unit": "chance"},
 	"phone_training": {"spot": "phone", "topic": "staff", "max": 100, "cost": 1500.0, "growth": 1.1, "curve": "decay", "base": 1.0, "rate": 0.99, "unit": "reduction"},
 	"mail_subscription": {"spot": "mailbox", "topic": "mail", "max": 100, "cost": 1500.0, "growth": 1.1, "curve": "linear", "base": 0.0, "step": 1.0, "unit": "count", "reputation": 15.0},
 	"mail_frequency": {"spot": "mailbox", "topic": "mail", "max": 150, "cost": 1200.0, "growth": 1.08, "curve": "decay", "base": MAIL_INTERVAL, "rate": 0.99, "unit": "seconds"},
@@ -556,23 +589,20 @@ const UPGRADE_SPEED := {
 }
 
 const EVENTS := {
-	"rush_hour": {"arrival": 2.0, "department": "", "min_cases": 0},
-	"audit_visit": {"arrival": 1.0, "department": "", "min_cases": 50},
-	"tax_deadline": {"arrival": 3.0, "department": "tax_services", "min_cases": 0},
-	"printer_jam": {"arrival": 1.0, "department": "", "min_cases": 20, "speed": 0.55, "mitigation": "it_support"},
-	"system_crash": {"arrival": 1.0, "department": "", "min_cases": 60, "scope": "random", "speed": 0.4, "mitigation": "it_support"},
-	"monday_rush": {"arrival": 2.5, "department": "", "min_cases": 40, "patience": 0.6, "mitigation": "comfortable_lobby"},
-	"coffee_escalation": {"arrival": 1.0, "department": "", "min_cases": 30, "speed": 1.15, "drowsy": 3.0, "mitigation": "coffee_machine"},
-	"paperwork_mountain": {"arrival": 1.0, "department": "", "min_cases": 80, "backlog": true, "mitigation": "digital_records"},
-	"staff_meeting": {"arrival": 1.0, "department": "", "min_cases": 50, "speed": 0.45, "choices": ["cancel"]},
-	"rubber_ducks": {"arrival": 1.0, "department": "customs", "min_cases": 0, "scope": "customs", "speed": 0.3, "mitigation": "scanners"},
-	"fire_drill": {"arrival": 1.0, "department": "", "min_cases": 100, "speed": 0.0, "duration": 20.0, "mitigation": "it_support"},
-	"renovation": {"arrival": 0.5, "department": "", "min_cases": 120, "scope": "random", "speed": 0.6},
-	"garden_shed": {"arrival": 1.0, "department": "building_permits", "min_cases": 0, "big_case": true, "duration": 90.0},
-	"inspector_audit": {"arrival": 1.0, "department": "", "min_cases": 200, "scope": "shared/inspection", "speed": 0.35, "requires_inspection": true},
-	"authority_comparison": {"arrival": 1.0, "department": "", "min_cases": 150, "speed": 0.5, "pending": true, "choices": ["prepare", "ignore"]},
-	"mayor_visit": {"arrival": 1.5, "department": "", "min_cases": 30, "fee": 2.0},
-	"newspaper_praise": {"arrival": 2.0, "department": "", "min_cases": 60, "fee": 1.2},
+	"audit_visit": {"department": "", "min_cases": 50},
+	"printer_jam": {"department": "", "min_cases": 20, "speed": 0.55, "mitigation": "it_support"},
+	"system_crash": {"department": "", "min_cases": 60, "scope": "random", "speed": 0.4, "mitigation": "it_support"},
+	"coffee_escalation": {"department": "", "min_cases": 30, "speed": 1.15, "drowsy": 3.0, "mitigation": "coffee_machine"},
+	"paperwork_mountain": {"department": "", "min_cases": 80, "backlog": true, "mitigation": "digital_records"},
+	"staff_meeting": {"department": "", "min_cases": 50, "speed": 0.45, "choices": ["cancel"]},
+	"rubber_ducks": {"department": "customs", "min_cases": 0, "scope": "customs", "speed": 0.3, "mitigation": "scanners"},
+	"fire_drill": {"department": "", "min_cases": 100, "speed": 0.0, "duration": 20.0, "mitigation": "it_support"},
+	"renovation": {"department": "", "min_cases": 120, "scope": "random", "speed": 0.6},
+	"garden_shed": {"department": "building_permits", "min_cases": 0, "big_case": true, "duration": 90.0},
+	"inspector_audit": {"department": "", "min_cases": 200, "scope": "shared/inspection", "speed": 0.35, "requires_inspection": true},
+	"authority_comparison": {"department": "", "min_cases": 150, "speed": 0.5, "pending": true, "choices": ["prepare", "ignore"]},
+	"mayor_visit": {"department": "", "min_cases": 30, "fee": 2.0},
+	"newspaper_praise": {"department": "", "min_cases": 60, "fee": 1.2},
 }
 const AUDIT_FACTOR := 2.0
 
@@ -581,31 +611,34 @@ const GOALS := [
 	{"type": "station_level", "target": 2.0, "param": "", "money": 120.0, "reputation": 1.0},
 	{"type": "cases", "target": 25.0, "param": "", "money": 300.0, "reputation": 2.0},
 	{"type": "staff_hired", "target": 1.0, "param": "", "money": 250.0, "reputation": 1.0},
-	{"type": "building_stage", "target": 1.0, "param": "", "money": 400.0, "reputation": 2.0},
+	{"type": "reputation", "target": 10.0, "param": "", "money": 400.0, "reputation": 0.0},
 	{"type": "runners", "target": 1.0, "param": "", "money": 500.0, "reputation": 1.0},
 	{"type": "department", "target": 1.0, "param": "tax_services", "money": 600.0, "reputation": 3.0},
 	{"type": "upgrades", "target": 1.0, "param": "", "money": 800.0, "reputation": 2.0},
-	{"type": "reputation", "target": 40.0, "param": "", "money": 2000.0, "reputation": 0.0},
+	{"type": "reputation", "target": 60.0, "param": "", "money": 2000.0, "reputation": 0.0},
 	{"type": "department", "target": 1.0, "param": "business_licences", "money": 4000.0, "reputation": 5.0},
 	{"type": "cases", "target": 300.0, "param": "", "money": 8000.0, "reputation": 5.0},
-	{"type": "building_stage", "target": 2.0, "param": "", "money": 20000.0, "reputation": 5.0},
+	{"type": "reputation", "target": 250.0, "param": "", "money": 20000.0, "reputation": 0.0},
 	{"type": "department", "target": 1.0, "param": "vehicle_registration", "money": 40000.0, "reputation": 8.0},
 	{"type": "upgrade_level", "target": 1.0, "param": "pneumatic_tubes", "money": 100000.0, "reputation": 8.0},
 	{"type": "department", "target": 1.0, "param": "building_permits", "money": 200000.0, "reputation": 10.0},
-	{"type": "building_stage", "target": 3.0, "param": "", "money": 600000.0, "reputation": 10.0},
+	{"type": "reputation", "target": 1000.0, "param": "", "money": 600000.0, "reputation": 0.0},
 	{"type": "department", "target": 1.0, "param": "housing", "money": 1000000.0, "reputation": 12.0},
 	{"type": "department", "target": 1.0, "param": "social_benefits", "money": 5000000.0, "reputation": 15.0},
-	{"type": "building_stage", "target": 4.0, "param": "", "money": 15000000.0, "reputation": 20.0},
+	{"type": "reputation", "target": 3000.0, "param": "", "money": 15000000.0, "reputation": 0.0},
 	{"type": "department", "target": 1.0, "param": "customs", "money": 40000000.0, "reputation": 25.0},
 	{"type": "cases", "target": 20000.0, "param": "", "money": 200000000.0, "reputation": 50.0},
 ]
 
 
+static var _departments_by_id: Dictionary = {}
+
+
 static func department(dept_id: String) -> Dictionary:
-	for entry: Dictionary in DEPARTMENTS:
-		if entry.id == dept_id:
-			return entry
-	return {}
+	if _departments_by_id.is_empty():
+		for entry: Dictionary in DEPARTMENTS:
+			_departments_by_id[entry.id] = entry
+	return _departments_by_id.get(dept_id, {})
 
 
 static var _department_ids: Array[String] = []
@@ -701,11 +734,27 @@ static func building_stage(index: int) -> Dictionary:
 	return BUILDING_STAGES[clampi(index, 0, BUILDING_STAGES.size() - 1)]
 
 
+static func stage_for_departments(count: int) -> int:
+	for index in BUILDING_STAGES.size():
+		if int(BUILDING_STAGES[index].max_departments) >= count:
+			return index
+	return BUILDING_STAGES.size() - 1
+
+
+static func departments_for_stage(stage: int) -> int:
+	return 1 if stage <= 0 else int(building_stage(stage - 1).max_departments) + 1
+
+
+static var _station_keys: Dictionary = {}
+
+
 static func department_station_keys(dept_id: String) -> Array[String]:
-	var keys: Array[String] = []
-	for kind in department(dept_id).get("kinds", []):
-		keys.append("%s/%s" % [dept_id, kind])
-	return keys
+	if not _station_keys.has(dept_id):
+		var keys: Array[String] = []
+		for kind in department(dept_id).get("kinds", []):
+			keys.append("%s/%s" % [dept_id, kind])
+		_station_keys[dept_id] = keys
+	return _station_keys[dept_id]
 
 
 static func is_customs(dept_id: String) -> bool:

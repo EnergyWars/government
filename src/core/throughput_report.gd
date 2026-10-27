@@ -10,8 +10,9 @@ const REJECTS := "rejects"
 const PHONES := "phones"
 const SEATING := "seating"
 const WAITING := "waiting"
+const PICKUP_SEATING := "pickup_seating"
+const PICKUP_WAITING := "pickup_waiting"
 const TICKETS := "tickets"
-const CALLS := "calls"
 
 const HIRE := "hire"
 const DESK := "desk"
@@ -21,10 +22,8 @@ const SPECIALIST := "specialist"
 const SUPERVISOR := "supervisor"
 const TRACK := "track"
 const RUNNER := "runner"
-const HELPER := "helper"
 const COLLECTOR := "collector"
 const HR := "hr"
-const GUARD := "guard"
 
 const CAPACITY := "capacity"
 const RELIEF := "relief"
@@ -126,54 +125,48 @@ static func transport_area(state: GameState) -> Dictionary:
 	return area(TRANSPORT, "", demand, current, upgrades)
 
 
-static func complaint_demand(state: GameState, guards: int, clerk_level: int = -1) -> float:
+static func complaint_demand(state: GameState, blocked: float = -1.0) -> float:
 	if state.cases_completed < GameConfig.COMPLAINT_MIN_CASES:
 		return 0.0
-	var level := state.upgrade_level("complaint_clerk") if clerk_level < 0 else clerk_level
-	var interval := GameConfig.COMPLAINT_INTERVAL * (1.0 + GameConfig.COMPLAINT_STAFF_RELIEF * (guards + state.helpers.size()))
-	var incoming := 1.0 / interval + Formulas.leave_complaint_rate(state)
-	return pow(1.0 - Formulas.guard_chance(state), guards) * (1.0 - Formulas.complaint_fend_chance(level)) * incoming
+	var chance := Formulas.security_chance(state) if blocked < 0.0 else blocked
+	var incoming := 1.0 / GameConfig.COMPLAINT_INTERVAL + Formulas.leave_complaint_rate(state)
+	return (1.0 - chance) * incoming + Formulas.complaint_letter_rate()
 
 
-static func intern_rate(level: int, per_trip: int) -> float:
-	var delay := Formulas.track_value("shredder_service", level)
-	if delay <= 0.0:
+static func box_runners(interns: int) -> int:
+	return maxi(0, interns - 1)
+
+
+static func intern_rate(state: GameState, runners: int, per_run: int, speed_level: int = -1) -> float:
+	if runners <= 0 or per_run <= 0:
 		return 0.0
-	return per_trip / (delay + GameConfig.INTERN_TRIP_ESTIMATE)
-
-
-static func tube_rate(level: int) -> float:
-	var delay := Formulas.track_value("complaint_tube", level)
-	return 1.0 / delay if delay > 0.0 else 0.0
+	var level := state.upgrade_level("intern_speed") if speed_level < 0 else speed_level
+	var trip := WorldLayout.get_default().intern_trip_length() / (GameConfig.INTERN_SPEED * Formulas.track_value("intern_speed", level))
+	return runners * per_run / trip
 
 
 static func complaint_capacity(state: GameState) -> float:
-	var units := state.all_interns().size()
-	var interns := units * intern_rate(state.upgrade_level("shredder_service"), Formulas.intern_capacity(state))
-	return interns + tube_rate(state.upgrade_level("complaint_tube"))
+	return intern_rate(state, box_runners(state.interns.size()), Formulas.intern_run_size(state))
 
 
 static func complaint_area(state: GameState) -> Dictionary:
 	var upgrades: Array[Dictionary] = []
-	var level := state.upgrade_level("shredder_service")
-	var units := state.all_interns().size()
-	var per_trip := Formulas.intern_capacity(state)
-	if can_upgrade(state, "shredder_service"):
-		upgrades.append(track("shredder_service", units * (intern_rate(level + 1, per_trip) - intern_rate(level, per_trip))))
-	if level > 0 and state.helpers.size() < GameConfig.MAX_HELPERS:
-		upgrades.append(upgrade(HELPER, intern_rate(level, per_trip), CAPACITY, staff_entry("helpers")))
-	if level > 0 and can_upgrade(state, "intern_training"):
-		upgrades.append(track("intern_training", units * intern_rate(level, 1)))
-	if can_upgrade(state, "complaint_tube"):
-		var tube := state.upgrade_level("complaint_tube")
-		upgrades.append(track("complaint_tube", tube_rate(tube + 1) - tube_rate(tube)))
-	var demand := complaint_demand(state, state.guards)
-	if state.guards < GameConfig.MAX_GUARDS and demand > 0.0:
-		upgrades.append(upgrade(GUARD, demand - complaint_demand(state, state.guards + 1), RELIEF, staff_entry("guards")))
-	var clerk := state.upgrade_level("complaint_clerk")
-	if can_upgrade(state, "complaint_clerk") and demand > 0.0:
-		upgrades.append(track("complaint_clerk", demand - complaint_demand(state, state.guards, clerk + 1), RELIEF))
-	return area(COMPLAINTS, "", demand, complaint_capacity(state), upgrades)
+	var runners := box_runners(state.interns.size())
+	var per_run := Formulas.intern_run_size(state)
+	var current := complaint_capacity(state)
+	if per_run > 0 and can_upgrade(state, "complaint_interns"):
+		upgrades.append(track("complaint_interns", intern_rate(state, runners + 1, per_run) - current))
+	if can_upgrade(state, "intern_box_runs"):
+		upgrades.append(track("intern_box_runs", intern_rate(state, runners, per_run + 1) - current))
+	if current > 0.0 and can_upgrade(state, "intern_speed"):
+		upgrades.append(track("intern_speed", intern_rate(state, runners, per_run, state.upgrade_level("intern_speed") + 1) - current))
+	var demand := complaint_demand(state)
+	if demand > 0.0 and can_upgrade(state, "complaint_security"):
+		upgrades.append(track("complaint_security", demand - complaint_demand(state, GameConfig.SECURITY_BASE_CHANCE), RELIEF))
+	elif demand > 0.0 and can_upgrade(state, "security_training"):
+		var next := Formulas.track_value("security_training", state.upgrade_level("security_training") + 1)
+		upgrades.append(track("security_training", demand - complaint_demand(state, next), RELIEF))
+	return area(COMPLAINTS, "", demand, current, upgrades)
 
 
 static func reject_demand(state: GameState) -> float:
@@ -193,7 +186,7 @@ static func collector_trip(state: GameState, speed_factor: float = 1.0) -> float
 	var total := 0.0
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
-		if not station.has_reject_pile():
+		if not station.has_reject_pile() or station.is_shared():
 			continue
 		var point := layout.reject_point(key)
 		var distance := point.distance_to(layout.shredder_point())
@@ -268,20 +261,19 @@ static func phone_area(state: GameState) -> Dictionary:
 	return area(PHONES, "", demand, phone_capacity(state), upgrades)
 
 
-static func seating_area(state: GameState) -> Dictionary:
+static func seating_area(state: GameState, room: String = GameConfig.HALL_INTAKE) -> Dictionary:
 	var upgrades: Array[Dictionary] = []
-	if can_upgrade(state, "seating"):
-		upgrades.append(track("seating", float(GameConfig.upgrade("seating").step), PLACES))
-	if can_upgrade(state, "standing_places"):
-		upgrades.append(track("standing_places", float(GameConfig.upgrade("standing_places").step), PLACES))
-	return area(SEATING, "", float(state.seated_citizens()), float(state.seat_capacity() + state.standing_capacity()), upgrades)
+	var track_id := str(GameConfig.SEATING_TRACKS[room])
+	if can_upgrade(state, track_id):
+		upgrades.append(track(track_id, float(GameConfig.upgrade(track_id).step), PLACES))
+	var kind := PICKUP_SEATING if room == GameConfig.HALL_PICKUP else SEATING
+	return area(kind, "", float(state.seated_citizens(room)), float(state.seat_capacity(room)), upgrades)
 
 
-static func waiting_area(state: GameState) -> Dictionary:
+static func standing_area(state: GameState, room: String = GameConfig.HALL_INTAKE) -> Dictionary:
 	var upgrades: Array[Dictionary] = []
-	if can_upgrade(state, "waiting_places"):
-		upgrades.append(track("waiting_places", float(GameConfig.upgrade("waiting_places").step), PLACES))
-	return area(WAITING, "", float(state.lobby_used()), float(state.lobby_capacity()), upgrades)
+	var kind := PICKUP_WAITING if room == GameConfig.HALL_PICKUP else WAITING
+	return area(kind, "", float(state.standing_citizens(room)), float(state.standing_capacity(room)), upgrades)
 
 
 static func ticket_demand(state: GameState) -> float:
@@ -290,24 +282,15 @@ static func ticket_demand(state: GameState) -> float:
 
 static func ticket_machine_area(state: GameState) -> Dictionary:
 	var upgrades: Array[Dictionary] = []
-	var rate := Formulas.ticket_draw_rate(state)
-	var machines := Formulas.ticket_machines(state)
-	if can_upgrade(state, "ticket_speed"):
-		upgrades.append(track("ticket_speed", machines / Formulas.track_value("ticket_speed", state.upgrade_level("ticket_speed") + 1) - rate))
-	if can_upgrade(state, "ticket_machines"):
-		upgrades.append(track("ticket_machines", rate / machines))
-	return area(TICKETS, "", ticket_demand(state), rate, upgrades)
-
-
-static func ticket_call_area(state: GameState) -> Dictionary:
-	var upgrades: Array[Dictionary] = []
-	var rate := Formulas.ticket_call_rate(state)
-	var displays := Formulas.ticket_displays(state)
-	if can_upgrade(state, "ticket_call_speed"):
-		upgrades.append(track("ticket_call_speed", displays / Formulas.track_value("ticket_call_speed", state.upgrade_level("ticket_call_speed") + 1) - rate))
-	if can_upgrade(state, "ticket_displays"):
-		upgrades.append(track("ticket_displays", rate / displays))
-	return area(CALLS, "", ticket_demand(state), rate, upgrades)
+	for machine in GameConfig.MAX_TICKET_MACHINES:
+		var speed_id := GameConfig.TICKET_SPEED_TRACKS[machine]
+		var machine_id := GameConfig.TICKET_MACHINE_TRACKS[machine]
+		if not machine_id.is_empty() and can_upgrade(state, machine_id):
+			upgrades.append(track(machine_id, Formulas.track_value(speed_id, 0)))
+		if can_upgrade(state, speed_id):
+			var level := state.upgrade_level(speed_id)
+			upgrades.append(track(speed_id, Formulas.track_value(speed_id, level + 1) - Formulas.track_value(speed_id, level)))
+	return area(TICKETS, "", ticket_demand(state), Formulas.ticket_draw_rate(state), upgrades)
 
 
 static func support_areas(state: GameState) -> Array[Dictionary]:
@@ -316,11 +299,10 @@ static func support_areas(state: GameState) -> Array[Dictionary]:
 	result.append(complaint_area(state))
 	result.append(reject_area(state))
 	result.append(phone_area(state))
-	result.append(seating_area(state))
-	result.append(waiting_area(state))
-	if state.tickets_unlocked():
-		result.append(ticket_machine_area(state))
-		result.append(ticket_call_area(state))
+	for room in GameConfig.WAITING_ROOMS:
+		result.append(seating_area(state, room))
+		result.append(standing_area(state, room))
+	result.append(ticket_machine_area(state))
 	return result
 
 

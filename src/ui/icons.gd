@@ -3,7 +3,6 @@ extends RefCounted
 
 const PAID := "\ue041"
 const STAR := "\ue838"
-const APARTMENT := "\uea40"
 const SCIENCE := "\uea4b"
 const FLAG := "\ue153"
 const SETTINGS := "\ue8b8"
@@ -32,14 +31,13 @@ const DOOR := "\ueffd"
 const DESCRIPTION := "\ue873"
 const CELEBRATION := "\uea65"
 const BLOCK := "\ue14b"
-const DOMAIN := "\ue7ee"
 const ADD_BUSINESS := "\ue729"
 const HOURGLASS := "\uea5b"
 const TICKET := "\ue638"
-const CALL_DISPLAY := "\ue333"
 const TOUCH := "\ue913"
 const SCHOOL := "\ue80c"
 const COFFEE := "\ue541"
+const RESTAURANT := "\ue56c"
 const STAR_BORDER := "\ue83a"
 const REVIEWS := "\ue560"
 const ARROW_BACK := "\ue5c4"
@@ -118,9 +116,7 @@ const STAFF := {
 	"specialists": "\uea67",
 	"supervisors": "\uf02e",
 	"hr": "\ue0b0",
-	"guards": "\ue32a",
 	"collectors": "\ue872",
-	"helpers": "\ue7fb",
 	"coffee_interns": "\ue541",
 }
 
@@ -133,22 +129,20 @@ const UPGRADES := {
 	"digital_signatures": "\ue2e6",
 	"letter_opener": "\ue14e",
 	"office_equipment": "\uf8f4",
-	"waiting_places": "\ue7fb",
-	"comfortable_lobby": "\uefed",
 	"seating": "\ue903",
-	"standing_places": "\ue536",
+	"pickup_seating": "\ue903",
 	"ticket_speed": "\ue638",
-	"ticket_machines": "\ue8ad",
-	"ticket_line": "\uea5b",
-	"ticket_call_speed": "\ue333",
-	"ticket_displays": "\ue30c",
-	"online_portal": "\ue894",
+	"ticket_machine_2": "\ue8ad",
+	"ticket_speed_2": "\ue638",
+	"ticket_machine_3": "\ue8ad",
+	"ticket_speed_3": "\ue638",
+	"complaint_interns": "\ue7fb",
+	"intern_steadfast": "\uea78",
+	"intern_speed": "\ue566",
 	"complaint_box": "\ue89b",
-	"complaint_tube": "\ue8f9",
-	"complaint_clerk": "\uf0e2",
-	"shredder_service": "\ue872",
-	"intern_training": "\ue80c",
-	"intern_resilience": "\uea78",
+	"intern_box_runs": "\ue872",
+	"complaint_security": "\ue32a",
+	"security_training": "\ue9e0",
 	"shredder_blades": "\ue16c",
 	"shredder": "\ue760",
 	"collector_carts": "\uf86b",
@@ -170,11 +164,12 @@ const UPGRADES := {
 	"espresso": "\uea1b",
 	"kitchen": "\ueb47",
 	"coffee_intern_speed": "\ue536",
+	"canteen_menu": "\uea61",
+	"canteen_speed": "\ue57a",
 	"toilet_stalls": "\ue63d",
 	"toilet_speed": "\ue425",
 	"toilet_hygiene": "\uf1b2",
 	"wake_service": "\ue855",
-	"guard_training": "\ue9e0",
 	"phone_training": "\ue311",
 	"mail_subscription": "\ue0be",
 	"mail_frequency": "\ue8b5",
@@ -184,16 +179,14 @@ const UPGRADES := {
 const SPOTS := {
 	"player": "\ue7fd",
 	"entrance": "\ueffd",
-	"waiting": "\ue7fb",
 	"seating": "\uefed",
+	"pickup_seating": "\uefed",
 	"tickets": "\ue638",
-	"ticket_display": "\ue333",
 	"complaint_box": "\ue89b",
-	"guards": "\ue32a",
+	"security": "\ue32a",
 	"archive": "\ue149",
 	"training": "\ue80c",
 	"complaint_desk": "\uf0e2",
-	"interns": "\ue7fb",
 	"shredder": "\ue872",
 	"collectors": "\ue16c",
 	"tube_hub": "\ue9f4",
@@ -202,6 +195,7 @@ const SPOTS := {
 	"runners": "\uea72",
 	"coffee_machine": "\ueff0",
 	"kitchen": "\ueb47",
+	"canteen": "\ue56c",
 	"coffee_interns": "\ue541",
 	"works_council": "\ue90e",
 	"toilets": "\ue63d",
@@ -214,6 +208,7 @@ const SPOTS := {
 const ROOMS := {
 	"player": "\ue7fd",
 	"hall": "\uea40",
+	"staff_room": "\uf233",
 	"complaint_office": "\ue89b",
 	"shredder_room": "\ue872",
 	"tech_room": "\ue335",
@@ -221,6 +216,7 @@ const ROOMS := {
 	"toilets": "\ue63d",
 	"phone": "\ue0b0",
 	"mail": "\ue158",
+	"player_office": "\ue8f9",
 	"inspection": "\ue8b6",
 }
 
@@ -247,12 +243,9 @@ const DISPUTES := {
 }
 
 const EVENTS := {
-	"rush_hour": "\ue8b5",
 	"audit_visit": "\uea17",
-	"tax_deadline": "\uef6e",
 	"printer_jam": "\ue8ad",
 	"system_crash": "\ue002",
-	"monday_rush": "\uf233",
 	"coffee_escalation": "\ue541",
 	"paperwork_mountain": "\ue873",
 	"staff_meeting": "\ue0bf",
@@ -278,7 +271,6 @@ const BOOSTS := {
 	"roller_skates": "\ue566",
 	"complaint_amnesty": "\ue90e",
 	"weekend_shift": "\ue16b",
-	"gazette_ad": "\ueb81",
 	"fee_increase": "\ue8e5",
 	"budget_injection": "\ue2eb",
 }

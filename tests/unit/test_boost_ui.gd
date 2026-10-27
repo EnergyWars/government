@@ -180,7 +180,7 @@ func test_sheet_watch_ad_runs_action_after_the_ad() -> void:
 
 
 func test_mail_spots_show_storage_and_locked_state() -> void:
-	var locked_text := tr("FMT_MAIL_LOCKED") % (GameConfig.MAIL_UNLOCK_STAGE + 1)
+	var locked_text := tr("FMT_MAIL_LOCKED") % GameConfig.departments_for_stage(GameConfig.MAIL_UNLOCK_STAGE)
 	var sheet := _sheet(SpotSheet.new(), UpgradeCatalog.room_spot(GameConfig.ROOM_MAIL))
 	assert_has(_texts(sheet.content), locked_text)
 	assert_eq(SpotStatus.mail(game.state), locked_text)
@@ -206,7 +206,7 @@ func test_mail_spots_show_storage_and_locked_state() -> void:
 
 
 func test_area_spots_have_status_and_priced_entries() -> void:
-	for spot: String in ["waiting", "seating"]:
+	for spot: String in ["seating", "tickets"]:
 		assert_false(SpotStatus.lines(game.state, spot).is_empty(), spot)
 		var entries := UpgradeCatalog.entries_for_spot(game.state, spot)
 		assert_false(entries.is_empty(), spot)

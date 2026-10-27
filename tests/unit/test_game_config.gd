@@ -45,14 +45,36 @@ func test_building_stages_grow() -> void:
 	for i in range(1, GameConfig.BUILDING_STAGES.size()):
 		var current: Dictionary = GameConfig.BUILDING_STAGES[i]
 		var before: Dictionary = GameConfig.BUILDING_STAGES[i - 1]
-		for field in ["cost", "reputation", "max_departments", "max_desks", "lobby"]:
+		for field in ["max_departments", "max_desks", "lobby"]:
 			assert_gt(float(current[field]), float(before[field]), "%s %s" % [current.id, field])
+		assert_false(current.has("cost"), current.id)
+		assert_false(current.has("reputation"), current.id)
 	assert_eq(int(GameConfig.BUILDING_STAGES[-1].max_departments), GameConfig.DEPARTMENTS.size())
+
+
+func test_stage_follows_the_number_of_departments() -> void:
+	var expected := [0, 0, 1, 1, 2, 2, 3, 3, 4, 4]
+	for count in expected.size():
+		assert_eq(GameConfig.stage_for_departments(count), expected[count], str(count))
+	for stage in GameConfig.BUILDING_STAGES.size():
+		var needed := GameConfig.departments_for_stage(stage)
+		assert_eq(GameConfig.stage_for_departments(needed), stage, str(stage))
+		if stage > 0:
+			assert_eq(GameConfig.stage_for_departments(needed - 1), stage - 1, str(stage))
+	assert_eq(GameConfig.departments_for_stage(-1), 1)
+	assert_eq(GameConfig.departments_for_stage(GameConfig.MAIL_UNLOCK_STAGE), 2)
+
+
+func test_reputation_strongly_limits_department_openings() -> void:
+	var ids := GameConfig.department_ids()
+	for index in range(2, ids.size()):
+		var before := float(GameConfig.department(ids[index - 1]).unlock_reputation)
+		assert_gte(float(GameConfig.department(ids[index]).unlock_reputation), before * GameConfig.UNLOCK_REPUTATION_MIN_GROWTH, ids[index])
 
 
 func test_upgrade_tracks_are_consistent() -> void:
 	var curves := ["linear", "decay", "unlock_decay", "chance", "unlock"]
-	var units := ["count", "bonus", "reduction", "seconds", "chance", "percent", "unlock"]
+	var units := ["count", "bonus", "reduction", "seconds", "chance", "percent", "unlock", "per_second"]
 	assert_eq(GameConfig.upgrade_ids().size(), GameConfig.UPGRADES.size())
 	for upgrade_id in GameConfig.upgrade_ids():
 		var config := GameConfig.upgrade(upgrade_id)
@@ -66,7 +88,7 @@ func test_upgrade_tracks_are_consistent() -> void:
 		assert_gt(float(config.cost), 0.0, upgrade_id)
 		assert_gte(float(config.growth), 1.0, upgrade_id)
 		assert_gte(float(config.get("reputation", 0.0)), 0.0, upgrade_id)
-		assert_lt(int(config.get("stage", 0)), GameConfig.BUILDING_STAGES.size(), upgrade_id)
+		assert_false(config.has("stage"), upgrade_id)
 		match str(config.curve):
 			"linear":
 				assert_true(config.has("base") and config.has("step"), upgrade_id)
@@ -114,14 +136,16 @@ func test_station_speed_and_event_mitigation_use_global_tracks() -> void:
 
 
 func test_track_limits_match_world_limits() -> void:
-	var lobby_limit := int(GameConfig.BUILDING_STAGES[-1].lobby) + int(Formulas.track_value("waiting_places", int(GameConfig.upgrade("waiting_places").max)))
-	assert_lte(lobby_limit, GameConfig.MAX_LOBBY_SLOTS)
-	assert_eq(int(Formulas.track_value("ticket_line", int(GameConfig.upgrade("ticket_line").max))), GameConfig.MAX_TICKET_LINE_SLOTS)
-	assert_eq(int(Formulas.track_value("ticket_machines", int(GameConfig.upgrade("ticket_machines").max))), GameConfig.MAX_TICKET_MACHINES)
+	assert_eq(GameConfig.TICKET_MACHINE_TRACKS.size(), GameConfig.MAX_TICKET_MACHINES)
+	assert_eq(GameConfig.TICKET_SPEED_TRACKS.size(), GameConfig.MAX_TICKET_MACHINES)
+	for upgrade_id in GameConfig.TICKET_SPEED_TRACKS:
+		assert_eq(int(GameConfig.upgrade(upgrade_id).max), GameConfig.TICKET_MACHINE_LEVELS, upgrade_id)
+		assert_almost_eq(Formulas.track_value(upgrade_id, GameConfig.TICKET_MACHINE_LEVELS), GameConfig.TICKET_MAX_RATE, 0.0001)
+	assert_almost_eq(GameConfig.MAX_TICKET_MACHINES * GameConfig.TICKET_MAX_RATE * 60.0, GameConfig.MAX_ARRIVALS_PER_MINUTE, 0.0001)
+	assert_eq(int(Formulas.track_value("seating", int(GameConfig.upgrade("seating").max))), GameConfig.WAITING_PLACES)
 	assert_eq(int(Formulas.track_value("toilet_stalls", int(GameConfig.upgrade("toilet_stalls").max))), GameConfig.MAX_LOO_SLOTS)
-	assert_eq(int(Formulas.track_value("ticket_line", 0)), GameConfig.TICKET_LINE_SLOTS)
 	assert_eq(int(Formulas.track_value("toilet_stalls", 0)), GameConfig.LOO_SLOTS)
-	assert_eq(int(Formulas.track_value("seating", 0)), GameConfig.SEATING_BASE_SEATS)
+	assert_eq(int(Formulas.track_value("seating", 0)), GameConfig.BASE_SEATS)
 
 
 func test_upgrade_lookups() -> void:
@@ -160,7 +184,7 @@ func test_room_tracks_list_their_rooms() -> void:
 
 
 func test_goals_reference_existing_content() -> void:
-	var types := ["cases", "staff_hired", "runners", "station_level", "building_stage", "department", "upgrades", "upgrade_level", "reputation"]
+	var types := ["cases", "staff_hired", "runners", "station_level", "department", "upgrades", "upgrade_level", "reputation"]
 	for goal: Dictionary in GameConfig.GOALS:
 		assert_true(types.has(goal.type), str(goal))
 		if goal.type == "department":
@@ -169,19 +193,19 @@ func test_goals_reference_existing_content() -> void:
 			assert_false(GameConfig.upgrade(goal.param).is_empty(), str(goal))
 			assert_false(GameConfig.is_room_upgrade(goal.param), str(goal))
 			assert_lte(int(goal.target), int(GameConfig.upgrade(goal.param).max), str(goal))
-		if goal.type == "building_stage":
-			assert_lt(int(goal.target), GameConfig.BUILDING_STAGES.size(), str(goal))
 
 
-func test_goal_departments_fit_building_progress() -> void:
-	var stage := 0
-	var unlocked := 1
+func test_reputation_goals_ascend_towards_the_next_department() -> void:
+	var last_target := 0.0
+	var pending := -1.0
 	for goal: Dictionary in GameConfig.GOALS:
-		if goal.type == "building_stage":
-			stage = int(goal.target)
-		elif goal.type == "department":
-			unlocked += 1
-			assert_lte(unlocked, int(GameConfig.building_stage(stage).max_departments), str(goal))
+		if goal.type == "reputation":
+			assert_gt(float(goal.target), last_target, str(goal))
+			last_target = float(goal.target)
+			pending = last_target
+		elif goal.type == "department" and pending >= 0.0:
+			assert_lt(pending, float(GameConfig.department(goal.param).unlock_reputation), str(goal))
+			pending = -1.0
 
 
 func test_events_reference_departments() -> void:
@@ -234,7 +258,7 @@ func test_world_layout_places_every_station() -> void:
 			var area := layout.area(key)
 			assert_true(area.has_area(), key)
 			assert_true(world.encloses(area), key)
-			for point in [layout.input_point(key), layout.output_point(key), layout.work_point(key)]:
+			for point in [layout.input_point(key), layout.output_point(key), layout.desk_work_point(key, 0)]:
 				assert_true(world.has_point(point), key)
 	assert_false(layout.area("nope").has_area())
 	assert_false(layout.room("nope").has_area())
@@ -277,9 +301,10 @@ func test_world_layout_service_rooms_do_not_overlap() -> void:
 
 func test_world_layout_helpers() -> void:
 	var layout := WorldLayout.get_default()
-	assert_eq(layout.input_point(GameConfig.RECEPTION), layout.queue_point(0))
-	assert_ne(layout.queue_point(0), layout.queue_point(1))
-	assert_ne(layout.queue_point(11), layout.queue_point(12))
+	assert_true(layout.hall.has_point(layout.output_point(GameConfig.RECEPTION)))
+	assert_true(layout.hall.has_point(layout.input_point(GameConfig.COUNTER)))
+	assert_ne(layout.standing_point(0, GameConfig.BASE_SEATS), layout.standing_point(1, GameConfig.BASE_SEATS))
+	assert_ne(layout.ticket_line_point(0, 0), layout.ticket_line_point(1, 0))
 	assert_ne(layout.waiting_seat(0), layout.waiting_seat(5))
 	assert_ne(layout.desk_position("tax_services/review", 0), layout.desk_position("tax_services/review", 3))
 	assert_true(layout.hall.has_point(layout.player_start()))
@@ -301,8 +326,10 @@ func test_room_lookups() -> void:
 	assert_eq(GameConfig.station_room("tax_services/review"), "tax_services")
 	for key: String in GameConfig.SHARED_STATIONS:
 		assert_true(GameConfig.SERVICE_ROOMS.has(GameConfig.station_room(key)), key)
-	assert_eq(GameConfig.spot_room("guards"), GameConfig.ROOM_HALL)
-	assert_eq(GameConfig.spot_room("runners"), GameConfig.ROOM_TECH)
+	for board in GameConfig.STAFF_ROOM_BOARDS:
+		assert_eq(GameConfig.spot_room(board), GameConfig.ROOM_STAFF, board)
+	for board in GameConfig.BOARD_SPOTS:
+		assert_true(GameConfig.STAFF_ROOM_BOARDS.has(board), board)
 	assert_eq(GameConfig.spot_room("station:" + GameConfig.MAILROOM), GameConfig.ROOM_MAIL)
 	assert_eq(GameConfig.spot_room("station:customs/dock"), "customs")
 	assert_eq(GameConfig.spot_room("dept:housing"), "housing")

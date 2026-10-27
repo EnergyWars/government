@@ -15,7 +15,10 @@ var jobs: Array[StationJob] = [null]
 var moods: Array[DeskMood] = [DeskMood.new()]
 var rejects := 0
 var storage_level := 0
+var tray_level := 0
+var reject_level := 0
 var rush := 0.0
+var jammed := false
 
 
 func _init(p_key: String = "") -> void:
@@ -43,6 +46,10 @@ func is_final() -> bool:
 	return kind == "counter" or kind == "clearance"
 
 
+func calls_citizens() -> bool:
+	return kind == "reception" or kind == "counter" or key == GameConfig.PHOTO_STATION
+
+
 func supports_specialists() -> bool:
 	return kind == "review"
 
@@ -56,7 +63,7 @@ func inbox_capacity(lobby: int) -> int:
 		return storage_capacity()
 	if is_entry():
 		return lobby
-	return GameConfig.INBOX_BASE + GameConfig.INBOX_PER_DESK * desks
+	return GameConfig.INBOX_BASE + GameConfig.INBOX_PER_DESK * desks + tray_capacity()
 
 
 func is_swamped(lobby: int) -> bool:
@@ -66,7 +73,11 @@ func is_swamped(lobby: int) -> bool:
 
 
 func outbox_capacity() -> int:
-	return GameConfig.OUTBOX_BASE + GameConfig.OUTBOX_PER_DESK * desks
+	return GameConfig.OUTBOX_BASE + GameConfig.OUTBOX_PER_DESK * desks + tray_capacity()
+
+
+func tray_capacity() -> int:
+	return GameConfig.TRAY_CAPACITY_PER_LEVEL * tray_level
 
 
 func is_backlogged() -> bool:
@@ -82,11 +93,25 @@ func has_outbox_space() -> bool:
 
 
 func has_reject_pile() -> bool:
+	if kind == "reception" or kind == "counter":
+		return true
 	return kind == "review" and not dept_id.is_empty() and not GameConfig.is_customs(dept_id)
 
 
+func reject_capacity() -> int:
+	return GameConfig.REJECT_CAPACITY + GameConfig.REJECT_CAPACITY_PER_LEVEL * reject_level
+
+
 func has_reject_space() -> bool:
-	return rejects < GameConfig.REJECT_CAPACITY
+	return rejects < reject_capacity()
+
+
+func produces_rejects() -> bool:
+	return kind == "review" and has_reject_pile()
+
+
+func is_output_jammed() -> bool:
+	return produces_rejects() and (not has_outbox_space() or not has_reject_space())
 
 
 func is_specialist_desk(desk: int) -> bool:
@@ -98,7 +123,7 @@ func is_staffed(desk: int) -> bool:
 
 
 func is_working(desk: int) -> bool:
-	return is_staffed(desk) and not moods[desk].is_resting()
+	return is_staffed(desk) and moods[desk].is_on_duty()
 
 
 func can_cover(desk: int) -> bool:
@@ -219,6 +244,8 @@ func to_dict() -> Dictionary:
 		"level": level,
 		"rejects": rejects,
 		"storage_level": storage_level,
+		"tray_level": tray_level,
+		"reject_level": reject_level,
 		"rush": rush,
 		"inbox": inbox.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
 		"outbox": outbox.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
@@ -233,8 +260,10 @@ static func from_dict(data: Dictionary) -> Station:
 	station.staff = station.desks if station.machine else clampi(int(data.get("staff", 0)), 0, station.desks)
 	station.specialists = clampi(int(data.get("specialists", 0)), 0, GameConfig.MAX_SPECIALISTS) if station.supports_specialists() else 0
 	station.level = clampi(int(data.get("level", 1)), 1, GameConfig.MAX_STATION_LEVEL)
-	station.rejects = clampi(int(data.get("rejects", 0)), 0, GameConfig.REJECT_CAPACITY) if station.has_reject_pile() else 0
+	station.reject_level = clampi(int(data.get("reject_level", 0)), 0, GameConfig.MAX_REJECT_LEVEL) if station.has_reject_pile() else 0
+	station.rejects = clampi(int(data.get("rejects", 0)), 0, station.reject_capacity()) if station.has_reject_pile() else 0
 	station.storage_level = clampi(int(data.get("storage_level", 0)), 0, GameConfig.MAIL_STORAGE_MAX_LEVEL) if station.is_mailroom() else 0
+	station.tray_level = clampi(int(data.get("tray_level", 0)), 0, GameConfig.MAX_TRAY_LEVEL)
 	station.rush = clampf(float(data.get("rush", 0.0)), 0.0, GameConfig.UPGRADE_RUSH_SECONDS)
 	for entry in data.get("inbox", []):
 		station.inbox.append(CaseFile.from_dict(entry))

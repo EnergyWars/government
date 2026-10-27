@@ -19,7 +19,9 @@ func before_each() -> void:
 	review.staff = review.desks
 	state.sick_timer = 1e6
 	state.kranz_timer = 1e6
+	state.lunch_timer = 1e6
 	state.complaint_timer = 1e6
+	state.complaint_letter_timer = 1e6
 	state.player.position = Vector2(50, 50)
 
 
@@ -102,12 +104,12 @@ func test_hire_hr_costs_money_and_has_limit() -> void:
 
 
 func test_sick_and_hr_are_saved_and_clamped() -> void:
-	state.hr = 3
+	state.hr = 1
 	state.calls_made = 7
 	state.sick_timer = 55.0
 	state.station(REVIEW).moods[0].rest(DeskMood.SICK)
 	var loaded := GameState.from_dict(state.to_dict())
-	assert_eq(loaded.hr, 3)
+	assert_eq(loaded.hr, 1)
 	assert_eq(loaded.calls_made, 7)
 	assert_almost_eq(loaded.sick_timer, 55.0, 0.001)
 	assert_true(loaded.station(REVIEW).moods[0].is_sick())
@@ -171,8 +173,8 @@ func test_loo_slot_points() -> void:
 func test_toilets_are_separate_from_kitchen() -> void:
 	assert_false(layout.toilets.intersects(layout.kitchen))
 	assert_false(layout.toilets.intersects(layout.hall))
-	assert_eq(layout.toilets.position.y, layout.kitchen.position.y)
-	assert_eq(layout.toilets.end.x, layout.kitchen.end.x + layout.toilets.size.x + WorldLayout.GAP)
+	assert_eq(layout.toilets.position.x, layout.kitchen.position.x)
+	assert_eq(layout.toilets.end.y + WorldLayout.GAP, layout.kitchen.position.y)
 	assert_eq(layout.toilets_header().size.y, WorldLayout.HEADER)
 	for slot in layout.rooms:
 		assert_false(layout.toilets.intersects(layout.rooms[slot]), slot)
@@ -287,5 +289,8 @@ func test_slow_and_chat_guests_gather_at_coffee_machine_cluster() -> void:
 	for slot in GameConfig.KITCHEN_TABLE_SLOT:
 		assert_lt(layout.kitchen_slot(slot).distance_to(machine), 200.0, str(slot))
 	var table := layout.kranz_point()
-	for slot in range(GameConfig.KITCHEN_TABLE_SLOT, GameConfig.KITCHEN_SLOTS):
+	for slot in range(GameConfig.KITCHEN_TABLE_SLOT, GameConfig.LUNCH_SLOT):
 		assert_lt(layout.kitchen_slot(slot).distance_to(table), 200.0, str(slot))
+	var lunch := layout.lunch_table_point()
+	for slot in range(GameConfig.LUNCH_SLOT, GameConfig.KITCHEN_SLOTS):
+		assert_lt(layout.kitchen_slot(slot).distance_to(lunch), 150.0, str(slot))

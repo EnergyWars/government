@@ -26,14 +26,15 @@ func _mail_case(dept_id: String = "general_services") -> CaseFile:
 	return case_file
 
 
-func test_mail_room_opens_with_the_building_stage() -> void:
+func test_mail_room_opens_with_the_second_department() -> void:
 	assert_false(state.mail_unlocked())
 	assert_null(state.ensure_mailroom())
 	assert_null(state.mailroom())
-	state.building_stage = GameConfig.MAIL_UNLOCK_STAGE - 1
+	state.money = 1e12
 	state.reputation = 1e6
 	state.reputation_peak = 1e6
-	assert_true(actions.expand_building())
+	assert_true(actions.unlock_department("tax_services"))
+	assert_eq(state.building_stage, GameConfig.MAIL_UNLOCK_STAGE)
 	assert_not_null(state.mailroom())
 	assert_true(state.mailroom().is_mailroom())
 	assert_true(state.mailroom().is_entry())
@@ -296,14 +297,16 @@ func test_mail_does_not_take_seats() -> void:
 	_open_mail()
 	var review := state.station("general_services/review")
 	var before := state.seated_citizens()
-	review.inbox.append(_mail_case())
+	var mail := _mail_case()
+	review.inbox.append(mail)
 	assert_eq(state.seated_citizens(), before)
+	assert_false(mail.has_citizen())
+	assert_false(sim.needs_ticket(mail))
 	var companion := CaseFile.new("general_services")
 	companion.companion = true
 	review.inbox.append(companion)
 	assert_eq(state.seated_citizens(), before)
-	review.inbox.append(CaseFile.new("general_services"))
-	assert_eq(state.seated_citizens(), before + 1)
+	assert_false(state.citizens.has(companion))
 
 
 func test_citizens_go_before_mail() -> void:

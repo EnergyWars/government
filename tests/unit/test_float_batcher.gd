@@ -136,26 +136,14 @@ func test_world_bundles_multi_applications_per_size() -> void:
 	assert_true(texts.has(_t("FMT_FLOAT_BUNDLE") % 3))
 
 
-func test_ticket_calls_update_the_display_without_floaters() -> void:
-	state.building_stage = GameConfig.TICKET_UNLOCK_STAGE
-	state.last_called_ticket = 3
+func test_ticket_calls_do_not_add_floaters() -> void:
 	var world := _world()
-	assert_eq(world.display_number, 3)
 	var before := world._floaters.size()
-	state.last_called_ticket = 9
 	game.simulation.ticket_called.emit(9)
 	assert_eq(world._floaters.size(), before)
-	world._advance_effects(WorldView.DISPLAY_INTERVAL * 0.5)
-	assert_eq(world.display_number, 3)
-	world._advance_effects(WorldView.DISPLAY_INTERVAL * 0.6)
-	assert_eq(world.display_number, 9)
-	world._advance_effects(WorldView.DISPLAY_INTERVAL)
-	assert_eq(world.display_number, 9)
 
 
-func test_world_draws_the_ticket_display() -> void:
-	state.building_stage = GameConfig.TICKET_UNLOCK_STAGE
-	state.last_called_ticket = 42
+func test_world_draws_the_ticket_corner() -> void:
 	var world := _world()
 	var drawn := [false]
 	world._actors.draw.connect(func() -> void:
@@ -212,6 +200,6 @@ func test_ruckus_texts_exist_in_both_languages() -> void:
 	var previous := TranslationServer.get_locale()
 	for locale in ["de", "en"]:
 		TranslationServer.set_locale(locale)
-		for key in ["RUCKUS_ALERT_TITLE", "RUCKUS_ALERT_TEXT", "FMT_FLOAT_REPEAT", "TRACK_TICKET_DISPLAYS", "TRACK_DESC_TICKET_DISPLAYS"]:
+		for key in ["RUCKUS_ALERT_TITLE", "RUCKUS_ALERT_TEXT", "FMT_FLOAT_REPEAT"]:
 			assert_ne(TranslationServer.translate(key), key, "%s %s" % [locale, key])
 	TranslationServer.set_locale(previous)

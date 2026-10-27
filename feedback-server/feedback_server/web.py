@@ -199,6 +199,8 @@ class FeedbackApp:
 
     def _download(self, request: Request) -> Response:
         if not self._authenticated(request):
+            if request.header("authorization"):
+                raise ApiError(HTTPStatus.UNAUTHORIZED, "unauthorized")
             return redirect("/")
         job = self._apk_job(request.path)
         if job is None or job.apk_file is None:

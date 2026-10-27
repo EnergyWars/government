@@ -70,7 +70,7 @@ func test_spot_at_prefers_the_smallest_area() -> void:
 	assert_eq(layout.spot_at(_slot_center(layout.tube_station_point("general_services"))), "tube:general_services")
 	assert_eq(layout.spot_at(_slot_center(layout.tube_station_point(GameConfig.ROOM_HALL))), "tube:hall")
 	assert_eq(layout.spot_at(_slot_center(layout.tube_station_point(GameConfig.ROOM_MAIL))), "tube:mail")
-	assert_eq(layout.spot_at(layout.ticket_display_rect().get_center()), "ticket_display")
+	assert_eq(layout.spot_at(layout.ticket_machine_point()), "tickets")
 	assert_eq(layout.spot_at(layout.hall_plate().get_center()), "room:hall")
 	assert_eq(layout.spot_at(layout.server_rect().get_center()), "server")
 	assert_eq(layout.spot_at(layout.runners_board().get_center()), "runners")
@@ -88,19 +88,83 @@ func test_room_at_finds_departments_and_service_rooms() -> void:
 	assert_eq(layout.room_at(layout.complaint_office.get_center()), GameConfig.ROOM_COMPLAINTS)
 	assert_eq(layout.room_at(layout.shredder_room.get_center()), GameConfig.ROOM_SHREDDER)
 	assert_eq(layout.room_at(layout.tech_room.get_center()), GameConfig.ROOM_TECH)
+	assert_eq(layout.room_at(layout.staff_room.get_center()), GameConfig.ROOM_STAFF)
 	assert_eq(layout.room_at(Vector2(1.0, 1.0)), "")
 	assert_eq(layout.room_at(Vector2(layout.complaint_office.end.x + WorldLayout.GAP * 0.5, layout.complaint_office.get_center().y)), "")
 
 
-func test_service_rooms_sit_next_to_each_other_above_the_hall() -> void:
-	assert_eq(layout.complaint_office.position.y, layout.shredder_room.position.y)
-	assert_eq(layout.shredder_room.position.y, layout.tech_room.position.y)
-	assert_almost_eq(layout.shredder_room.position.x, layout.complaint_office.end.x + WorldLayout.GAP, 0.01)
-	assert_almost_eq(layout.tech_room.position.x, layout.shredder_room.end.x + WorldLayout.GAP, 0.01)
-	assert_almost_eq(layout.tech_room.end.x, WorldLayout.WIDTH - WorldLayout.MARGIN, 0.01)
-	assert_almost_eq(layout.hall.position.y, layout.complaint_office.end.y + WorldLayout.GAP, 0.01)
-	assert_true(layout.hall.has_point(layout.complaint_box_point()))
+func test_service_rooms_stack_in_a_column_right_of_the_departments() -> void:
+	var column: Array[Rect2] = [layout.tech_room, layout.toilets, layout.kitchen, layout.phone_office, layout.mail_room, layout.player_office, layout.staff_room, layout.shredder_room, layout.complaint_office]
+	for i in column.size():
+		assert_eq(column[i].position.x, WorldLayout.MAIN_WIDTH, str(i))
+		assert_eq(column[i].size.x, WorldLayout.SIDE_WIDTH, str(i))
+		if i > 0:
+			assert_almost_eq(column[i].position.y, column[i - 1].end.y + WorldLayout.GAP, 0.01, str(i))
+		for slot: String in layout.rooms:
+			assert_lt(layout.rooms[slot].end.x, column[i].position.x, slot)
+	assert_eq(layout.complaint_office.end.y, layout.hall.end.y)
+	assert_lt(layout.hall.end.x, layout.complaint_office.position.x)
+	assert_almost_eq(layout.size.x, WorldLayout.WIDTH, 0.01)
+	assert_lt(layout.complaint_office.end.x, layout.size.x)
+	assert_true(layout.complaint_office.has_point(layout.complaint_box_point()))
 	assert_lt(layout.complaint_box_point().distance_to(layout.office_door()), layout.complaint_box_point().distance_to(layout.tech_door()))
+	assert_true(layout.complaint_office.encloses(layout.security_rect()))
+	assert_eq(layout.spot_rects("security"), [layout.security_rect()])
+	assert_eq(layout.spot_at(layout.security_rect().get_center()), "security")
+	assert_eq(GameConfig.spot_room("security"), GameConfig.ROOM_COMPLAINTS)
+	assert_false(layout.complaint_office.has_point(layout.security_stop_spot()))
+	assert_lt(layout.player_office.get_center().distance_to(layout.hall.get_center()), layout.tech_room.get_center().distance_to(layout.hall.get_center()))
+	assert_gte(layout.tech_room.position.y, WorldLayout.MARGIN)
+
+
+func test_staff_room_holds_every_staff_board_near_the_hall() -> void:
+	var staff := layout.staff_room
+	assert_eq(layout.service_room(GameConfig.ROOM_STAFF), staff)
+	assert_lt(staff.get_center().distance_to(layout.hall.get_center()), layout.kitchen.get_center().distance_to(layout.hall.get_center()))
+	assert_eq(layout.staff_door().x, staff.position.x)
+	var boards: Array[Rect2] = []
+	for board in GameConfig.STAFF_ROOM_BOARDS:
+		var rect := layout.staff_board(board)
+		assert_true(staff.encloses(rect), board)
+		assert_gt(rect.position.y, layout.room_header(GameConfig.ROOM_STAFF).end.y, board)
+		for other in boards:
+			assert_false(rect.intersects(other), board)
+		boards.append(rect)
+		assert_eq(layout.spot_rects(board), [rect], board)
+		assert_eq(layout.spot_at(rect.get_center()), board, board)
+		assert_eq(GameConfig.spot_room(board), GameConfig.ROOM_STAFF, board)
+	assert_eq(layout.staff_board("unknown"), layout.staff_board(GameConfig.STAFF_ROOM_BOARDS[0]))
+	for rect in [layout.runners_board(), layout.collectors_board(), layout.coffee_interns_board(), layout.sick_board(), layout.training_board(), layout.works_council_board()]:
+		assert_true(staff.encloses(rect))
+
+
+func test_phone_office_and_mail_room_are_small() -> void:
+	assert_lt(layout.phone_office.get_area(), layout.hall.get_area() * 0.25)
+	assert_lt(layout.mail_room.get_area(), layout.hall.get_area() * 0.35)
+	assert_true(layout.phone_office.has_point(layout.operator_point()))
+	assert_eq(layout.operator_point(0), layout.operator_point(5))
+	assert_eq(GameConfig.MAX_HR, 1)
+	assert_true(layout.mail_room.encloses(layout.area(GameConfig.MAILROOM)))
+	assert_true(layout.mail_room.encloses(layout.mail_storage_rect()))
+	assert_false(layout.mail_storage_rect().intersects(layout.area(GameConfig.MAILROOM)))
+	assert_true(layout.mail_room.has_point(layout.mail_door()))
+	assert_gt(layout.mail_street().x, layout.size.x)
+
+
+func test_player_office_holds_desk_phone_and_trophies() -> void:
+	var office := layout.player_office
+	assert_eq(layout.service_room(GameConfig.ROOM_OFFICE), office)
+	assert_eq(layout.room_at(office.get_center()), GameConfig.ROOM_OFFICE)
+	for point in [layout.office_desk_point(), layout.phone_point(), layout.office_gift_point(), layout.office_letter_point(), layout.player_office_door()]:
+		assert_true(office.has_point(point) or point.x == office.position.x)
+	assert_true(layout.near(layout.phone_point(), layout.office_desk_point()))
+	assert_true(layout.near(layout.office_gift_point(), layout.office_desk_point()))
+	for rect in [layout.employee_of_month_rect(), layout.certificate_rect(), layout.trophy_shelf_rect()]:
+		assert_true(office.encloses(rect))
+		assert_false(rect.has_point(layout.office_desk_point()))
+	assert_false(layout.employee_of_month_rect().intersects(layout.certificate_rect()))
+	assert_false(layout.phone_office.has_point(layout.phone_point()))
+	assert_eq(layout.line_point(PhoneCall.PLAYER), layout.phone_point())
 
 
 func test_tap_on_the_player_opens_the_player_spot() -> void:
@@ -111,22 +175,48 @@ func test_tap_on_the_player_opens_the_player_spot() -> void:
 	assert_ne(world.tap_spot(player + Vector2(WorldView.PLAYER_TAP_RADIUS + 1.0, 0.0)), GameConfig.ROOM_PLAYER)
 
 
-func test_tap_resolves_locked_and_missing_spots_to_their_room() -> void:
+func test_taps_open_the_smallest_spot() -> void:
 	var world := _world()
+	game.state.set_upgrade("pneumatic_tubes", 1)
+	assert_eq(world.tap_spot(layout.area("general_services/review").get_center()), "station:general_services/review")
+	assert_eq(world.tap_spot(layout.area(GameConfig.RECEPTION).position + Vector2(60.0, 18.0)), "station:" + GameConfig.RECEPTION)
+	assert_eq(world.tap_spot(layout.area(GameConfig.COUNTER).position + Vector2(60.0, 18.0)), "station:" + GameConfig.COUNTER)
+	assert_eq(world.tap_spot(layout.place_area(GameConfig.HALL_INTAKE).get_center()), "seating")
+	assert_eq(world.tap_spot(layout.seating_sign_rect(GameConfig.HALL_INTAKE).get_center()), "seating")
+	assert_eq(world.tap_spot(layout.place_area(GameConfig.HALL_PICKUP).get_center()), "pickup_seating")
+	assert_eq(world.tap_spot(layout.standing_sign_rect(GameConfig.HALL_PICKUP).get_center()), "pickup_seating")
+	assert_eq(world.tap_spot(layout.ticket_area.get_center()), "tickets")
+	assert_eq(world.tap_spot(_slot_center(layout.dept_shredder_point("general_services"))), "shredder:general_services")
+	assert_eq(world.tap_spot(_slot_center(layout.tube_station_point("general_services"))), "tube:general_services")
+	assert_eq(world.tap_spot(layout.runners_board().get_center()), "runners")
+	assert_eq(world.tap_spot(layout.complaint_read_rect().get_center()), "complaint_desk")
+	assert_eq(world.tap_spot(layout.server_rect().get_center()), "server")
+
+
+func test_taps_outside_spots_open_the_room() -> void:
+	var world := _world()
+	assert_eq(world.tap_spot(layout.room("general_services").position + Vector2(5.0, 300.0)), "dept:general_services")
+	assert_eq(world.tap_spot(layout.hall.position + Vector2(20.0, 700.0)), UpgradeCatalog.room_spot(GameConfig.ROOM_HALL))
+	assert_eq(world.tap_spot(Vector2(1.0, 1.0)), "")
+
+
+func test_taps_in_locked_departments_open_the_opening() -> void:
+	var world := _world()
+	assert_false(game.state.department("tax_services").unlocked)
 	assert_eq(world.tap_spot(layout.area("tax_services/review").get_center()), "dept:tax_services")
 	assert_eq(world.tap_spot(_slot_center(layout.dept_shredder_point("tax_services"))), "dept:tax_services")
-	assert_eq(world.tap_spot(_slot_center(layout.tube_station_point("general_services"))), "dept:general_services")
-	assert_eq(world.tap_spot(layout.area(GameConfig.MAILROOM).get_center()), "room:mail")
-	assert_eq(world.tap_spot(_slot_center(layout.dept_shredder_point("general_services"))), "shredder:general_services")
-	game.state.set_upgrade("pneumatic_tubes", 1)
-	assert_eq(world.tap_spot(_slot_center(layout.tube_station_point("general_services"))), "tube:general_services")
+	game.state.unlock_department("tax_services")
+	assert_eq(world.tap_spot(layout.area("tax_services/review").get_center()), "station:tax_services/review")
 
 
-func test_tap_on_free_floor_opens_the_room() -> void:
+func test_taps_on_headers_open_their_room() -> void:
 	var world := _world()
-	var room := layout.room("general_services")
-	assert_eq(world.tap_spot(room.position + Vector2(5.0, 300.0)), "dept:general_services")
-	assert_eq(world.tap_spot(Vector2(1.0, 1.0)), "")
+	for dept_id in GameConfig.department_ids():
+		assert_eq(world.tap_spot(layout.header(dept_id).get_center()), UpgradeCatalog.DEPT_PREFIX + dept_id, dept_id)
+	for room_id in GameConfig.SERVICE_ROOMS:
+		var header := layout.room_header(room_id)
+		if header.has_area():
+			assert_eq(world.tap_spot(header.get_center()), UpgradeCatalog.ROOM_PREFIX + room_id, room_id)
 
 
 func test_tap_emits_open_spot_only_for_hits() -> void:
@@ -166,7 +256,7 @@ func test_focusing_a_room_clears_the_spot_highlight() -> void:
 
 func test_highlights_are_drawn() -> void:
 	var world := _world()
-	for spot in ["entrance", "interns", GameConfig.ROOM_PLAYER]:
+	for spot in ["entrance", "security", GameConfig.ROOM_PLAYER]:
 		world.focus_spot(spot)
 		world._process(0.1)
 		world.queue_redraw()
@@ -239,8 +329,8 @@ func test_map_draws_slots_stations_and_shredders() -> void:
 	world.queue_redraw()
 	await wait_physics_frames(2)
 	state.set_upgrade("pneumatic_tubes", 1)
-	state.set_upgrade("complaint_tube", 1)
-	state.set_upgrade("shredder_service", 1)
+	state.set_upgrade("complaint_interns", 2)
+	state.set_upgrade("complaint_security", 1)
 	state.set_upgrade("climate_control", 50)
 	state.set_upgrade("it_support", 30)
 	for room_id in GameConfig.upgrade_rooms("tube_station"):

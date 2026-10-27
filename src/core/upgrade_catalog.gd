@@ -11,32 +11,27 @@ const STAFF := "staff"
 const RUNNER_LEVEL := "runner_level"
 const SEGMENT := "segment"
 const STORAGE := "storage"
+const TRAYS := "trays"
+const REJECT_PILE := "reject_pile"
 const UNLOCK := "unlock"
 const RANK := "rank"
-const STAGE := "stage"
-const SINGLE_KINDS: Array[String] = [UNLOCK, STAGE]
+const SINGLE_KINDS: Array[String] = [UNLOCK]
 const STAFF_SPOTS := {
 	"runners": "runners",
 	"collectors": "collectors",
-	"helpers": "interns",
 	"coffee_interns": "coffee_interns",
-	"guards": "guards",
 	"hr": "phone_clerks",
 }
 const STAFF_LIMITS := {
 	"runners": GameConfig.MAX_RUNNERS,
 	"collectors": GameConfig.MAX_COLLECTORS,
-	"helpers": GameConfig.MAX_HELPERS,
 	"coffee_interns": GameConfig.MAX_COFFEE_INTERNS,
-	"guards": GameConfig.MAX_GUARDS,
 	"hr": GameConfig.MAX_HR,
 }
 const STAFF_GROWTH := {
 	"runners": GameConfig.RUNNER_GROWTH,
 	"collectors": GameConfig.COLLECTOR_GROWTH,
-	"helpers": GameConfig.HELPER_GROWTH,
 	"coffee_interns": GameConfig.COFFEE_INTERN_GROWTH,
-	"guards": GameConfig.GUARD_GROWTH,
 	"hr": GameConfig.HR_GROWTH,
 }
 const TUBE_HUB := "tube_hub"
@@ -71,8 +66,6 @@ static func entries(state: GameState) -> Array[UpgradeEntry]:
 	for dept_id in GameConfig.department_ids():
 		if not state.department(dept_id).unlocked:
 			result.append(unlock(state, dept_id))
-	if state.building_stage + 1 < GameConfig.BUILDING_STAGES.size():
-		result.append(stage(state))
 	return result
 
 
@@ -94,8 +87,6 @@ static func is_expansion(entry: UpgradeEntry) -> bool:
 			return not entry.is_maxed()
 		UNLOCK:
 			return entry.reason != "later"
-		STAGE:
-			return true
 	return false
 
 
@@ -162,7 +153,7 @@ static func find(state: GameState, entry_id: String) -> UpgradeEntry:
 			if not room_id.is_empty() and not GameConfig.upgrade_rooms(upgrade_id).has(room_id):
 				return null
 			return track(state, upgrade_id, room_id)
-		LEVEL, DESK, HIRE, SPECIALIST:
+		LEVEL, DESK, HIRE, SPECIALIST, TRAYS, REJECT_PILE:
 			for entry in station_entries(state, target):
 				if entry.kind == kind:
 					return entry
@@ -183,24 +174,7 @@ static func find(state: GameState, entry_id: String) -> UpgradeEntry:
 		RANK:
 			var ranked := state.department(target)
 			return rank(state, ranked) if ranked != null and ranked.unlocked else null
-		STAGE:
-			return stage(state) if state.building_stage + 1 < GameConfig.BUILDING_STAGES.size() else null
 	return null
-
-
-static func resolve_spot(state: GameState, spot: String) -> String:
-	var target := GameConfig.spot_target(spot)
-	match GameConfig.spot_kind(spot):
-		"station":
-			if state.station(target) == null:
-				return room_spot(GameConfig.station_room(target))
-		"shredder":
-			if not Progression.room_available(state, target):
-				return room_spot(target)
-		"tube":
-			if not state.has_upgrade("pneumatic_tubes") or not Progression.room_available(state, target):
-				return room_spot(target)
-	return spot
 
 
 static func room_spot(room_id: String) -> String:
@@ -264,6 +238,21 @@ static func station_entries(state: GameState, key: String) -> Array[UpgradeEntry
 		specialist.growth = GameConfig.SPECIALIST_GROWTH
 		specialist.reason = _money_reason(state, specialist)
 		result.append(specialist)
+	var trays := _entry(TRAYS, key, spot, "building")
+	trays.level = station.tray_level
+	trays.max_level = GameConfig.MAX_TRAY_LEVEL
+	trays.cost = Formulas.tray_cost(station)
+	trays.growth = GameConfig.TRAY_GROWTH
+	trays.reason = _money_reason(state, trays)
+	result.append(trays)
+	if station.has_reject_pile():
+		var pile := _entry(REJECT_PILE, key, spot, "building")
+		pile.level = station.reject_level
+		pile.max_level = GameConfig.MAX_REJECT_LEVEL
+		pile.cost = Formulas.reject_pile_cost(station)
+		pile.growth = GameConfig.REJECT_PILE_GROWTH
+		pile.reason = _money_reason(state, pile)
+		result.append(pile)
 	return result
 
 
@@ -287,7 +276,7 @@ static func staff(state: GameState, staff_type: String) -> UpgradeEntry:
 	entry.max_level = int(STAFF_LIMITS[staff_type])
 	entry.cost = staff_cost(state, staff_type)
 	entry.growth = float(STAFF_GROWTH[staff_type])
-	entry.reason = "requires" if staff_type == "helpers" and not state.has_upgrade("shredder_service") and not entry.is_maxed() else _money_reason(state, entry)
+	entry.reason = _money_reason(state, entry)
 	return entry
 
 
@@ -297,12 +286,8 @@ static func staff_count(state: GameState, staff_type: String) -> int:
 			return state.runners.size()
 		"collectors":
 			return state.collectors.size()
-		"helpers":
-			return state.helpers.size()
 		"coffee_interns":
 			return state.coffee_interns.size()
-		"guards":
-			return state.guards
 		"hr":
 			return state.hr
 	return 0
@@ -314,12 +299,8 @@ static func staff_cost(state: GameState, staff_type: String) -> float:
 			return Formulas.runner_cost(state)
 		"collectors":
 			return Formulas.collector_cost(state)
-		"helpers":
-			return Formulas.helper_cost(state)
 		"coffee_interns":
 			return Formulas.coffee_intern_cost(state)
-		"guards":
-			return Formulas.guard_cost(state)
 		"hr":
 			return Formulas.hr_cost(state)
 	return 0.0
@@ -396,16 +377,6 @@ static func rank(state: GameState, dept: Department) -> UpgradeEntry:
 	return entry
 
 
-static func stage(state: GameState) -> UpgradeEntry:
-	var entry := _entry(STAGE, "building", "entrance", "building")
-	entry.level = state.building_stage
-	entry.max_level = GameConfig.BUILDING_STAGES.size() - 1
-	entry.cost = float(GameConfig.building_stage(state.building_stage + 1).cost)
-	entry.single = true
-	entry.reason = Progression.expansion_block_reason(state)
-	return entry
-
-
 static func buy(actions: GameActions, entry_id: String, count: int = 1) -> bool:
 	var kind := entry_id.get_slice(":", 0)
 	var target := entry_id.substr(kind.length() + 1)
@@ -432,6 +403,10 @@ static func _buy_once(actions: GameActions, kind: String, target: String) -> boo
 			return actions.hire(target)
 		SPECIALIST:
 			return actions.hire_specialist(target)
+		TRAYS:
+			return actions.upgrade_trays(target)
+		REJECT_PILE:
+			return actions.upgrade_reject_pile(target)
 		SUPERVISOR:
 			return actions.hire_supervisor(target)
 		STAFF:
@@ -446,8 +421,6 @@ static func _buy_once(actions: GameActions, kind: String, target: String) -> boo
 			return actions.unlock_department(target)
 		RANK:
 			return actions.rank_up_department(target)
-		STAGE:
-			return actions.expand_building()
 	return false
 
 
@@ -457,12 +430,8 @@ static func hire_staff(actions: GameActions, staff_type: String) -> bool:
 			return actions.hire_runner()
 		"collectors":
 			return actions.hire_collector()
-		"helpers":
-			return actions.hire_helper()
 		"coffee_interns":
 			return actions.hire_coffee_intern()
-		"guards":
-			return actions.hire_guard()
 		"hr":
 			return actions.hire_hr()
 	return false

@@ -474,15 +474,156 @@ func test_chatterer_stays_in_kitchen_until_fetched_by_player() -> void:
 	review.moods[0].rest(DeskMood.CHAT, 2)
 	_run(60.0, 1.0)
 	assert_eq(review.moods[0].state, DeskMood.CHAT)
-	state.player.position = layout.desk_position(REVIEW, 0)
-	_run(2.0)
-	assert_eq(review.moods[0].state, DeskMood.CHAT)
 	state.player.position = layout.kitchen_slot(2)
 	watch_signals(sim)
 	_run(GameConfig.WAKE_TIME + 0.5)
 	assert_false(review.moods[0].is_resting())
 	assert_eq(state.wakes, 1)
 	assert_signal_emitted_with_parameters(sim, "employee_woke", [REVIEW, 0, true])
+
+
+func test_player_at_the_desk_recalls_an_absent_official() -> void:
+	watch_signals(sim)
+	for rest_state in [DeskMood.CHAT, DeskMood.FETCH, DeskMood.SLOW, DeskMood.LOO, DeskMood.LUNCH]:
+		var review := _busy_review()
+		review.moods[0].wake(GameConfig.BASE_ALERT_SECONDS)
+		review.moods[0].arrive()
+		review.moods[0].rest(rest_state, GameConfig.KITCHEN_SLOTS if rest_state == DeskMood.LOO else 2)
+		state.player.position = layout.desk_position(REVIEW, 0)
+		_run(GameConfig.RECALL_TIME - 0.3, 0.1)
+		assert_eq(review.moods[0].state, rest_state, rest_state)
+		assert_gt(review.moods[0].recall_progress, 0.0, rest_state)
+		_run(0.5, 0.1)
+		assert_true(review.moods[0].is_returning(), rest_state)
+		assert_false(review.is_working(0), rest_state)
+		assert_signal_emitted_with_parameters(sim, "employee_recalled", [REVIEW, 0])
+		state.player.position = Vector2(50, 50)
+		_run(review.moods[0].return_time + 0.2, 0.1)
+		assert_true(review.moods[0].is_on_duty(), rest_state)
+		assert_signal_emitted_with_parameters(sim, "employee_returned", [REVIEW, 0])
+	assert_eq(state.recalls, 5)
+
+
+func test_recall_progress_resets_when_leaving_the_desk() -> void:
+	var review := _busy_review()
+	review.moods[0].rest(DeskMood.CHAT, 2)
+	state.player.position = layout.desk_position(REVIEW, 0)
+	_run(0.5, 0.1)
+	assert_gt(review.moods[0].recall_progress, 0.0)
+	state.player.position = Vector2(50, 50)
+	sim.tick(0.1)
+	assert_eq(review.moods[0].recall_progress, 0.0)
+	assert_eq(review.moods[0].state, DeskMood.CHAT)
+
+
+func test_recall_guards() -> void:
+	var review := state.station(REVIEW)
+	assert_false(sim.recall(review, 0))
+	review.moods[0].rest(DeskMood.ASLEEP)
+	assert_false(sim.recall(review, 0))
+	review.moods[0].rest(DeskMood.SICK)
+	assert_false(sim.recall(review, 0))
+	review.moods[0].rest(DeskMood.CHAT, 1)
+	assert_false(sim.recall(review, -1))
+	assert_false(sim.recall(review, 9))
+	review.staff = 0
+	assert_false(sim.recall(review, 0))
+	review.staff = 1
+	assert_true(sim.recall(review, 0))
+	assert_eq(state.recalls, 1)
+	assert_eq(state.wakes, 1)
+
+
+func test_returning_official_works_only_after_the_walk() -> void:
+	var review := _busy_review()
+	review.moods[0].rest(DeskMood.LOO, GameConfig.KITCHEN_SLOTS)
+	assert_true(sim.wake_up(review, 0, true))
+	var mood := review.moods[0]
+	var walk := Formulas.staff_walk_time(layout.slot_point(GameConfig.KITCHEN_SLOTS), layout.desk_position(REVIEW, 0))
+	assert_almost_eq(mood.return_time, walk, 0.0001)
+	assert_true(mood.is_returning())
+	assert_false(mood.is_resting())
+	assert_true(mood.is_absent())
+	assert_false(mood.needs_help())
+	assert_false(sim.wake_up(review, 0, true))
+	assert_false(sim.doze_off(review, 0))
+	_run(walk - 0.2, 0.1)
+	assert_true(mood.is_returning())
+	assert_true(review.jobs[0] == null or review.jobs[0].progress == 0.0)
+	_run(0.4, 0.1)
+	assert_true(mood.is_on_duty())
+	assert_true(review.is_working(0))
+
+
+func test_waking_a_sleeper_needs_no_walk() -> void:
+	var review := _busy_review()
+	review.moods[0].rest(DeskMood.ASLEEP)
+	assert_true(sim.wake_up(review, 0, true))
+	assert_true(review.moods[0].is_on_duty())
+
+
+func test_staff_walk_time_is_clamped() -> void:
+	assert_eq(Formulas.staff_walk_time(Vector2.ZERO, Vector2.ZERO), GameConfig.STAFF_WALK_MIN_SECONDS)
+	assert_eq(Formulas.staff_walk_time(Vector2.ZERO, Vector2(1e6, 0)), GameConfig.STAFF_WALK_MAX_SECONDS)
+	assert_almost_eq(Formulas.staff_walk_time(Vector2.ZERO, Vector2(GameConfig.STAFF_WALK_SPEED, 0)), 1.0, 0.0001)
+
+
+func test_dispute_takes_two_officials_away_and_sends_them_back() -> void:
+	var review := state.station(REVIEW)
+	while review.desks < 3:
+		review.add_desk()
+	review.staff = 3
+	var dispute := sim.start_dispute("radio", "general_services")
+	assert_not_null(dispute)
+	var crew := sim.dispute_crew("general_services")
+	assert_eq(crew.size(), GameConfig.DISPUTE_CREW)
+	assert_true(review.moods[0].is_disputing())
+	assert_true(review.moods[1].is_disputing())
+	assert_true(review.moods[2].is_on_duty())
+	assert_false(review.is_working(0))
+	assert_true(review.is_working(2))
+	_run(5.0, 0.5)
+	assert_true(review.moods[0].is_disputing())
+	assert_false(sim.wake_up(review, 0, true))
+	sim.end_dispute(dispute, true)
+	assert_true(review.moods[0].is_returning())
+	assert_true(review.moods[1].is_returning())
+	assert_almost_eq(review.moods[1].return_time, Formulas.staff_walk_time(layout.dispute_spot("general_services", 1), layout.desk_position(REVIEW, 1)), 0.0001)
+	assert_true(sim.dispute_crew("general_services").is_empty())
+	_run(GameConfig.STAFF_WALK_MAX_SECONDS + 0.5, 0.5)
+	assert_true(review.moods[0].is_on_duty())
+	assert_true(review.moods[1].is_on_duty())
+
+
+func test_dispute_moods_survive_saving_and_orphans_are_released() -> void:
+	var review := state.station(REVIEW)
+	while review.desks < 2:
+		review.add_desk()
+	review.staff = 2
+	sim.start_dispute("radio", "general_services")
+	var data: Dictionary = JSON.parse_string(JSON.stringify(state.to_dict()))
+	var loaded := GameState.from_dict(data)
+	assert_true(loaded.station(REVIEW).moods[0].is_disputing())
+	data.disputes = []
+	var orphaned := GameState.from_dict(data)
+	assert_true(orphaned.station(REVIEW).moods[0].is_on_duty())
+	review.moods[0].arrive()
+	review.moods[0].start_return(3.0)
+	assert_eq(DeskMood.from_dict(review.moods[0].to_dict()).state, DeskMood.AWAKE)
+	state.recalls = 4
+	assert_eq(GameState.from_dict(state.to_dict()).recalls, 4)
+
+
+func test_join_dispute_needs_an_official_on_duty() -> void:
+	var mood := DeskMood.new()
+	mood.rest(DeskMood.ASLEEP)
+	assert_false(mood.join_dispute())
+	mood.wake(1.0)
+	assert_true(mood.join_dispute())
+	assert_false(mood.join_dispute())
+	assert_true(mood.is_absent())
+	assert_false(mood.is_resting())
+	assert_false(mood.can_be_recalled())
 
 
 func test_wake_service_calls_chatterers_back() -> void:

@@ -17,7 +17,6 @@ func test_goal_progress_types() -> void:
 	var goals := GoalTracker.new(state)
 	state.cases_completed = 4
 	state.staff_hired = 2
-	state.building_stage = 1
 	state.reputation = 7.9
 	state.set_upgrade("pneumatic_tubes", 1)
 	for room_id in GameConfig.upgrade_rooms("tube_station"):
@@ -28,7 +27,7 @@ func test_goal_progress_types() -> void:
 	assert_eq(goals.progress_of({"type": "staff_hired"}), 2.0)
 	assert_eq(goals.progress_of({"type": "runners"}), 1.0)
 	assert_eq(goals.progress_of({"type": "station_level"}), 3.0)
-	assert_eq(goals.progress_of({"type": "building_stage"}), 1.0)
+	assert_eq(goals.progress_of({"type": "building_stage"}), 0.0)
 	assert_eq(goals.progress_of({"type": "department", "param": "general_services"}), 1.0)
 	assert_eq(goals.progress_of({"type": "department", "param": "tax_services"}), 0.0)
 	assert_eq(goals.progress_of({"type": "department", "param": "nope"}), 0.0)

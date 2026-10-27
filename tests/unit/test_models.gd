@@ -60,11 +60,9 @@ func test_case_file_roundtrip_and_clamping() -> void:
 	case_file.produced = true
 	case_file.age = 12.5
 	case_file.waited = 3.0
-	case_file.patience_factor = 0.45
 	case_file.handled = 4
 	var copy := CaseFile.from_dict(case_file.to_dict())
 	assert_eq(copy.to_dict(), case_file.to_dict())
-	assert_almost_eq(copy.patience_factor, 0.45, 0.0001)
 	var data := case_file.to_dict()
 	data.step = 99
 	assert_eq(CaseFile.from_dict(data).step, 3)
@@ -72,16 +70,36 @@ func test_case_file_roundtrip_and_clamping() -> void:
 	assert_eq(empty.dept_id, "")
 	assert_eq(empty.step, 0)
 	assert_eq(empty.handled, 0)
-	assert_eq(empty.patience_factor, 1.0)
+	assert_eq(empty.phase, CaseFile.Phase.NONE)
+	assert_false(empty.has_citizen())
 	assert_true(empty.route.is_empty())
 	data.handled = -3
 	assert_eq(CaseFile.from_dict(data).handled, 0)
+	assert_false(data.has("patience_factor"))
+	assert_false(data.has("phase"))
 	data.patience_factor = 9.0
-	assert_eq(CaseFile.from_dict(data).patience_factor, GameConfig.PATIENCE_MAX_FACTOR)
-	data.patience_factor = -2.0
-	assert_eq(CaseFile.from_dict(data).patience_factor, GameConfig.PATIENCE_MIN_FACTOR)
-	data.erase("patience_factor")
-	assert_eq(CaseFile.from_dict(data).patience_factor, 1.0)
+	assert_false(CaseFile.from_dict(data).to_dict().has("patience_factor"))
+
+
+func test_case_file_citizen_phases() -> void:
+	var case_file := _case()
+	assert_false(case_file.is_before_reception())
+	assert_false(case_file.is_in_hall())
+	for phase in [CaseFile.Phase.LINE, CaseFile.Phase.WAITING, CaseFile.Phase.CALLED]:
+		case_file.phase = phase
+		assert_true(case_file.has_citizen())
+		assert_true(case_file.is_before_reception())
+	for phase in [CaseFile.Phase.SERVED, CaseFile.Phase.WAITING_DOC, CaseFile.Phase.CALLED_DOC, CaseFile.Phase.COLLECTING]:
+		case_file.phase = phase
+		assert_false(case_file.is_before_reception())
+	case_file.phase = CaseFile.Phase.WAITING
+	assert_false(case_file.is_in_hall())
+	case_file.place = 2
+	assert_true(case_file.is_in_hall())
+	case_file.phase = CaseFile.Phase.WAITING_DOC
+	assert_true(case_file.is_in_hall())
+	case_file.phase = CaseFile.Phase.CALLED_DOC
+	assert_false(case_file.is_in_hall())
 
 
 func test_station_job_progress() -> void:
@@ -143,6 +161,24 @@ func test_station_capacities() -> void:
 		station.outbox.append(_case())
 	assert_false(station.has_outbox_space())
 	assert_true(station.has_inbox_space(10))
+	station.tray_level = 4
+	assert_eq(station.tray_capacity(), 4 * GameConfig.TRAY_CAPACITY_PER_LEVEL)
+	assert_eq(station.inbox_capacity(10), GameConfig.INBOX_BASE + GameConfig.INBOX_PER_DESK + station.tray_capacity())
+	assert_eq(station.outbox_capacity(), GameConfig.OUTBOX_BASE + GameConfig.OUTBOX_PER_DESK + station.tray_capacity())
+	assert_true(station.has_outbox_space())
+
+
+func test_station_tray_level_is_saved_and_clamped() -> void:
+	var station := Station.new("general_services/review")
+	station.tray_level = 7
+	assert_eq(Station.from_dict(station.to_dict()).tray_level, 7)
+	var data := station.to_dict()
+	data.tray_level = 9999
+	assert_eq(Station.from_dict(data).tray_level, GameConfig.MAX_TRAY_LEVEL)
+	data.tray_level = -3
+	assert_eq(Station.from_dict(data).tray_level, 0)
+	data.erase("tray_level")
+	assert_eq(Station.from_dict(data).tray_level, 0)
 
 
 func test_station_desks_and_specialists() -> void:
@@ -158,7 +194,7 @@ func test_station_desks_and_specialists() -> void:
 	station.staff = 1
 	assert_true(station.is_staffed(0))
 	assert_eq(station.workers(), 2)
-	var machine := Station.new("general_services/signature")
+	var machine := Station.new("tax_services/signature")
 	machine.add_desk()
 	assert_eq(machine.staff, 2)
 
@@ -194,7 +230,7 @@ func test_station_accepts_help_only_with_staff_and_work() -> void:
 	assert_true(station.can_be_helped())
 	station.moods[0].rest(DeskMood.ASLEEP)
 	assert_false(station.can_be_helped())
-	var machine := Station.new("general_services/signature")
+	var machine := Station.new("tax_services/signature")
 	machine.inbox.append(_case())
 	assert_false(machine.can_be_helped())
 
@@ -242,7 +278,7 @@ func test_station_all_cases_and_roundtrip() -> void:
 	assert_eq(clamped.specialists, GameConfig.MAX_SPECIALISTS)
 	assert_eq(clamped.jobs.size(), 1 + GameConfig.MAX_SPECIALISTS)
 	assert_null(clamped.jobs[0])
-	var machine_data := Station.new("general_services/signature").to_dict()
+	var machine_data := Station.new("tax_services/signature").to_dict()
 	machine_data.staff = 0
 	machine_data.specialists = 2
 	var machine := Station.from_dict(machine_data)

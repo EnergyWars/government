@@ -1,7 +1,7 @@
 .godot/
 .import/
 build/
-android/
+/android/
 *.apk
 *.aab
 *.idsig

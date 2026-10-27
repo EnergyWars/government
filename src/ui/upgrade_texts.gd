@@ -12,7 +12,6 @@ const BLOCK_KEYS := {
 	"onboarding": "LABEL_ONBOARDING",
 	"tubes": "LABEL_NEEDS_TUBE_STATIONS",
 	"later": "LOCKED_LATER",
-	"space": "LABEL_NEEDS_SPACE",
 	"unlocked": "LABEL_MAX_LEVEL",
 	"unknown": "LABEL_UNAVAILABLE",
 }
@@ -95,6 +94,10 @@ static func title(entry: UpgradeEntry) -> String:
 			return t("FMT_ENTRY_HIRE") % StationCard.label_for(entry.target)
 		UpgradeCatalog.SPECIALIST:
 			return t("FMT_ENTRY_SPECIALIST") % StationCard.label_for(entry.target)
+		UpgradeCatalog.TRAYS:
+			return t("FMT_ENTRY_TRAYS") % StationCard.label_for(entry.target)
+		UpgradeCatalog.REJECT_PILE:
+			return t("FMT_ENTRY_REJECT_PILE") % StationCard.label_for(entry.target)
 		UpgradeCatalog.SUPERVISOR:
 			return t("FMT_ENTRY_SUPERVISOR") % room_title(entry.target)
 		UpgradeCatalog.STAFF:
@@ -110,8 +113,6 @@ static func title(entry: UpgradeEntry) -> String:
 			return t("FMT_ENTRY_UNLOCK") % room_title(entry.target)
 		UpgradeCatalog.RANK:
 			return t("FMT_ENTRY_RANK") % room_title(entry.target)
-		UpgradeCatalog.STAGE:
-			return t("FMT_ENTRY_STAGE") % t("STAGE_" + str(GameConfig.building_stage(entry.level + 1).id).to_upper())
 	return entry.id
 
 
@@ -150,12 +151,14 @@ static func icon(entry: UpgradeEntry) -> String:
 			return Icons.upgrade("tube_capacity")
 		UpgradeCatalog.STORAGE:
 			return Icons.STORAGE
+		UpgradeCatalog.TRAYS:
+			return Icons.INBOX
+		UpgradeCatalog.REJECT_PILE:
+			return Icons.CLOSE
 		UpgradeCatalog.UNLOCK:
 			return Icons.department(entry.target)
 		UpgradeCatalog.RANK:
 			return Icons.RANK
-		UpgradeCatalog.STAGE:
-			return Icons.DOMAIN
 	return Icons.UPGRADE
 
 
@@ -164,8 +167,6 @@ static func place(entry: UpgradeEntry) -> String:
 
 
 static func level_text(entry: UpgradeEntry) -> String:
-	if entry.kind == UpgradeCatalog.STAGE:
-		return t("FMT_LEVEL_OF") % [entry.level + 1, entry.max_level + 1]
 	if entry.kind == UpgradeCatalog.RANK:
 		return t("FMT_LEVEL_OF") % [entry.level, entry.max_level]
 	if entry.single:
@@ -191,17 +192,18 @@ static func effect(state: GameState, entry: UpgradeEntry) -> String:
 			var room := state.mailroom()
 			var capacity := room.storage_capacity() if room != null else 0
 			return _change("FMT_EFFECT_CAPACITY", entry, str(capacity), str(capacity + GameConfig.MAIL_STORAGE_PER_LEVEL))
+		UpgradeCatalog.TRAYS:
+			var extra := entry.level * GameConfig.TRAY_CAPACITY_PER_LEVEL
+			return _change("FMT_EFFECT_TRAYS", entry, str(extra), str(extra + GameConfig.TRAY_CAPACITY_PER_LEVEL))
+		UpgradeCatalog.REJECT_PILE:
+			var pile := GameConfig.REJECT_CAPACITY + entry.level * GameConfig.REJECT_CAPACITY_PER_LEVEL
+			return _change("FMT_EFFECT_CAPACITY", entry, str(pile), str(pile + GameConfig.REJECT_CAPACITY_PER_LEVEL))
 		UpgradeCatalog.RUNNER_LEVEL:
 			var runner: Runner = state.runners[entry.index] if entry.index >= 0 and entry.index < state.runners.size() else null
 			if runner == null:
 				return ""
 			var carried := Formulas.runner_load(state, runner)
 			return _change("FMT_EFFECT_CAPACITY", entry, str(carried), str(carried + GameConfig.RUNNER_LEVEL_CAPACITY))
-		UpgradeCatalog.STAGE:
-			if entry.is_maxed():
-				return ""
-			var next := GameConfig.building_stage(entry.level + 1)
-			return t("FMT_STAGE_INFO") % [int(next.max_departments), int(next.max_desks), int(next.lobby)]
 		UpgradeCatalog.UNLOCK:
 			return gain_text("FMT_EFFECT_UNLOCK_GAIN", UpgradeCatalog.income_gain(state, entry), entry.cost)
 		UpgradeCatalog.RANK:
@@ -230,11 +232,16 @@ static func rank_effect(state: GameState, entry: UpgradeEntry) -> String:
 	if entry.is_maxed():
 		return t("FMT_EFFECT_RANK_MAX") % [rank_name(dept.rank), fee_factor_text(dept.rank)]
 	var lines: Array[String] = [t("FMT_EFFECT_RANK") % [dept.rank, dept.rank + 1, fee_factor_text(dept.rank), fee_factor_text(dept.rank + 1)]]
+	lines.append(time_text(dept.rank))
 	lines.append(milestone_text(dept.rank))
 	var gain := gain_text("FMT_EFFECT_RANK_GAIN", UpgradeCatalog.income_gain(state, entry), entry.cost)
 	if not gain.is_empty():
 		lines.append(gain)
 	return "\n".join(lines)
+
+
+static func time_text(rank: int) -> String:
+	return t("FMT_EFFECT_RANK_TIME") % ["×" + UiKit.decimal(DepartmentRank.time_factor(rank), 2), "×" + UiKit.decimal(DepartmentRank.time_factor(rank + 1), 2)]
 
 
 static func milestone_text(rank: int) -> String:
@@ -268,6 +275,8 @@ static func format_value(unit: String, value: float) -> String:
 			return "−%s %%" % UiKit.decimal((1.0 - value) * 100.0)
 		"seconds":
 			return t("LABEL_OFF") if value < 0.0 else t("FMT_EFFECT_SECONDS") % UiKit.decimal(value)
+		"per_second":
+			return t("FMT_EFFECT_PER_SECOND") % UiKit.decimal(value, 3)
 		"chance", "percent":
 			return "%s %%" % UiKit.decimal(value * 100.0)
 		"unlock":
@@ -281,18 +290,15 @@ static func block_text(state: GameState, entry: UpgradeEntry) -> String:
 		var dept: Department = state.department(station.dept_id) if station != null else null
 		if dept != null:
 			return StationCard.onboarding_text(dept)
-	if entry.reason == "requires" and entry.kind == UpgradeCatalog.STAFF:
-		return t("LABEL_NEEDS_SHREDDER_SERVICE")
 	if entry.reason == "requires" and entry.kind == UpgradeCatalog.TRACK:
 		var requires: Dictionary = GameConfig.upgrade(entry.target).get("requires", {})
 		var names: Array[String] = []
 		for required_id: String in requires:
-			names.append(t("TRACK_" + required_id.to_upper()))
+			var name := t("TRACK_" + required_id.to_upper())
+			names.append(t("FMT_REQ_TRACK_LEVEL") % [name, int(requires[required_id])] if int(requires[required_id]) > 1 else name)
 		return t("FMT_REQ_UPGRADE") % ", ".join(names)
 	if entry.reason == "reputation":
 		return t("FMT_REQ_REPUTATION") % int(required_reputation(entry))
-	if entry.reason == "stage" and entry.kind == UpgradeCatalog.TRACK:
-		return t("FMT_REQ_STAGE") % (int(GameConfig.upgrade(entry.target).get("stage", 0)) + 1)
 	return t(BLOCK_KEYS.get(entry.reason, "LABEL_UNAVAILABLE"))
 
 
@@ -304,8 +310,6 @@ static func required_reputation(entry: UpgradeEntry) -> float:
 			return float(GameConfig.department(entry.target).unlock_reputation)
 		UpgradeCatalog.RANK:
 			return DepartmentRank.level_reputation(entry.target, entry.level)
-		UpgradeCatalog.STAGE:
-			return float(GameConfig.building_stage(entry.level + 1).reputation)
 	return 0.0
 
 

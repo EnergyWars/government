@@ -119,7 +119,8 @@ func test_invalid_boost_save_data_is_repaired() -> void:
 
 func test_overtime_stamp_and_express_speed_up_work() -> void:
 	var review := _review()
-	var signature := state.station("general_services/signature")
+	var signature := Station.new("tax_services/signature")
+	assert_true(signature.machine)
 	assert_eq(Formulas.work_speed(state, review), 1.0)
 	state.boosts["overtime"] = 10.0
 	assert_eq(Formulas.work_speed(state, review), GameConfig.BOOST_OVERTIME_SPEED)
@@ -203,17 +204,18 @@ func test_complaint_amnesty_clears_and_blocks_complaints() -> void:
 
 
 func test_mayor_speech_keeps_citizens_waiting() -> void:
-	var reception := state.station(GameConfig.RECEPTION)
 	var waiting := CaseFile.new("general_services")
 	waiting.route = RouteBuilder.build(waiting)
+	waiting.phase = CaseFile.Phase.WAITING
+	waiting.place = 0
 	waiting.waited = 1e6
-	reception.inbox.append(waiting)
+	state.citizens.append(waiting)
 	state.boosts["mayor_speech"] = 10.0
 	game.simulation.tick(0.1)
-	assert_true(reception.inbox.has(waiting))
+	assert_true(state.citizens.has(waiting))
 	state.boosts.clear()
 	game.simulation.tick(0.1)
-	assert_false(reception.inbox.has(waiting))
+	assert_false(state.citizens.has(waiting))
 
 
 func test_weekend_shift_finishes_running_jobs() -> void:
@@ -227,15 +229,14 @@ func test_weekend_shift_finishes_running_jobs() -> void:
 	assert_eq(game.simulation.finish_all_jobs(), 0)
 
 
-func test_gazette_and_fee_increase_raise_arrivals_and_fees() -> void:
-	var gs := state.department("general_services")
-	var interval := Formulas.arrival_interval(state, gs)
+func test_fee_increase_raises_fees_but_not_arrivals() -> void:
+	var interval := Formulas.arrival_interval(state)
 	var case_file := CaseFile.new("general_services")
 	case_file.route = RouteBuilder.build(case_file)
 	var money: float = Formulas.case_outcome(state, case_file).money
-	state.boosts["gazette_ad"] = 10.0
 	state.boosts["fee_increase"] = 10.0
-	assert_almost_eq(Formulas.arrival_interval(state, gs), interval / GameConfig.BOOST_ARRIVAL_FACTOR, 0.0001)
+	assert_eq(Formulas.arrival_interval(state), interval)
+	assert_false(GameConfig.BOOSTS.has("gazette_ad"))
 	assert_almost_eq(Formulas.case_outcome(state, case_file).money, money * GameConfig.BOOST_FEE_FACTOR, 0.001)
 
 

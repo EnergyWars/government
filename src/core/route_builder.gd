@@ -26,6 +26,15 @@ static func build(case_file: CaseFile) -> Array[String]:
 	return route
 
 
+static var _base_cache: Dictionary = {}
+
+
+static func base_route(dept_id: String) -> Array[String]:
+	if not _base_cache.has(dept_id):
+		_base_cache[dept_id] = build(CaseFile.new(dept_id))
+	return _base_cache[dept_id]
+
+
 static var _required_cache: Dictionary = {}
 
 

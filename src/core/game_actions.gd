@@ -1,6 +1,8 @@
 class_name GameActions
 extends RefCounted
 
+signal purchased(entry_id: String, count: int)
+
 var state: GameState
 var simulation: Simulation
 
@@ -59,6 +61,34 @@ func upgrade(key: String) -> bool:
 	state.spend(Formulas.upgrade_cost(station))
 	station.level += 1
 	station.rush = GameConfig.UPGRADE_RUSH_SECONDS
+	return true
+
+
+func can_upgrade_trays(key: String) -> bool:
+	var station := state.station(key)
+	return station != null and station.tray_level < GameConfig.MAX_TRAY_LEVEL and state.can_afford(Formulas.tray_cost(station))
+
+
+func upgrade_trays(key: String) -> bool:
+	if not can_upgrade_trays(key):
+		return false
+	var station := state.station(key)
+	state.spend(Formulas.tray_cost(station))
+	station.tray_level += 1
+	return true
+
+
+func can_upgrade_reject_pile(key: String) -> bool:
+	var station := state.station(key)
+	return station != null and station.has_reject_pile() and station.reject_level < GameConfig.MAX_REJECT_LEVEL and state.can_afford(Formulas.reject_pile_cost(station))
+
+
+func upgrade_reject_pile(key: String) -> bool:
+	if not can_upgrade_reject_pile(key):
+		return false
+	var station := state.station(key)
+	state.spend(Formulas.reject_pile_cost(station))
+	station.reject_level += 1
 	return true
 
 
@@ -260,19 +290,6 @@ func upgrade_mail_storage() -> bool:
 	return true
 
 
-func can_hire_helper() -> bool:
-	return state.has_upgrade("shredder_service") and state.helpers.size() < GameConfig.MAX_HELPERS and state.can_afford(Formulas.helper_cost(state))
-
-
-func hire_helper() -> bool:
-	if not can_hire_helper():
-		return false
-	state.spend(Formulas.helper_cost(state))
-	state.add_helper()
-	state.staff_hired += 1
-	return true
-
-
 func can_hire_hr() -> bool:
 	return state.hr < GameConfig.MAX_HR and state.can_afford(Formulas.hr_cost(state))
 
@@ -282,19 +299,6 @@ func hire_hr() -> bool:
 		return false
 	state.spend(Formulas.hr_cost(state))
 	state.hr += 1
-	state.staff_hired += 1
-	return true
-
-
-func can_hire_guard() -> bool:
-	return state.guards < GameConfig.MAX_GUARDS and state.can_afford(Formulas.guard_cost(state))
-
-
-func hire_guard() -> bool:
-	if not can_hire_guard():
-		return false
-	state.spend(Formulas.guard_cost(state))
-	state.guards += 1
 	state.staff_hired += 1
 	return true
 
@@ -338,19 +342,15 @@ func buy_upgrade(upgrade_id: String, room_id: String = "", count: int = 1) -> bo
 		return false
 	state.spend(Formulas.track_bulk_cost(upgrade_id, level, amount, room_id))
 	state.set_upgrade(upgrade_id, level + amount, room_id)
+	if upgrade_id == "complaint_interns":
+		state.staff_hired += amount
 	return true
 
 
 func buy_entry(entry_id: String, count: int = 1) -> bool:
-	return UpgradeCatalog.buy(self, entry_id, count)
-
-
-func expand_building() -> bool:
-	if not Progression.expansion_block_reason(state).is_empty():
+	if not UpgradeCatalog.buy(self, entry_id, count):
 		return false
-	state.building_stage += 1
-	state.spend(float(state.stage_config().cost))
-	state.ensure_mailroom()
+	purchased.emit(entry_id, maxi(1, count))
 	return true
 
 

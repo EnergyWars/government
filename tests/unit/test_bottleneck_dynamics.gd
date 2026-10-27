@@ -85,6 +85,7 @@ func test_sickness_prefers_swamped_stations() -> void:
 	state.unlock_department("tax_services")
 	var review := state.station("general_services/review")
 	var tax := state.station("tax_services/review")
+	review.staff = 1
 	tax.staff = 1
 	state.station(GameConfig.RECEPTION).staff = 1
 	while not review.is_swamped(state.lobby_capacity()):
@@ -115,7 +116,7 @@ func test_availability_reflects_rests_and_sickness() -> void:
 	var available := Formulas.availability(state, review)
 	assert_gt(available, 0.0)
 	assert_lt(available, 1.0)
-	assert_eq(Formulas.availability(state, state.station("general_services/signature")), 1.0)
+	assert_eq(Formulas.availability(state, Station.new("tax_services/signature")), 1.0)
 	state.set_upgrade("wake_service", int(GameConfig.upgrade("wake_service").max))
 	assert_gt(Formulas.availability(state, review), available)
 	assert_gt(Formulas.sick_share(state), 0.0)
@@ -159,11 +160,13 @@ func test_spawned_citizens_may_bring_extras() -> void:
 	var bundles := 0
 	for i in 200:
 		state.station(GameConfig.RECEPTION).inbox.clear()
+		state.ticket_line.clear()
 		var case_file := sim.spawn_case(state.department("general_services"))
 		if not case_file.extras.is_empty():
 			bundles += 1
 	assert_gt(bundles, 10)
 	state.station(GameConfig.RECEPTION).inbox.clear()
+	state.ticket_line.clear()
 	assert_true(sim.spawn_case(state.department("general_services"), true).extras.is_empty())
 
 
@@ -297,7 +300,8 @@ func test_player_works_only_one_unstaffed_desk() -> void:
 	review.staff = 0
 	for i in 3:
 		review.inbox.append(_case("general_services", 1))
-	assert_true(sim.work(review, 0.01))
+	state.player.position = WorldLayout.get_default().desk_work_point("general_services/review", 1)
+	assert_true(sim.work_at_desk(0.01))
 	var busy := 0
 	for job in review.jobs:
 		if job != null:
@@ -305,7 +309,7 @@ func test_player_works_only_one_unstaffed_desk() -> void:
 	assert_eq(busy, 1)
 
 
-func test_positive_events_raise_fees_and_arrivals() -> void:
+func test_positive_events_raise_fees() -> void:
 	var case_file := _case()
 	var money: float = Formulas.case_outcome(state, case_file).money
 	assert_eq(Formulas.event_fee(state), 1.0)
@@ -313,7 +317,7 @@ func test_positive_events_raise_fees_and_arrivals() -> void:
 	state.event_time_left = 30.0
 	assert_eq(Formulas.event_fee(state), float(GameConfig.EVENTS.mayor_visit.fee))
 	assert_almost_eq(Formulas.case_outcome(state, case_file).money, money * float(GameConfig.EVENTS.mayor_visit.fee), 0.001)
-	assert_eq(Formulas.event_arrival_multiplier(state, "general_services"), float(GameConfig.EVENTS.mayor_visit.arrival))
+	assert_false(GameConfig.EVENTS.mayor_visit.has("arrival"))
 
 
 func test_guidance_points_to_cover_sick_desks() -> void:

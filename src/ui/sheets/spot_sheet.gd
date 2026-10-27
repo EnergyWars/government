@@ -22,7 +22,7 @@ static func is_room_open(state: GameState, room: String) -> bool:
 
 static func locked_text(state: GameState, room: String) -> String:
 	if room == GameConfig.ROOM_MAIL:
-		return TranslationServer.translate("FMT_MAIL_LOCKED") % (GameConfig.MAIL_UNLOCK_STAGE + 1)
+		return TranslationServer.translate("FMT_MAIL_LOCKED") % GameConfig.departments_for_stage(GameConfig.MAIL_UNLOCK_STAGE)
 	if room == GameConfig.ROOM_INSPECTION and state.station(GameConfig.INSPECTION) == null:
 		return TranslationServer.translate("ROOM_LOCKED_INSPECTION")
 	return TranslationServer.translate("LABEL_ROOM_LOCKED")
@@ -123,9 +123,18 @@ func _add_entries(container: VBoxContainer, entries: Array[UpgradeEntry]) -> voi
 	for spot in spots:
 		if grouped:
 			container.add_child(_group_header(spot))
+			_add_group_status(container, spot)
 		for entry in entries:
 			if entry.spot == spot:
 				container.add_child(UpgradeEntryCard.build(self, entry.id))
+
+
+func _add_group_status(container: VBoxContainer, spot: String) -> void:
+	if spot == argument or SpotStatus.lines(game.state, spot).is_empty():
+		return
+	var info := UiKit.label("", "BodySmall", true)
+	container.add_child(info)
+	track(func() -> void: info.text = "\n".join(SpotStatus.lines(game.state, spot)))
 
 
 func _group_header(spot: String) -> Control:

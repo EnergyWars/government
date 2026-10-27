@@ -33,6 +33,7 @@ func _pipe_everything() -> void:
 
 func test_station_costs_grow() -> void:
 	var review := state.station("general_services/review")
+	review.staff = 1
 	assert_almost_eq(Formulas.desk_cost(review), 120.0, 0.001)
 	assert_almost_eq(Formulas.hire_cost(review), 240.0 * GameConfig.HIRE_GROWTH, 0.001)
 	assert_almost_eq(Formulas.upgrade_cost(review), 90.0, 0.001)
@@ -93,18 +94,18 @@ func test_track_values_follow_their_curves() -> void:
 	var briefcase := GameConfig.upgrade("briefcase")
 	assert_eq(Formulas.track_value("briefcase", 0), float(briefcase.base))
 	assert_almost_eq(Formulas.track_value("briefcase", 4), float(briefcase.base) + 4.0 * float(briefcase.step), 0.0001)
-	var ticket_speed := GameConfig.upgrade("ticket_speed")
-	assert_almost_eq(Formulas.track_value("ticket_speed", 0), float(ticket_speed.base), 0.0001)
-	assert_almost_eq(Formulas.track_value("ticket_speed", 3), float(ticket_speed.base) * pow(float(ticket_speed.rate), 3), 0.0001)
-	var service := GameConfig.upgrade("shredder_service")
-	assert_eq(Formulas.track_value("shredder_service", 0), -1.0)
-	assert_almost_eq(Formulas.track_value("shredder_service", 1), float(service.base), 0.0001)
-	assert_almost_eq(Formulas.track_value("shredder_service", 3), float(service.base) * pow(float(service.rate), 2), 0.0001)
-	var clerk := GameConfig.upgrade("complaint_clerk")
-	assert_almost_eq(Formulas.track_value("complaint_clerk", 0), float(clerk.base), 0.0001)
-	assert_almost_eq(Formulas.track_value("complaint_clerk", 10), 1.0 - (1.0 - float(clerk.base)) * pow(float(clerk.rate), 10), 0.0001)
-	assert_gt(Formulas.track_value("complaint_clerk", 10), Formulas.track_value("complaint_clerk", 9))
-	assert_lt(Formulas.track_value("complaint_clerk", int(clerk.max)), 1.0)
+	var blades := GameConfig.upgrade("shredder_blades")
+	assert_almost_eq(Formulas.track_value("shredder_blades", 0), float(blades.base), 0.0001)
+	assert_almost_eq(Formulas.track_value("shredder_blades", 3), float(blades.base) * pow(float(blades.rate), 3), 0.0001)
+	assert_eq(Formulas.track_value("ticket_machine_2", 0), 0.0)
+	assert_eq(Formulas.track_value("ticket_machine_2", 1), 1.0)
+	var shredder := GameConfig.upgrade("shredder")
+	assert_eq(Formulas.track_value("shredder", 0), -1.0)
+	assert_almost_eq(Formulas.track_value("shredder", 1), float(shredder.base), 0.0001)
+	assert_almost_eq(Formulas.track_value("shredder", 3), float(shredder.base) * pow(float(shredder.rate), 2), 0.0001)
+	assert_almost_eq(Formulas.track_value("security_training", 0), GameConfig.SECURITY_BASE_CHANCE, 0.0001)
+	assert_gt(Formulas.track_value("security_training", 10), Formulas.track_value("security_training", 9))
+	assert_almost_eq(Formulas.track_value("security_training", GameConfig.SECURITY_LEVELS), GameConfig.SECURITY_MAX_CHANCE, 0.0001)
 	assert_eq(Formulas.track_value("pneumatic_tubes", 0), 0.0)
 	assert_eq(Formulas.track_value("pneumatic_tubes", 1), 1.0)
 	assert_eq(Formulas.track_value("nope", 5), 0.0)
@@ -115,10 +116,9 @@ func test_track_values_clamp_the_level() -> void:
 	var top := int(briefcase.max)
 	assert_eq(Formulas.track_value("briefcase", -3), Formulas.track_value("briefcase", 0))
 	assert_eq(Formulas.track_value("briefcase", top + 50), Formulas.track_value("briefcase", top))
-	var clerk := GameConfig.upgrade("complaint_clerk")
-	assert_eq(Formulas.track_value("complaint_clerk", -3), Formulas.track_value("complaint_clerk", 0))
-	assert_eq(Formulas.track_value("complaint_clerk", 999), Formulas.track_value("complaint_clerk", int(clerk.max)))
-	assert_eq(Formulas.track_value("shredder_service", -1), -1.0)
+	assert_eq(Formulas.track_value("security_training", -3), Formulas.track_value("security_training", 0))
+	assert_eq(Formulas.track_value("security_training", 999), Formulas.track_value("security_training", GameConfig.SECURITY_LEVELS))
+	assert_eq(Formulas.track_value("shredder", -1), -1.0)
 	assert_eq(Formulas.track_value("pneumatic_tubes", 7), 1.0)
 
 
@@ -257,46 +257,32 @@ func test_error_and_flag_chances() -> void:
 	assert_almost_eq(Formulas.flag_chance(review), 0.96, 0.0001)
 
 
-func test_reputation_drives_rewards_and_arrivals() -> void:
+func test_reputation_drives_rewards_but_not_arrivals() -> void:
 	assert_eq(Formulas.reputation_multiplier(state), 1.0)
+	var interval := Formulas.arrival_interval(state)
 	state.reputation = 400.0
 	assert_almost_eq(Formulas.reputation_multiplier(state), 2.0, 0.0001)
-	state.reputation = 64.0
-	assert_almost_eq(Formulas.popularity(state), 2.0, 0.0001)
-	assert_almost_eq(Formulas.arrival_interval(state, _gs()), 3.5, 0.0001)
-	state.reputation = 1e6
-	assert_eq(Formulas.popularity(state), GameConfig.MAX_POPULARITY)
-	state.reputation = 0.0
-	state.set_upgrade("online_portal", 25)
-	var portal := Formulas.track_value("online_portal", 25)
-	assert_gt(portal, 1.0)
-	assert_almost_eq(Formulas.arrival_interval(state, _gs()), 7.0 / portal, 0.0001)
+	assert_eq(Formulas.arrival_interval(state), interval)
+	assert_almost_eq(interval, 60.0 * GameConfig.DEPARTMENTS.size() / GameConfig.MAX_ARRIVALS_PER_MINUTE, 0.0001)
 
 
-func test_events_change_arrivals() -> void:
-	state.unlock_department("tax_services")
-	var tax := state.department("tax_services")
-	assert_eq(Formulas.event_arrival_multiplier(state, "tax_services"), 1.0)
-	state.event_id = "rush_hour"
-	assert_eq(Formulas.event_arrival_multiplier(state, "general_services"), 2.0)
-	state.event_id = "tax_deadline"
-	assert_eq(Formulas.event_arrival_multiplier(state, "general_services"), 1.0)
-	assert_almost_eq(Formulas.arrival_interval(state, tax), 3.0, 0.0001)
+func test_events_no_longer_change_arrivals() -> void:
+	var interval := Formulas.arrival_interval(state)
+	for event_id in GameConfig.EVENTS:
+		assert_false(GameConfig.EVENTS[event_id].has("arrival"), event_id)
+		state.event_id = event_id
+		assert_eq(Formulas.arrival_interval(state), interval, event_id)
 
 
 func test_player_and_runner_stats() -> void:
-	assert_eq(Formulas.patience(state), GameConfig.BASE_PATIENCE)
 	assert_eq(Formulas.carry_capacity(state), 6)
 	assert_eq(Formulas.runner_capacity(state), 2)
 	assert_eq(Formulas.work_power(state), 2.5)
 	assert_eq(Formulas.collector_capacity(state), GameConfig.COLLECTOR_CAPACITY)
-	state.set_upgrade("comfortable_lobby", 40)
 	state.set_upgrade("briefcase", 4)
 	state.set_upgrade("runner_trolleys", 1)
 	state.set_upgrade("collector_carts", 2)
 	state.set_upgrade("work_ethic", 40)
-	assert_almost_eq(Formulas.patience(state), GameConfig.BASE_PATIENCE * Formulas.track_value("comfortable_lobby", 40), 0.001)
-	assert_gt(Formulas.patience(state), GameConfig.BASE_PATIENCE)
 	assert_eq(Formulas.carry_capacity(state), 10)
 	assert_eq(Formulas.runner_capacity(state), 3)
 	assert_eq(Formulas.collector_capacity(state), GameConfig.COLLECTOR_CAPACITY + 2)
@@ -338,57 +324,42 @@ func test_loo_slots_follow_the_stall_track() -> void:
 	assert_eq(Formulas.loo_slots(state), GameConfig.MAX_LOO_SLOTS)
 
 
-func test_citizens_bring_their_own_patience() -> void:
-	assert_eq(Formulas.patience_factor(state, 7), 1.0)
-	state.cases_completed = GameConfig.PATIENCE_SPREAD_MIN_CASES
-	var samples := 2000
-	var lowest := INF
-	var highest := -INF
-	var total := 0.0
-	for serial in samples:
-		var factor := Formulas.patience_factor(state, serial)
-		assert_between(factor, GameConfig.PATIENCE_MIN_FACTOR, GameConfig.PATIENCE_MAX_FACTOR)
-		lowest = minf(lowest, factor)
-		highest = maxf(highest, factor)
-		total += factor
-	assert_lt(lowest, GameConfig.PATIENCE_MIN_FACTOR + 0.05)
-	assert_gt(highest, GameConfig.PATIENCE_MAX_FACTOR - 0.05)
-	assert_almost_eq(total / samples, (GameConfig.PATIENCE_MIN_FACTOR + GameConfig.PATIENCE_MAX_FACTOR) / 2.0, 0.05)
-	assert_eq(Formulas.patience_factor(state, 42), Formulas.patience_factor(state, 42))
+func test_citizen_patience_follows_the_phase() -> void:
+	var citizen := _case()
+	assert_eq(Formulas.citizen_patience(citizen), 0.0)
+	assert_eq(Formulas.citizen_time_left(citizen), 0.0)
+	assert_false(Formulas.is_citizen_waiting(citizen))
+	citizen.phase = CaseFile.Phase.LINE
+	citizen.walk = 3.0
+	assert_eq(Formulas.citizen_patience(citizen), GameConfig.LINE_PATIENCE)
+	assert_true(Formulas.is_citizen_waiting(citizen))
+	citizen.phase = CaseFile.Phase.WAITING
+	assert_false(Formulas.is_citizen_waiting(citizen))
+	citizen.walk = 0.0
+	assert_true(Formulas.is_citizen_waiting(citizen))
+	assert_eq(Formulas.citizen_patience(citizen), GameConfig.STAND_PATIENCE)
+	citizen.seated = true
+	assert_eq(Formulas.citizen_patience(citizen), GameConfig.SEAT_PATIENCE)
+	citizen.phase = CaseFile.Phase.WAITING_DOC
+	assert_eq(Formulas.citizen_patience(citizen), GameConfig.SEAT_PATIENCE)
+	citizen.waited = 15.0
+	assert_eq(Formulas.citizen_time_left(citizen), GameConfig.SEAT_PATIENCE - 15.0)
+	citizen.waited = 999.0
+	assert_eq(Formulas.citizen_time_left(citizen), 0.0)
+	for phase in [CaseFile.Phase.CALLED, CaseFile.Phase.CALLED_DOC]:
+		citizen.phase = phase
+		assert_eq(Formulas.citizen_patience(citizen), GameConfig.DESK_PATIENCE)
+	for phase in [CaseFile.Phase.SERVED, CaseFile.Phase.COLLECTING, CaseFile.Phase.NONE]:
+		citizen.phase = phase
+		assert_eq(Formulas.citizen_patience(citizen), 0.0)
+		assert_false(Formulas.is_citizen_waiting(citizen))
 
 
-func test_patience_spread_averages_the_base_patience() -> void:
-	assert_lt(GameConfig.PATIENCE_MIN_FACTOR, 1.0)
-	assert_gt(GameConfig.PATIENCE_MAX_FACTOR, 1.0)
-	assert_almost_eq((GameConfig.PATIENCE_MIN_FACTOR + GameConfig.PATIENCE_MAX_FACTOR) / 2.0, 1.0, 0.0001)
-	assert_gte(GameConfig.BASE_PATIENCE * GameConfig.PATIENCE_MIN_FACTOR, 20.0)
-
-
-func test_citizen_patience_and_complaint_chance_follow_the_factor() -> void:
-	var calm := _case()
-	calm.patience_factor = GameConfig.PATIENCE_MAX_FACTOR
-	var hurried := _case()
-	hurried.patience_factor = GameConfig.PATIENCE_MIN_FACTOR
-	assert_almost_eq(Formulas.citizen_patience(state, calm), GameConfig.BASE_PATIENCE * GameConfig.PATIENCE_MAX_FACTOR, 0.001)
-	assert_almost_eq(Formulas.citizen_patience(state, hurried), GameConfig.BASE_PATIENCE * GameConfig.PATIENCE_MIN_FACTOR, 0.001)
-	state.set_upgrade("comfortable_lobby", 40)
-	assert_almost_eq(Formulas.citizen_patience(state, hurried), GameConfig.BASE_PATIENCE * Formulas.track_value("comfortable_lobby", 40) * GameConfig.PATIENCE_MIN_FACTOR, 0.001)
-	assert_almost_eq(Formulas.leave_complaint_chance(calm), GameConfig.LEAVE_COMPLAINT_CHANCE * GameConfig.PATIENCE_MAX_FACTOR, 0.0001)
-	assert_almost_eq(Formulas.leave_complaint_chance(hurried), GameConfig.LEAVE_COMPLAINT_CHANCE * GameConfig.PATIENCE_MIN_FACTOR, 0.0001)
-	assert_almost_eq(Formulas.leave_complaint_chance(_case()), GameConfig.LEAVE_COMPLAINT_CHANCE, 0.0001)
-	calm.patience_factor = 10.0
-	assert_eq(Formulas.leave_complaint_chance(calm), 1.0)
-	calm.patience_factor = -1.0
-	assert_eq(Formulas.leave_complaint_chance(calm), 0.0)
-
-
-func test_leave_complaint_rate_follows_losses_up_to_the_cooldown() -> void:
+func test_leave_complaint_rate_counts_every_lost_citizen() -> void:
 	assert_eq(Formulas.leave_complaint_rate(state), 0.0)
 	state.play_time = 60.0
 	state.production.record(ProductionStats.LOST, "general_services", 30.0, 2)
-	assert_almost_eq(Formulas.leave_complaint_rate(state), 2.0 / 60.0 * GameConfig.LEAVE_COMPLAINT_CHANCE, 0.0001)
-	state.production.record(ProductionStats.LOST, "general_services", 40.0, 500)
-	assert_almost_eq(Formulas.leave_complaint_rate(state), 1.0 / GameConfig.LEAVE_COMPLAINT_COOLDOWN, 0.0001)
+	assert_almost_eq(Formulas.leave_complaint_rate(state), 2.0 / 60.0, 0.0001)
 
 
 func test_case_outcomes() -> void:
@@ -418,7 +389,7 @@ func test_case_outcomes() -> void:
 
 func test_hand_bonus_scales_with_manual_share() -> void:
 	var case_file := _case()
-	case_file.route.assign(["shared/reception", "general_services/review", "general_services/signature", "shared/counter"])
+	case_file.route.assign(["shared/reception", "general_services/review", "tax_services/signature", "shared/counter"])
 	assert_eq(Formulas.hand_slots(case_file), 6)
 	assert_eq(Formulas.hand_share(case_file), 0.0)
 	assert_almost_eq(Formulas.case_outcome(state, case_file).money, 20.0, 0.001)
@@ -456,13 +427,14 @@ func test_customs_outcomes() -> void:
 
 func test_station_throughput() -> void:
 	var review := state.station("general_services/review")
+	review.staff = 1
 	var available := Formulas.availability(state, review)
 	assert_almost_eq(Formulas.station_throughput(state, review), available / 5.5, 0.0001)
 	review.add_specialist()
 	assert_almost_eq(Formulas.station_throughput(state, review), 2.0 * available / 5.0, 0.0001)
 	assert_eq(Formulas.station_throughput(state, state.station(GameConfig.RECEPTION)), 0.0)
 	assert_eq(Formulas.station_throughput(state, Station.new("tax_services/review")), 0.0)
-	assert_almost_eq(Formulas.station_demand(state, GameConfig.RECEPTION), 1.0 / 7.0, 0.0001)
+	assert_almost_eq(Formulas.station_demand(state, GameConfig.RECEPTION), 1.0 / Formulas.arrival_interval(state), 0.0001)
 
 
 func test_transport_capacity() -> void:
@@ -504,11 +476,14 @@ func test_throughput_and_bottleneck() -> void:
 	assert_almost_eq(Formulas.department_throughput(state, _gs()), Formulas.station_throughput(state, review), 0.0001)
 	assert_eq(Formulas.bottleneck(state, _gs()), "general_services/review")
 	for key in state.stations:
-		state.stations[key].level = 20
-	assert_almost_eq(Formulas.department_throughput(state, _gs()), 1.0 / 7.0, 0.0001)
+		state.stations[key].level = 100
+	assert_almost_eq(Formulas.department_throughput(state, _gs()), Formulas.demand(state, _gs()), 0.0001)
 	assert_eq(Formulas.bottleneck(state, _gs()), "demand")
-	state.reputation = 1e6
-	assert_ne(Formulas.bottleneck(state, _gs()), "demand")
+	var full_demand := Formulas.demand(state, _gs())
+	state.add_review(1)
+	assert_almost_eq(Formulas.demand(state, _gs()), full_demand * 0.4, 0.0001)
+	assert_almost_eq(Formulas.department_throughput(state, _gs()), full_demand * 0.4, 0.0001)
+	assert_eq(Formulas.bottleneck(state, _gs()), "demand")
 	state.stations.erase(GameConfig.COUNTER)
 	assert_eq(Formulas.department_throughput(state, _gs()), 0.0)
 
@@ -528,7 +503,12 @@ func test_expected_value_workload_and_waiting() -> void:
 	assert_eq(Formulas.workload(state, _gs()), 0.0)
 	for i in 4:
 		state.station("general_services/review").inbox.append(_case())
-		state.station(GameConfig.RECEPTION).inbox.append(_case())
+		var citizen := _case()
+		citizen.phase = CaseFile.Phase.WAITING
+		state.citizens.append(citizen)
+	var served := _case()
+	served.phase = CaseFile.Phase.WAITING_DOC
+	state.citizens.append(served)
 	assert_almost_eq(Formulas.workload(state, _gs()), 4.0 / 32.0, 0.0001)
 	assert_eq(Formulas.waiting_count(state, _gs()), 4)
 	state.unlock_department("tax_services")
