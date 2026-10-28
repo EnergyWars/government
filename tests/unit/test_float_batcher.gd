@@ -181,6 +181,23 @@ func test_hud_warns_while_a_ruckus_halts_the_reception() -> void:
 	assert_false(hud._ruckus_banner.visible)
 
 
+func test_world_inset_ignores_transient_banners() -> void:
+	var hud := Hud.new().setup(game, 0.0)
+	add_child_autofree(hud)
+	hud.refresh()
+	await wait_physics_frames(2)
+	var before := hud.world_inset()
+	assert_gt(before, 0.0)
+	_start_ruckus()
+	game.state.gift_kind = 0
+	game.state.gift_money = 10.0
+	game.state.player.position = game.simulation.layout.office_desk_point()
+	hud.refresh()
+	await wait_physics_frames(2)
+	assert_gt(hud.top_height(), hud.world_inset())
+	assert_eq(hud.world_inset(), before)
+
+
 func test_guidance_puts_the_ruckus_before_everything_else() -> void:
 	_start_ruckus()
 	state.player.position = WorldLayout.get_default().phone_point()

@@ -212,6 +212,14 @@ func set_thoroughness(dept_id: String, value: int) -> bool:
 	return true
 
 
+func set_signature_thoroughness(dept_id: String, value: int) -> bool:
+	var dept := state.department(dept_id)
+	if dept == null or not dept.has_signature_part() or value < 0 or value >= GameConfig.THOROUGHNESS.size():
+		return false
+	dept.signature_thoroughness = value
+	return true
+
+
 func set_prioritize_urgent(dept_id: String, value: bool) -> bool:
 	var dept := state.department(dept_id)
 	if dept == null:

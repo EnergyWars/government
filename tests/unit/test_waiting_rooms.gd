@@ -144,6 +144,44 @@ func test_reception_stops_calling_while_the_pickup_room_is_full() -> void:
 	assert_eq(sim.pickup_space(), 0)
 
 
+func test_called_citizen_is_redirected_when_the_desk_clerk_leaves() -> void:
+	var reception := _reception()
+	reception.add_desk()
+	reception.staff = 2
+	var citizen := _with_ticket()
+	assert_true(sim.call_citizens())
+	var first := citizen.desk
+	reception.moods[first].rest(DeskMood.COFFEE)
+	assert_true(sim.call_citizens())
+	assert_ne(citizen.desk, first)
+	assert_eq(citizen.phase, CaseFile.Phase.CALLED)
+	assert_gt(citizen.walk, 0.0)
+
+
+func test_called_citizen_stays_when_no_other_desk_is_free() -> void:
+	var reception := _reception()
+	reception.staff = 1
+	var citizen := _with_ticket()
+	assert_true(sim.call_citizens())
+	reception.moods[0].rest(DeskMood.COFFEE)
+	assert_false(sim.call_citizens())
+	assert_eq(citizen.desk, 0)
+
+
+func test_next_citizen_is_called_in_the_same_tick_a_job_finishes() -> void:
+	var reception := _reception()
+	reception.staff = 1
+	var first := _with_ticket()
+	var second := _with_ticket()
+	assert_true(sim.call_citizens())
+	first.walk = 0.0
+	assert_true(sim.start_job(reception, 0))
+	reception.jobs[0].progress = reception.jobs[0].required
+	sim._work_stations(0.0)
+	assert_eq(second.phase, CaseFile.Phase.CALLED)
+	assert_eq(second.desk, 0)
+
+
 func test_served_citizen_without_pickup_place_storms_off() -> void:
 	watch_signals(sim)
 	var citizen := _with_ticket()

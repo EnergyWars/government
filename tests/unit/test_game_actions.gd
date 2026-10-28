@@ -123,6 +123,23 @@ func test_runners_up_to_limit() -> void:
 	assert_false(actions.can_hire_runner())
 
 
+func test_signature_part_has_its_own_work_mode() -> void:
+	var dept := state.department("general_services")
+	assert_true(dept.has_signature_part())
+	assert_eq(dept.signature_thoroughness, -1)
+	assert_true(actions.set_thoroughness("general_services", 2))
+	assert_eq(dept.signature_mode(), 2)
+	assert_true(actions.set_signature_thoroughness("general_services", 0))
+	assert_eq(dept.signature_mode(), 0)
+	assert_eq(dept.thoroughness, 2)
+	assert_false(actions.set_signature_thoroughness("general_services", 3))
+	assert_false(actions.set_signature_thoroughness("general_services", -1))
+	assert_false(actions.set_signature_thoroughness("nope", 1))
+	state.unlock_department("tax_services")
+	assert_false(state.department("tax_services").has_signature_part())
+	assert_false(actions.set_signature_thoroughness("tax_services", 1))
+
+
 func test_department_settings() -> void:
 	assert_true(actions.set_thoroughness("general_services", 2))
 	assert_eq(state.department("general_services").thoroughness, 2)

@@ -427,20 +427,20 @@ func _segments(sheet: Sheet) -> Array[Button]:
 	return result
 
 
-func test_runner_board_offers_four_task_segments_per_runner() -> void:
+func test_runner_board_offers_five_task_segments_per_runner() -> void:
 	game.state.add_runner(Runner.INTAKE)
 	game.state.add_runner(Runner.REJECT)
 	var sheet := _sheet(SpotSheet.new(), "runners")
 	var segments := _segments(sheet)
-	assert_eq(Runner.ROLES.size(), 4)
-	assert_eq(segments.size(), 8)
+	assert_eq(Runner.ROLES.size(), 5)
+	assert_eq(segments.size(), 10)
 	var first: Array[String] = []
-	for index in 4:
+	for index in 5:
 		first.append(segments[index].text)
-	assert_eq(first, [sheet.tr("RUNNER_ROLE_SHORT_INTAKE"), sheet.tr("RUNNER_ROLE_SHORT_INTERNAL"), sheet.tr("RUNNER_ROLE_SHORT_OUTPUT"), sheet.tr("RUNNER_ROLE_SHORT_REJECT")] as Array[String])
+	assert_eq(first, [sheet.tr("RUNNER_ROLE_SHORT_INTAKE"), sheet.tr("RUNNER_ROLE_SHORT_INTERNAL"), sheet.tr("RUNNER_ROLE_SHORT_OUTPUT"), sheet.tr("RUNNER_ROLE_SHORT_REJECT"), sheet.tr("RUNNER_ROLE_SHORT_DEPOSIT")] as Array[String])
 	assert_true(segments[0].button_pressed)
 	assert_false(segments[3].button_pressed)
-	assert_true(segments[7].button_pressed)
+	assert_true(segments[8].button_pressed)
 	assert_false(segments[4].button_pressed)
 	await wait_physics_frames(2)
 

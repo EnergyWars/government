@@ -638,6 +638,14 @@ func archive_rect() -> Rect2:
 	return _in_room(GameConfig.HALL_INTAKE, Rect2(20, 300, 72, 116))
 
 
+func depot_rect() -> Rect2:
+	return _in_hall(Rect2(700, 646, 150, 72))
+
+
+func depot_point() -> Vector2:
+	return depot_rect().get_center() + Vector2(0.0, 52.0)
+
+
 func hours_board() -> Rect2:
 	return _in_hall(Rect2(880, 650, 96, 64))
 

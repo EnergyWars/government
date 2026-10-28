@@ -16,6 +16,7 @@ var bottom_bar: PanelContainer
 var _money_label: Label
 var _reputation_label: Label
 var _income_label: Label
+var _top_row: HBoxContainer
 var _goal_label: Label
 var _goal_bar: ProgressBar
 var _goal_reward: Label
@@ -114,6 +115,7 @@ func _build_top() -> void:
 	_settings_button.pressed.connect(func() -> void: open_sheet.emit("settings", ""))
 	row.add_child(_settings_button)
 	column.add_child(row)
+	_top_row = row
 	_goal_card = UiKit.card("CardRow")
 	var goal_row := UiKit.hbox(AppTheme.SPACING_MD)
 	goal_row.add_child(UiKit.icon(Icons.FLAG, AppTheme.accent("primary")))
@@ -398,6 +400,10 @@ func _highlight_control(target: String) -> Control:
 
 func top_height() -> float:
 	return top_bar.size.y
+
+
+func world_inset() -> float:
+	return _top_row.get_global_rect().end.y + AppTheme.SPACING_SM
 
 
 func bottom_height() -> float:

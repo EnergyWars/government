@@ -386,6 +386,23 @@ func test_department_roundtrip() -> void:
 	assert_false(Department.new("tax_services").is_customs())
 
 
+func test_department_signature_mode_roundtrip_and_clamp() -> void:
+	var dept := Department.new("general_services")
+	dept.thoroughness = 2
+	assert_eq(dept.signature_mode(), 2)
+	dept.signature_thoroughness = 0
+	assert_eq(dept.signature_mode(), 0)
+	assert_eq(Department.from_dict(dept.to_dict()).signature_thoroughness, 0)
+	var data := dept.to_dict()
+	data.signature_thoroughness = 77
+	assert_eq(Department.from_dict(data).signature_thoroughness, GameConfig.THOROUGHNESS.size() - 1)
+	data.signature_thoroughness = -9
+	assert_eq(Department.from_dict(data).signature_thoroughness, -1)
+	data.erase("signature_thoroughness")
+	assert_eq(Department.from_dict(data).signature_thoroughness, -1)
+	assert_false(Department.new("tax_services").has_signature_part())
+
+
 func test_carrier_movement_and_matching() -> void:
 	var carrier := Carrier.new(Vector2.ZERO)
 	assert_false(carrier.move_towards(Vector2(100, 0), 10.0, 1.0))

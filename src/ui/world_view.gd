@@ -224,6 +224,7 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	sim.complaint_absorbed.connect(_on_complaint_absorbed)
 	sim.visitor_respected.connect(_on_visitor_respected)
 	sim.outputs_jammed.connect(_on_outputs_jammed)
+	sim.work_blocked.connect(_on_work_blocked)
 	sim.gift_arrived.connect(func(_kind: int) -> void: _redraw_at(layout.office_desk_point()))
 	sim.gift_claimed.connect(_on_gift_claimed)
 	game.changed.connect(_on_game_changed)
@@ -625,6 +626,10 @@ func _on_lunch_called(_count: int) -> void:
 
 func _on_visitor_respected(slot: int) -> void:
 	_float(layout.visitor_spot(slot) + Vector2(0, -70), tr("FLOAT_RESPECT"), AppTheme.accent("success"), AppTheme.SIZE_TITLE_SMALL)
+
+
+func _on_work_blocked(reason: String) -> void:
+	_float(game.state.player.position + Vector2(0, -60), tr("FLOAT_WORK_BLOCKED_" + reason.to_upper()), AppTheme.accent("error"), AppTheme.SIZE_TITLE_SMALL)
 
 
 func _on_outputs_jammed(key: String, _count: int) -> void:
@@ -1338,6 +1343,7 @@ func _draw_hall(state: GameState) -> void:
 	for room_id in GameConfig.WAITING_ROOMS:
 		_draw_lead_office(state, room_id)
 	_draw_runner_lounge_sign(state)
+	_draw_depot_sign(state)
 	_draw_ticket_corner(state)
 
 
@@ -1348,6 +1354,13 @@ func _draw_runner_lounge_sign(state: GameState) -> void:
 	_text_centered(plate.get_center(), tr("FMT_SIGN_RUNNER_LOUNGE") % [state.runners.size(), GameConfig.MAX_RUNNERS], AppTheme.SIZE_LABEL_SMALL - 2, AppTheme.SIGN_TEXT, _bold)
 	if state.runners.is_empty():
 		_icon(lounge.get_center() + Vector2(0, 30), Icons.SPOTS.get("runners", Icons.UPGRADE), 22, Color(AppTheme.OUTLINE, 0.38))
+
+
+func _draw_depot_sign(state: GameState) -> void:
+	var desk := layout.depot_rect()
+	var plate := Rect2(desk.position + Vector2(desk.size.x * 0.5 - LOUNGE_PLATE_WIDTH * 0.5, desk.size.y + 6.0), Vector2(LOUNGE_PLATE_WIDTH, LEAD_PLATE_HEIGHT))
+	_rounded(plate, AppTheme.SIGN_BOARD, 4, AppTheme.WALL, 1)
+	_text_centered(plate.get_center(), tr("FMT_SIGN_DEPOT") % [state.depot_count(), GameConfig.DEPOT_CAPACITY], AppTheme.SIZE_LABEL_SMALL - 2, AppTheme.SIGN_TEXT, _bold)
 
 
 func _draw_ticket_corner(state: GameState) -> void:
@@ -1657,6 +1670,7 @@ func _draw_hall_decor(hall: Rect2) -> void:
 	_text(Vector2(plate.end.x + 18.0, plate.position.y + 24.0), tr("AREA_PUBLIC"), AppTheme.SIZE_BODY_SMALL, AppTheme.ON_SURFACE_VARIANT, _bold)
 	OfficePainter.cabinet(_canvas, layout.archive_rect())
 	OfficePainter.runner_lounge(_canvas, layout.runner_lounge())
+	OfficePainter.depot_desk(_canvas, layout.depot_rect())
 	var board := layout.hours_board()
 	_rounded(board, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
 	_text_centered(Vector2(board.get_center().x, board.position.y + 16), tr("SIGN_HOURS_TITLE"), AppTheme.SIZE_LABEL_SMALL - 1, AppTheme.FLAG_GOLD, _bold)

@@ -270,6 +270,18 @@ static func runner_lounge(canvas: CanvasItem, rect: Rect2) -> void:
 	ItemPainter.disc(canvas, cooler.position + Vector2(11, -2), 9, AppTheme.WATER)
 
 
+static func depot_desk(canvas: CanvasItem, rect: Rect2) -> void:
+	canvas.draw_rect(Rect2(rect.position + Vector2(3, 5), rect.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(rect, AppTheme.WOOD_FRONT)
+	var top := Rect2(rect.position + Vector2(-6, -8), Vector2(rect.size.x + 12, 14))
+	canvas.draw_rect(top, AppTheme.WOOD_TOP)
+	canvas.draw_rect(top, AppTheme.WOOD_DARK, false, 1.0)
+	var tray := Rect2(rect.position + Vector2(rect.size.x * 0.5 - 26, -6), Vector2(52, 10))
+	canvas.draw_rect(tray, AppTheme.METAL)
+	canvas.draw_rect(tray, AppTheme.METAL_DARK, false, 1.0)
+	canvas.draw_rect(Rect2(rect.position + Vector2(8, 14), Vector2(rect.size.x - 16, rect.size.y - 22)), AppTheme.WOOD_DARK.lightened(0.12))
+
+
 static func kitchen_counter(canvas: CanvasItem, rect: Rect2) -> void:
 	canvas.draw_rect(Rect2(rect.position + Vector2(3, 5), rect.size), AppTheme.SHADOW_SOFT)
 	canvas.draw_rect(rect, AppTheme.WOOD_FRONT)

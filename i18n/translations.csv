@@ -42,6 +42,7 @@ STATION_SHORT_INSPECTION,Inspection,Prüfdienst
 MODE_FAST,Rushed,Husch-husch
 MODE_NORMAL,By the book,Nach Vorschrift
 MODE_THOROUGH,Triple-checked,Dreifach geprüft
+MODE_PART_REVIEW,Processing,Bearbeitung
 MODE_HINT,Flawed cases only pay 40% and cost reputation. Reputation raises every fee. Whoever stamps fast also stamps wrong fast.,"Fehlerhafte Fälle bringen nur 40 % und kosten Ansehen. Ansehen erhöht jede Gebühr. Wer schnell stempelt, stempelt auch schnell falsch."
 SWITCH_URGENT_FIRST,Process urgent cases first (just this once),Dringende Fälle zuerst bearbeiten (ausnahmsweise)
 FMT_MODE_EFFECT,Processing time %s · Error rate %s · Fee %s,Bearbeitungszeit %s · Fehlerquote %s · Gebühr %s
@@ -700,6 +701,32 @@ REVIEW_OUTCOME_LOST,The court sided with the internet. The review now has one st
 ACTION_REVIEW_DELETE,Delete,Löschen lassen
 FMT_REVIEW_BANNER,Latest: %s,Neueste: %s
 FMT_RATING_CHIP,Average rating,Durchschnittsbewertung
+FLOAT_WORK_BLOCKED_HALTED,Calm the commotion first,Erst den Tumult beruhigen
+FLOAT_WORK_BLOCKED_OUTBOX,Outbox full: collect it first,Ausgangsfach voll: erst abholen
+FLOAT_WORK_BLOCKED_REJECTS,Reject pile full: shred it first,Ablehnungsstapel voll: erst schreddern
+FLOAT_WORK_BLOCKED_NO_CASE,No file can be taken right now,Gerade keine Akte annehmbar
+FLOAT_WORK_BLOCKED_STUCK,Output blocked,Ausgang blockiert
+REVIEW_CONFIRM_DELETE_TITLE,Delete this review?,Diese Bewertung wirklich löschen lassen?
+REVIEW_CONFIRM_SUE_TITLE,Report this review for defamation?,Diese Bewertung wirklich anzeigen?
+FMT_REVIEWS_CONFIRM_DELETE_TITLE,Really delete %d reviews?,%d Bewertungen wirklich löschen lassen?
+FMT_REVIEWS_CONFIRM_SUE_TITLE,Really report %d reviews?,%d Bewertungen wirklich anzeigen?
+FMT_REVIEW_CONFIRM_COST,This costs %s and cannot be undone.,Das kostet %s und lässt sich nicht rückgängig machen.
+FMT_REVIEW_CONFIRM_SUE_TEXT,"The lawsuit costs %s. It can fail, which costs reputation.","Die Klage kostet %s. Sie kann scheitern, was Ansehen kostet."
+ACTION_REVIEW_CONFIRM_DELETE,Yes delete,Ja löschen
+ACTION_REVIEW_CONFIRM_SUE,Yes report,Ja anzeigen
+FMT_REVIEW_ARRIVAL_TITLE,Rating effect: %s visitors,Bewertungseffekt: %s Besucher
+REVIEW_ARRIVAL_NEUTRAL,No rating effect on visitors,Kein Bewertungseffekt auf den Zulauf
+REVIEW_ARRIVAL_INFO,Your average rating changes how many visitors come.,Deine Durchschnittsbewertung verändert den Besucherzulauf.
+ACTION_REVIEWS_SELECT,Select several,Mehrere auswählen
+ACTION_REVIEWS_SELECT_DONE,Done selecting,Auswahl beenden
+ACTION_REVIEWS_SELECT_ALL,Select all,Alle auswählen
+ACTION_REVIEWS_SELECT_NONE,Select none,Keine auswählen
+FMT_REVIEWS_SELECTED,%d selected,%d ausgewählt
+FMT_REVIEWS_BULK_DELETE,Delete %d,%d löschen lassen
+FMT_REVIEWS_BULK_SUE,Sue over %d,%d anzeigen
+REVIEWS_BULK_TITLE,Done,Erledigt
+FMT_REVIEWS_BULK_DELETED,%d reviews deleted.,%d Bewertungen gelöscht.
+FMT_REVIEWS_BULK_SUED,Lawsuits: %d won / %d lost.,Klagen: %d gewonnen / %d verloren.
 REVIEW_TEXT_5_1,"""I brought cake for the staff because I expected to be there for hours. I was done in ten minutes. They can keep the cake anyway. Earned is earned.""","„Ich hatte Kuchen für die Beamten mitgebracht, weil ich mit Stunden gerechnet hatte. Nach zehn Minuten war ich fertig. Den Kuchen dürfen sie trotzdem behalten. Verdient ist verdient.“"
 REVIEW_TEXT_5_2,"""The clerk said 'You're welcome'. I have been dealing with public offices for forty years and always thought that was a myth.""",„Der Beamte hat ‚Gern geschehen‘ gesagt. Ich bin seit 40 Jahren Behördenkunde und hielt das bisher für ein Gerücht.“
 REVIEW_TEXT_5_3,"""Everything ran so smoothly that I briefly assumed I had wandered into Switzerland.""","„Alles lief so reibungslos, dass ich kurz dachte, ich hätte mich in die Schweiz verlaufen.“"
@@ -1122,10 +1149,13 @@ RUNNER_ROLE_INTAKE,Reception → department,Empfang → Amt
 RUNNER_ROLE_INTERNAL,Within the department,Innerhalb des Amts
 RUNNER_ROLE_OUTPUT,Department → issue counter,Amt → Ausgabe
 RUNNER_ROLE_REJECT,Rejects → shredder,Ablehnungen → Schredder
+RUNNER_ROLE_DEPOSIT,Drop desk → destination,Ablage → Ziel
 RUNNER_ROLE_SHORT_INTAKE,Intake,Annahme
 RUNNER_ROLE_SHORT_INTERNAL,Internal,Intern
 RUNNER_ROLE_SHORT_OUTPUT,Issue,Ausgabe
 RUNNER_ROLE_SHORT_REJECT,Rejects,Ablehnung
+RUNNER_ROLE_SHORT_DEPOSIT,Drop desk,Ablage
+RUNNER_ROLE_DESC_DEPOSIT,"Collects everything you put down at the drop desk in the main hall: files go to their next desk, rejects and complaints to the shredder. You can only put things down while a runner has this job.","Holt alles, was du am Ablageschreibtisch in der Haupthalle ablegst: Akten kommen zum nächsten Tisch, Ablehnungen und Beschwerden zum Schredder. Ablegen geht nur, solange ein Bote diese Aufgabe hat."
 RUNNER_ROLE_DESC_INTAKE,"Carries new files from the reception, mail room and loading dock into the departments.","Bringt neue Akten von Empfang, Poststelle und Laderampe in die Ämter."
 RUNNER_ROLE_DESC_INTERNAL,"Carries files between the desks of a department, including inspection and registry.","Trägt Akten zwischen den Stationen eines Amts, auch zum Prüfdienst und zur Meldestelle."
 RUNNER_ROLE_DESC_OUTPUT,Brings finished files from the departments to the issue counter.,Bringt fertige Akten aus den Ämtern zum Ausgabeschalter.
@@ -1599,6 +1629,7 @@ SPOT_DESC_LEAD,"The office of the team lead. Hire them here, upgrade their bonus
 ROOM_INTAKE,Intake,Annahme
 ROOM_PICKUP,Pickup,Abholung
 SIGN_LEAD_OFFICE,Team lead,Teamleitung
+FMT_SIGN_DEPOT,Drop desk %d/%d,Ablage %d/%d
 FMT_SIGN_RUNNER_LOUNGE,Runner lounge %d/%d,Botenpause %d/%d
 ACTION_PATROL,Send on patrol,Auf Rundgang schicken
 FMT_PATROL_ACTIVE,On patrol · %s,Auf Rundgang · %s

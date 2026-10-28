@@ -32,6 +32,7 @@ signal visitor_arrived(angry: bool)
 signal visitor_stopped(angry: bool)
 signal visitor_respected(slot: int)
 signal outputs_jammed(key: String, count: int)
+signal work_blocked(reason: String)
 signal intern_broke_down(slot: int)
 signal intern_recovered(slot: int, by_player: bool)
 signal coffee_served(key: String, desk: int)
@@ -61,6 +62,8 @@ var layout: WorldLayout
 var _wake_clock := 0.0
 var _seat_layout := Vector2i(-1, -1)
 var _pad_clock := 0.0
+var _watch_spot: Array = []
+var _block_notice_at := -1.0e9
 var _reject_detours: Dictionary = {}
 
 
@@ -540,6 +543,7 @@ func call_citizens() -> bool:
 		var station := state.station(key)
 		if station == null or is_halted(station):
 			continue
+		called = _redirect_stranded_calls(station, key) or called
 		for desk in station.desks:
 			if station.jobs[desk] != null or desk_call(station, desk) != null:
 				continue
@@ -555,6 +559,24 @@ func call_citizens() -> bool:
 			_call(citizen, station, desk)
 			called = true
 	return called
+
+
+func _redirect_stranded_calls(station: Station, key: String) -> bool:
+	var redirected := false
+	for case_file in station.inbox:
+		if not _is_called(case_file) or station.jobs[case_file.desk] != null or _desk_ready(station, key, case_file.desk):
+			continue
+		for desk in station.desks:
+			if desk != case_file.desk and station.jobs[desk] == null and desk_call(station, desk) == null and _desk_ready(station, key, desk):
+				case_file.desk = desk
+				_walk_to(case_file, layout.desk_front(key, desk))
+				redirected = true
+				break
+	return redirected
+
+
+func _desk_ready(station: Station, key: String, desk: int) -> bool:
+	return _desk_manned(station, desk) or player_desk() == [key, desk]
 
 
 func _desk_manned(station: Station, desk: int) -> bool:
@@ -742,6 +764,8 @@ func _work_stations(delta: float) -> void:
 			continue
 		var step := delta * Formulas.work_speed(state, station)
 		var idle_failed := false
+		var per_desk := station.calls_citizens()
+		var watched: int = int(_watch_spot[1]) if not _watch_spot.is_empty() and _watch_spot[0] == key else -1
 		var jobs := station.jobs
 		for desk in jobs.size():
 			var working := station.is_working(desk) or (temps and _is_temp_desk(station, desk))
@@ -750,13 +774,15 @@ func _work_stations(delta: float) -> void:
 				if not working:
 					continue
 				if idle_failed or not start_job(station, desk):
-					idle_failed = true
+					idle_failed = not per_desk
 					continue
 				job = jobs[desk]
 			if working:
-				job.progress += step
+				job.progress += step * (GameConfig.SHOULDER_SPEED if desk == watched else 1.0)
 			if job.progress >= job.required and finish_job(station, desk):
 				idle_failed = false
+				if per_desk:
+					call_citizens()
 
 
 func _update_jam(station: Station) -> bool:
@@ -1392,6 +1418,27 @@ func delete_review(review_id: int) -> bool:
 	return true
 
 
+func delete_reviews(review_ids: Array) -> int:
+	var deleted := 0
+	for review_id in review_ids:
+		if delete_review(int(review_id)):
+			deleted += 1
+	return deleted
+
+
+func sue_reviews(review_ids: Array) -> Vector2i:
+	var result := Vector2i.ZERO
+	for review_id in review_ids:
+		var review := state.find_review(int(review_id))
+		if review == null or not sue_for_defamation(int(review_id)):
+			continue
+		if review.forced:
+			result.x += 1
+		else:
+			result.y += 1
+	return result
+
+
 func can_sue_for_defamation(review_id: int) -> bool:
 	var review := state.find_review(review_id)
 	return review != null and review.can_be_sued() and state.can_afford(Formulas.review_lawsuit_cost(state, review))
@@ -1477,7 +1524,7 @@ func _update_reject_runner(runner: Runner, index: int, delta: float) -> void:
 	if not runner.source.is_empty():
 		if runner.move_towards(layout.reject_point(runner.source), speed, delta):
 			_collect_rejects(runner, capacity)
-	elif runner.loaded > 0:
+	elif runner.carries_waste():
 		if runner.move_towards(layout.shredder_point(), speed, delta):
 			_unload_reject_runner(runner)
 	else:
@@ -1502,7 +1549,33 @@ func _collect_rejects(runner: Runner, capacity: int) -> void:
 	station.rejects -= taken
 
 
+func _update_deposit_runner(runner: Runner, index: int, delta: float) -> void:
+	if state.depot_count() <= 0:
+		runner.move_towards(layout.runner_rest_point(index), _runner_speed(), delta)
+		return
+	if not runner.move_towards(layout.depot_point(), _runner_speed(), delta):
+		return
+	var capacity := Formulas.runner_load(state, runner)
+	while runner.items.size() < capacity and not state.depot_items.is_empty():
+		runner.items.append(state.depot_items.pop_front())
+	var room := capacity - runner.items.size()
+	var rejects := mini(room, state.depot_rejects)
+	runner.loaded += rejects
+	state.depot_rejects -= rejects
+	var complaints := mini(room - rejects, state.depot_complaints)
+	runner.complaints_loaded += complaints
+	state.depot_complaints -= complaints
+	if not runner.items.is_empty():
+		runner.task = Runner.Task.TO_TARGET
+		runner.target = _next_runner_target(runner)
+
+
 func _unload_reject_runner(runner: Runner) -> void:
+	if runner.complaints_loaded > 0:
+		_book_complaints(runner.complaints_loaded, false)
+		runner.complaints_loaded = 0
+		if runner.loaded <= 0:
+			return
 	state.production.record(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF, state.play_time, runner.loaded)
 	state.earn(GameConfig.REJECT_SHRED_REWARD * runner.loaded)
 	runner.loaded = 0
@@ -2130,8 +2203,29 @@ func _update_player(delta: float) -> void:
 		_pad_clock = 0.0
 
 
+func drop_at_depot() -> bool:
+	var player := state.player
+	if state.runners_in(Runner.DEPOSIT) <= 0 or not layout.near(player.position, layout.depot_point()):
+		return false
+	var moved := false
+	while not player.items.is_empty() and state.depot_has_space():
+		state.depot_items.append(player.items.pop_front())
+		moved = true
+	while player.complaints > 0 and state.depot_has_space():
+		player.complaints -= 1
+		state.depot_complaints += 1
+		moved = true
+	while player.rejects > 0 and state.depot_has_space():
+		player.rejects -= 1
+		state.depot_rejects += 1
+		moved = true
+	return moved
+
+
 func player_transfer() -> bool:
 	var player := state.player
+	if drop_at_depot():
+		return true
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
 		if station.is_entry() or not layout.near(player.position, layout.input_point(key)):
@@ -2159,9 +2253,36 @@ func player_transfer() -> bool:
 
 func work_at_desk(power: float) -> bool:
 	var spot := player_desk()
+	_watch_spot = spot
 	if spot.is_empty():
 		return false
-	return work_desk(state.station(spot[0]), spot[1], power)
+	var station := state.station(spot[0])
+	var worked := work_desk(station, spot[1], power)
+	if not worked:
+		_report_blocked(station, spot[1])
+	return worked
+
+
+func work_block_reason(station: Station, desk: int) -> String:
+	if is_halted(station):
+		return "halted"
+	if station.produces_rejects():
+		if not station.has_outbox_space():
+			return "outbox"
+		if not station.has_reject_space():
+			return "rejects"
+	var job := station.jobs[desk]
+	if job == null:
+		return "no_case" if not station.inbox.is_empty() else ""
+	return "stuck" if job.is_done() else ""
+
+
+func _report_blocked(station: Station, desk: int) -> void:
+	var reason := work_block_reason(station, desk)
+	if reason.is_empty() or state.play_time - _block_notice_at < GameConfig.WORK_BLOCK_NOTICE_SECONDS:
+		return
+	_block_notice_at = state.play_time
+	work_blocked.emit(reason)
 
 
 func player_desk() -> Array:
@@ -2183,9 +2304,7 @@ func player_desk() -> Array:
 
 
 func can_work_desk(station: Station, desk: int) -> bool:
-	if desk < 0 or desk >= station.desks:
-		return false
-	return not station.machine or not station.is_staffed(desk)
+	return desk >= 0 and desk < station.desks
 
 
 func work_desk(station: Station, desk: int, power: float) -> bool:
@@ -2272,7 +2391,10 @@ func _update_runners(delta: float) -> void:
 	var speed := _runner_speed()
 	for index in state.runners.size():
 		var runner := state.runners[index]
-		if runner.task == Runner.Task.IDLE and (runner.is_reject() or runner.loaded > 0):
+		if runner.task == Runner.Task.IDLE and runner.is_deposit() and not runner.carries_waste():
+			_update_deposit_runner(runner, index, delta)
+			continue
+		if runner.task == Runner.Task.IDLE and (runner.is_reject() or runner.carries_waste()):
 			_update_reject_runner(runner, index, delta)
 			continue
 		match runner.task:

@@ -640,6 +640,22 @@ func test_reception_keeps_files_without_citizen_for_saturated_departments() -> v
 	assert_true(sim.start_job(reception, 0))
 
 
+func test_reception_desk_starts_while_other_desk_citizen_still_walks() -> void:
+	var reception := state.station(GameConfig.RECEPTION)
+	reception.staff = 2
+	var walking := _hall_citizen("general_services", 1)
+	var arrived := _hall_citizen("general_services", 2)
+	for pair in [[walking, 0, 5.0], [arrived, 1, 0.0]]:
+		var citizen: CaseFile = pair[0]
+		citizen.phase = CaseFile.Phase.CALLED
+		citizen.desk = pair[1]
+		citizen.walk = pair[2]
+		reception.inbox.append(citizen)
+	sim._work_stations(0.1)
+	assert_null(reception.jobs[0])
+	assert_not_null(reception.jobs[1])
+
+
 func test_player_shreds_normal_case_at_shredder() -> void:
 	var case_file := sim.create_case(state.department("general_services"))
 	state.player.items.append(case_file)
@@ -828,7 +844,7 @@ func test_runner_role_reject_is_saved_and_unknown_roles_are_replaced() -> void:
 	assert_eq(Runner.from_dict({"role": "reject"}, Vector2.ZERO).role, Runner.REJECT)
 	assert_eq(Runner.from_dict({"role": "collector"}, Vector2.ZERO).role, "")
 	assert_eq(Runner.from_dict({"role": Runner.REJECT, "dept": "nope"}, Vector2.ZERO).dept_id, Runner.ALL_DEPARTMENTS)
-	assert_eq(Runner.ROLES.size(), 4)
+	assert_eq(Runner.ROLES.size(), 5)
 	assert_eq(Runner.ROLES[3], Runner.REJECT)
 	assert_eq(Runner.CASE_ROLES.size(), 3)
 	var data := state.to_dict()

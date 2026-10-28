@@ -290,11 +290,14 @@ func test_delete_review_rejects_invalid_requests() -> void:
 	assert_not_null(state.find_review(negative.id))
 
 
-func test_lawsuit_cost_is_the_same_for_every_rating() -> void:
+func test_lawsuit_cost_rises_with_the_rating_while_deleting_falls() -> void:
 	var first := Formulas.review_lawsuit_cost(state, Review.new(0, 1))
-	for stars in range(2, 6):
-		assert_almost_eq(Formulas.review_lawsuit_cost(state, Review.new(0, stars)), first, 0.001)
 	assert_almost_eq(first, 100.0, 0.001)
+	for stars in range(2, 6):
+		var review := Review.new(0, stars)
+		assert_almost_eq(Formulas.review_lawsuit_cost(state, review), first * GameConfig.REVIEW_LAWSUIT_STAR_FACTORS[stars - 1], 0.001)
+		assert_gt(Formulas.review_lawsuit_cost(state, review), Formulas.review_lawsuit_cost(state, Review.new(0, stars - 1)))
+		assert_lt(Formulas.review_delete_cost(state, review), Formulas.review_delete_cost(state, Review.new(0, stars - 1)))
 
 
 func test_deleting_is_always_cheaper_than_suing() -> void:
@@ -671,6 +674,91 @@ func test_sheet_shows_empty_state() -> void:
 	assert_true(_has_label(sheet.content, sheet.tr("REVIEWS_EMPTY")))
 
 
+func test_sheet_shows_arrival_effect_of_the_rating() -> void:
+	state.add_review(5)
+	var sheet := _sheet()
+	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_ARRIVAL_TITLE") % ("+" + UiKit.percent(0.25))))
+	assert_true(_has_label(sheet.content, sheet.tr("REVIEW_ARRIVAL_INFO")))
+
+
+func test_sheet_shows_arrival_penalty_for_bad_ratings() -> void:
+	state.add_review(1)
+	var sheet := _sheet()
+	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_ARRIVAL_TITLE") % ("−" + UiKit.percent(0.6))))
+
+
+func test_sheet_shows_neutral_arrival_effect_in_the_middle_tier() -> void:
+	for stars in [5, 5, 5, 5, 3]:
+		state.add_review(stars)
+	var sheet := _sheet()
+	assert_true(_has_label(sheet.content, sheet.tr("REVIEW_ARRIVAL_NEUTRAL")))
+
+
+func test_bulk_delete_removes_marked_reviews_and_charges_the_sum() -> void:
+	state.money = 100000.0
+	var first := state.add_review(1)
+	var second := state.add_review(2)
+	var keep := state.add_review(1)
+	var expected := Formulas.review_delete_cost(state, first) + Formulas.review_delete_cost(state, second)
+	var sheet := _sheet()
+	sheet.toggle_select_mode()
+	sheet.toggle_mark(first.id)
+	sheet.toggle_mark(second.id)
+	assert_eq(sheet.marked_ids().size(), 2)
+	assert_almost_eq(Formulas.bulk_delete_cost(state, sheet.marked_ids()), expected, 0.001)
+	var before := state.money
+	sheet.delete_marked()
+	assert_almost_eq(before - state.money, expected, 0.001)
+	assert_null(state.find_review(first.id))
+	assert_null(state.find_review(second.id))
+	assert_not_null(state.find_review(keep.id))
+	assert_true(sheet.marked_ids().is_empty())
+
+
+func test_bulk_select_all_and_clear_follow_the_filter() -> void:
+	_fill_reviews()
+	var sheet := _sheet()
+	sheet.toggle_select_mode()
+	sheet.mark_all_visible()
+	assert_eq(sheet.marked_ids().size(), 5)
+	sheet.clear_marks()
+	assert_eq(sheet.marked_ids().size(), 0)
+	sheet.set_filter(1)
+	sheet.mark_all_visible()
+	assert_eq(sheet.marked_ids().size(), 1)
+	sheet.toggle_mark(sheet.marked_ids()[0])
+	assert_true(sheet.marked_ids().is_empty())
+	sheet.toggle_select_mode()
+	assert_false(sheet.is_marked(0))
+
+
+func test_bulk_sue_skips_corrected_reviews_and_counts_results() -> void:
+	state.money = 100000.0
+	var plain := state.add_review(1)
+	var corrected := state.add_review(1)
+	corrected.force_praise(0)
+	var sheet := _sheet()
+	sheet.toggle_select_mode()
+	sheet.mark_all_visible()
+	assert_eq(sheet.suable_marked_ids(), [plain.id])
+	assert_almost_eq(Formulas.bulk_lawsuit_cost(state, sheet.marked_ids()), Formulas.review_lawsuit_cost(state, plain), 0.001)
+	var before := state.money
+	sheet.sue_marked()
+	assert_ne(state.money, before)
+	assert_true(plain.lawsuits == 1 or plain.forced)
+
+
+func test_bulk_actions_stop_when_money_runs_out() -> void:
+	var first := state.add_review(1)
+	var second := state.add_review(1)
+	state.money = Formulas.review_delete_cost(state, first) * 1.01
+	assert_eq(sim.delete_reviews([first.id, second.id]), 1)
+	state.money = 0.0
+	assert_eq(sim.sue_reviews([second.id]), Vector2i.ZERO)
+	assert_eq(Formulas.bulk_delete_cost(state, [999]), 0.0)
+	assert_eq(Formulas.bulk_lawsuit_cost(state, [999]), 0.0)
+
+
 func test_sheet_lists_newest_first_and_filters() -> void:
 	_fill_reviews()
 	var sheet := _sheet()
@@ -749,6 +837,9 @@ func test_sheet_deleting_returns_to_list_with_outcome() -> void:
 			delete = button
 	assert_not_null(delete)
 	delete.pressed.emit()
+	assert_not_null(state.find_review(review.id))
+	assert_not_null(sheet.pending_dialog)
+	sheet.pending_dialog.confirmed.emit()
 	assert_null(state.find_review(review.id))
 	assert_eq(sheet.title(), sheet.tr("SHEET_REVIEWS"))
 	assert_true(_has_label(sheet.content, sheet.tr("FLOAT_REVIEW_DELETED")))
@@ -766,6 +857,7 @@ func test_sheet_suing_shows_outcome_and_corrected_note() -> void:
 		for button in _buttons(sheet.content):
 			if button.text.begins_with(sheet.tr("ACTION_REVIEW_SUE")):
 				button.pressed.emit()
+				sheet.pending_dialog.confirmed.emit()
 				break
 	assert_true(review.forced)
 	assert_true(_has_label(sheet.content, sheet.tr("FLOAT_REVIEW_WON")))
@@ -788,6 +880,7 @@ func test_sheet_offers_free_deletion_and_lawsuit_for_praise() -> void:
 	for button in _buttons(sheet.content):
 		if button.text == sheet.tr("ACTION_REVIEW_DELETE_FREE"):
 			button.pressed.emit()
+			sheet.pending_dialog.confirmed.emit()
 	assert_null(state.find_review(review.id))
 
 
@@ -808,6 +901,7 @@ func test_sheet_lost_lawsuit_stays_on_detail_with_fewer_stars() -> void:
 		for button in _buttons(sheet.content):
 			if button.text.begins_with(sheet.tr("ACTION_REVIEW_SUE")):
 				button.pressed.emit()
+				sheet.pending_dialog.confirmed.emit()
 				break
 	assert_eq(outcome[0], "lost")
 	assert_eq(review.stars, 2)
@@ -868,6 +962,78 @@ func test_sheet_disables_actions_without_money() -> void:
 	for button in _buttons(sheet.content):
 		if button.text.begins_with(sheet.tr("ACTION_REVIEW_DELETE")) or button.text.begins_with(sheet.tr("ACTION_REVIEW_SUE")):
 			assert_true(button.disabled)
+
+
+func test_sheet_asks_before_deleting_and_cancelling_keeps_the_review() -> void:
+	var review := state.add_review(1)
+	var sheet := _sheet(str(review.id))
+	sheet.request_delete(review.id)
+	sheet.pending_dialog.dismissed.emit()
+	assert_not_null(state.find_review(review.id))
+	var money := state.money
+	sheet.request_sue(review.id)
+	assert_eq(state.money, money)
+	sheet.request_delete(999)
+	sheet.request_sue(999)
+
+
+func test_bulk_requests_need_confirmation_and_ignore_empty_selection() -> void:
+	state.money = 100000.0
+	var review := state.add_review(1)
+	var sheet := _sheet()
+	sheet.toggle_select_mode()
+	sheet.pending_dialog = null
+	sheet.request_delete_marked()
+	sheet.request_sue_marked()
+	assert_null(sheet.pending_dialog)
+	sheet.toggle_mark(review.id)
+	sheet.request_delete_marked()
+	assert_not_null(sheet.pending_dialog)
+	assert_not_null(state.find_review(review.id))
+	sheet.pending_dialog.confirmed.emit()
+	assert_null(state.find_review(review.id))
+	var other := state.add_review(1)
+	sheet.toggle_mark(other.id)
+	sheet.request_sue_marked()
+	assert_not_null(sheet.pending_dialog)
+
+
+func test_select_mode_hides_read_buttons_and_tap_toggles() -> void:
+	var review := state.add_review(4)
+	var sheet := _sheet()
+	sheet.toggle_select_mode()
+	for button in _buttons(sheet.content):
+		assert_ne(button.text, sheet.tr("ACTION_REVIEW_READ"))
+	sheet.press_card(review.id, Vector2(10, 10))
+	sheet.release_card(Vector2(12, 11))
+	assert_true(sheet.is_marked(review.id))
+	sheet.press_card(review.id, Vector2(10, 10))
+	sheet.release_card(Vector2(10, 10))
+	assert_false(sheet.is_marked(review.id))
+	sheet.press_card(review.id, Vector2(10, 10))
+	sheet.release_card(Vector2(300, 10))
+	assert_false(sheet.is_marked(review.id))
+	sheet.release_card(Vector2.ZERO)
+
+
+func test_dragging_sideways_paints_marks_while_vertical_drag_does_not() -> void:
+	var review := state.add_review(4)
+	var sheet := _sheet()
+	sheet.toggle_select_mode()
+	assert_false(sheet.drag_card(Vector2(100, 0)))
+	sheet.press_card(review.id, Vector2.ZERO)
+	assert_false(sheet.drag_card(Vector2(2, 100)))
+	assert_false(sheet.is_painting())
+	assert_true(sheet.drag_card(Vector2(100, 5)))
+	assert_true(sheet.is_painting())
+	assert_true(sheet.is_marked(review.id))
+	sheet.release_card(Vector2(100, 5))
+	assert_false(sheet.is_painting())
+	assert_true(sheet.is_marked(review.id))
+	sheet.press_card(review.id, Vector2.ZERO)
+	sheet.drag_card(Vector2(100, 0))
+	sheet.release_card(Vector2(100, 0))
+	assert_false(sheet.is_marked(review.id))
 
 
 func test_sheet_read_button_opens_detail() -> void:

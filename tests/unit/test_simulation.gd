@@ -185,16 +185,64 @@ func test_player_helps_at_a_staffed_desk() -> void:
 	assert_eq(case_file.handled, 1)
 
 
-func test_machines_are_not_helped_by_hand() -> void:
+func test_machines_can_be_worked_by_hand() -> void:
 	state.unlock_department("tax_services")
 	var signature := state.station("tax_services/signature")
 	assert_true(signature.machine)
 	signature.inbox.append(_at("tax_services/signature", _case("tax_services")))
 	signature.staff = signature.desks
 	state.player.position = layout.desk_work_point("tax_services/signature", 0)
-	assert_false(sim.can_work_desk(signature, 0))
+	assert_true(sim.can_work_desk(signature, 0))
+	assert_true(sim.work_at_desk(1.0))
+	assert_not_null(signature.jobs[0])
+
+
+func test_blocked_work_reports_the_reason() -> void:
+	var review := state.station("general_services/review")
+	var reasons: Array[String] = []
+	sim.work_blocked.connect(func(reason: String) -> void: reasons.append(reason))
+	state.player.position = layout.desk_work_point("general_services/review", 0)
+	assert_eq(sim.work_block_reason(review, 0), "")
 	assert_false(sim.work_at_desk(1.0))
-	assert_true(signature.inbox.size() == 1)
+	assert_true(reasons.is_empty())
+	review.inbox.append(_at("general_services/review", _case()))
+	for i in review.outbox_capacity():
+		review.outbox.append(_case())
+	assert_eq(sim.work_block_reason(review, 0), "outbox")
+	assert_false(sim.work_at_desk(1.0))
+	assert_eq(reasons, ["outbox"])
+	assert_false(sim.work_at_desk(1.0))
+	assert_eq(reasons.size(), 1)
+	state.play_time += GameConfig.WORK_BLOCK_NOTICE_SECONDS + 1.0
+	review.outbox.clear()
+	review.rejects = review.reject_capacity()
+	assert_eq(sim.work_block_reason(review, 0), "rejects")
+	review.rejects = 0
+	review.inbox.clear()
+	review.jobs[0] = StationJob.new(_case(), 1.0)
+	assert_eq(sim.work_block_reason(review, 0), "")
+	review.jobs[0].progress = 1.0
+	assert_eq(sim.work_block_reason(review, 0), "stuck")
+	review.jobs[0] = null
+	review.inbox.append(_at("general_services/review", _case()))
+	assert_eq(sim.work_block_reason(review, 0), "no_case")
+
+
+func test_watched_official_works_faster() -> void:
+	var review := state.station("general_services/review")
+	review.staff = review.desks
+	review.inbox.append(_at("general_services/review", _case()))
+	review.inbox.append(_at("general_services/review", _case()))
+	assert_true(sim.start_job(review, 0))
+	state.player.position = Vector2.ZERO
+	sim.work_at_desk(0.0)
+	sim._work_stations(1.0)
+	var unwatched := review.jobs[0].progress
+	review.jobs[0].progress = 0.0
+	state.player.position = layout.desk_work_point("general_services/review", 0)
+	sim.work_at_desk(0.0)
+	sim._work_stations(1.0)
+	assert_almost_eq(review.jobs[0].progress, unwatched * GameConfig.SHOULDER_SPEED, 0.0001)
 
 
 func test_guidance_sends_player_to_help_with_a_backlog() -> void:

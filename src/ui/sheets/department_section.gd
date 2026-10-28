@@ -78,10 +78,18 @@ static func work_mode(sheet: Sheet, dept_id: String) -> Control:
 	var options: Array[String] = []
 	for mode: Dictionary in GameConfig.THOROUGHNESS:
 		options.append(sheet.tr("MODE_" + str(mode.id).to_upper()))
+	if dept.has_signature_part():
+		column.add_child(UiKit.label(sheet.tr("MODE_PART_REVIEW"), "TitleSmall"))
 	column.add_child(UiKit.segmented(options, dept.thoroughness, func(index: int) -> void:
 		game.perform(game.actions.set_thoroughness.bind(dept_id, index))
 		sheet.refresh()
 	))
+	if dept.has_signature_part():
+		column.add_child(UiKit.label(sheet.tr("STATION_%s_SIGNATURE" % dept_id.to_upper()), "TitleSmall"))
+		column.add_child(UiKit.segmented(options, dept.signature_mode(), func(index: int) -> void:
+			game.perform(game.actions.set_signature_thoroughness.bind(dept_id, index))
+			sheet.refresh()
+		))
 	var explanation := UiKit.label("", "BodySmall", true)
 	column.add_child(explanation)
 	column.add_child(UiKit.label(sheet.tr("MODE_HINT"), "BodySmall", true))

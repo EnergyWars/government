@@ -236,7 +236,7 @@ func test_roles_and_departments_are_saved() -> void:
 
 func test_reject_is_a_runner_task_but_never_a_route_role() -> void:
 	assert_eq(Runner.CASE_ROLES, [Runner.INTAKE, Runner.INTERNAL, Runner.OUTPUT] as Array[String])
-	assert_eq(Runner.ROLES, [Runner.INTAKE, Runner.INTERNAL, Runner.OUTPUT, Runner.REJECT] as Array[String])
+	assert_eq(Runner.ROLES, [Runner.INTAKE, Runner.INTERNAL, Runner.OUTPUT, Runner.REJECT, Runner.DEPOSIT] as Array[String])
 	assert_eq(Runner.REJECT, "reject")
 	var keys: Array[String] = [GameConfig.RECEPTION, GameConfig.MAILROOM, "customs/dock", "general_services/review", "general_services/signature", GameConfig.COUNTER]
 	for source in keys:
@@ -498,3 +498,133 @@ func _quiet_disruptions() -> void:
 	for key in state.stations:
 		for mood in state.stations[key].moods:
 			mood.alert = 1e9
+
+
+func _depot_case() -> CaseFile:
+	var case_file := _case()
+	case_file.step = 1
+	return case_file
+
+
+func test_player_drops_everything_at_the_depot_only_with_a_deposit_runner() -> void:
+	state.player.items.append(_depot_case())
+	state.player.complaints = 2
+	state.player.rejects = 3
+	state.player.position = layout.depot_point()
+	assert_false(sim.drop_at_depot())
+	state.add_runner(Runner.DEPOSIT)
+	assert_true(sim.drop_at_depot())
+	assert_true(state.player.items.is_empty())
+	assert_eq(state.player.complaints, 0)
+	assert_eq(state.player.rejects, 0)
+	assert_eq(state.depot_items.size(), 1)
+	assert_eq(state.depot_complaints, 2)
+	assert_eq(state.depot_rejects, 3)
+	assert_eq(state.depot_count(), 6)
+	assert_false(sim.drop_at_depot())
+
+
+func test_depot_is_limited_and_needs_the_player_nearby() -> void:
+	state.add_runner(Runner.DEPOSIT)
+	state.player.rejects = GameConfig.DEPOT_CAPACITY + 5
+	state.player.position = layout.depot_point() + Vector2(900.0, 0.0)
+	assert_false(sim.drop_at_depot())
+	state.player.position = layout.depot_point()
+	assert_true(sim.drop_at_depot())
+	assert_eq(state.depot_count(), GameConfig.DEPOT_CAPACITY)
+	assert_eq(state.player.rejects, 5)
+	assert_false(state.depot_has_space())
+	assert_false(sim.drop_at_depot())
+
+
+func test_player_transfer_drops_at_the_depot() -> void:
+	state.add_runner(Runner.DEPOSIT)
+	state.player.complaints = 1
+	state.player.position = layout.depot_point()
+	assert_true(sim.player_transfer())
+	assert_eq(state.depot_complaints, 1)
+
+
+func test_deposit_runner_delivers_files_and_shreds_the_rest() -> void:
+	var runner := state.add_runner(Runner.DEPOSIT)
+	var case_file := _depot_case()
+	state.depot_items.append(case_file)
+	state.depot_rejects = 2
+	state.depot_complaints = 1
+	runner.position = layout.depot_point()
+	var money := state.money
+	sim._update_deposit_runner(runner, 0, 0.05)
+	assert_eq(runner.items, [case_file] as Array[CaseFile])
+	assert_eq(runner.loaded, 2)
+	assert_eq(runner.complaints_loaded, 1)
+	assert_eq(runner.task, Runner.Task.TO_TARGET)
+	assert_eq(runner.target, case_file.next_key())
+	assert_eq(state.depot_count(), 0)
+	runner.position = layout.input_point(runner.target)
+	sim._runner_to_target(runner, 0.05)
+	assert_true(runner.items.is_empty())
+	assert_eq(runner.task, Runner.Task.IDLE)
+	assert_true(runner.carries_waste())
+	runner.position = layout.shredder_point()
+	sim._update_reject_runner(runner, 0, 0.05)
+	assert_false(runner.carries_waste())
+	assert_eq(state.complaints_shredded, 1)
+	assert_gt(state.money, money)
+
+
+func test_deposit_runner_respects_capacity_and_rests_when_empty() -> void:
+	var runner := state.add_runner(Runner.DEPOSIT)
+	runner.position = layout.depot_point()
+	sim._update_deposit_runner(runner, 0, 0.05)
+	assert_lt(runner.position.distance_to(layout.depot_point()), layout.depot_point().distance_to(layout.runner_rest_point(0)))
+	state.depot_rejects = Formulas.runner_load(state, runner) + 4
+	runner.position = layout.depot_point()
+	sim._update_deposit_runner(runner, 0, 0.05)
+	assert_eq(runner.loaded, Formulas.runner_load(state, runner))
+	assert_eq(state.depot_rejects, 4)
+
+
+func test_deposit_runner_moves_towards_a_filled_depot() -> void:
+	var runner := state.add_runner(Runner.DEPOSIT)
+	runner.position = layout.runner_rest_point(0)
+	state.depot_rejects = 1
+	var before := runner.position.distance_to(layout.depot_point())
+	sim._update_deposit_runner(runner, 0, 0.1)
+	assert_lt(runner.position.distance_to(layout.depot_point()), before)
+
+
+func test_depot_and_deposit_runner_survive_saving() -> void:
+	var runner := state.add_runner(Runner.DEPOSIT)
+	runner.complaints_loaded = 2
+	state.depot_items.append(_depot_case())
+	state.depot_complaints = 3
+	state.depot_rejects = 4
+	var restored := GameState.from_dict(state.to_dict())
+	assert_eq(restored.depot_items.size(), 1)
+	assert_eq(restored.depot_complaints, 3)
+	assert_eq(restored.depot_rejects, 4)
+	assert_eq(restored.runners[0].role, Runner.DEPOSIT)
+	assert_eq(restored.runners[0].complaints_loaded, 2)
+	var legacy := state.to_dict()
+	legacy.erase("depot_items")
+	legacy.erase("depot_complaints")
+	legacy.erase("depot_rejects")
+	var old := GameState.from_dict(legacy)
+	assert_eq(old.depot_count(), 0)
+	assert_eq(Runner.from_dict({"role": Runner.DEPOSIT, "complaints_loaded": -4}, Vector2.ZERO).complaints_loaded, 0)
+	assert_eq(Runner.from_dict({"role": Runner.DEPOSIT}, Vector2.ZERO).complaints_loaded, 0)
+
+
+func test_deposit_role_is_no_case_route_role() -> void:
+	var runner := state.add_runner(Runner.DEPOSIT)
+	assert_true(runner.is_deposit())
+	assert_false(runner.is_reject())
+	assert_eq(state.case_runner_count(), 0)
+	assert_eq(state.transfer_backlog(Runner.DEPOSIT), 0)
+	state.depot_rejects = 2
+	assert_eq(state.transfer_backlog(Runner.DEPOSIT), 2)
+	assert_eq(Formulas.role_demand(state, Runner.DEPOSIT), 0.0)
+	assert_ne(state.least_staffed_role(), Runner.DEPOSIT)
+	for key in ["RUNNER_ROLE_DEPOSIT", "RUNNER_ROLE_SHORT_DEPOSIT", "RUNNER_ROLE_DESC_DEPOSIT", "FMT_SIGN_DEPOT"]:
+		assert_ne(TranslationServer.translate(key), key, key)
+	assert_true(layout.hall.encloses(layout.depot_rect()))

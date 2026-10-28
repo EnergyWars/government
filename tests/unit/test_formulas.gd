@@ -299,6 +299,30 @@ func test_thoroughness_time_only_applies_to_own_staffed_stations() -> void:
 	assert_almost_eq(Formulas.base_time(tax_signature, tax, false, state), float(tax.config().signature_time), 0.0001)
 
 
+func test_signature_mode_splits_time_error_and_reward_for_staffed_signature() -> void:
+	var review := state.station("general_services/review")
+	var signature := state.station("general_services/signature")
+	_gs().thoroughness = 2
+	_gs().signature_thoroughness = 0
+	assert_almost_eq(Formulas.thoroughness_time(review, _gs()), 2.0, 0.0001)
+	assert_almost_eq(Formulas.thoroughness_time(signature, _gs()), 0.45, 0.0001)
+	assert_almost_eq(Formulas.thoroughness_reward(_gs()), (2.6 + 1.0) * 0.5, 0.0001)
+	var training := Formulas.upgrade_value(state, "quality_training") * Formulas.upgrade_value(state, "ai_classification")
+	assert_almost_eq(Formulas.error_chance(state, _gs()), (0.02 + 0.3) * 0.5 * training, 0.0001)
+	_gs().signature_thoroughness = -1
+	assert_almost_eq(Formulas.thoroughness_time(signature, _gs()), 2.0, 0.0001)
+	assert_almost_eq(Formulas.thoroughness_reward(_gs()), 2.6, 0.0001)
+
+
+func test_machine_signature_departments_ignore_the_signature_mode() -> void:
+	state.unlock_department("tax_services")
+	var tax := state.department("tax_services")
+	tax.thoroughness = 1
+	tax.signature_thoroughness = 0
+	assert_almost_eq(Formulas.thoroughness_reward(tax), 1.0, 0.0001)
+	assert_almost_eq(Formulas.error_chance(state, tax), 0.12 * Formulas.upgrade_value(state, "quality_training") * Formulas.upgrade_value(state, "ai_classification"), 0.0001)
+
+
 func test_thoroughness_reward_and_error() -> void:
 	var expected_rewards := [1.0, 1.0, 2.6]
 	var expected_errors := [0.3, 0.12, 0.02]

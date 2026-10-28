@@ -7,8 +7,9 @@ const INTAKE := "intake"
 const INTERNAL := "internal"
 const OUTPUT := "output"
 const REJECT := "reject"
+const DEPOSIT := "deposit"
 const CASE_ROLES: Array[String] = [INTAKE, INTERNAL, OUTPUT]
-const ROLES: Array[String] = [INTAKE, INTERNAL, OUTPUT, REJECT]
+const ROLES: Array[String] = [INTAKE, INTERNAL, OUTPUT, REJECT, DEPOSIT]
 const ALL_DEPARTMENTS := ""
 
 var task := Task.IDLE
@@ -19,6 +20,7 @@ var role := INTAKE
 var dept_id := ALL_DEPARTMENTS
 var level := 0
 var loaded := 0
+var complaints_loaded := 0
 
 
 func clear_task() -> void:
@@ -30,6 +32,14 @@ func clear_task() -> void:
 
 func is_reject() -> bool:
 	return role == REJECT
+
+
+func is_deposit() -> bool:
+	return role == DEPOSIT
+
+
+func carries_waste() -> bool:
+	return loaded > 0 or complaints_loaded > 0
 
 
 func reset_route() -> void:
@@ -61,7 +71,7 @@ static func restore_department(value: Variant) -> String:
 
 
 func to_dict() -> Dictionary:
-	return {"x": position.x, "y": position.y, "items": items_to_dict(), "target": target if not items.is_empty() else "", "role": role, "dept": dept_id, "level": level, "loaded": loaded}
+	return {"x": position.x, "y": position.y, "items": items_to_dict(), "target": target if not items.is_empty() else "", "role": role, "dept": dept_id, "level": level, "loaded": loaded, "complaints_loaded": complaints_loaded}
 
 
 static func from_dict(data: Dictionary, fallback: Vector2) -> Runner:
@@ -75,4 +85,5 @@ static func from_dict(data: Dictionary, fallback: Vector2) -> Runner:
 	runner.dept_id = restore_department(data.get("dept", ALL_DEPARTMENTS))
 	runner.level = clampi(int(data.get("level", 0)), 0, GameConfig.MAX_RUNNER_LEVEL)
 	runner.loaded = clampi(int(data.get("loaded", 0)), 0, Formulas.runner_load_limit(runner.level))
+	runner.complaints_loaded = clampi(int(data.get("complaints_loaded", 0)), 0, Formulas.runner_load_limit(runner.level))
 	return runner

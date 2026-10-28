@@ -59,6 +59,9 @@ var wakes := 0
 var recalls := 0
 var patrols := 0
 var complaints := 0
+var depot_items: Array[CaseFile] = []
+var depot_complaints := 0
+var depot_rejects := 0
 var reviews: Array[Review] = []
 var review_seq := 0
 var praise_timer := GameConfig.REVIEW_PRAISE_MAX_INTERVAL
@@ -768,12 +771,22 @@ func runners_in(role: String) -> int:
 
 
 func case_runner_count() -> int:
-	return runners.size() - runners_in(Runner.REJECT)
+	return runners.size() - runners_in(Runner.REJECT) - runners_in(Runner.DEPOSIT)
+
+
+func depot_count() -> int:
+	return depot_items.size() + depot_complaints + depot_rejects
+
+
+func depot_has_space() -> bool:
+	return depot_count() < GameConfig.DEPOT_CAPACITY
 
 
 func transfer_backlog(role: String) -> int:
 	if role == Runner.REJECT:
 		return rejects_waiting()
+	if role == Runner.DEPOSIT:
+		return depot_count()
 	var count := 0
 	for key in ordered_station_keys():
 		for case_file in station(key).outbox:
@@ -857,6 +870,9 @@ func to_dict() -> Dictionary:
 		"mail_promised": mail_promised.duplicate(),
 		"mail_floor": mail_floor.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
 		"mail_dropped": mail_dropped,
+		"depot_items": depot_items.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
+		"depot_complaints": depot_complaints,
+		"depot_rejects": depot_rejects,
 		"bundles": bundles,
 		"building_stage": building_stage,
 		"goal_index": goal_index,
@@ -981,6 +997,9 @@ static func from_dict(data: Dictionary) -> GameState:
 		state.stations[restored.key] = restored
 	state._restore_upgrades(data.get("upgrades", {}))
 	var layout := WorldLayout.get_default()
+	state.depot_items = Carrier.items_from(data.get("depot_items", []))
+	state.depot_complaints = maxi(0, int(data.get("depot_complaints", 0)))
+	state.depot_rejects = maxi(0, int(data.get("depot_rejects", 0)))
 	state.player = Player.from_dict(data.get("player", {}), layout.player_start())
 	state.player.position = layout.clamp_to_world(state.player.position)
 	for entry in data.get("runners", []):

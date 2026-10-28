@@ -89,7 +89,7 @@ func _safe_top() -> float:
 func _process(delta: float) -> void:
 	if not is_intro_open():
 		game.advance(delta)
-	office.top_inset = hud.top_height()
+	office.top_inset = hud.world_inset()
 	office.bottom_inset = hud.bottom_height()
 	celebrations.top_inset = hud.top_height()
 	_autosave_timer += delta

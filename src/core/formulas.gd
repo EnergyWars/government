@@ -179,7 +179,25 @@ static func income_per_second(state: GameState) -> float:
 
 
 static func review_lawsuit_cost(state: GameState, review: Review) -> float:
-	return float(GameConfig.building_stage(state.building_stage).review_lawsuit) * review.price_factor * pow(GameConfig.REVIEW_LAWSUIT_GROWTH, review.lawsuits)
+	return float(GameConfig.building_stage(state.building_stage).review_lawsuit) * review.price_factor * GameConfig.REVIEW_LAWSUIT_STAR_FACTORS[clampi(review.stars, 1, 5) - 1] * pow(GameConfig.REVIEW_LAWSUIT_GROWTH, review.lawsuits)
+
+
+static func bulk_delete_cost(state: GameState, review_ids: Array) -> float:
+	var total := 0.0
+	for review_id in review_ids:
+		var review := state.find_review(int(review_id))
+		if review != null:
+			total += review_delete_cost(state, review)
+	return total
+
+
+static func bulk_lawsuit_cost(state: GameState, review_ids: Array) -> float:
+	var total := 0.0
+	for review_id in review_ids:
+		var review := state.find_review(int(review_id))
+		if review != null and review.can_be_sued():
+			total += review_lawsuit_cost(state, review)
+	return total
 
 
 static func review_lawsuit_chance(review: Review) -> float:
@@ -499,14 +517,27 @@ static func thoroughness(dept: Department) -> Dictionary:
 	return GameConfig.THOROUGHNESS[clampi(dept.thoroughness, 0, GameConfig.THOROUGHNESS.size() - 1)]
 
 
+static func signature_thoroughness(dept: Department) -> Dictionary:
+	return GameConfig.THOROUGHNESS[clampi(dept.signature_mode(), 0, GameConfig.THOROUGHNESS.size() - 1)]
+
+
 static func thoroughness_time(station: Station, case_dept: Department) -> float:
 	if station.machine or station.dept_id != case_dept.id:
 		return 1.0
+	if station.kind == "signature":
+		return float(signature_thoroughness(case_dept).time)
 	return float(thoroughness(case_dept).time)
 
 
+static func _mode_average(dept: Department, key: String, fallback: float) -> float:
+	var main := float(thoroughness(dept).get(key, fallback))
+	if not dept.has_signature_part():
+		return main
+	return (main + float(signature_thoroughness(dept).get(key, fallback))) * 0.5
+
+
 static func thoroughness_reward(dept: Department) -> float:
-	return float(thoroughness(dept).get("reward", 1.0))
+	return _mode_average(dept, "reward", 1.0)
 
 
 static func base_time(station: Station, case_dept: Department, complex: bool, state: GameState) -> float:
@@ -546,7 +577,7 @@ static func work_speed(state: GameState, station: Station) -> float:
 
 
 static func error_chance(state: GameState, dept: Department) -> float:
-	var chance := float(thoroughness(dept).error)
+	var chance := _mode_average(dept, "error", 0.0)
 	chance *= upgrade_value(state, "quality_training") * upgrade_value(state, "ai_classification")
 	return clampf(chance, 0.0, 1.0)
 
@@ -959,7 +990,7 @@ static func transport_throughput(state: GameState, extra_role: String = "") -> f
 	if total <= 0.0:
 		var loads := (0 if extra_role.is_empty() else runner_capacity(state))
 		for runner in state.runners:
-			if not runner.is_reject():
+			if not runner.is_reject() and not runner.is_deposit():
 				loads += runner_load(state, runner)
 		return loads / runner_trip_time(state)
 	var result := INF
@@ -1039,6 +1070,8 @@ static func department_runner_transfers(state: GameState, dept: Department) -> f
 static func role_demand(state: GameState, role: String) -> float:
 	if role == Runner.REJECT:
 		return reject_demand(state)
+	if role == Runner.DEPOSIT:
+		return 0.0
 	var total := 0.0
 	for dept in state.unlocked_departments():
 		total += demand(state, dept) * float(runner_transfers(state, dept)[role])
