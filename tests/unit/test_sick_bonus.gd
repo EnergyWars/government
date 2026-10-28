@@ -403,6 +403,16 @@ func test_work_desk_reports_progress() -> void:
 	assert_false(sim.work_desk(review, 0, 1.0))
 
 
+func test_work_desk_takes_a_case_from_a_full_unstaffed_inbox() -> void:
+	var review := state.station(REVIEW)
+	review.staff = 0
+	for i in review.inbox_capacity(state.lobby_capacity()):
+		review.inbox.append(_case_at_review())
+	assert_true(sim.work_desk(review, 0, 0.1))
+	assert_not_null(review.jobs[0])
+	assert_true(review.jobs[0].by_hand)
+
+
 func test_player_helps_an_awake_colleague_over_the_shoulder() -> void:
 	var review := state.station(REVIEW)
 	review.jobs[0] = StationJob.new(_case_at_review(), 100.0)

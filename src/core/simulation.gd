@@ -1987,7 +1987,9 @@ func start_job(station: Station, desk: int, by_hand: bool = false) -> bool:
 	if station.calls_citizens():
 		case_file = _take_called(station, desk)
 	else:
-		var blocked: Array[String] = [] if by_hand else _saturated_targets(station)
+		var blocked: Array[String] = []
+		if not by_hand:
+			blocked = _saturated_targets(station)
 		case_file = station.take_next_case(_prioritize_for(station), blocked)
 	if case_file == null:
 		return false
