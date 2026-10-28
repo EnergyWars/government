@@ -35,10 +35,6 @@ static func build(sheet: Sheet, key: String, step: int = -1) -> Control:
 	column.add_child(header)
 	var info := UiKit.label("", "BodySmall", true)
 	column.add_child(info)
-	if not station.machine:
-		var officials := UiKit.button(sheet.tr("ACTION_OFFICIALS"), "primary", "Outlined")
-		officials.pressed.connect(func() -> void: sheet.navigate.emit("officials", key))
-		column.add_child(officials)
 	card.add_child(column)
 	sheet.track(func() -> void:
 		var state := game.state
@@ -62,14 +58,13 @@ static func status_lines(state: GameState, station: Station) -> Array[String]:
 		lines.append(TranslationServer.translate("FMT_QUEUE") % [station.inbox.size(), station.inbox_capacity(lobby)])
 	if not station.is_final():
 		lines.append(TranslationServer.translate("FMT_OUTBOX") % [station.outbox.size(), station.outbox_capacity()])
+	var room_level := state.upgrade_level("room_speed", GameConfig.station_room(station.key))
 	if station.machine:
-		lines.append(TranslationServer.translate("FMT_MACHINES") % [station.desks, state.max_desks(), station.level])
+		lines.append(TranslationServer.translate("FMT_MACHINES") % [station.desks, state.max_desks(), room_level])
 	else:
-		lines.append(TranslationServer.translate("FMT_STAFFING") % [station.staff, station.desks, state.max_desks(), station.level])
+		lines.append(TranslationServer.translate("FMT_STAFFING") % [station.staff, station.desks, state.max_desks(), room_level])
 	if station.resting_count() > 0:
 		lines.append(TranslationServer.translate("FMT_RESTING") % station.resting_count())
-	if station.specialists > 0:
-		lines.append(TranslationServer.translate("FMT_SPECIALISTS") % [station.specialists, GameConfig.MAX_SPECIALISTS])
 	var throughput := Formulas.station_throughput(state, station)
 	lines.append(TranslationServer.translate("FMT_THROUGHPUT") % UiKit.decimal(throughput * 60.0))
 	lines.append_array(dynamics_lines(state, station, throughput))
@@ -85,8 +80,9 @@ static func dynamics_lines(state: GameState, station: Station, throughput: float
 	var lines: Array[String] = []
 	if station.rush > 0.0:
 		lines.append(TranslationServer.translate("FMT_RUSH") % UiKit.duration(station.rush))
-	if station.level < GameConfig.MAX_STATION_LEVEL:
-		lines.append(TranslationServer.translate("FMT_MILESTONE") % [Formulas.levels_to_milestone(station.level), UiKit.decimal(GameConfig.LEVEL_MILESTONE_BONUS)])
+	var room_level := state.upgrade_level("room_speed", GameConfig.station_room(station.key))
+	if room_level < GameConfig.ROOM_SPEED_LEVELS:
+		lines.append(TranslationServer.translate("FMT_MILESTONE") % [Formulas.levels_to_milestone(room_level), UiKit.decimal(GameConfig.LEVEL_MILESTONE_BONUS)])
 	for next_key in Formulas.downstream_keys(state, station.key):
 		var next_throughput := Formulas.station_throughput(state, state.station(next_key))
 		var format := "FMT_DOWNSTREAM_SLOW" if next_throughput < throughput else "FMT_DOWNSTREAM"

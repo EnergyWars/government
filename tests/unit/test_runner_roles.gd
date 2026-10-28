@@ -119,7 +119,7 @@ func test_three_roles_run_the_whole_route() -> void:
 	for key in state.stations:
 		if not state.stations[key].machine:
 			state.stations[key].staff = 1
-	for role in Runner.ROLES:
+	for role in Runner.CASE_ROLES:
 		state.add_runner(role)
 	_quiet_disruptions()
 	state.department("general_services").arrival_timer = 0.0
@@ -224,9 +224,48 @@ func test_roles_and_departments_are_saved() -> void:
 	var loaded := GameState.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))
 	assert_eq(loaded.runners[0].role, Runner.OUTPUT)
 	assert_eq(loaded.runners[0].dept_id, "general_services")
+	var rejecting := state.add_runner(Runner.REJECT)
+	rejecting.loaded = 1
+	var again := GameState.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))
+	assert_eq(again.runners[1].role, Runner.REJECT)
+	assert_eq(again.runners[1].loaded, 1)
 	var data := Runner.from_dict({"role": "boss", "dept": "nope"}, Vector2.ZERO)
 	assert_eq(data.role, "")
 	assert_eq(data.dept_id, Runner.ALL_DEPARTMENTS)
+
+
+func test_reject_is_a_runner_task_but_never_a_route_role() -> void:
+	assert_eq(Runner.CASE_ROLES, [Runner.INTAKE, Runner.INTERNAL, Runner.OUTPUT] as Array[String])
+	assert_eq(Runner.ROLES, [Runner.INTAKE, Runner.INTERNAL, Runner.OUTPUT, Runner.REJECT] as Array[String])
+	assert_eq(Runner.REJECT, "reject")
+	var keys: Array[String] = [GameConfig.RECEPTION, GameConfig.MAILROOM, "customs/dock", "general_services/review", "general_services/signature", GameConfig.COUNTER]
+	for source in keys:
+		for target in keys:
+			assert_ne(Runner.role_for(source, target), Runner.REJECT)
+	var runner := Runner.new()
+	runner.role = Runner.REJECT
+	assert_true(runner.is_reject())
+	var case_file := CaseFile.new("general_services")
+	case_file.route = RouteBuilder.build(case_file)
+	for source in keys:
+		assert_false(runner.serves(case_file, source), source)
+	runner.role = Runner.INTAKE
+	assert_false(runner.is_reject())
+
+
+func test_reject_runner_state_is_counted_per_role() -> void:
+	state.station("general_services/review").rejects = 5
+	state.station("shared/counter").rejects = 2
+	assert_eq(state.transfer_backlog(Runner.REJECT), 7)
+	assert_eq(state.transfer_backlog(Runner.REJECT), state.rejects_waiting())
+	assert_eq(state.runners_in(Runner.REJECT), 0)
+	state.add_runner(Runner.REJECT)
+	state.add_runner(Runner.INTAKE)
+	assert_eq(state.runners_in(Runner.REJECT), 1)
+	assert_eq(state.case_runner_count(), 1)
+	var staff_before := state.total_staff()
+	state.add_runner(Runner.REJECT)
+	assert_eq(state.total_staff(), staff_before + 1)
 
 
 func test_old_saves_split_runners_evenly() -> void:
@@ -265,10 +304,10 @@ func test_guidance_only_counts_matching_runners() -> void:
 func test_runner_level_raises_load_and_cost() -> void:
 	var runner := state.add_runner(Runner.INTAKE)
 	assert_eq(Formulas.runner_load(state, runner), Formulas.runner_capacity(state))
-	assert_eq(Formulas.runner_level_cost(runner), GameConfig.RUNNER_LEVEL_COST)
+	assert_eq(Formulas.runner_level_cost(runner), GameConfig.RUNNER_LEVEL_COST * Formulas.early_discount(0))
 	runner.level = 2
 	assert_eq(Formulas.runner_load(state, runner), Formulas.runner_capacity(state) + 2 * GameConfig.RUNNER_LEVEL_CAPACITY)
-	assert_almost_eq(Formulas.runner_level_cost(runner), GameConfig.RUNNER_LEVEL_COST * pow(GameConfig.RUNNER_LEVEL_GROWTH, 2), 0.001)
+	assert_almost_eq(Formulas.runner_level_cost(runner), GameConfig.RUNNER_LEVEL_COST * pow(GameConfig.RUNNER_LEVEL_GROWTH, 2) * Formulas.early_discount(2), 0.001)
 	var base_load := Formulas.runner_load(state, runner)
 	state.set_upgrade("runner_trolleys", 1)
 	assert_eq(Formulas.runner_capacity(state), int(Formulas.track_value("runner_trolleys", 1)))
@@ -286,7 +325,7 @@ func test_upgrading_a_runner() -> void:
 	state.money = 1e9
 	assert_true(actions.upgrade_runner(0))
 	assert_eq(runner.level, 1)
-	assert_almost_eq(state.money, 1e9 - GameConfig.RUNNER_LEVEL_COST, 0.001)
+	assert_almost_eq(state.money, 1e9 - GameConfig.RUNNER_LEVEL_COST * Formulas.early_discount(0), 0.001)
 	while actions.upgrade_runner(0):
 		pass
 	assert_eq(runner.level, GameConfig.MAX_RUNNER_LEVEL)

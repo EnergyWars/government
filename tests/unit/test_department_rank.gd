@@ -306,7 +306,7 @@ func test_rank_slows_down_the_departments_own_desks() -> void:
 	dept.rank = 11
 	assert_almost_eq(Formulas.required_time(state, review, case_file), review_time * DepartmentRank.time_factor(11), 0.000001)
 	assert_almost_eq(Formulas.required_time(state, reception, case_file), reception_time, 0.000001)
-	assert_gt(Formulas.station_case_time(state, review, false), 0.0)
+	assert_gt(Formulas.station_case_time(state, review), 0.0)
 
 
 func test_rank_still_pays_off_despite_slower_desks() -> void:
@@ -561,7 +561,8 @@ func test_expansion_lists_ranks_and_the_next_unlock() -> void:
 	assert_false(ids.has("stage:building"))
 	assert_false(ids.has("unlock:business_licences"))
 	assert_false(ids.has("track:briefcase"))
-	assert_false(ids.has("supervisor:general_services"))
+	assert_false(ids.has("track:room_speed@general_services"))
+	assert_false(ids.has("track:team_lead@general_services"))
 
 
 func test_expansion_is_sorted_by_payback() -> void:
@@ -589,7 +590,9 @@ func test_is_expansion() -> void:
 	assert_true(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "unlock:tax_services")))
 	assert_false(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "unlock:business_licences")))
 	assert_false(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "track:briefcase")))
-	assert_false(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "level:shared/reception")))
+	assert_false(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "desk:shared/reception")))
+	assert_false(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "track:room_speed@general_services")))
+	assert_false(UpgradeCatalog.is_expansion(UpgradeCatalog.find(state, "track:team_lead@general_services")))
 
 
 func test_income_gain_and_payback() -> void:
@@ -600,7 +603,8 @@ func test_income_gain_and_payback() -> void:
 	assert_almost_eq(UpgradeCatalog.payback(state, rank), rank.cost / gain, 0.001)
 	var unlock := UpgradeCatalog.find(state, "unlock:tax_services")
 	assert_almost_eq(UpgradeCatalog.income_gain(state, unlock), Formulas.potential_income(state, state.department("tax_services")), 0.000001)
-	assert_eq(UpgradeCatalog.income_gain(state, UpgradeCatalog.find(state, "supervisor:general_services")), 0.0)
+	assert_eq(UpgradeCatalog.income_gain(state, UpgradeCatalog.find(state, "track:room_speed@general_services")), 0.0)
+	assert_eq(UpgradeCatalog.income_gain(state, UpgradeCatalog.find(state, "track:team_lead@general_services")), 0.0)
 	dept.rank = GameConfig.MAX_DEPARTMENT_RANK
 	assert_eq(UpgradeCatalog.payback(state, UpgradeCatalog.find(state, "rank:general_services")), INF)
 

@@ -36,7 +36,8 @@ static func upgrade_block_reason(state: GameState, upgrade_id: String, room_id: 
 		return "room"
 	var requires: Dictionary = config.get("requires", {})
 	for required_id: String in requires:
-		if state.upgrade_level(required_id) < int(requires[required_id]):
+		var required_room := room_id if GameConfig.is_room_upgrade(required_id) else ""
+		if state.upgrade_level(required_id, required_room) < int(requires[required_id]):
 			return "requires"
 	if state.standing() < float(config.get("reputation", 0.0)):
 		return "reputation"
@@ -52,7 +53,7 @@ static func room_available(state: GameState, room_id: String) -> bool:
 			return state.mailroom() != null
 		GameConfig.ROOM_INSPECTION:
 			return state.station(GameConfig.INSPECTION) != null
-	if room_id.is_empty() or GameConfig.SERVICE_ROOMS.has(room_id):
+	if room_id.is_empty() or GameConfig.SERVICE_ROOMS.has(room_id) or GameConfig.WAITING_ROOMS.has(room_id):
 		return true
 	var dept := state.department(room_id)
 	return dept != null and dept.unlocked

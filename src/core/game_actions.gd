@@ -49,35 +49,6 @@ func hire(key: String) -> bool:
 	return true
 
 
-func can_upgrade(key: String) -> bool:
-	var station := state.station(key)
-	return station != null and station.level < GameConfig.MAX_STATION_LEVEL and state.can_afford(Formulas.upgrade_cost(station))
-
-
-func upgrade(key: String) -> bool:
-	if not can_upgrade(key):
-		return false
-	var station := state.station(key)
-	state.spend(Formulas.upgrade_cost(station))
-	station.level += 1
-	station.rush = GameConfig.UPGRADE_RUSH_SECONDS
-	return true
-
-
-func can_upgrade_trays(key: String) -> bool:
-	var station := state.station(key)
-	return station != null and station.tray_level < GameConfig.MAX_TRAY_LEVEL and state.can_afford(Formulas.tray_cost(station))
-
-
-func upgrade_trays(key: String) -> bool:
-	if not can_upgrade_trays(key):
-		return false
-	var station := state.station(key)
-	state.spend(Formulas.tray_cost(station))
-	station.tray_level += 1
-	return true
-
-
 func can_upgrade_reject_pile(key: String) -> bool:
 	var station := state.station(key)
 	return station != null and station.has_reject_pile() and station.reject_level < GameConfig.MAX_REJECT_LEVEL and state.can_afford(Formulas.reject_pile_cost(station))
@@ -92,58 +63,12 @@ func upgrade_reject_pile(key: String) -> bool:
 	return true
 
 
-func is_trainable(key: String, desk: int) -> bool:
-	var station := state.station(key)
-	return station != null and not station.machine and desk >= 0 and desk < station.moods.size() and station.is_staffed(desk)
+func can_patrol(room_id: String) -> bool:
+	return simulation.can_patrol(room_id)
 
 
-func can_train_official(key: String, desk: int, track: String) -> bool:
-	if not is_trainable(key, desk):
-		return false
-	var station := state.station(key)
-	var mood := station.moods[desk]
-	return mood.can_train(track) and state.can_afford(Formulas.training_cost(station, track, mood.training_level(track)))
-
-
-func train_official(key: String, desk: int, track: String) -> bool:
-	if not can_train_official(key, desk, track):
-		return false
-	var station := state.station(key)
-	var mood := station.moods[desk]
-	state.spend(Formulas.training_cost(station, track, mood.training_level(track)))
-	mood.train(track)
-	state.trainings += 1
-	return true
-
-
-func can_hire_specialist(key: String) -> bool:
-	var station := state.station(key)
-	return station != null and station.supports_specialists() and station.specialists < GameConfig.MAX_SPECIALISTS and state.can_afford(Formulas.specialist_cost(station))
-
-
-func hire_specialist(key: String) -> bool:
-	if not can_hire_specialist(key):
-		return false
-	var station := state.station(key)
-	state.spend(Formulas.specialist_cost(station))
-	station.add_specialist()
-	state.staff_hired += 1
-	return true
-
-
-func can_hire_supervisor(dept_id: String) -> bool:
-	var dept := state.department(dept_id)
-	return dept != null and dept.unlocked and dept.supervisors < GameConfig.MAX_SUPERVISORS and state.can_afford(Formulas.supervisor_cost(dept))
-
-
-func hire_supervisor(dept_id: String) -> bool:
-	if not can_hire_supervisor(dept_id):
-		return false
-	var dept := state.department(dept_id)
-	state.spend(Formulas.supervisor_cost(dept))
-	dept.supervisors += 1
-	state.staff_hired += 1
-	return true
+func start_patrol(room_id: String) -> bool:
+	return simulation.start_patrol(room_id)
 
 
 func can_hire_runner() -> bool:
@@ -204,8 +129,7 @@ func set_runner_role(index: int, role: String) -> bool:
 	if runner.role == role:
 		return false
 	runner.role = role
-	if runner.task == Runner.Task.TO_SOURCE:
-		runner.clear_task()
+	runner.reset_route()
 	return true
 
 
@@ -226,17 +150,7 @@ func cycle_runner_department(index: int) -> bool:
 		return false
 	var runner := state.runners[index]
 	runner.dept_id = next_department_option(runner.dept_id)
-	if runner.task == Runner.Task.TO_SOURCE:
-		runner.clear_task()
-	return true
-
-
-func cycle_collector_department(index: int) -> bool:
-	if index < 0 or index >= state.collectors.size():
-		return false
-	var collector := state.collectors[index]
-	collector.dept_id = next_department_option(collector.dept_id)
-	collector.source = ""
+	runner.reset_route()
 	return true
 
 
@@ -247,19 +161,6 @@ func cycle_coffee_intern_department(index: int) -> bool:
 	coffee_intern.dept_id = next_department_option(coffee_intern.dept_id)
 	if not coffee_intern.carrying:
 		coffee_intern.clear_task()
-	return true
-
-
-func can_hire_collector() -> bool:
-	return state.collectors.size() < GameConfig.MAX_COLLECTORS and state.can_afford(Formulas.collector_cost(state))
-
-
-func hire_collector() -> bool:
-	if not can_hire_collector():
-		return false
-	state.spend(Formulas.collector_cost(state))
-	state.add_collector()
-	state.staff_hired += 1
 	return true
 
 
@@ -342,8 +243,11 @@ func buy_upgrade(upgrade_id: String, room_id: String = "", count: int = 1) -> bo
 		return false
 	state.spend(Formulas.track_bulk_cost(upgrade_id, level, amount, room_id))
 	state.set_upgrade(upgrade_id, level + amount, room_id)
-	if upgrade_id == "complaint_interns":
+	if upgrade_id == "complaint_interns" or upgrade_id == "team_lead":
 		state.staff_hired += amount
+	if upgrade_id == "room_speed":
+		for station in state.room_stations(room_id):
+			station.rush = GameConfig.UPGRADE_RUSH_SECONDS
 	return true
 
 

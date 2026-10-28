@@ -26,8 +26,8 @@ func progress_of(goal: Dictionary) -> float:
 			return state.staff_hired
 		"runners":
 			return state.runners.size()
-		"station_level":
-			return state.max_station_level()
+		"room_speed":
+			return state.max_room_speed()
 		"department":
 			var dept := state.department(goal.param)
 			return 1.0 if dept != null and dept.unlocked else 0.0

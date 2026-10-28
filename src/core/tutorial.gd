@@ -179,7 +179,7 @@ func _can_progress(stat_id: String) -> bool:
 		"runners":
 			return state.runners.size() < GameConfig.MAX_RUNNERS
 		"levels":
-			return state.stations.values().any(func(station: Station) -> bool: return station.level < GameConfig.MAX_STATION_LEVEL)
+			return GameConfig.office_rooms().any(func(room_id: String) -> bool: return Progression.room_available(state, room_id) and state.upgrade_level("room_speed", room_id) < GameConfig.ROOM_SPEED_LEVELS)
 		"staff":
 			return state.runners.size() < GameConfig.MAX_RUNNERS or state.stations.values().any(_has_room_for_staff)
 	return true
@@ -201,7 +201,7 @@ func _stat(stat_id: String) -> float:
 			return state.runners.size()
 		"levels":
 			var total := 0
-			for key in state.stations:
-				total += state.stations[key].level
+			for room_id in GameConfig.office_rooms():
+				total += state.upgrade_level("room_speed", room_id)
 			return total
 	return 0.0

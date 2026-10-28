@@ -237,7 +237,7 @@ func _build_actions(container: VBoxContainer, review: Review) -> void:
 		container.add_child(sue)
 		container.add_child(UiKit.label(tr("FMT_REVIEW_LAWSUIT_INFO") % [UiKit.percent(Formulas.review_lawsuit_chance(review)), review.lawsuits_left()], "TitleSmall", true))
 		container.add_child(UiKit.label(tr("REVIEW_SUE_HINT"), "BodySmall", true))
-	elif review.needs_ad_lawsuit():
+	if review.can_win_by_ad():
 		var ad := UiKit.button(tr("ACTION_REVIEW_SUE_AD"), "primary", "Outlined")
 		ad.pressed.connect(func() -> void: watch_ad(game.boosts.sue_by_ad.bind(review.id)))
 		container.add_child(ad)

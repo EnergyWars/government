@@ -70,13 +70,6 @@ const LOCATE := "\ue55c"
 const BOARD := "\ue85d"
 const SWAMPED := "\ue002"
 
-const TRAININGS := {
-	"skill": "\ue9e4",
-	"health": "\ue87d",
-	"stamina": "\uea0b",
-	"calm": "\ueb4c",
-}
-
 const DEPARTMENTS := {
 	"general_services": "\ue7fd",
 	"tax_services": "\uea5f",
@@ -113,10 +106,7 @@ const STATIONS := {
 
 const STAFF := {
 	"runners": "\uea72",
-	"specialists": "\uea67",
-	"supervisors": "\uf02e",
 	"hr": "\ue0b0",
-	"collectors": "\ue872",
 	"coffee_interns": "\ue541",
 }
 
@@ -124,11 +114,15 @@ const UPGRADES := {
 	"briefcase": "\ue1a1",
 	"work_ethic": "\ue9e4",
 	"sneakers": "\ue566",
-	"scanners": "\ue5fa",
-	"digital_records": "\ue873",
-	"digital_signatures": "\ue2e6",
-	"letter_opener": "\ue14e",
-	"office_equipment": "\uf8f4",
+	"room_speed": "\ue9e4",
+	"room_trays": "\ue156",
+	"team_lead": "\uea67",
+	"lead_breaks": "\ue541",
+	"lead_health": "\ue3f3",
+	"lead_focus": "\ue8f4",
+	"lead_calm": "\ueb4c",
+	"lead_patrol": "\ue536",
+	"lead_cooldown": "\ue425",
 	"seating": "\ue903",
 	"pickup_seating": "\ue903",
 	"ticket_speed": "\ue638",
@@ -144,9 +138,6 @@ const UPGRADES := {
 	"complaint_security": "\ue32a",
 	"security_training": "\ue9e0",
 	"shredder_blades": "\ue16c",
-	"shredder": "\ue760",
-	"collector_carts": "\uf86b",
-	"collector_speed": "\ue566",
 	"runner_trolleys": "\uf86b",
 	"runner_speed": "\ue9e4",
 	"pneumatic_tubes": "\uf867",
@@ -188,7 +179,6 @@ const SPOTS := {
 	"training": "\ue80c",
 	"complaint_desk": "\uf0e2",
 	"shredder": "\ue872",
-	"collectors": "\ue16c",
 	"tube_hub": "\ue9f4",
 	"server": "\ue875",
 	"climate": "\ueb3b",

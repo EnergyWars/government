@@ -46,7 +46,7 @@ static func next_task(state: GameState) -> Dictionary:
 				options.append({"action": WORK, "key": key, "point": layout.desk_work_point(key, work_desk)})
 			if room and not station.outbox.is_empty() and not _automated(state, station):
 				options.append({"action": PICKUP, "key": key, "point": layout.output_point(key)})
-			if station.rejects > 0 and state.collectors.is_empty() and player.rejects == 0 and player.complaints == 0 and room:
+			if station.rejects > 0 and state.runners_in(Runner.REJECT) == 0 and player.rejects == 0 and player.complaints == 0 and room:
 				options.append({"action": REJECT, "key": key, "point": layout.reject_point(key)})
 	if state.ringing_count() > 0 or state.reported_sick_count() > 0:
 		options.append({"action": CALL, "key": "", "point": layout.phone_point()})
@@ -64,7 +64,7 @@ static func next_task(state: GameState) -> Dictionary:
 	if busiest >= 0:
 		options.append({"action": TICKET, "key": "", "point": layout.ticket_machine_point(busiest)})
 	if player.complaints > 0 or player.rejects > 0:
-		options.append({"action": SHRED, "key": "", "point": layout.nearest_shredder(player.position, state.shredder_rooms())})
+		options.append({"action": SHRED, "key": "", "point": layout.shredder_point()})
 	elif state.complaints > 0 and player.items.size() < Formulas.carry_capacity(state):
 		options.append({"action": COMPLAINT, "key": "", "point": layout.complaint_box_point()})
 	var locked := Progression.next_locked_department(state)

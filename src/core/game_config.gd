@@ -4,9 +4,7 @@ extends RefCounted
 const TICK := 1.0 / 30.0
 const MAX_STEPS_PER_FRAME := 8
 const START_MONEY := 120.0
-const MAX_STATION_LEVEL := 100
-const MAX_SPECIALISTS := 3
-const MAX_SUPERVISORS := 4
+const ROOM_SPEED_LEVELS := 100
 const MAX_RUNNERS := 30
 const LEVEL_SPEED_BONUS := 0.06
 const LEVEL_MILESTONE_STEP := 10
@@ -34,9 +32,7 @@ const MULTI_SECOND_FACTOR := 0.35
 const MULTI_MAX_EXTRAS := 2
 const MULTI_TIME_PER_EXTRA := 0.5
 const UNATTENDED_REST_ESTIMATE := 45.0
-const SUPERVISOR_BONUS := 0.2
 const COMPLEX_TIME_PENALTY := 1.0
-const SPECIALIST_ERROR_FACTOR := 0.3
 const COMPLEX_REWARD_FACTOR := 2.0
 const URGENT_REWARD_FACTOR := 1.5
 const URGENT_DEADLINE := 120.0
@@ -45,42 +41,44 @@ const FOLLOW_UP_DELAY_MIN := 150.0
 const FOLLOW_UP_DELAY_MAX := 300.0
 const CONTRABAND_CHANCE := 0.5
 const FLAG_BASE_CHANCE := 0.6
-const FLAG_PER_SPECIALIST := 0.12
 const CONTRABAND_REWARD_FACTOR := 3.0
 const FLAWED_REWARD_FACTOR := 0.4
 const REPUTATION_REWARD_DIVISOR := 20.0
 const BASE_PATIENCE := 90.0
 const MAX_ARRIVALS_PER_MINUTE := 180.0
+const START_ARRIVALS_PER_MINUTE := 10.0
+const ARRIVALS_PER_DEPARTMENT := 16.0
 const LINE_PATIENCE := 30.0
-const SEAT_PATIENCE := 60.0
-const STAND_PATIENCE := 20.0
+const SEAT_PATIENCE := 300.0
+const SEAT_LEAVE_WARNING_SECONDS := 60.0
+const STAND_LEAVE_WARNING_SECONDS := 30.0
+const STAND_PATIENCE := 90.0
 const DESK_PATIENCE := 20.0
+const SEAT_LEAVE_INTERVAL := 20.0
+const SEAT_LEAVE_CHANCES: Array[Dictionary] = [
+	{"after": 120.0, "chance": 0.1},
+	{"after": 180.0, "chance": 0.15},
+	{"after": 240.0, "chance": 0.2},
+]
 const REVIEW_ARRIVAL_TIERS: Array[Dictionary] = [
+	{"min": 5.0, "factor": 1.25},
 	{"min": 4.6, "factor": 1.0},
 	{"min": 4.3, "factor": 0.8},
 	{"min": 3.5, "factor": 0.65},
 	{"min": 0.0, "factor": 0.4},
 ]
-const INBOX_BASE := 6
-const INBOX_PER_DESK := 2
-const OUTBOX_BASE := 6
-const OUTBOX_PER_DESK := 2
-const TRAY_CAPACITY_PER_LEVEL := 2
-const MAX_TRAY_LEVEL := 50
-const TRAY_COST_FACTOR := 0.6
-const TRAY_GROWTH := 1.22
+const TRAY_BASE := 6
+const TRAY_MAX := 25
 const TUBE_OVERFLOW_SHARE := 0.5
 const DESK_GROWTH := 2.2
 const HIRE_GROWTH := 2.0
 const UPGRADE_GROWTH := 1.35
-const SPECIALIST_FACTOR := 5.0
-const SPECIALIST_GROWTH := 2.4
-const SUPERVISOR_COST := 1500.0
-const SUPERVISOR_GROWTH := 3.0
+const EARLY_DISCOUNT_LEVELS := 10
+const EARLY_DISCOUNT_START := 0.25
 const RUNNER_GROWTH := 1.5
 const HAND_REWARD_BONUS := 1.5
 const HELP_BACKLOG := 3
-const BASE_ALERT_SECONDS := 100.0
+const BASE_ALERT_SECONDS := 180.0
 const MAX_ALERT_SECONDS := 2000.0
 const ALERT_VARIANCE := 0.3
 const DOZE_WEIGHTS := {"asleep": 0.12, "coffee": 0.08, "chat": 0.26, "fetch": 0.28, "slow": 0.13, "loo": 0.13}
@@ -90,9 +88,9 @@ const LOO_SECONDS := 150.0
 const ENCOURAGE_TIME := 2.0
 const SLOW_SECONDS := 70.0
 const DRIVE_FACTOR := 9.0
-const KRANZ_FIRST_SECONDS := 90.0
-const KRANZ_MIN_INTERVAL := 110.0
-const KRANZ_MAX_INTERVAL := 200.0
+const KRANZ_FIRST_SECONDS := 110.0
+const KRANZ_MIN_INTERVAL := 220.0
+const KRANZ_MAX_INTERVAL := 400.0
 const KRANZ_COFFEE_RELIEF := 0.3
 const KRANZ_RETRY_SECONDS := 20.0
 const KRANZ_SIZE := 4
@@ -105,9 +103,9 @@ const KITCHEN_TABLE_SLOT := 6
 const LUNCH_SLOT := 12
 const LUNCH_SIZE := 6
 const LUNCH_KEEP_WORKING := 1
-const LUNCH_FIRST_SECONDS := 150.0
-const LUNCH_MIN_INTERVAL := 140.0
-const LUNCH_MAX_INTERVAL := 240.0
+const LUNCH_FIRST_SECONDS := 300.0
+const LUNCH_MIN_INTERVAL := 280.0
+const LUNCH_MAX_INTERVAL := 480.0
 const LUNCH_RETRY_SECONDS := 30.0
 const LUNCH_SECONDS := 25.0
 const LUNCH_MIN_STAFF := 3
@@ -117,9 +115,9 @@ const GIFT_MAX_INTERVAL := 420.0
 const GIFT_KINDS := 6
 const GIFT_INCOME_SECONDS := 20.0
 const GIFT_MIN_MONEY := 25.0
-const SICK_FIRST_SECONDS := 180.0
-const SICK_MIN_PER_OFFICIAL := 1200.0
-const SICK_MAX_PER_OFFICIAL := 2400.0
+const SICK_FIRST_SECONDS := 360.0
+const SICK_MIN_PER_OFFICIAL := 2400.0
+const SICK_MAX_PER_OFFICIAL := 4800.0
 const SICK_MIN_STAFF := 3
 const SICK_SECONDS := 150.0
 const SICK_HR_RELIEF := 0.5
@@ -157,11 +155,9 @@ const REVIEW_DELETE_REPUTATION := 0.15
 const REVIEW_AUTHORS := 12
 const REVIEW_FORCED_TEXTS := 6
 const REVIEW_DRAIN := 0.0006
-const REVIEW_DELETE_BASE := 40.0
-const REVIEW_DELETE_INCOME_SECONDS := 25.0
-const REVIEW_DELETE_STAR_FACTORS: Array[float] = [3.0, 1.5, 0.6, 0.2, 0.0]
+const REVIEW_DELETE_STAR_FACTORS: Array[float] = [1.0, 0.5, 0.2, 0.0667, 0.0]
+const REVIEW_PRICE_VARIATION := 0.3
 const REVIEW_DELETE_LAWSUIT_GROWTH := 1.5
-const REVIEW_LAWSUIT_FACTOR := 3.6
 const REVIEW_LAWSUIT_GROWTH := 1.6
 const REVIEW_LAWSUIT_CHANCE := 0.5
 const REVIEW_LAWSUIT_CHANCE_STEP := 0.08
@@ -178,7 +174,6 @@ const COMPLAINT_READ_MAX := 6
 const COMPLAINT_REWARD := 4.0
 const COMPLAINT_REPUTATION := 0.05
 const COMPLAINT_TRANSFER_INTERVAL := 0.25
-const SHREDDER_BATCH := 1
 const FETCH_SECONDS := 14.0
 const FETCH_ALERT_FACTOR := 1.5
 const COFFEE_BREAK_SECONDS := 60.0
@@ -188,7 +183,11 @@ const RECALL_TIME := 1.5
 const STAFF_WALK_SPEED := 200.0
 const STAFF_WALK_MIN_SECONDS := 0.4
 const STAFF_WALK_MAX_SECONDS := 8.0
-const SUPERVISOR_DROWSY_FACTOR := 0.7
+const LEAD_PATROL_SECONDS := 90.0
+const LEAD_PATROL_LAPS := 5
+const LEAD_DISPUTE_RELIEF := 0.3
+const LEAD_TRACK_LEVELS := 150
+const LEAD_TRACK_GROWTH := 1.04
 const OFFLINE_CAP_SECONDS := 4.0 * 3600.0
 const OFFLINE_EFFICIENCY := 0.7
 const OFFLINE_MIN_SECONDS := 60.0
@@ -208,6 +207,8 @@ const MAX_RUNNER_LEVEL := 30
 const RUNNER_LEVEL_CAPACITY := 1
 const RUNNER_LEVEL_COST := 900.0
 const RUNNER_LEVEL_GROWTH := 1.25
+const RUNNER_PACE_SECONDS := 1.6
+const RUNNER_PACE_DISTANCE := 34.0
 
 const REP_CORRECT := 0.1
 const REP_FLAWED := -0.5
@@ -219,9 +220,9 @@ const REP_CITIZEN_LEFT := -0.3
 const REP_LOSS_FACTOR := 0.05
 const REP_MAX_LOSS_PER_MINUTE := 0.05
 
-const EVENT_FIRST_COOLDOWN := 240.0
-const EVENT_MIN_COOLDOWN := 180.0
-const EVENT_MAX_COOLDOWN := 360.0
+const EVENT_FIRST_COOLDOWN := 360.0
+const EVENT_MIN_COOLDOWN := 300.0
+const EVENT_MAX_COOLDOWN := 600.0
 const EVENT_DURATION := 45.0
 const EVENT_MIN_DURATION_FACTOR := 0.4
 const EVENT_CHOICE_SECONDS := 30.0
@@ -233,9 +234,9 @@ const BIG_CASE_REWARD_FACTOR := 5.0
 const BIG_CASE_TIME_FACTOR := 3.0
 const REJECT_CHANCE := 0.1
 const REJECT_MIN_CASES := 10
-const REJECT_CAPACITY := 6
+const REJECT_CAPACITY := 12
 const REJECT_CAPACITY_PER_LEVEL := 2
-const MAX_REJECT_LEVEL := 50
+const MAX_REJECT_LEVEL := 10
 const REJECT_PILE_COST_FACTOR := 0.5
 const REJECT_PILE_GROWTH := 1.22
 const JAM_LUNCH_CHANCE := 0.5
@@ -252,25 +253,23 @@ const TUBE_SEGMENT_GROWTH := 1.08
 const TUBE_STATION_FACTOR := 0.5
 const TUBE_STATION_MIN_COST := 20000.0
 const TUBE_STATION_INSPECTION_FACTOR := 3.0
-const MAX_COLLECTORS := 12
-const COLLECTOR_COST := 600.0
-const COLLECTOR_GROWTH := 1.7
-const COLLECTOR_CAPACITY := 3
-const COLLECTOR_SPEED := 170.0
-const COLLECTOR_TRIP_ESTIMATE := 12.0
-const COLLECTOR_URGENT_MARGIN := 1
-const COLLECTOR_MAX_DETOUR := 420.0
-const COLLECTOR_DISTANCE_BIAS := 100.0
+const REJECT_RUNNER_TRIP_ESTIMATE := 12.0
+const REJECT_URGENT_MARGIN := 1
+const REJECT_MAX_DETOUR := 420.0
+const REJECT_DISTANCE_BIAS := 100.0
 const SHRED_CASE_PENALTY := 1.0
-const WAITING_PLACES := 40
+const WAITING_PLACES := 70
 const BASE_SEATS := 15
 const HALL_INTAKE := "intake"
 const HALL_PICKUP := "pickup"
 const WAITING_ROOMS: Array[String] = [HALL_INTAKE, HALL_PICKUP]
 const SEATING_TRACKS := {HALL_INTAKE: "seating", HALL_PICKUP: "pickup_seating"}
-const TICKET_BASE_RATE := 0.32
+const TICKET_BASE_RATE := 0.15
 const TICKET_MAX_RATE := 1.0
 const TICKET_MACHINE_LEVELS := 100
+const TICKET_UNLOCK_LEVEL := 50
+const TICKET_SECOND_COST := 5526.0
+const TICKET_THIRD_COST := 101791.0
 const TICKET_HAND_FACTOR := 2.5
 const TICKET_RUSH := 4
 const TICKET_LINE_SLOTS := 12
@@ -315,10 +314,9 @@ const DISPUTE_MIN_CASES := 15
 const DISPUTE_MIN_STAFF := 2
 const DISPUTE_CREW := 2
 const DISPUTE_CREW_OFFSET := 26.0
-const DISPUTE_FIRST_SECONDS := 150.0
-const DISPUTE_MIN_INTERVAL := 90.0
-const DISPUTE_MAX_INTERVAL := 200.0
-const DISPUTE_SUPERVISOR_RELIEF := 0.3
+const DISPUTE_FIRST_SECONDS := 220.0
+const DISPUTE_MIN_INTERVAL := 200.0
+const DISPUTE_MAX_INTERVAL := 400.0
 const DISPUTE_MAX_SECONDS := 240.0
 const DISPUTE_RETRY_SECONDS := 30.0
 const MEDIATE_TIME := 2.5
@@ -355,6 +353,8 @@ const INSPECTION := "shared/inspection"
 const MAILROOM := "shared/mailroom"
 const PHOTO_STATION := "general_services/signature"
 const CALL_STATIONS: Array[String] = [RECEPTION, COUNTER, PHOTO_STATION]
+const ENTRY_KINDS: Array[String] = ["reception", "dock", "mailroom"]
+const FINAL_KINDS: Array[String] = ["counter", "clearance"]
 
 const MAIL_UNLOCK_STAGE := 1
 const MAIL_FIRST_SECONDS := 30.0
@@ -405,20 +405,20 @@ const BOOSTS := {
 const BOOST_ORDER: Array[String] = ["overtime", "temp_workers", "stamp_turbo", "express_post", "coffee_round", "doctor_visit", "works_outing", "mayor_speech", "roller_skates", "complaint_amnesty", "weekend_shift", "fee_increase", "budget_injection"]
 
 const THOROUGHNESS := [
-	{"id": "fast", "time": 0.6, "error": 0.2},
-	{"id": "normal", "time": 1.0, "error": 0.12},
-	{"id": "thorough", "time": 1.4, "error": 0.02},
+	{"id": "fast", "time": 0.45, "error": 0.3, "reward": 1.0},
+	{"id": "normal", "time": 1.0, "error": 0.12, "reward": 1.0},
+	{"id": "thorough", "time": 2.0, "error": 0.02, "reward": 2.6},
 ]
 
 const STATION_KINDS := {
-	"reception": {"base_time": 2.0, "desk_cost": 70.0, "hire_cost": 150.0, "upgrade_cost": 60.0, "machine": false},
-	"review": {"base_time": 5.0, "desk_cost": 120.0, "hire_cost": 240.0, "upgrade_cost": 90.0, "machine": false},
-	"signature": {"base_time": 4.0, "desk_cost": 140.0, "hire_cost": 270.0, "upgrade_cost": 100.0, "machine": true},
-	"inspection": {"base_time": 7.0, "desk_cost": 160.0, "hire_cost": 330.0, "upgrade_cost": 120.0, "machine": false},
-	"counter": {"base_time": 2.5, "desk_cost": 80.0, "hire_cost": 180.0, "upgrade_cost": 70.0, "machine": false},
-	"dock": {"base_time": 2.0, "desk_cost": 150.0, "hire_cost": 300.0, "upgrade_cost": 110.0, "machine": false},
-	"clearance": {"base_time": 3.0, "desk_cost": 150.0, "hire_cost": 300.0, "upgrade_cost": 110.0, "machine": false},
-	"mailroom": {"base_time": 2.0, "desk_cost": 90.0, "hire_cost": 160.0, "upgrade_cost": 70.0, "machine": false},
+	"reception": {"base_time": 2.0, "desk_cost": 70.0, "hire_cost": 150.0, "machine": false},
+	"review": {"base_time": 5.0, "desk_cost": 120.0, "hire_cost": 240.0, "machine": false},
+	"signature": {"base_time": 4.0, "desk_cost": 140.0, "hire_cost": 270.0, "machine": true},
+	"inspection": {"base_time": 7.0, "desk_cost": 160.0, "hire_cost": 330.0, "machine": false},
+	"counter": {"base_time": 2.5, "desk_cost": 80.0, "hire_cost": 180.0, "machine": false},
+	"dock": {"base_time": 2.0, "desk_cost": 150.0, "hire_cost": 300.0, "machine": false},
+	"clearance": {"base_time": 3.0, "desk_cost": 150.0, "hire_cost": 300.0, "machine": false},
+	"mailroom": {"base_time": 2.0, "desk_cost": 90.0, "hire_cost": 160.0, "machine": false},
 }
 
 const SHARED_STATIONS := {
@@ -445,11 +445,11 @@ const CUSTOMS_VARIANTS: Array[String] = ["general_cargo", "electronics", "vehicl
 const CUSTOMS_VARIANT_SUSPICION := {"general_cargo": 0.8, "electronics": 1.6, "vehicles": 0.8}
 
 const BUILDING_STAGES := [
-	{"id": "service_counter", "max_departments": 1, "max_desks": 2, "lobby": 16},
-	{"id": "multi_service_office", "max_departments": 3, "max_desks": 3, "lobby": 22},
-	{"id": "regional_administration", "max_departments": 5, "max_desks": 4, "lobby": 28},
-	{"id": "public_services_centre", "max_departments": 7, "max_desks": 5, "lobby": 34},
-	{"id": "citywide_administration", "max_departments": 8, "max_desks": 6, "lobby": 40},
+	{"id": "service_counter", "max_departments": 1, "max_desks": 2, "lobby": 16, "review_delete": 75.0, "review_lawsuit": 100.0},
+	{"id": "multi_service_office", "max_departments": 3, "max_desks": 3, "lobby": 22, "review_delete": 150.0, "review_lawsuit": 250.0},
+	{"id": "regional_administration", "max_departments": 5, "max_desks": 4, "lobby": 28, "review_delete": 500.0, "review_lawsuit": 800.0},
+	{"id": "public_services_centre", "max_departments": 7, "max_desks": 5, "lobby": 34, "review_delete": 2000.0, "review_lawsuit": 3500.0},
+	{"id": "citywide_administration", "max_departments": 8, "max_desks": 6, "lobby": 40, "review_delete": 10000.0, "review_lawsuit": 18000.0},
 ]
 
 const ROOM_PLAYER := "player"
@@ -478,8 +478,7 @@ const SPOTS := {
 	"complaint_box": ROOM_COMPLAINTS,
 	"security": ROOM_COMPLAINTS,
 	"archive": ROOM_HALL,
-	"runners": ROOM_STAFF,
-	"collectors": ROOM_STAFF,
+	"runners": ROOM_HALL,
 	"coffee_interns": ROOM_STAFF,
 	"phone_clerks": ROOM_STAFF,
 	"training": ROOM_STAFF,
@@ -496,8 +495,8 @@ const SPOTS := {
 	"mail_shelf": ROOM_MAIL,
 	"mailbox": ROOM_MAIL,
 }
-const BOARD_SPOTS: Array[String] = ["runners", "collectors", "coffee_interns", "phone_clerks"]
-const STAFF_ROOM_BOARDS: Array[String] = ["runners", "collectors", "coffee_interns", "phone_clerks", "training", "works_council"]
+const BOARD_SPOTS: Array[String] = ["runners", "coffee_interns", "phone_clerks"]
+const STAFF_ROOM_BOARDS: Array[String] = ["coffee_interns", "phone_clerks", "training", "works_council"]
 const BOOST_ROOMS := {
 	ROOM_PLAYER: ["roller_skates"],
 	ROOM_OFFICE: ["overtime"],
@@ -510,25 +509,33 @@ const BOOST_ROOMS := {
 }
 
 const ROOMS_ALL_DEPARTMENTS := "departments"
-const ROOMS_SHREDDERS := "shredders"
 const ROOMS_TUBES := "tubes"
+const ROOMS_OFFICES := "offices"
+const ROOMS_LEADS := "leads"
+const ROOM_SPOT := "@room"
+const LEAD_SPOT := "lead:%s"
+const LEAD_TRACKS: Array[String] = ["team_lead", "lead_breaks", "lead_health", "lead_focus", "lead_calm", "lead_patrol", "lead_cooldown"]
 
 const UPGRADES := {
 	"briefcase": {"spot": "player", "topic": "player", "max": 100, "cost": 150.0, "growth": 1.15, "curve": "linear", "base": PLAYER_BASE_CAPACITY, "step": 1.0, "unit": "count"},
 	"work_ethic": {"spot": "player", "topic": "player", "max": 200, "cost": 200.0, "growth": 1.08, "curve": "linear", "base": 1.0, "step": 0.025, "unit": "bonus"},
 	"sneakers": {"spot": "player", "topic": "player", "max": 100, "cost": 300.0, "growth": 1.12, "curve": "linear", "base": 1.0, "step": 0.005, "unit": "bonus"},
-	"scanners": {"spot": "station:shared/reception", "topic": "speed", "max": 200, "cost": 400.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus"},
-	"digital_records": {"spot": "archive", "topic": "speed", "max": 200, "cost": 1500.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 15.0},
-	"digital_signatures": {"spot": "station:shared/counter", "topic": "speed", "max": 200, "cost": 25000.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 80.0},
-	"letter_opener": {"spot": "station:shared/mailroom", "topic": "speed", "max": 200, "cost": 900.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "reputation": 10.0},
-	"office_equipment": {"spot": "dept:%s", "topic": "speed", "max": 200, "cost": 500.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus", "rooms": ROOMS_ALL_DEPARTMENTS},
+	"room_speed": {"spot": ROOM_SPOT, "topic": "speed", "max": ROOM_SPEED_LEVELS, "cost": 150.0, "growth": UPGRADE_GROWTH, "curve": "milestone", "base": 1.0, "step": LEVEL_SPEED_BONUS, "unit": "factor", "rooms": ROOMS_OFFICES},
+	"room_trays": {"spot": ROOM_SPOT, "topic": "building", "max": TRAY_MAX - TRAY_BASE, "cost": 60.0, "growth": 1.3, "curve": "linear", "base": TRAY_BASE, "step": 1.0, "unit": "count", "rooms": ROOMS_OFFICES},
+	"team_lead": {"spot": LEAD_SPOT, "topic": "staff", "max": 1, "cost": 400.0, "growth": 1.0, "curve": "unlock", "unit": "unlock", "rooms": ROOMS_LEADS, "staff_cost": true},
+	"lead_breaks": {"spot": LEAD_SPOT, "topic": "staff", "max": LEAD_TRACK_LEVELS, "cost": 60.0, "growth": LEAD_TRACK_GROWTH, "curve": "decay", "base": 0.75, "rate": 0.995, "neutral": 1.0, "unit": "reduction", "rooms": ROOMS_LEADS, "staff_cost": true, "requires": {"team_lead": 1}},
+	"lead_health": {"spot": LEAD_SPOT, "topic": "staff", "max": LEAD_TRACK_LEVELS, "cost": 60.0, "growth": LEAD_TRACK_GROWTH, "curve": "decay", "base": 0.75, "rate": 0.995, "neutral": 1.0, "unit": "reduction", "rooms": ROOMS_LEADS, "staff_cost": true, "requires": {"team_lead": 1}},
+	"lead_focus": {"spot": LEAD_SPOT, "topic": "staff", "max": LEAD_TRACK_LEVELS, "cost": 80.0, "growth": LEAD_TRACK_GROWTH, "curve": "decay", "base": 0.7, "rate": 0.995, "neutral": 1.0, "unit": "reduction", "rooms": ROOMS_LEADS, "staff_cost": true, "requires": {"team_lead": 1}},
+	"lead_calm": {"spot": LEAD_SPOT, "topic": "staff", "max": LEAD_TRACK_LEVELS, "cost": 50.0, "growth": LEAD_TRACK_GROWTH, "curve": "linear", "base": 0.25, "step": 0.005, "neutral": 0.0, "unit": "chance", "rooms": ROOMS_ALL_DEPARTMENTS, "staff_cost": true, "requires": {"team_lead": 1}},
+	"lead_patrol": {"spot": LEAD_SPOT, "topic": "staff", "max": LEAD_TRACK_LEVELS, "cost": 80.0, "growth": LEAD_TRACK_GROWTH, "curve": "linear", "base": 3.0, "step": 0.01, "neutral": 1.0, "unit": "bonus", "rooms": ROOMS_LEADS, "staff_cost": true, "requires": {"team_lead": 1}},
+	"lead_cooldown": {"spot": LEAD_SPOT, "topic": "staff", "max": LEAD_TRACK_LEVELS, "cost": 60.0, "growth": LEAD_TRACK_GROWTH, "curve": "decay", "base": 180.0, "rate": 0.995, "unit": "seconds", "rooms": ROOMS_LEADS, "staff_cost": true, "requires": {"team_lead": 1}},
 	"seating": {"spot": "seating", "topic": "citizens", "max": WAITING_PLACES - BASE_SEATS, "cost": 500.0, "growth": 1.1, "curve": "linear", "base": BASE_SEATS, "step": 1.0, "unit": "count"},
 	"pickup_seating": {"spot": "pickup_seating", "topic": "citizens", "max": WAITING_PLACES - BASE_SEATS, "cost": 500.0, "growth": 1.1, "curve": "linear", "base": BASE_SEATS, "step": 1.0, "unit": "count"},
 	"ticket_speed": {"spot": "tickets", "topic": "citizens", "max": TICKET_MACHINE_LEVELS, "cost": 300.0, "growth": 1.06, "curve": "linear", "base": TICKET_BASE_RATE, "step": (TICKET_MAX_RATE - TICKET_BASE_RATE) / TICKET_MACHINE_LEVELS, "unit": "per_second"},
-	"ticket_machine_2": {"spot": "tickets", "topic": "citizens", "max": 1, "cost": 100000.0, "growth": 1.0, "curve": "unlock", "base": 0.0, "unit": "unlock", "requires": {"ticket_speed": TICKET_MACHINE_LEVELS}},
-	"ticket_speed_2": {"spot": "tickets", "topic": "citizens", "max": TICKET_MACHINE_LEVELS, "cost": 20000.0, "growth": 1.06, "curve": "linear", "base": TICKET_BASE_RATE, "step": (TICKET_MAX_RATE - TICKET_BASE_RATE) / TICKET_MACHINE_LEVELS, "unit": "per_second", "requires": {"ticket_machine_2": 1}},
-	"ticket_machine_3": {"spot": "tickets", "topic": "citizens", "max": 1, "cost": 20000000.0, "growth": 1.0, "curve": "unlock", "base": 0.0, "unit": "unlock", "requires": {"ticket_speed_2": TICKET_MACHINE_LEVELS}},
-	"ticket_speed_3": {"spot": "tickets", "topic": "citizens", "max": TICKET_MACHINE_LEVELS, "cost": 4000000.0, "growth": 1.06, "curve": "linear", "base": TICKET_BASE_RATE, "step": (TICKET_MAX_RATE - TICKET_BASE_RATE) / TICKET_MACHINE_LEVELS, "unit": "per_second", "requires": {"ticket_machine_3": 1}},
+	"ticket_machine_2": {"price_offset": TICKET_UNLOCK_LEVEL, "spot": "tickets", "topic": "citizens", "max": 1, "cost": TICKET_SECOND_COST, "growth": 1.0, "curve": "unlock", "base": 0.0, "unit": "unlock", "requires": {"ticket_speed": TICKET_UNLOCK_LEVEL}},
+	"ticket_speed_2": {"price_offset": TICKET_UNLOCK_LEVEL, "spot": "tickets", "topic": "citizens", "max": TICKET_MACHINE_LEVELS, "cost": TICKET_SECOND_COST, "growth": 1.06, "curve": "linear", "base": TICKET_BASE_RATE, "step": (TICKET_MAX_RATE - TICKET_BASE_RATE) / TICKET_MACHINE_LEVELS, "unit": "per_second", "requires": {"ticket_machine_2": 1}},
+	"ticket_machine_3": {"price_offset": TICKET_UNLOCK_LEVEL, "spot": "tickets", "topic": "citizens", "max": 1, "cost": TICKET_THIRD_COST, "growth": 1.0, "curve": "unlock", "base": 0.0, "unit": "unlock", "requires": {"ticket_speed_2": TICKET_UNLOCK_LEVEL}},
+	"ticket_speed_3": {"price_offset": TICKET_UNLOCK_LEVEL, "spot": "tickets", "topic": "citizens", "max": TICKET_MACHINE_LEVELS, "cost": TICKET_THIRD_COST, "growth": 1.06, "curve": "linear", "base": TICKET_BASE_RATE, "step": (TICKET_MAX_RATE - TICKET_BASE_RATE) / TICKET_MACHINE_LEVELS, "unit": "per_second", "requires": {"ticket_machine_3": 1}},
 	"complaint_interns": {"spot": "complaint_desk", "topic": "complaints", "max": MAX_DESK_INTERNS, "cost": 600.0, "growth": 2.5, "curve": "linear", "base": 0.0, "step": 1.0, "unit": "count"},
 	"intern_steadfast": {"spot": "complaint_desk", "topic": "complaints", "max": INTERN_MAX_STEADFAST - INTERN_BASE_STEADFAST, "cost": 1500.0, "growth": 1.8, "curve": "linear", "base": INTERN_BASE_STEADFAST, "step": 1.0, "unit": "count", "requires": {"complaint_interns": 1}},
 	"intern_speed": {"spot": "complaint_desk", "topic": "complaints", "max": INTERN_SPEED_LEVELS, "cost": 400.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": INTERN_SPEED_STEP, "unit": "bonus", "requires": {"complaint_interns": 1}},
@@ -537,9 +544,6 @@ const UPGRADES := {
 	"complaint_security": {"spot": "security", "topic": "complaints", "max": 1, "cost": 3000.0, "growth": 1.0, "curve": "unlock", "unit": "unlock"},
 	"security_training": {"spot": "security", "topic": "complaints", "max": SECURITY_LEVELS, "cost": 800.0, "growth": 1.06, "curve": "linear", "base": SECURITY_BASE_CHANCE, "step": (SECURITY_MAX_CHANCE - SECURITY_BASE_CHANCE) / SECURITY_LEVELS, "unit": "chance", "requires": {"complaint_security": 1}},
 	"shredder_blades": {"spot": "shredder", "topic": "complaints", "max": 100, "cost": 1000.0, "growth": 1.1, "curve": "decay", "base": 1.0, "rate": 0.985, "unit": "reduction"},
-	"shredder": {"spot": "shredder:%s", "topic": "building", "max": 100, "cost": 600.0, "growth": 1.1, "curve": "unlock_decay", "base": 30.0, "rate": 0.98, "unit": "seconds", "rooms": ROOMS_SHREDDERS},
-	"collector_carts": {"spot": "collectors", "topic": "transport", "max": 40, "cost": 1200.0, "growth": 1.18, "curve": "linear", "base": COLLECTOR_CAPACITY, "step": 1.0, "unit": "count", "reputation": 15.0},
-	"collector_speed": {"spot": "collectors", "topic": "transport", "max": 200, "cost": 900.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus"},
 	"runner_trolleys": {"spot": "runners", "topic": "transport", "max": 40, "cost": 1200.0, "growth": 1.18, "curve": "linear", "base": RUNNER_BASE_CAPACITY, "step": 1.0, "unit": "count", "reputation": 15.0},
 	"runner_speed": {"spot": "runners", "topic": "transport", "max": 200, "cost": 900.0, "growth": 1.07, "curve": "linear", "base": 1.0, "step": 0.01, "unit": "bonus"},
 	"pneumatic_tubes": {"spot": "tube_hub", "topic": "transport", "max": 1, "cost": 250000.0, "growth": 1.0, "curve": "unlock", "unit": "unlock", "reputation": 250.0},
@@ -569,33 +573,14 @@ const UPGRADES := {
 	"registered_mail": {"spot": "station:shared/mailroom", "topic": "mail", "max": 200, "cost": 2500.0, "growth": 1.06, "curve": "linear", "base": MAIL_REWARD_FACTOR, "step": 0.005, "unit": "percent", "reputation": 25.0},
 }
 
-const OFFICIAL_TRAININGS := {
-	"skill": {"cost": 0.1, "growth": 1.096, "effect": 0.015},
-	"health": {"cost": 0.08, "growth": 1.096, "effect": 0.02},
-	"stamina": {"cost": 0.065, "growth": 1.096, "effect": 0.978},
-	"calm": {"cost": 0.065, "growth": 1.096, "effect": 0.02},
-}
-const OFFICIAL_TRAINING_ORDER: Array[String] = ["skill", "health", "stamina", "calm"]
-const MAX_OFFICIAL_TRAINING := 30
-
-const UPGRADE_SPEED := {
-	"reception": "scanners",
-	"dock": "scanners",
-	"review": "digital_records",
-	"signature": "digital_records",
-	"counter": "digital_signatures",
-	"clearance": "digital_signatures",
-	"mailroom": "letter_opener",
-}
-
 const EVENTS := {
 	"audit_visit": {"department": "", "min_cases": 50},
 	"printer_jam": {"department": "", "min_cases": 20, "speed": 0.55, "mitigation": "it_support"},
 	"system_crash": {"department": "", "min_cases": 60, "scope": "random", "speed": 0.4, "mitigation": "it_support"},
 	"coffee_escalation": {"department": "", "min_cases": 30, "speed": 1.15, "drowsy": 3.0, "mitigation": "coffee_machine"},
-	"paperwork_mountain": {"department": "", "min_cases": 80, "backlog": true, "mitigation": "digital_records"},
+	"paperwork_mountain": {"department": "", "min_cases": 80, "backlog": true, "mitigation": "it_support"},
 	"staff_meeting": {"department": "", "min_cases": 50, "speed": 0.45, "choices": ["cancel"]},
-	"rubber_ducks": {"department": "customs", "min_cases": 0, "scope": "customs", "speed": 0.3, "mitigation": "scanners"},
+	"rubber_ducks": {"department": "customs", "min_cases": 0, "scope": "customs", "speed": 0.3, "mitigation": "it_support"},
 	"fire_drill": {"department": "", "min_cases": 100, "speed": 0.0, "duration": 20.0, "mitigation": "it_support"},
 	"renovation": {"department": "", "min_cases": 120, "scope": "random", "speed": 0.6},
 	"garden_shed": {"department": "building_permits", "min_cases": 0, "big_case": true, "duration": 90.0},
@@ -608,7 +593,7 @@ const AUDIT_FACTOR := 2.0
 
 const GOALS := [
 	{"type": "cases", "target": 3.0, "param": "", "money": 60.0, "reputation": 1.0},
-	{"type": "station_level", "target": 2.0, "param": "", "money": 120.0, "reputation": 1.0},
+	{"type": "room_speed", "target": 1.0, "param": "", "money": 120.0, "reputation": 1.0},
 	{"type": "cases", "target": 25.0, "param": "", "money": 300.0, "reputation": 2.0},
 	{"type": "staff_hired", "target": 1.0, "param": "", "money": 250.0, "reputation": 1.0},
 	{"type": "reputation", "target": 10.0, "param": "", "money": 400.0, "reputation": 0.0},
@@ -678,14 +663,48 @@ static func upgrade_rooms(upgrade_id: String) -> Array[String]:
 	match str(upgrade(upgrade_id).get("rooms", "")):
 		ROOMS_ALL_DEPARTMENTS:
 			rooms.append_array(department_ids())
-		ROOMS_SHREDDERS:
-			for dept_id in department_ids():
-				if not is_customs(dept_id):
-					rooms.append(dept_id)
-		ROOMS_TUBES:
+		ROOMS_TUBES, ROOMS_OFFICES:
 			rooms.append_array(TUBE_ROOMS)
 			rooms.append_array(department_ids())
+		ROOMS_LEADS:
+			rooms.append_array(lead_rooms())
 	return rooms
+
+
+static func office_rooms() -> Array[String]:
+	if _office_rooms.is_empty():
+		_office_rooms.append_array(TUBE_ROOMS)
+		_office_rooms.append_array(department_ids())
+	return _office_rooms
+
+
+static var _office_rooms: Array[String] = []
+static var _lead_rooms: Array[String] = []
+
+
+static func lead_rooms() -> Array[String]:
+	if _lead_rooms.is_empty():
+		_lead_rooms.append_array(WAITING_ROOMS)
+		_lead_rooms.append_array([ROOM_MAIL, ROOM_INSPECTION])
+		_lead_rooms.append_array(department_ids())
+	return _lead_rooms
+
+
+static func lead_room(key: String) -> String:
+	match key:
+		RECEPTION:
+			return HALL_INTAKE
+		COUNTER:
+			return HALL_PICKUP
+	return station_room(key)
+
+
+static func lead_parent_room(room_id: String) -> String:
+	return ROOM_HALL if WAITING_ROOMS.has(room_id) else room_id
+
+
+static func is_lead_track(upgrade_id: String) -> bool:
+	return LEAD_TRACKS.has(upgrade_id)
 
 
 static func upgrade_key(upgrade_id: String, room_id: String = "") -> String:
@@ -694,7 +713,17 @@ static func upgrade_key(upgrade_id: String, room_id: String = "") -> String:
 
 static func upgrade_spot(upgrade_id: String, room_id: String = "") -> String:
 	var spot := str(upgrade(upgrade_id).get("spot", ""))
+	if spot == ROOM_SPOT:
+		return room_spot(room_id)
 	return spot % room_id if spot.contains("%s") else spot
+
+
+static func room_spot(room_id: String) -> String:
+	return ("dept:" if not department(room_id).is_empty() else "room:") + room_id
+
+
+static func lead_spot(room_id: String) -> String:
+	return LEAD_SPOT % room_id
 
 
 static func station_room(key: String) -> String:
@@ -717,8 +746,10 @@ static func room_boosts(room_id: String) -> Array[String]:
 static func spot_room(spot: String) -> String:
 	if SPOTS.has(spot):
 		return SPOTS[spot]
-	if spot_kind(spot) == "station":
+	if spot_kind(spot) == "station" or spot_kind(spot) == "trays":
 		return station_room(spot_target(spot))
+	if spot_kind(spot) == "lead":
+		return lead_parent_room(spot_target(spot))
 	return spot_target(spot)
 
 
@@ -770,6 +801,22 @@ static func station_kind_of(key: String) -> String:
 	if SHARED_STATIONS.has(key):
 		return SHARED_STATIONS[key].kind
 	return key.get_slice("/", 1)
+
+
+static func is_entry_station(key: String) -> bool:
+	return ENTRY_KINDS.has(station_kind_of(key))
+
+
+static func is_final_station(key: String) -> bool:
+	return FINAL_KINDS.has(station_kind_of(key))
+
+
+static func has_reject_pile(key: String) -> bool:
+	var kind := station_kind_of(key)
+	if kind == "reception" or kind == "counter":
+		return true
+	var dept_id := station_dept(key)
+	return kind == "review" and not dept_id.is_empty() and not is_customs(dept_id)
 
 
 static func is_machine(key: String) -> bool:

@@ -69,21 +69,22 @@ func test_area_sorts_upgrades_by_gain() -> void:
 
 
 func test_track_suggestions_point_to_catalog_entries() -> void:
-	var shared_track := ThroughputReport.track("digital_records", 1.0)
+	var shared_track := ThroughputReport.track("runner_speed", 1.0)
 	assert_eq(shared_track.id, ThroughputReport.TRACK)
 	assert_eq(shared_track.effect, ThroughputReport.CAPACITY)
-	assert_eq(shared_track.entry, "track:digital_records")
-	var room_track := ThroughputReport.track("office_equipment", 2.0, ThroughputReport.PLACES, "general_services")
+	assert_eq(shared_track.entry, "track:runner_speed")
+	var room_track := ThroughputReport.track("room_speed", 2.0, ThroughputReport.PLACES, "general_services")
 	assert_eq(room_track.effect, ThroughputReport.PLACES)
-	assert_eq(room_track.entry, "track:office_equipment@general_services")
+	assert_eq(room_track.entry, "track:room_speed@general_services")
 	assert_eq(UpgradeCatalog.find(state, str(room_track.entry)).id, str(room_track.entry))
 	assert_eq(ThroughputReport.staff_entry("runners"), "staff:runners")
 
 
 func test_track_gain_compares_neighbouring_levels() -> void:
 	assert_almost_eq(ThroughputReport.track_gain(state, "runner_speed"), Formulas.track_value("runner_speed", 1) / Formulas.track_value("runner_speed", 0) - 1.0, 0.0001)
-	state.set_upgrade("office_equipment", 3, "general_services")
-	assert_almost_eq(ThroughputReport.track_gain(state, "office_equipment", "general_services"), Formulas.track_value("office_equipment", 4) / Formulas.track_value("office_equipment", 3) - 1.0, 0.0001)
+	state.set_upgrade("room_speed", 3, "general_services")
+	assert_almost_eq(ThroughputReport.track_gain(state, "room_speed", "general_services"), Formulas.track_value("room_speed", 4) / Formulas.track_value("room_speed", 3) - 1.0, 0.0001)
+	assert_almost_eq(ThroughputReport.track_gain(state, "room_speed", "general_services"), Formulas.level_speed(5) / Formulas.level_speed(4) - 1.0, 0.0001)
 	assert_eq(ThroughputReport.track_gain(state, "complaint_interns"), 0.0)
 	assert_eq(ThroughputReport.track_gain(state, "pneumatic_tubes"), 0.0)
 
@@ -100,54 +101,100 @@ func test_can_upgrade_respects_requirements_and_max_level() -> void:
 	assert_false(ThroughputReport.can_upgrade(state, "runner_trolleys"))
 	assert_true(ThroughputReport.can_upgrade(state, "ticket_speed"))
 	assert_null(state.mailroom())
-	assert_false(ThroughputReport.can_upgrade(state, "letter_opener"))
-	assert_false(ThroughputReport.can_upgrade(state, "office_equipment"))
-	assert_true(ThroughputReport.can_upgrade(state, "office_equipment", "general_services"))
-	assert_false(ThroughputReport.can_upgrade(state, "office_equipment", "tax_services"))
+	assert_false(ThroughputReport.can_upgrade(state, "registered_mail"))
+	assert_false(ThroughputReport.can_upgrade(state, "room_speed"))
+	assert_true(ThroughputReport.can_upgrade(state, "room_speed", "general_services"))
+	assert_true(ThroughputReport.can_upgrade(state, "room_speed", GameConfig.ROOM_HALL))
+	assert_false(ThroughputReport.can_upgrade(state, "room_speed", "tax_services"))
+	assert_false(ThroughputReport.can_upgrade(state, "lead_focus", "general_services"))
+	state.set_upgrade("team_lead", 1, GameConfig.HALL_INTAKE)
+	assert_false(ThroughputReport.can_upgrade(state, "lead_focus", "general_services"))
+	assert_true(ThroughputReport.can_upgrade(state, "lead_focus", GameConfig.HALL_INTAKE))
+	assert_false(ThroughputReport.can_upgrade(state, "team_lead", GameConfig.HALL_INTAKE))
+	assert_true(ThroughputReport.can_upgrade(state, "team_lead", GameConfig.HALL_PICKUP))
+	assert_false(ThroughputReport.can_upgrade(state, "team_lead", GameConfig.ROOM_HALL))
 
 
 func test_station_case_time_and_throughput() -> void:
 	var review := state.station(REVIEW)
-	var case_time := Formulas.station_case_time(state, review, false)
+	var case_time := Formulas.station_case_time(state, review)
 	assert_gt(case_time, 0.0)
 	assert_almost_eq(Formulas.station_throughput(state, review), Formulas.availability(state, review) / case_time, 0.0001)
 	review.staff = 0
 	assert_eq(Formulas.station_throughput(state, review), 0.0)
 	var unused := Station.new("tax_services/review")
 	unused.staff = 1
-	assert_eq(Formulas.station_case_time(state, unused, false), 0.0)
+	assert_eq(Formulas.station_case_time(state, unused), 0.0)
 	assert_eq(Formulas.station_throughput(state, unused), 0.0)
 
 
 func test_station_gains_match_the_real_upgrade() -> void:
 	var review := state.station(REVIEW)
-	var dept := state.department("general_services")
 	var upgrades := ThroughputReport.station_upgrades(state, review)
-	assert_eq(_entries(upgrades), ["desk:general_services/review", "level:general_services/review", "specialist:general_services/review", "supervisor:general_services", "track:digital_records", "track:office_equipment@general_services"])
+	assert_eq(_entries(upgrades), ["desk:general_services/review", "track:room_speed@general_services", "track:team_lead@general_services"])
 	var before := Formulas.station_throughput(state, review)
-	review.level += 1
-	assert_almost_eq(_gain(upgrades, ThroughputReport.LEVEL), Formulas.station_throughput(state, review) - before, 0.0001)
-	review.level -= 1
-	dept.supervisors += 1
-	assert_almost_eq(_gain(upgrades, ThroughputReport.SUPERVISOR), Formulas.station_throughput(state, review) - before, 0.0001)
-	dept.supervisors -= 1
-	state.set_upgrade("digital_records", 1)
-	assert_almost_eq(_entry_gain(upgrades, "track:digital_records"), Formulas.station_throughput(state, review) - before, 0.0001)
-	state.set_upgrade("digital_records", 0)
-	state.set_upgrade("office_equipment", 1, "general_services")
-	assert_almost_eq(_entry_gain(upgrades, "track:office_equipment@general_services"), Formulas.station_throughput(state, review) - before, 0.0001)
-	state.set_upgrade("office_equipment", 0, "general_services")
+	assert_gt(before, 0.0)
+	state.set_upgrade("room_speed", 1, "general_services")
+	assert_gt(_entry_gain(upgrades, "track:room_speed@general_services"), 0.0)
+	assert_almost_eq(_entry_gain(upgrades, "track:room_speed@general_services"), Formulas.station_throughput(state, review) - before, 0.0001)
+	state.set_upgrade("room_speed", 0, "general_services")
 	review.add_desk()
 	review.staff = 2
 	assert_almost_eq(_gain(upgrades, ThroughputReport.DESK), Formulas.station_throughput(state, review) - before, 0.0001)
 
 
-func test_specialist_gain_includes_faster_complex_cases() -> void:
+func test_room_speed_suggestion_follows_the_station_room() -> void:
+	var reception := state.station(GameConfig.RECEPTION)
+	reception.staff = 1
+	var upgrades := ThroughputReport.station_upgrades(state, reception)
+	assert_true(_entries(upgrades).has("track:room_speed@hall"))
+	assert_false(_entries(upgrades).has("track:room_speed@general_services"))
+	var before := Formulas.station_throughput(state, reception)
+	state.set_upgrade("room_speed", 4, "general_services")
+	assert_almost_eq(Formulas.station_throughput(state, reception), before, 0.0001)
+	state.set_upgrade("room_speed", 1, GameConfig.ROOM_HALL)
+	assert_almost_eq(_entry_gain(upgrades, "track:room_speed@hall"), Formulas.station_throughput(state, reception) - before, 0.0001)
+	state.set_upgrade("room_speed", GameConfig.ROOM_SPEED_LEVELS, GameConfig.ROOM_HALL)
+	assert_false(_entries(ThroughputReport.station_upgrades(state, reception)).has("track:room_speed@hall"))
+
+
+func test_team_lead_gain_matches_a_lead_with_focus() -> void:
 	var review := state.station(REVIEW)
-	var gain := _gain(ThroughputReport.station_upgrades(state, review), ThroughputReport.SPECIALIST)
+	var upgrades := ThroughputReport.station_upgrades(state, review)
+	var gain := _entry_gain(upgrades, "track:team_lead@general_services")
+	assert_gt(gain, 0.0)
+	for upgrade: Dictionary in upgrades:
+		assert_eq(upgrade.effect, ThroughputReport.CAPACITY)
 	var before := Formulas.station_throughput(state, review)
-	review.add_specialist()
+	assert_eq(state.upgrade_level("team_lead", "general_services"), 0)
+	assert_eq(state.upgrade_level("lead_focus", "general_services"), 0)
+	state.set_upgrade("team_lead", 1, "general_services")
+	state.set_upgrade("lead_focus", 1, "general_services")
 	assert_almost_eq(gain, Formulas.station_throughput(state, review) - before, 0.0001)
+
+
+func test_owned_team_lead_suggests_more_focus() -> void:
+	var review := state.station(REVIEW)
+	state.set_upgrade("team_lead", 1, "general_services")
+	state.set_upgrade("lead_focus", 3, "general_services")
+	var upgrades := ThroughputReport.station_upgrades(state, review)
+	assert_false(_entries(upgrades).has("track:team_lead@general_services"))
+	assert_true(_entries(upgrades).has("track:lead_focus@general_services"))
+	assert_eq(state.upgrade_level("lead_focus", "general_services"), 3)
+	var before := Formulas.station_throughput(state, review)
+	state.set_upgrade("lead_focus", 4, "general_services")
+	assert_almost_eq(_entry_gain(upgrades, "track:lead_focus@general_services"), Formulas.station_throughput(state, review) - before, 0.0001)
+	state.set_upgrade("lead_focus", _max_level("lead_focus"), "general_services")
+	var maxed := _entries(ThroughputReport.station_upgrades(state, review))
+	assert_false(maxed.has("track:lead_focus@general_services"))
+	assert_false(maxed.has("track:team_lead@general_services"))
+
+
+func test_team_lead_in_another_room_does_not_count() -> void:
+	state.set_upgrade("team_lead", 1, GameConfig.HALL_INTAKE)
+	var upgrades := ThroughputReport.station_upgrades(state, state.station(REVIEW))
+	assert_true(_entries(upgrades).has("track:team_lead@general_services"))
+	assert_false(_entries(upgrades).has("track:lead_focus@general_services"))
 
 
 func test_station_offers_hiring_for_a_free_desk() -> void:
@@ -170,8 +217,10 @@ func test_machine_station_offers_machines() -> void:
 	var upgrades := ThroughputReport.station_upgrades(state, signature)
 	assert_true(_gain(upgrades, ThroughputReport.MACHINE) > 0.0)
 	assert_eq(_gain(upgrades, ThroughputReport.HIRE), -1.0)
-	assert_eq(_gain(upgrades, ThroughputReport.SPECIALIST), -1.0)
 	assert_true(_entries(upgrades).has("desk:" + MACHINE))
+	assert_true(_entries(upgrades).has("track:room_speed@tax_services"))
+	assert_false(_entries(upgrades).has("track:team_lead@tax_services"))
+	assert_false(_entries(upgrades).has("track:lead_focus@tax_services"))
 	while signature.desks < state.max_desks():
 		signature.add_desk()
 	assert_eq(_gain(ThroughputReport.station_upgrades(state, signature), ThroughputReport.MACHINE), -1.0)
@@ -181,12 +230,9 @@ func test_fully_upgraded_station_offers_nothing() -> void:
 	var review := state.station(REVIEW)
 	review.add_desk()
 	review.staff = review.desks
-	review.level = GameConfig.MAX_STATION_LEVEL
-	for index in GameConfig.MAX_SPECIALISTS:
-		review.add_specialist()
-	state.department("general_services").supervisors = GameConfig.MAX_SUPERVISORS
-	state.set_upgrade("digital_records", _max_level("digital_records"))
-	state.set_upgrade("office_equipment", _max_level("office_equipment"), "general_services")
+	state.set_upgrade("room_speed", GameConfig.ROOM_SPEED_LEVELS, "general_services")
+	state.set_upgrade("team_lead", 1, "general_services")
+	state.set_upgrade("lead_focus", _max_level("lead_focus"), "general_services")
 	assert_true(ThroughputReport.station_upgrades(state, review).is_empty())
 	assert_true(ThroughputReport.station_upgrades(state, Station.new("tax_services/review")).is_empty())
 
@@ -356,94 +402,86 @@ func test_lost_citizens_add_bundled_complaint_demand() -> void:
 	assert_almost_eq(guarded, (1.0 - GameConfig.SECURITY_BASE_CHANCE) * (1.0 / GameConfig.COMPLAINT_INTERVAL + 3.0 / 60.0) + Formulas.complaint_letter_rate(), 0.0001)
 
 
-func test_rejects_need_collectors() -> void:
-	assert_eq(ThroughputReport.reject_demand(state), 0.0)
+func _reject_runners(count: int) -> void:
+	for index in count:
+		state.add_runner(Runner.REJECT)
+
+
+func test_rejects_need_reject_runners() -> void:
+	assert_eq(Formulas.reject_demand(state), 0.0)
 	state.cases_completed = GameConfig.REJECT_MIN_CASES
 	var expected := Formulas.demand(state, state.department("general_services")) * GameConfig.REJECT_CHANCE
 	var entry := ThroughputReport.reject_area(state)
 	assert_almost_eq(float(entry.demand), expected, 0.0001)
 	assert_eq(float(entry.capacity), 0.0)
-	assert_eq(_entries(entry.upgrades), ["staff:collectors", "track:shredder@general_services"])
-	assert_almost_eq(_gain(entry.upgrades, ThroughputReport.COLLECTOR), ThroughputReport.collector_rate(state), 0.0001)
-	while state.collectors.size() < GameConfig.MAX_COLLECTORS:
-		state.collectors.append(RejectCollector.new())
+	assert_eq(float(entry.load), 1.0)
+	assert_eq(_entries(entry.upgrades), ["staff:runners"])
+	assert_almost_eq(_gain(entry.upgrades, ThroughputReport.RUNNER), Formulas.runner_capacity(state) / Formulas.reject_trip_time(state), 0.0001)
+	_reject_runners(1)
 	entry = ThroughputReport.reject_area(state)
+	assert_almost_eq(float(entry.capacity), Formulas.runner_capacity(state) / Formulas.reject_trip_time(state), 0.0001)
+	assert_eq(_entries(entry.upgrades), ["staff:runners", "track:runner_speed", "track:runner_trolleys"])
+
+
+func test_reject_runner_upgrade_gains_match_the_real_capacity_change() -> void:
+	state.cases_completed = GameConfig.REJECT_MIN_CASES
+	_reject_runners(4)
+	state.add_runner(Runner.INTAKE)
+	var entry := ThroughputReport.reject_area(state)
 	var capacity := float(entry.capacity)
-	assert_almost_eq(capacity, GameConfig.MAX_COLLECTORS * ThroughputReport.collector_rate(state), 0.0001)
-	assert_eq(_entries(entry.upgrades), ["track:collector_carts", "track:collector_speed", "track:shredder@general_services"])
-	for upgrade_id: String in ["collector_carts", "collector_speed"]:
-		state.set_upgrade(upgrade_id, 1)
-		assert_almost_eq(_entry_gain(entry.upgrades, "track:" + upgrade_id), float(ThroughputReport.reject_area(state).capacity) - capacity, 0.0001, upgrade_id)
+	assert_almost_eq(capacity, Formulas.role_capacity(state, Runner.REJECT), 0.0001)
+	var hire := _gain(entry.upgrades, ThroughputReport.RUNNER)
+	state.add_runner(Runner.REJECT)
+	assert_almost_eq(hire, float(ThroughputReport.reject_area(state).capacity) - capacity, 0.0001)
+	state.runners.pop_back()
+	for upgrade_id: String in ["runner_trolleys", "runner_speed"]:
+		for level: int in [0, _max_level(upgrade_id) - 1]:
+			state.set_upgrade(upgrade_id, level)
+			entry = ThroughputReport.reject_area(state)
+			capacity = float(entry.capacity)
+			var gain := _entry_gain(entry.upgrades, "track:" + upgrade_id)
+			state.set_upgrade(upgrade_id, level + 1)
+			assert_almost_eq(gain, float(ThroughputReport.reject_area(state).capacity) - capacity, 0.0001, "%s %d" % [upgrade_id, level])
 		state.set_upgrade(upgrade_id, 0)
-	state.set_upgrade("collector_carts", _max_level("collector_carts"))
-	state.set_upgrade("collector_speed", _max_level("collector_speed"))
-	state.set_upgrade("shredder", 1, "general_services")
+
+
+func test_full_reject_crew_offers_nothing_more_at_maximum() -> void:
+	state.cases_completed = GameConfig.REJECT_MIN_CASES
+	_reject_runners(GameConfig.MAX_RUNNERS)
+	var entry := ThroughputReport.reject_area(state)
+	assert_eq(_entries(entry.upgrades), ["track:runner_speed", "track:runner_trolleys"])
+	state.set_upgrade("runner_trolleys", _max_level("runner_trolleys"))
+	state.set_upgrade("runner_speed", _max_level("runner_speed"))
 	entry = ThroughputReport.reject_area(state)
 	assert_true((entry.upgrades as Array).is_empty())
-	assert_almost_eq(float(entry.capacity), GameConfig.MAX_COLLECTORS * float(Formulas.collector_capacity_limit()) / ThroughputReport.collector_trip(state) + ThroughputReport.shredder_capacity(state), 0.0001)
+	var loads := GameConfig.MAX_RUNNERS * Formulas.runner_load_limit(0)
+	assert_almost_eq(float(entry.capacity), loads / Formulas.reject_trip_time(state), 0.0001)
 
 
-func test_department_shredders_add_capacity_and_shorten_trips() -> void:
-	state.cases_completed = GameConfig.REJECT_MIN_CASES
-	var layout := WorldLayout.get_default()
-	assert_eq(ThroughputReport.missing_shredder(state), "general_services")
-	assert_eq(ThroughputReport.shredder_capacity(state), 0.0)
-	var gain := _entry_gain(ThroughputReport.reject_area(state).upgrades, "track:shredder@general_services")
-	assert_almost_eq(gain, GameConfig.SHREDDER_BATCH / Formulas.track_value("shredder", 1), 0.0001)
-	var before := ThroughputReport.collector_trip(state)
-	state.set_upgrade("shredder", 1, "general_services")
-	assert_eq(ThroughputReport.missing_shredder(state), "")
-	assert_almost_eq(ThroughputReport.shredder_capacity(state), gain, 0.0001)
-	assert_almost_eq(ThroughputReport.shredder_capacity(state), GameConfig.SHREDDER_BATCH / Formulas.shredder_interval(state, "general_services"), 0.0001)
-	assert_almost_eq(float(ThroughputReport.reject_area(state).capacity), ThroughputReport.shredder_capacity(state), 0.0001)
-	var pile := layout.reject_point(REVIEW)
-	var distance := minf(pile.distance_to(layout.shredder_point()), pile.distance_to(layout.dept_shredder_point("general_services")))
-	assert_almost_eq(ThroughputReport.collector_trip(state), maxf(GameConfig.COLLECTOR_TRIP_ESTIMATE, 2.0 * distance / Formulas.collector_speed(state)), 0.0001)
-	assert_true(ThroughputReport.collector_trip(state) <= before)
-	state.unlock_department("customs")
-	assert_eq(ThroughputReport.missing_shredder(state), "")
-	state.unlock_department("tax_services")
-	assert_eq(ThroughputReport.missing_shredder(state), "tax_services")
+func test_reject_runners_are_not_part_of_the_transport_area() -> void:
+	state.add_runner(Runner.INTAKE)
+	state.add_runner(Runner.INTERNAL)
+	state.add_runner(Runner.OUTPUT)
+	var before := ThroughputReport.transport_area(state)
+	_reject_runners(3)
+	var after := ThroughputReport.transport_area(state)
+	assert_eq(float(after.capacity), float(before.capacity))
+	assert_eq(_entries(after.upgrades), _entries(before.upgrades))
+	assert_almost_eq(_entry_gain(after.upgrades, "track:runner_trolleys"), _entry_gain(before.upgrades, "track:runner_trolleys"), 0.0001)
 
 
-func test_collector_trip_follows_the_distance_to_the_piles() -> void:
-	var layout := WorldLayout.get_default()
-	var distance := layout.shredder_point().distance_to(layout.reject_point(REVIEW))
-	var expected := maxf(GameConfig.COLLECTOR_TRIP_ESTIMATE, 2.0 * distance / Formulas.collector_speed(state))
-	assert_almost_eq(ThroughputReport.collector_trip(state), expected, 0.0001)
-	for dept_id in GameConfig.department_ids():
-		state.unlock_department(dept_id)
-	assert_true(ThroughputReport.collector_trip(state) >= expected)
-	assert_almost_eq(ThroughputReport.collector_rate(state), Formulas.collector_capacity(state) / ThroughputReport.collector_trip(state), 0.0001)
-
-
-func test_collector_trip_without_demand_uses_the_estimate() -> void:
-	state.department("general_services").unlocked = false
-	assert_eq(ThroughputReport.collector_trip(state), GameConfig.COLLECTOR_TRIP_ESTIMATE)
-	assert_eq(ThroughputReport.collector_trip(state, 3.0), GameConfig.COLLECTOR_TRIP_ESTIMATE)
-
-
-func test_collector_speed_gain_matches_the_real_capacity_change() -> void:
-	state.cases_completed = GameConfig.REJECT_MIN_CASES
-	state.collectors.append(RejectCollector.new())
-	var slow := ThroughputReport.collector_trip(state)
-	assert_gt(slow, GameConfig.COLLECTOR_TRIP_ESTIMATE)
-	assert_almost_eq(ThroughputReport.collector_trip(state, 2.0), maxf(GameConfig.COLLECTOR_TRIP_ESTIMATE, slow / 2.0), 0.0001)
-	for level: int in [0, _max_level("collector_speed") - 1]:
-		state.set_upgrade("collector_speed", level)
-		var entry := ThroughputReport.reject_area(state)
-		var capacity := float(entry.capacity)
-		var gain := _entry_gain(entry.upgrades, "track:collector_speed")
-		state.set_upgrade("collector_speed", level + 1)
-		assert_almost_eq(gain, float(ThroughputReport.reject_area(state).capacity) - capacity, 0.0001)
-	assert_eq(ThroughputReport.collector_trip(state), GameConfig.COLLECTOR_TRIP_ESTIMATE)
+func test_transport_ignores_tracks_when_only_reject_runners_exist() -> void:
+	_reject_runners(2)
+	var entry := ThroughputReport.transport_area(state)
+	assert_eq(float(entry.capacity), 0.0)
+	assert_eq(_entries(entry.upgrades), ["staff:runners"])
 
 
 func test_rejects_ignore_customs() -> void:
 	state.cases_completed = GameConfig.REJECT_MIN_CASES
-	var before := ThroughputReport.reject_demand(state)
 	state.unlock_department("customs")
-	assert_almost_eq(ThroughputReport.reject_demand(state), before, 0.0001)
+	var expected := Formulas.demand(state, state.department("general_services")) * GameConfig.REJECT_CHANCE
+	assert_almost_eq(Formulas.reject_demand(state), expected, 0.0001)
 
 
 func test_phones_need_enough_staff() -> void:
@@ -558,7 +596,7 @@ func test_every_suggestion_links_to_a_catalog_entry() -> void:
 	state.station(GameConfig.RECEPTION).staff = 1
 	state.station(GameConfig.COUNTER).staff = 1
 	state.add_runner()
-	state.collectors.append(RejectCollector.new())
+	state.add_runner(Runner.REJECT)
 	state.hr = 1
 	state.set_upgrade("pneumatic_tubes", 1)
 	state.set_upgrade("tube_station", 1, GameConfig.ROOM_HALL)

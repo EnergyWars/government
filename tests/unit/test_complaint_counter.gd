@@ -217,6 +217,18 @@ func test_player_at_the_counter_earns_respect_instead_of_complaints() -> void:
 	assert_signal_emitted_with_parameters(sim, "visitor_respected", [visitor.slot])
 
 
+func test_player_spot_is_inside_the_office_and_apart_from_the_interns() -> void:
+	var spot := layout.complaint_player_point()
+	assert_true(layout.complaint_office.has_point(spot))
+	assert_true(layout.complaint_read_rect().grow(GameConfig.INTERACT_RADIUS).has_point(spot))
+	for slot in GameConfig.MAX_DESK_INTERNS:
+		assert_gt(spot.distance_to(layout.intern_home(slot)), 40.0, str(slot))
+	state.player.position = spot
+	assert_true(sim.player_at_complaint_counter())
+	state.player.position = layout.intern_home(GameConfig.MAX_DESK_INTERNS - 1) + Vector2(GameConfig.INTERACT_RADIUS * 2.0, 0.0)
+	assert_false(sim.player_at_complaint_counter())
+
+
 func test_player_at_the_counter_calms_angry_shouters_and_spares_interns() -> void:
 	_staff(1)
 	state.player.position = layout.complaint_player_point()
@@ -497,7 +509,7 @@ func test_upgrading_the_box_adds_space_and_stops_at_max() -> void:
 	assert_false(actions.buy_upgrade("complaint_box"))
 	state.money = 1.0e12
 	var first := Formulas.track_cost("complaint_box", 0)
-	assert_eq(first, float(config.cost))
+	assert_eq(first, float(config.cost) * Formulas.early_discount(0))
 	assert_true(actions.buy_upgrade("complaint_box"))
 	assert_almost_eq(state.money, 1.0e12 - first, 0.01)
 	assert_eq(Formulas.complaint_cap(state), GameConfig.COMPLAINT_BOX_CAPACITY + step)

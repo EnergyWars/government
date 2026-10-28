@@ -7,8 +7,6 @@ static func build(sheet: Sheet, container: VBoxContainer, spot: String) -> void:
 	match spot:
 		"runners":
 			_runners(sheet, container)
-		"collectors":
-			_collectors(sheet, container)
 		"coffee_interns":
 			_coffee_interns(sheet, container)
 		"phone_clerks":
@@ -71,10 +69,14 @@ static func runner_row(sheet: Sheet, index: int) -> Control:
 	column.add_child(UpgradeEntryCard.buy_button(sheet, "%s:%d" % [UpgradeCatalog.RUNNER_LEVEL, index]))
 	card.add_child(column)
 	sheet.track(func() -> void:
-		status.text = sheet.tr("RUNNER_BUSY") if not runner.items.is_empty() or runner.task != Runner.Task.IDLE else sheet.tr("RUNNER_IDLE")
+		status.text = sheet.tr("RUNNER_BUSY") if is_busy(runner) else sheet.tr("RUNNER_IDLE")
 		load_label.text = level_text(game.state, runner)
 	)
 	return card
+
+
+static func is_busy(runner: Runner) -> bool:
+	return not runner.items.is_empty() or runner.task != Runner.Task.IDLE or runner.loaded > 0 or not runner.source.is_empty()
 
 
 static func level_text(state: GameState, runner: Runner) -> String:
@@ -83,25 +85,6 @@ static func level_text(state: GameState, runner: Runner) -> String:
 
 static func role_info(state: GameState, role: String) -> String:
 	return TranslationServer.translate("FMT_RUNNER_ROLE_INFO") % [TranslationServer.translate("RUNNER_ROLE_" + role.to_upper()), state.runners_in(role), state.transfer_backlog(role)]
-
-
-static func _collectors(sheet: Sheet, container: VBoxContainer) -> void:
-	var game := sheet.game
-	var state := game.state
-	container.add_child(UiKit.label(sheet.tr("COLLECTORS_INTRO"), "BodySmall", true))
-	if state.collectors.is_empty():
-		empty_hint(sheet, container, "COLLECTORS_EMPTY")
-		return
-	for index in state.collectors.size():
-		var collector := state.collectors[index]
-		var row := _member_row(sheet, Icons.STAFF.collectors, sheet.tr("FMT_COLLECTOR_NAME") % (index + 1))
-		var status: Label = row.get_meta(&"status")
-		var focus := UiKit.button(sheet.tr("FMT_FOCUS") % department_text(collector.dept_id), "primary", "Outlined")
-		focus.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		focus.pressed.connect(func() -> void: sheet.act(game.actions.cycle_collector_department.bind(index)))
-		(row.get_meta(&"column") as VBoxContainer).add_child(focus)
-		container.add_child(row)
-		sheet.track(func() -> void: status.text = sheet.tr("FMT_COLLECTOR_LOAD") % [collector.loaded, Formulas.collector_capacity(state)])
 
 
 static func _coffee_interns(sheet: Sheet, container: VBoxContainer) -> void:

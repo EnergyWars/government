@@ -93,7 +93,7 @@ func test_simulation_records_station_output_and_completion() -> void:
 	station.staff = 1
 	var case_file := CaseFile.new("general_services")
 	case_file.route = [GameConfig.COUNTER]
-	var job := StationJob.new(case_file, 1.0, false)
+	var job := StationJob.new(case_file, 1.0)
 	job.progress = 1.0
 	station.jobs[0] = job
 	assert_true(game.simulation.finish_job(station, 0))
@@ -107,7 +107,7 @@ func test_simulation_records_rejections_and_naps() -> void:
 	var case_file := CaseFile.new("general_services")
 	case_file.route = RouteBuilder.build(case_file)
 	case_file.invalid = true
-	var job := StationJob.new(case_file, 1.0, false)
+	var job := StationJob.new(case_file, 1.0)
 	job.progress = 1.0
 	station.jobs[0] = job
 	assert_true(game.simulation.finish_job(station, 0))
@@ -225,11 +225,7 @@ func test_statistics_sheet_shows_review_summary_and_links() -> void:
 		if button.tooltip_text == sheet.tr("ACTION_REVIEWS_OPEN"):
 			button.pressed.emit()
 	assert_signal_emitted_with_parameters(sheet, "navigate", ["reviews", ""])
-	for button in _buttons(sheet.content):
-		if button.text == sheet.tr("ACTION_OFFICIALS"):
-			button.pressed.emit()
-			break
-	assert_signal_emitted_with_parameters(sheet, "navigate", ["officials", REVIEW])
+	assert_signal_emit_count(sheet, "navigate", 1)
 
 
 func test_statistics_sheet_review_summary_without_reviews() -> void:
@@ -239,20 +235,25 @@ func test_statistics_sheet_review_summary_without_reviews() -> void:
 
 func test_statistics_sheet_shows_official_details() -> void:
 	var mood := state.station(REVIEW).moods[0]
-	mood.training = {"skill": 2}
 	mood.sick_count = 3
 	mood.doze_count = 4
 	mood.output.add(state.play_time)
 	var sheet := _statistics()
 	var rate := UiKit.decimal(mood.output.per_minute(state.play_time, state.production.started))
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_STATS_OFFICIAL") % [sheet.tr("OFFICIAL_STATE_AWAKE"), rate, 1, 3, 4]))
-	assert_true(_has_label(sheet.content, "2"))
+	assert_true(_has_label(sheet.content, StatisticsSheet.official_name(0)))
+	assert_eq(StatisticsSheet.official_name(1), TranslationServer.translate("FMT_OFFICIAL_NAME") % 2)
+	assert_eq(StatisticsSheet.official_state(mood), sheet.tr("OFFICIAL_STATE_AWAKE"))
 
 
 func test_statistics_sheet_shows_absences() -> void:
-	state.trainings = 7
+	state.patrols = 37
+	state.production.record(ProductionStats.LEAD_WOKEN, REVIEW, state.play_time, 41)
 	var sheet := _statistics()
-	assert_true(_has_label(sheet.content, "7"))
+	for key in ["STATS_LEAD_WOKEN", "STATS_PATROLS"]:
+		assert_true(_has_label(sheet.content, sheet.tr(key)), key)
+	assert_true(_has_label(sheet.content, "37"))
+	assert_true(_has_label(sheet.content, "41"))
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_STATS_DISPUTES") % [0, sheet.tr("FMT_PER_MINUTE") % UiKit.decimal(0.0)]))
 
 
@@ -291,7 +292,7 @@ func test_hud_offers_statistics_and_always_the_rating() -> void:
 
 
 func test_new_texts_exist_in_both_languages() -> void:
-	var keys: Array[String] = ["NAV_STATISTICS", "SHEET_STATISTICS", "STATS_INTRO", "STATS_OVERVIEW", "FMT_STATS_WINDOW", "STATS_INCOME", "STATS_ARRIVED", "STATS_COMPLETED", "STATS_REJECTED", "STATS_LOST", "STATS_CAPACITY", "FMT_STATS_REVIEWS", "STATS_SECTION_DEPARTMENTS", "STATS_DEPT_ARRIVED", "FMT_STATS_MEASURED_EXPECTED", "STATS_DEPT_COMPLETED", "STATS_DEPT_CAPACITY", "STATS_DEPT_WAITING", "STATS_SECTION_STATIONS", "STATS_STATIONS_HINT", "STATS_STATION_MEASURED", "STATS_STATION_CAPACITY", "STATS_STATION_DEMAND", "FMT_STATS_LOAD", "FMT_STATS_BOXES", "FMT_STATS_WORKING", "STATS_SECTION_ABSENCES", "STATS_SICK_NOW", "STATS_SICK_RATE", "STATS_SICK_AVOIDED", "STATS_DOZED", "STATS_DISPUTES", "FMT_STATS_DISPUTES", "STATS_DISPUTES_CALMED", "STATS_TRAININGS", "STATS_SECTION_OFFICIALS", "STATS_OFFICIALS_HINT", "FMT_STATS_OFFICIAL", "ACTION_OFFICIALS", "SHEET_OFFICIALS", "FMT_OFFICIALS_TITLE", "OFFICIALS_INTRO", "OFFICIALS_MACHINE", "OFFICIALS_EMPTY", "FMT_OFFICIAL_NAME", "FMT_SPECIALIST_NAME", "FMT_OFFICIAL_STATS", "FMT_TRAINING_LEVEL", "ACTION_TRAIN"]
+	var keys: Array[String] = ["NAV_STATISTICS", "SHEET_STATISTICS", "STATS_INTRO", "STATS_OVERVIEW", "FMT_STATS_WINDOW", "STATS_INCOME", "STATS_ARRIVED", "STATS_COMPLETED", "STATS_REJECTED", "STATS_LOST", "STATS_CAPACITY", "FMT_STATS_REVIEWS", "STATS_SECTION_DEPARTMENTS", "STATS_DEPT_ARRIVED", "FMT_STATS_MEASURED_EXPECTED", "STATS_DEPT_COMPLETED", "STATS_DEPT_CAPACITY", "STATS_DEPT_WAITING", "STATS_SECTION_STATIONS", "STATS_STATIONS_HINT", "STATS_STATION_MEASURED", "STATS_STATION_CAPACITY", "STATS_STATION_DEMAND", "FMT_STATS_LOAD", "FMT_STATS_BOXES", "FMT_STATS_WORKING", "STATS_SECTION_ABSENCES", "STATS_SICK_NOW", "STATS_SICK_RATE", "STATS_LEAD_WOKEN", "STATS_DOZED", "STATS_DISPUTES", "FMT_STATS_DISPUTES", "STATS_DISPUTES_CALMED", "STATS_PATROLS", "STATS_SECTION_OFFICIALS", "STATS_OFFICIALS_HINT", "FMT_STATS_OFFICIAL", "FMT_OFFICIAL_NAME"]
 	for room_id in GameConfig.SERVICE_ROOMS:
 		keys.append("ROOM_" + room_id.to_upper())
 		if room_id != GameConfig.ROOM_PLAYER:
@@ -349,11 +350,11 @@ func test_simulation_records_shredded_rejects() -> void:
 	assert_eq(sim.shred_rejects(1, true), 0)
 	assert_eq(production.total(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF), 2)
 	assert_eq(production.total(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_PLAYER), 1)
-	var collector := RejectCollector.new(sim.layout.shredder_point())
-	collector.loaded = 3
-	state.collectors.append(collector)
-	sim._update_collectors(0.1)
-	assert_eq(collector.loaded, 0)
+	var runner := state.add_runner(Runner.REJECT)
+	runner.position = sim.layout.shredder_point()
+	runner.loaded = 3
+	sim._update_runners(0.1)
+	assert_eq(runner.loaded, 0)
 	assert_eq(production.total(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF), 5)
 
 
@@ -382,12 +383,12 @@ func test_statistics_sheet_shows_throughput_sections() -> void:
 	var sheet := _statistics()
 	for key in ["STATS_SECTION_UPGRADES", "STATS_UPGRADES_HINT", "STATS_SECTION_AREAS", "STATS_AREAS_HINT", "STATS_DEPT_STEPS", "STATS_STEP_TRANSPORT", "AREA_TRANSPORT", "AREA_COMPLAINTS", "AREA_REJECTS", "AREA_PHONES", "AREA_SEATING", "AREA_WAITING", "STATS_UPGRADES", "STATS_CALLS_ANSWERED", "STATS_CALLS_MISSED", "STATS_OCCUPANCY"]:
 		assert_true(_has_label(sheet.content, sheet.tr(key)), key)
-	assert_true(_has_text_part(sheet.content, UpgradeTexts.title(UpgradeCatalog.find(state, "level:" + REVIEW))))
+	assert_true(_has_text_part(sheet.content, UpgradeTexts.title(UpgradeCatalog.find(state, "track:" + GameConfig.upgrade_key("room_speed", "general_services")))))
 	assert_true(_has_text_part(sheet.content, sheet.tr("FMT_STATS_RUNNERS") % [0, Formulas.runner_capacity(state)]))
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_STATS_OCCUPANCY") % [0, state.seat_capacity()]))
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_STATS_OCCUPANCY") % [0, state.standing_capacity()]))
 	var review := state.station(REVIEW)
-	var case_time := Formulas.station_case_time(state, review, false)
+	var case_time := Formulas.station_case_time(state, review)
 	var per_official := sheet.tr("FMT_PER_MINUTE") % UiKit.decimal(60.0 / case_time)
 	assert_true(_has_text_part(sheet.content, sheet.tr("FMT_STATS_CASE_TIME") % [UiKit.decimal(case_time), per_official]))
 	assert_true(_has_highlight(sheet.content))
@@ -398,7 +399,7 @@ func test_statistics_sheet_shows_area_states() -> void:
 	state.set_upgrade("complaint_interns", 1)
 	state.set_upgrade("complaint_security", 1)
 	state.station(REVIEW).rejects = 2
-	state.collectors.append(RejectCollector.new())
+	state.add_runner(Runner.REJECT)
 	state.hr = 2
 	state.calls_answered = 3
 	state.calls_missed = 1
@@ -435,6 +436,21 @@ func test_statistics_sheet_shows_tubes_and_runners_when_mixed() -> void:
 		assert_true(_has_text_part(sheet.content, BoardSection.role_info(state, role)), role)
 
 
+func test_statistics_sheet_counts_reject_runners_as_the_fourth_role() -> void:
+	state.unlock_department("tax_services")
+	state.set_upgrade("pneumatic_tubes", 1)
+	state.set_upgrade("tube_station", 1, GameConfig.ROOM_HALL)
+	state.set_upgrade("tube_station", 1, "general_services")
+	state.add_runner(Runner.REJECT)
+	state.add_runner(Runner.REJECT)
+	state.station(REVIEW).rejects = 3
+	var sheet := _statistics()
+	var expected := sheet.tr("FMT_RUNNER_ROLE_INFO") % [sheet.tr("RUNNER_ROLE_REJECT"), 2, 3]
+	assert_eq(BoardSection.role_info(state, Runner.REJECT), expected)
+	assert_true(_has_text_part(sheet.content, expected))
+	assert_true(_has_text_part(sheet.content, sheet.tr("FMT_STATS_RUNNERS") % [2, Formulas.runner_capacity(state)]))
+
+
 func test_statistics_sheet_recommends_upgrades_and_links_them() -> void:
 	var sheet := _statistics()
 	var picked := sheet.recommended()
@@ -460,7 +476,7 @@ func test_statistics_sheet_without_busy_areas() -> void:
 	_connect_all_tubes()
 	for key in [GameConfig.RECEPTION, GameConfig.COUNTER, REVIEW, "general_services/signature"]:
 		state.station(key).staff = 1
-		state.station(key).level = 60
+		state.set_upgrade("room_speed", 59, GameConfig.station_room(key))
 	state.set_upgrade("ticket_speed", GameConfig.TICKET_MACHINE_LEVELS)
 	state.hr = 1
 	var sheet := _statistics()
@@ -504,7 +520,9 @@ func test_upgrade_targets_open_the_right_spot() -> void:
 		assert_eq(StatisticsSheet.upgrade_target(state, none, staff), ["spot", str(UpgradeCatalog.STAFF_SPOTS[staff_type])], staff_type)
 	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("seating", 1.0, ThroughputReport.PLACES)), ["spot", "seating"])
 	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("ticket_speed", 1.0)), ["spot", "tickets"])
-	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("office_equipment", 1.0, ThroughputReport.CAPACITY, "general_services")), ["spot", "dept:general_services"])
+	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("room_speed", 1.0, ThroughputReport.CAPACITY, "general_services")), ["spot", "dept:general_services"])
+	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("room_speed", 1.0, ThroughputReport.CAPACITY, GameConfig.ROOM_HALL)), ["spot", "room:" + GameConfig.ROOM_HALL])
+	assert_eq(StatisticsSheet.upgrade_target(state, none, ThroughputReport.track("team_lead", 1.0, ThroughputReport.CAPACITY, "general_services")), ["spot", GameConfig.lead_spot("general_services")])
 	var hire := ThroughputReport.upgrade(ThroughputReport.HIRE, 1.0, ThroughputReport.CAPACITY, "%s:%s" % [UpgradeCatalog.HIRE, REVIEW])
 	assert_eq(StatisticsSheet.upgrade_target(state, none, hire), ["spot", UpgradeCatalog.STATION_PREFIX + REVIEW])
 	assert_eq(StatisticsSheet.upgrade_target(state, {"key": REVIEW}, plain), ["spot", WorldLayout.STATION_PREFIX + REVIEW])
@@ -531,7 +549,7 @@ func test_highlight_is_only_changed_when_needed() -> void:
 
 func test_throughput_texts_exist_in_both_languages() -> void:
 	var keys: Array[String] = ["STATS_SECTION_UPGRADES", "STATS_UPGRADES_HINT", "STATS_UPGRADES_EMPTY", "FMT_STATS_AREA_LOAD", "ACTION_STATS_OPEN", "STATS_UPGRADES", "STATS_UPGRADES_NONE", "FMT_UPGRADE", "FMT_GAIN_CAPACITY", "FMT_GAIN_RELIEF", "FMT_GAIN_PLACES", "STATS_UNLIMITED", "FMT_STATS_CASE_TIME", "STATS_DEPT_STEPS", "STATS_STEP_TRANSPORT", "STATS_SECTION_AREAS", "STATS_AREAS_HINT", "STATS_AREA_MEASURED", "STATS_AREA_INCOMING", "FMT_STATS_TRANSFERS", "FMT_STATS_RUNNERS", "FMT_STATS_TUBES", "FMT_STATS_HANDLED_BY", "FMT_STATS_COMPLAINT_STATE", "STATS_SECURITY_NONE", "FMT_STATS_REJECT_STATE", "STATS_CALLS_ANSWERED", "STATS_CALLS_MISSED", "FMT_STATS_PHONE_STATE", "STATS_OCCUPANCY", "FMT_STATS_OCCUPANCY", "FMT_STATS_TICKETS", "SECTION_STATISTICS", "FMT_STATISTICS", "FMT_POPULATION"]
-	for id in [ThroughputReport.HIRE, ThroughputReport.DESK, ThroughputReport.MACHINE, ThroughputReport.LEVEL, ThroughputReport.SPECIALIST, ThroughputReport.SUPERVISOR, ThroughputReport.RUNNER, ThroughputReport.COLLECTOR, ThroughputReport.HR]:
+	for id in [ThroughputReport.HIRE, ThroughputReport.DESK, ThroughputReport.MACHINE, ThroughputReport.RUNNER, ThroughputReport.HR]:
 		keys.append("UPGRADE_" + id.to_upper())
 	for kind in [ThroughputReport.TRANSPORT, ThroughputReport.COMPLAINTS, ThroughputReport.REJECTS, ThroughputReport.PHONES, ThroughputReport.SEATING, ThroughputReport.WAITING, ThroughputReport.TICKETS]:
 		keys.append("AREA_" + kind.to_upper())

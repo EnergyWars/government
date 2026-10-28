@@ -90,6 +90,10 @@ func waiting_room() -> String:
 	return GameConfig.HALL_PICKUP if phase == Phase.WAITING_DOC or is_at_photo() else GameConfig.HALL_INTAKE
 
 
+func is_seat_waiting() -> bool:
+	return phase == Phase.WAITING or phase == Phase.WAITING_DOC
+
+
 func is_in_hall() -> bool:
 	return place >= 0 and (phase == Phase.WAITING or phase == Phase.WAITING_DOC)
 

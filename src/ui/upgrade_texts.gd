@@ -40,10 +40,12 @@ static func spot_title(spot: String) -> String:
 			return room_title(target)
 		"station":
 			return StationCard.label_for(target)
-		"shredder":
-			return t("FMT_SPOT_SHREDDER") % room_title(target)
+		"trays":
+			return t("FMT_SPOT_TRAYS") % StationCard.label_for(target)
 		"tube":
 			return t("FMT_SPOT_TUBE_STATION") % room_title(target)
+		"lead":
+			return t("FMT_SPOT_LEAD") % room_title(target)
 	return t("SPOT_" + spot.to_upper())
 
 
@@ -54,10 +56,12 @@ static func spot_icon(spot: String) -> String:
 			return Icons.room(target)
 		"station":
 			return Icons.station_for(target)
-		"shredder":
-			return Icons.upgrade("shredder")
+		"trays":
+			return Icons.INBOX
 		"tube":
 			return Icons.upgrade("tube_station")
+		"lead":
+			return Icons.upgrade("team_lead")
 	return Icons.SPOTS.get(spot, Icons.UPGRADE)
 
 
@@ -74,10 +78,12 @@ static func spot_description_key(spot: String) -> String:
 			return "DEPT_DESC_" + target.to_upper()
 		"station":
 			return "SPOT_DESC_STATION"
-		"shredder":
-			return "SPOT_DESC_DEPT_SHREDDER"
+		"trays":
+			return "SPOT_DESC_TRAYS"
 		"tube":
 			return "SPOT_DESC_TUBE_STATION"
+		"lead":
+			return "SPOT_DESC_LEAD"
 	return "SPOT_DESC_" + spot.to_upper()
 
 
@@ -86,20 +92,12 @@ static func title(entry: UpgradeEntry) -> String:
 		UpgradeCatalog.TRACK:
 			var name := t("TRACK_" + entry.target.to_upper())
 			return name if entry.room_id.is_empty() else t("FMT_ENTRY_IN_ROOM") % [name, room_title(entry.room_id)]
-		UpgradeCatalog.LEVEL:
-			return t("FMT_ENTRY_LEVEL") % StationCard.label_for(entry.target)
 		UpgradeCatalog.DESK:
 			return t("FMT_ENTRY_MACHINE" if GameConfig.is_machine(entry.target) else "FMT_ENTRY_DESK") % StationCard.label_for(entry.target)
 		UpgradeCatalog.HIRE:
 			return t("FMT_ENTRY_HIRE") % StationCard.label_for(entry.target)
-		UpgradeCatalog.SPECIALIST:
-			return t("FMT_ENTRY_SPECIALIST") % StationCard.label_for(entry.target)
-		UpgradeCatalog.TRAYS:
-			return t("FMT_ENTRY_TRAYS") % StationCard.label_for(entry.target)
 		UpgradeCatalog.REJECT_PILE:
 			return t("FMT_ENTRY_REJECT_PILE") % StationCard.label_for(entry.target)
-		UpgradeCatalog.SUPERVISOR:
-			return t("FMT_ENTRY_SUPERVISOR") % room_title(entry.target)
 		UpgradeCatalog.STAFF:
 			return t("STAFF_" + entry.target.to_upper())
 		UpgradeCatalog.RUNNER_LEVEL:
@@ -122,10 +120,6 @@ static func description(entry: UpgradeEntry) -> String:
 			return t("TRACK_DESC_" + entry.target.to_upper())
 		UpgradeCatalog.STAFF:
 			return t("STAFF_DESC_" + entry.target.to_upper())
-		UpgradeCatalog.SPECIALIST:
-			return t("STAFF_DESC_SPECIALISTS")
-		UpgradeCatalog.SUPERVISOR:
-			return t("STAFF_DESC_SUPERVISORS")
 	return t("ENTRY_DESC_" + entry.kind.to_upper())
 
 
@@ -133,16 +127,10 @@ static func icon(entry: UpgradeEntry) -> String:
 	match entry.kind:
 		UpgradeCatalog.TRACK:
 			return Icons.upgrade(entry.target)
-		UpgradeCatalog.LEVEL:
-			return Icons.ARROW_UP
 		UpgradeCatalog.DESK:
 			return Icons.ADD
 		UpgradeCatalog.HIRE:
 			return Icons.PERSON_ADD
-		UpgradeCatalog.SPECIALIST:
-			return Icons.STAFF.specialists
-		UpgradeCatalog.SUPERVISOR:
-			return Icons.STAFF.supervisors
 		UpgradeCatalog.STAFF:
 			return Icons.STAFF.get(entry.target, Icons.PERSON_ADD)
 		UpgradeCatalog.RUNNER_LEVEL:
@@ -151,8 +139,6 @@ static func icon(entry: UpgradeEntry) -> String:
 			return Icons.upgrade("tube_capacity")
 		UpgradeCatalog.STORAGE:
 			return Icons.STORAGE
-		UpgradeCatalog.TRAYS:
-			return Icons.INBOX
 		UpgradeCatalog.REJECT_PILE:
 			return Icons.CLOSE
 		UpgradeCatalog.UNLOCK:
@@ -183,8 +169,6 @@ static func effect(state: GameState, entry: UpgradeEntry) -> String:
 			if entry.is_maxed():
 				return t("FMT_EFFECT_MAX") % now
 			return t("FMT_EFFECT") % [now, format_value(unit, Formulas.track_value(entry.target, entry.level + 1))]
-		UpgradeCatalog.LEVEL:
-			return _change("FMT_EFFECT_SPEED", entry, "×%s" % UiKit.decimal(Formulas.level_speed(entry.level), 2), "×%s" % UiKit.decimal(Formulas.level_speed(entry.level + 1), 2))
 		UpgradeCatalog.SEGMENT:
 			var capacity := Formulas.tube_segment_capacity(state, entry.target)
 			return _change("FMT_EFFECT_CAPACITY", entry, str(capacity), str(capacity + GameConfig.TUBE_SEGMENT_CAPACITY_PER_LEVEL))
@@ -192,9 +176,6 @@ static func effect(state: GameState, entry: UpgradeEntry) -> String:
 			var room := state.mailroom()
 			var capacity := room.storage_capacity() if room != null else 0
 			return _change("FMT_EFFECT_CAPACITY", entry, str(capacity), str(capacity + GameConfig.MAIL_STORAGE_PER_LEVEL))
-		UpgradeCatalog.TRAYS:
-			var extra := entry.level * GameConfig.TRAY_CAPACITY_PER_LEVEL
-			return _change("FMT_EFFECT_TRAYS", entry, str(extra), str(extra + GameConfig.TRAY_CAPACITY_PER_LEVEL))
 		UpgradeCatalog.REJECT_PILE:
 			var pile := GameConfig.REJECT_CAPACITY + entry.level * GameConfig.REJECT_CAPACITY_PER_LEVEL
 			return _change("FMT_EFFECT_CAPACITY", entry, str(pile), str(pile + GameConfig.REJECT_CAPACITY_PER_LEVEL))
@@ -281,6 +262,8 @@ static func format_value(unit: String, value: float) -> String:
 			return "%s %%" % UiKit.decimal(value * 100.0)
 		"unlock":
 			return t("LABEL_YES") if value > 0.0 else t("LABEL_NO")
+		"factor":
+			return "×" + UiKit.decimal(value, 2)
 	return UiKit.decimal(value)
 
 

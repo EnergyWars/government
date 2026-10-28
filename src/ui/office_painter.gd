@@ -9,6 +9,8 @@ const SERVER_UNITS := 6
 const STALL_PITCH := 64.0
 const TILE := 44.0
 const POP_SECONDS := 0.45
+const LEAD_WALL := 5.0
+const LEAD_DOOR := 34.0
 
 
 static var _tile_texture: ImageTexture
@@ -159,14 +161,7 @@ static func machine(canvas: CanvasItem, dept_id: String, pos: Vector2, color: Co
 	var blink := active and fmod(time, 0.6) < 0.3
 	match dept_id:
 		"general_services":
-			canvas.draw_rect(Rect2(pos + Vector2(-24, -32), Vector2(48, 52)), color.darkened(0.3))
-			canvas.draw_rect(Rect2(pos + Vector2(-24, -32), Vector2(48, 10)), AppTheme.SURFACE)
-			ItemPainter.disc(canvas, pos + Vector2(0, -27), 3.5, AppTheme.SHOES)
-			canvas.draw_rect(Rect2(pos + Vector2(-18, -18), Vector2(36, 38)), AppTheme.CURTAIN)
-			for i in 4:
-				canvas.draw_rect(Rect2(pos + Vector2(-18 + i * 9.5, -18), Vector2(4, 38)), AppTheme.CURTAIN.darkened(0.15))
-			if blink:
-				canvas.draw_rect(Rect2(pos + Vector2(-24, -32), Vector2(48, 10)), AppTheme.FLAG_GOLD)
+			_photo_booth_body(canvas, pos, color, blink)
 		"tax_services":
 			canvas.draw_rect(Rect2(pos + Vector2(-24, -28), Vector2(48, 48)), AppTheme.MONITOR)
 			canvas.draw_rect(Rect2(pos + Vector2(-19, -23), Vector2(38, 12)), AppTheme.SCREEN if active else AppTheme.SCREEN.darkened(0.4))
@@ -213,6 +208,66 @@ static func machine(canvas: CanvasItem, dept_id: String, pos: Vector2, color: Co
 		_:
 			canvas.draw_rect(Rect2(pos + Vector2(-26, -22), Vector2(52, 42)), color.darkened(0.25))
 			canvas.draw_rect(Rect2(pos + Vector2(-26, -22), Vector2(52, 8)), color)
+
+
+static func photo_booth(canvas: CanvasItem, pos: Vector2, color: Color, active: bool, time: float) -> void:
+	ItemPainter.shadow(canvas, pos + Vector2(0, 20), 36, 6)
+	_photo_booth_body(canvas, pos, color, active and fmod(time, 0.6) < 0.3)
+
+
+static func _photo_booth_body(canvas: CanvasItem, pos: Vector2, color: Color, flash: bool) -> void:
+	canvas.draw_rect(Rect2(pos + Vector2(-24, -32), Vector2(48, 52)), color.darkened(0.3))
+	canvas.draw_rect(Rect2(pos + Vector2(-24, -32), Vector2(48, 10)), AppTheme.FLAG_GOLD if flash else AppTheme.SURFACE)
+	ItemPainter.disc(canvas, pos + Vector2(0, -27), 3.5, AppTheme.SHOES)
+	canvas.draw_rect(Rect2(pos + Vector2(-18, -18), Vector2(36, 38)), AppTheme.CURTAIN)
+	for i in 4:
+		canvas.draw_rect(Rect2(pos + Vector2(-18 + i * 9.5, -18), Vector2(4, 38)), AppTheme.CURTAIN.darkened(0.15))
+
+
+static func lead_office(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	canvas.draw_rect(Rect2(rect.position + Vector2(3, 5), rect.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(rect, AppTheme.LEAD_CARPET)
+	canvas.draw_rect(rect.grow_individual(-rect.size.x * 0.18, -LEAD_WALL * 3.0, -rect.size.x * 0.18, -LEAD_WALL * 2.0), Color(accent, 0.16))
+	var door_x := rect.end.x - LEAD_DOOR - LEAD_WALL * 3.0
+	canvas.draw_rect(Rect2(rect.position, Vector2(rect.size.x, LEAD_WALL)), AppTheme.WALL)
+	canvas.draw_rect(Rect2(rect.position, Vector2(LEAD_WALL, rect.size.y)), AppTheme.WALL)
+	canvas.draw_rect(Rect2(Vector2(rect.end.x - LEAD_WALL, rect.position.y), Vector2(LEAD_WALL, rect.size.y)), AppTheme.WALL)
+	canvas.draw_rect(Rect2(Vector2(rect.position.x, rect.end.y - LEAD_WALL), Vector2(door_x - rect.position.x, LEAD_WALL)), AppTheme.WALL)
+	canvas.draw_rect(Rect2(Vector2(door_x + LEAD_DOOR, rect.end.y - LEAD_WALL), Vector2(rect.end.x - door_x - LEAD_DOOR, LEAD_WALL)), AppTheme.WALL)
+	var hinge := Vector2(door_x + LEAD_DOOR, rect.end.y - LEAD_WALL * 0.5)
+	canvas.draw_line(hinge, hinge + Vector2(0, -LEAD_DOOR * 0.8), AppTheme.WOOD_DARK, 2.0)
+	canvas.draw_arc(hinge, LEAD_DOOR * 0.8, PI, PI * 1.5, 10, Color(AppTheme.WALL, 0.4), 1.0)
+	canvas.draw_rect(Rect2(rect.position + Vector2(rect.size.x * 0.12, 1), Vector2(rect.size.x * 0.22, LEAD_WALL - 2)), AppTheme.WINDOW)
+	var cabinet := Rect2(Vector2(rect.end.x - LEAD_WALL - 18, rect.position.y + LEAD_WALL + 2), Vector2(16, 22))
+	canvas.draw_rect(cabinet, AppTheme.CABINET)
+	canvas.draw_rect(cabinet, AppTheme.CABINET_DARK, false, 1.0)
+	canvas.draw_line(cabinet.position + Vector2(0, 11), cabinet.position + Vector2(16, 11), AppTheme.CABINET_DARK, 1.0)
+	var pot := Vector2(rect.position.x + LEAD_WALL + 11, rect.end.y - LEAD_WALL - 9)
+	canvas.draw_rect(Rect2(pot + Vector2(-5, -2), Vector2(10, 9)), AppTheme.POT)
+	ItemPainter.disc(canvas, pot + Vector2(0, -7), 8, AppTheme.PLANT)
+	ItemPainter.disc(canvas, pot + Vector2(-3, -10), 4, AppTheme.LEAF_DARK)
+
+
+static func runner_lounge(canvas: CanvasItem, rect: Rect2) -> void:
+	canvas.draw_rect(Rect2(rect.position + Vector2(3, 5), rect.size), AppTheme.SHADOW_SOFT)
+	canvas.draw_rect(rect, AppTheme.LEAD_CARPET)
+	canvas.draw_rect(rect.grow(-14.0), Color(AppTheme.RUNNER, 0.12))
+	canvas.draw_rect(Rect2(rect.position, Vector2(rect.size.x, LEAD_WALL)), AppTheme.WALL)
+	canvas.draw_rect(Rect2(rect.position, Vector2(LEAD_WALL, rect.size.y)), AppTheme.WALL)
+	canvas.draw_rect(Rect2(Vector2(rect.end.x - LEAD_WALL, rect.position.y), Vector2(LEAD_WALL, rect.size.y)), AppTheme.WALL)
+	var sofa := Rect2(rect.position + Vector2(14, 26), Vector2(rect.size.x - 60, 22))
+	canvas.draw_rect(sofa, AppTheme.BENCH)
+	canvas.draw_rect(Rect2(sofa.position + Vector2(0, -8), Vector2(sofa.size.x, 10)), AppTheme.BENCH.darkened(0.25))
+	canvas.draw_rect(sofa, AppTheme.WOOD_DARK, false, 1.0)
+	var table := Rect2(rect.position + Vector2(rect.size.x * 0.5 - 40, 58), Vector2(56, 14))
+	canvas.draw_rect(table, AppTheme.WOOD_TOP)
+	canvas.draw_rect(table, AppTheme.WOOD_DARK, false, 1.0)
+	for cup in 2:
+		ItemPainter.disc(canvas, table.position + Vector2(14 + cup * 26, 7), 3.5, AppTheme.SURFACE)
+	var cooler := Rect2(Vector2(rect.end.x - 36, rect.position.y + 12), Vector2(22, 40))
+	canvas.draw_rect(cooler, AppTheme.FRIDGE)
+	canvas.draw_rect(cooler, AppTheme.METAL_DARK, false, 1.0)
+	ItemPainter.disc(canvas, cooler.position + Vector2(11, -2), 9, AppTheme.WATER)
 
 
 static func kitchen_counter(canvas: CanvasItem, rect: Rect2) -> void:

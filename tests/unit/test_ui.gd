@@ -72,8 +72,9 @@ func test_every_content_id_is_translated() -> void:
 	for mode_id in UpgradesSheet.MODES:
 		keys.append("UPGRADE_MODE_" + mode_id.to_upper())
 		keys.append("UPGRADE_MODE_HINT_" + mode_id.to_upper())
-	for kind: String in [UpgradeCatalog.LEVEL, UpgradeCatalog.DESK, UpgradeCatalog.HIRE, UpgradeCatalog.RUNNER_LEVEL, UpgradeCatalog.SEGMENT, UpgradeCatalog.STORAGE, UpgradeCatalog.UNLOCK, UpgradeCatalog.RANK]:
+	for kind: String in [UpgradeCatalog.DESK, UpgradeCatalog.HIRE, UpgradeCatalog.RUNNER_LEVEL, UpgradeCatalog.SEGMENT, UpgradeCatalog.STORAGE, UpgradeCatalog.UNLOCK, UpgradeCatalog.RANK]:
 		keys.append("ENTRY_DESC_" + kind.to_upper())
+	keys.append_array(["FMT_SPOT_LEAD", UpgradeTexts.spot_description_key(GameConfig.lead_spot("general_services")), "ACTION_PATROL", "FMT_PATROL_ACTIVE", "FMT_PATROL_COOLDOWN", "STATUS_NO_LEAD", "FMT_STATUS_LEAD", "FMT_STATUS_PATROL", "FMT_GOAL_ROOM_SPEED"])
 	for reason: String in UpgradeTexts.BLOCK_KEYS:
 		keys.append(str(UpgradeTexts.BLOCK_KEYS[reason]))
 	for stage: Dictionary in GameConfig.BUILDING_STAGES:

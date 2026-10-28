@@ -4,7 +4,7 @@ const SIM_METHODS: Array[String] = [
 	"_update_event", "_age_cases", "_spawn_citizens", "_update_tickets", "_update_mail", "_update_moods",
 	"_update_complaints", "_update_visitors", "_update_intern", "_update_coffee_interns", "_update_disputes",
 	"_update_ruckus", "_update_kranz", "_update_lunch", "_update_gift", "_update_sickness", "_work_stations",
-	"_update_player", "_update_runners", "_update_collectors", "_update_dept_shredders", "_pneumatic_transport",
+	"_update_player", "_update_runners", "_pneumatic_transport",
 ]
 
 var _main: Node
@@ -183,7 +183,7 @@ func _profile_simulation() -> void:
 	for key in state.stations:
 		desks += state.stations[key].jobs.size()
 		queued += state.stations[key].inbox.size() + state.stations[key].outbox.size()
-	print("stations: %d  desks: %d  queued: %d  runners: %d  collectors: %d  parcels: %d  ticket_line: %d  reviews: %d" % [state.stations.size(), desks, queued, state.runners.size(), state.collectors.size(), state.tube_parcels.size(), state.ticket_line.size(), state.reviews.size()])
+	print("stations: %d  desks: %d  queued: %d  runners: %d  reject runners: %d  parcels: %d  ticket_line: %d  reviews: %d" % [state.stations.size(), desks, queued, state.runners.size(), state.runners_in(Runner.REJECT), state.tube_parcels.size(), state.ticket_line.size(), state.reviews.size()])
 
 
 func _hook_draws() -> void:

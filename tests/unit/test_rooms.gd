@@ -270,11 +270,147 @@ func test_department_spot_lists_office_upgrades_once() -> void:
 	for entry in entries:
 		assert_eq(entry.room, "general_services", entry.id)
 		assert_eq(_count_labels(sheet.content, UpgradeTexts.title(entry)), 1, entry.id)
-	assert_eq(_count_labels(sheet.content, sheet.tr("TRACK_DESC_OFFICE_EQUIPMENT")), 1)
+	assert_eq(_count_labels(sheet.content, sheet.tr("TRACK_DESC_ROOM_SPEED")), 1)
+	assert_eq(_count_labels(sheet.content, sheet.tr("TRACK_DESC_ROOM_TRAYS")), 1)
+	var ids: Array[String] = []
+	for entry in entries:
+		ids.append(entry.id)
+	assert_has(ids, "%s:room_speed@general_services" % UpgradeCatalog.TRACK)
+	assert_has(ids, "%s:room_trays@general_services" % UpgradeCatalog.TRACK)
+	assert_has(ids, "%s:team_lead@general_services" % UpgradeCatalog.TRACK)
 	assert_true(_has_label(sheet.content, sheet.tr("LEGEND_MARKERS")))
 	assert_true(_has_label(sheet.content, DepartmentSection.route_text("general_services")))
 	assert_false(_has_label(sheet.content, sheet.tr("TRACK_DESC_COFFEE")))
 	assert_false(_has_label(sheet.content, sheet.tr("TRACK_DESC_BRIEFCASE")))
+	await wait_physics_frames(2)
+
+
+func test_lead_offices_are_registered_as_lead_spots() -> void:
+	for room_id in GameConfig.lead_rooms():
+		var spot := GameConfig.lead_spot(room_id)
+		var office := layout.lead_office(room_id)
+		var hall_office := GameConfig.WAITING_ROOMS.has(room_id)
+		assert_eq(spot, WorldLayout.LEAD_PREFIX + room_id, room_id)
+		assert_eq(spot, UpgradeCatalog.LEAD_PREFIX + room_id, room_id)
+		assert_true(office.has_area(), room_id)
+		assert_eq(office.size, WorldLayout.LEAD_HALL_SIZE if hall_office else WorldLayout.LEAD_OFFICE_SIZE, room_id)
+		assert_has(layout.spot_rects(spot), office, room_id)
+		assert_eq(layout.spot_rects(spot).size(), 1, room_id)
+		assert_eq(GameConfig.spot_room(spot), GameConfig.lead_parent_room(room_id), room_id)
+		assert_eq(layout.spot_at(office.get_center()), spot, room_id)
+	assert_true(layout.spot_rects(GameConfig.lead_spot(GameConfig.ROOM_HALL)).is_empty())
+	assert_true(layout.spot_rects(GameConfig.lead_spot(GameConfig.ROOM_KITCHEN)).is_empty())
+	assert_true(layout.spot_rects(GameConfig.lead_spot("nope")).is_empty())
+
+
+func test_lead_offices_sit_inside_their_rooms_and_keep_slots_free() -> void:
+	for room_id in GameConfig.lead_rooms():
+		if GameConfig.WAITING_ROOMS.has(room_id):
+			continue
+		var office := layout.lead_office(room_id)
+		var room := layout.service_room(room_id)
+		assert_true(room.has_area(), room_id)
+		assert_true(room.encloses(office), room_id)
+		assert_false(office.intersects(layout.slot_rect(layout.tube_station_point(room_id))), room_id)
+		for key: String in layout.areas:
+			if GameConfig.station_room(key) == room_id:
+				assert_false(office.intersects(layout.area(key)), "%s %s" % [room_id, key])
+		for other in GameConfig.lead_rooms():
+			if other != room_id:
+				assert_false(office.intersects(layout.lead_office(other)), "%s %s" % [room_id, other])
+
+
+func test_hall_lead_offices_sit_right_below_their_counter() -> void:
+	var stations := {GameConfig.HALL_INTAKE: GameConfig.RECEPTION, GameConfig.HALL_PICKUP: GameConfig.COUNTER}
+	for room_id: String in stations:
+		var office := layout.lead_office(room_id)
+		var counter := layout.area(stations[room_id])
+		assert_true(layout.waiting_room(room_id).encloses(office), room_id)
+		assert_false(office.intersects(counter), room_id)
+		assert_lt(office.position.y - counter.end.y, 40.0, room_id)
+		assert_false(office.intersects(layout.place_area(room_id)), room_id)
+		assert_false(office.intersects(layout.seating_sign_rect(room_id)), room_id)
+		assert_false(office.intersects(layout.standing_sign_rect(room_id)), room_id)
+		assert_false(office.intersects(layout.archive_rect()), room_id)
+		assert_false(office.intersects(layout.slot_rect(layout.tube_station_point(GameConfig.ROOM_HALL))), room_id)
+		for point in layout.tray_points(stations[room_id]):
+			assert_false(office.intersects(layout.tray_rect(point)), room_id)
+		assert_eq(GameConfig.lead_room(stations[room_id]), room_id)
+
+
+func test_runner_lounge_sits_in_the_entrance_hall() -> void:
+	var lounge := layout.runner_lounge()
+	assert_true(layout.hall.encloses(lounge))
+	assert_eq(layout.runners_board(), lounge)
+	assert_eq(layout.spot_at(lounge.get_center()), "runners")
+	assert_eq(GameConfig.spot_room("runners"), GameConfig.ROOM_HALL)
+	assert_false(GameConfig.STAFF_ROOM_BOARDS.has("runners"))
+	assert_true(GameConfig.BOARD_SPOTS.has("runners"))
+	for room_id in GameConfig.WAITING_ROOMS:
+		assert_false(lounge.intersects(layout.waiting_room(room_id)), room_id)
+	assert_false(lounge.intersects(layout.hours_board()))
+	assert_false(lounge.intersects(layout.closed_sign_rect()))
+	assert_eq(layout.runner_home(), layout.runner_rest_point(0))
+	var seen := {}
+	for index in GameConfig.MAX_RUNNERS:
+		var point := layout.runner_rest_point(index)
+		assert_true(lounge.has_point(point), str(index))
+		seen[point] = true
+	assert_eq(seen.size(), WorldLayout.RUNNER_REST_COLUMNS * 3)
+	assert_eq(layout.runner_rest_point(GameConfig.MAX_RUNNERS), layout.runner_rest_point(0))
+	assert_eq(layout.runner_rest_point(-1), layout.runner_rest_point(GameConfig.MAX_RUNNERS - 1))
+
+
+func test_lead_desk_seat_and_patrol_path() -> void:
+	for room_id in GameConfig.lead_rooms():
+		var office := layout.lead_office(room_id)
+		var desk := layout.lead_desk_point(room_id)
+		var seat := layout.lead_seat(room_id)
+		assert_eq(desk, office.get_center() + WorldLayout.LEAD_DESK_OFFSET, room_id)
+		assert_eq(seat, desk + Vector2(0.0, -24.0), room_id)
+		assert_true(office.has_point(desk), room_id)
+		assert_true(office.has_point(seat), room_id)
+	var desks: Array[Vector2] = [layout.desk_position("general_services/review", 0), layout.desk_position("general_services/signature", 0)]
+	var path := layout.patrol_path("general_services", desks)
+	var start := layout.lead_seat("general_services")
+	assert_eq(path.size(), desks.size() + 2)
+	assert_eq(path[0], start)
+	assert_eq(path[1], desks[0])
+	assert_eq(path[2], desks[1])
+	assert_eq(path[path.size() - 1], start)
+	var empty := layout.patrol_path(GameConfig.HALL_INTAKE, [] as Array[Vector2])
+	assert_eq(empty.size(), 2)
+	assert_eq(empty[0], layout.lead_seat(GameConfig.HALL_INTAKE))
+	assert_eq(empty[1], layout.lead_seat(GameConfig.HALL_INTAKE))
+
+
+func test_lead_spot_sheet_hires_a_lead_and_offers_a_patrol() -> void:
+	var state := game.state
+	var spot := GameConfig.lead_spot("general_services")
+	var entries := UpgradeCatalog.entries_for_spot(state, spot)
+	var ids: Array[String] = []
+	for entry in entries:
+		ids.append(entry.id)
+		assert_eq(entry.spot, spot, entry.id)
+		assert_eq(entry.room, "general_services", entry.id)
+	for upgrade_id in GameConfig.LEAD_TRACKS:
+		assert_has(ids, "%s:%s@general_services" % [UpgradeCatalog.TRACK, upgrade_id])
+	assert_eq(Progression.upgrade_block_reason(state, "lead_breaks", "general_services"), "requires")
+	assert_eq(SpotStatus.lines(state, spot), [TranslationServer.translate("STATUS_NO_LEAD")] as Array[String])
+	var sheet := _sheet(spot)
+	assert_eq(sheet.title(), UpgradeTexts.spot_title(spot))
+	for entry in entries:
+		assert_true(_has_label(sheet.content, UpgradeTexts.title(entry)), entry.id)
+	var patrol := _find_button(sheet.content, sheet.tr("ACTION_PATROL"))
+	assert_not_null(patrol)
+	assert_eq(SpotSheet.patrol_label(state, "general_services"), TranslationServer.translate("ACTION_PATROL"))
+	var hired := state.staff_hired
+	_buy(sheet, "%s:team_lead@general_services" % UpgradeCatalog.TRACK)
+	assert_true(Formulas.has_lead(state, "general_services"))
+	assert_eq(state.staff_hired, hired + 1)
+	assert_eq(Progression.upgrade_block_reason(state, "lead_breaks", "general_services"), "")
+	assert_eq(Progression.upgrade_block_reason(state, "lead_breaks", "tax_services"), "room")
+	assert_eq(SpotStatus.lines(state, spot).size(), 2)
 	await wait_physics_frames(2)
 
 
@@ -298,7 +434,9 @@ func test_staff_room_offers_every_staff_upgrade() -> void:
 	for entry in UpgradeCatalog.entries_for_spot(game.state, UpgradeCatalog.room_spot(GameConfig.ROOM_STAFF)):
 		ids.append(entry.id)
 		assert_eq(entry.room, GameConfig.ROOM_STAFF, entry.id)
-	for id: String in ["staff:runners", "staff:collectors", "staff:coffee_interns", "staff:hr", "track:runner_speed", "track:runner_trolleys", "track:collector_speed", "track:collector_carts", "track:coffee_intern_speed", "track:quality_training", "track:mediation"]:
+	for id: String in ["staff:runners", "staff:collectors", "track:runner_speed", "track:runner_trolleys", "track:collector_speed", "track:collector_carts"]:
+		assert_false(ids.has(id), id)
+	for id: String in ["staff:coffee_interns", "staff:hr", "track:coffee_intern_speed", "track:quality_training", "track:mediation"]:
 		assert_true(ids.has(id), id)
 	var spots := UpgradeCatalog.spots_of(UpgradeCatalog.entries_for_spot(game.state, UpgradeCatalog.room_spot(GameConfig.ROOM_STAFF)))
 	var expected: Array[String] = GameConfig.STAFF_ROOM_BOARDS.duplicate()
@@ -398,7 +536,13 @@ func test_complaint_desk_sheet_links_to_the_complaints() -> void:
 
 
 func test_room_texts_exist_in_both_languages() -> void:
-	var keys: Array[String] = ["SECTION_ROOM_BOOSTS", "SECTION_SHIFT_PLAN", "ROOM_LOCKED_TITLE", "ROOM_LOCKED_INSPECTION", "LABEL_ROOM_LOCKED", "SPOT_EMPTY", "ACTION_OPEN_SPOT", "ACTION_LOCATE", "ACTION_READ_COMPLAINTS"]
+	var keys: Array[String] = ["SECTION_ROOM_BOOSTS", "SECTION_SHIFT_PLAN", "ROOM_LOCKED_TITLE", "ROOM_LOCKED_INSPECTION", "LABEL_ROOM_LOCKED", "SPOT_EMPTY", "ACTION_OPEN_SPOT", "ACTION_LOCATE", "ACTION_READ_COMPLAINTS", "FMT_SPOT_LEAD", "SPOT_DESC_LEAD", "ACTION_PATROL", "FMT_PATROL_ACTIVE", "FMT_PATROL_COOLDOWN", "STATUS_NO_LEAD", "FMT_STATUS_LEAD", "FMT_STATUS_PATROL"]
+	var tracks: Array[String] = ["room_speed", "room_trays"]
+	tracks.append_array(GameConfig.LEAD_TRACKS)
+	for upgrade_id in tracks:
+		keys.append("TRACK_" + upgrade_id.to_upper())
+		keys.append("TRACK_DESC_" + upgrade_id.to_upper())
+	keys.append(UpgradeTexts.spot_description_key(GameConfig.lead_spot("general_services")))
 	for room_id in GameConfig.SERVICE_ROOMS:
 		keys.append("ROOM_" + room_id.to_upper())
 		keys.append(UpgradeTexts.spot_description_key(_room_spot(room_id)))

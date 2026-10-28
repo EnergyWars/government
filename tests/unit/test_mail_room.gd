@@ -58,13 +58,13 @@ func test_storage_capacity_and_upgrade() -> void:
 	assert_eq(room.storage_capacity(), GameConfig.MAIL_STORAGE_BASE)
 	assert_eq(room.inbox_capacity(999), GameConfig.MAIL_STORAGE_BASE)
 	var cost := Formulas.mail_storage_cost(room)
-	assert_eq(cost, GameConfig.MAIL_STORAGE_COST)
+	assert_eq(cost, GameConfig.MAIL_STORAGE_COST * Formulas.early_discount(0))
 	var money := state.money
 	assert_true(actions.upgrade_mail_storage())
 	assert_eq(room.storage_level, 1)
 	assert_almost_eq(state.money, money - cost, 0.001)
 	assert_eq(room.storage_capacity(), GameConfig.MAIL_STORAGE_BASE + GameConfig.MAIL_STORAGE_PER_LEVEL)
-	assert_almost_eq(Formulas.mail_storage_cost(room), GameConfig.MAIL_STORAGE_COST * GameConfig.MAIL_STORAGE_GROWTH, 0.001)
+	assert_almost_eq(Formulas.mail_storage_cost(room), GameConfig.MAIL_STORAGE_COST * GameConfig.MAIL_STORAGE_GROWTH * Formulas.early_discount(1), 0.001)
 	var entry_id := "storage:" + GameConfig.MAILROOM
 	assert_eq(UpgradeCatalog.find(state, entry_id).level, 1)
 	assert_true(actions.buy_entry(entry_id))
@@ -197,7 +197,7 @@ func test_floor_letters_survive_saving_and_are_repaired() -> void:
 func test_mail_floor_texts_exist() -> void:
 	for key in ["FMT_FLOAT_MAIL_DROPPED", "FMT_MAIL_FLOOR", "MAIL_STORAGE_TITLE", "ENTRY_DESC_STORAGE", "FMT_MAIL_STORAGE_INFO"]:
 		assert_ne(TranslationServer.translate(key), key, key)
-	for upgrade_id in ["mail_subscription", "mail_frequency", "registered_mail", "letter_opener"]:
+	for upgrade_id in ["mail_subscription", "mail_frequency", "registered_mail"]:
 		assert_ne(TranslationServer.translate("TRACK_" + upgrade_id.to_upper()), "TRACK_" + upgrade_id.to_upper(), upgrade_id)
 		assert_ne(TranslationServer.translate("TRACK_DESC_" + upgrade_id.to_upper()), "TRACK_DESC_" + upgrade_id.to_upper(), upgrade_id)
 
@@ -317,16 +317,18 @@ func test_citizens_go_before_mail() -> void:
 	citizen.route = RouteBuilder.build(citizen)
 	citizen.step = 1
 	review.inbox.append_array([letter, citizen])
-	assert_eq(review.take_next_case(true, false), citizen)
-	assert_eq(review.take_next_case(true, false), letter)
+	assert_eq(review.take_next_case(true), citizen)
+	assert_eq(review.take_next_case(true), letter)
 
 
 func test_mail_room_has_its_own_case_time_and_demand() -> void:
 	var room := _open_mail()
-	assert_almost_eq(Formulas.station_case_time(state, room, false), float(GameConfig.station_kind("mailroom").base_time), 0.0001)
-	state.set_upgrade("letter_opener", 1)
-	assert_lt(Formulas.station_case_time(state, room, false), float(GameConfig.station_kind("mailroom").base_time))
-	assert_almost_eq(Formulas.station_case_time(state, room, false), float(GameConfig.station_kind("mailroom").base_time) / Formulas.track_value("letter_opener", 1), 0.0001)
+	assert_almost_eq(Formulas.station_case_time(state, room), float(GameConfig.station_kind("mailroom").base_time), 0.0001)
+	state.set_upgrade("room_speed", 1, GameConfig.ROOM_HALL)
+	assert_almost_eq(Formulas.station_case_time(state, room), float(GameConfig.station_kind("mailroom").base_time), 0.0001)
+	state.set_upgrade("room_speed", 1, GameConfig.ROOM_MAIL)
+	assert_lt(Formulas.station_case_time(state, room), float(GameConfig.station_kind("mailroom").base_time))
+	assert_almost_eq(Formulas.station_case_time(state, room), float(GameConfig.station_kind("mailroom").base_time) / Formulas.track_value("room_speed", 1), 0.0001)
 	assert_almost_eq(Formulas.station_demand(state, GameConfig.MAILROOM), Formulas.mail_rate(state), 0.0001)
 
 
@@ -444,3 +446,25 @@ func _citizen() -> CaseFile:
 	var case_file := CaseFile.new("general_services")
 	case_file.route = RouteBuilder.build(case_file)
 	return case_file
+
+
+func test_player_works_the_mail_desk_even_when_the_target_inbox_is_half_full() -> void:
+	var room := _open_mail()
+	var review := state.station("general_services/review")
+	for i in ceili(review.inbox_capacity(state.lobby_capacity()) * GameConfig.MAIL_TARGET_SHARE):
+		review.inbox.append(CaseFile.new("general_services"))
+	room.inbox.append(_mail_case())
+	state.player.position = WorldLayout.get_default().desk_work_point(GameConfig.MAILROOM, 0)
+	assert_true(sim.work_at_desk(1.0))
+	assert_not_null(room.jobs[0])
+	assert_eq(room.inbox.size(), 0)
+
+
+func test_unattended_mail_desk_still_respects_the_target_share() -> void:
+	var room := _open_mail()
+	var review := state.station("general_services/review")
+	for i in ceili(review.inbox_capacity(state.lobby_capacity()) * GameConfig.MAIL_TARGET_SHARE):
+		review.inbox.append(CaseFile.new("general_services"))
+	room.inbox.append(_mail_case())
+	assert_false(sim.start_job(room, 0))
+	assert_eq(room.inbox.size(), 1)

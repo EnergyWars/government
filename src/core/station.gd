@@ -7,15 +7,13 @@ var dept_id: String
 var machine: bool
 var desks := 1
 var staff := 0
-var specialists := 0
-var level := 1
+var tray_size := GameConfig.TRAY_BASE
 var inbox: Array[CaseFile] = []
 var outbox: Array[CaseFile] = []
 var jobs: Array[StationJob] = [null]
 var moods: Array[DeskMood] = [DeskMood.new()]
 var rejects := 0
 var storage_level := 0
-var tray_level := 0
 var reject_level := 0
 var rush := 0.0
 var jammed := false
@@ -35,7 +33,7 @@ func is_shared() -> bool:
 
 
 func is_entry() -> bool:
-	return kind == "reception" or kind == "dock" or kind == "mailroom"
+	return GameConfig.ENTRY_KINDS.has(kind)
 
 
 func is_mailroom() -> bool:
@@ -43,15 +41,11 @@ func is_mailroom() -> bool:
 
 
 func is_final() -> bool:
-	return kind == "counter" or kind == "clearance"
+	return GameConfig.FINAL_KINDS.has(kind)
 
 
 func calls_citizens() -> bool:
 	return kind == "reception" or kind == "counter" or key == GameConfig.PHOTO_STATION
-
-
-func supports_specialists() -> bool:
-	return kind == "review"
 
 
 func storage_capacity() -> int:
@@ -63,7 +57,7 @@ func inbox_capacity(lobby: int) -> int:
 		return storage_capacity()
 	if is_entry():
 		return lobby
-	return GameConfig.INBOX_BASE + GameConfig.INBOX_PER_DESK * desks + tray_capacity()
+	return tray_size
 
 
 func is_swamped(lobby: int) -> bool:
@@ -73,11 +67,7 @@ func is_swamped(lobby: int) -> bool:
 
 
 func outbox_capacity() -> int:
-	return GameConfig.OUTBOX_BASE + GameConfig.OUTBOX_PER_DESK * desks + tray_capacity()
-
-
-func tray_capacity() -> int:
-	return GameConfig.TRAY_CAPACITY_PER_LEVEL * tray_level
+	return tray_size
 
 
 func is_backlogged() -> bool:
@@ -93,9 +83,7 @@ func has_outbox_space() -> bool:
 
 
 func has_reject_pile() -> bool:
-	if kind == "reception" or kind == "counter":
-		return true
-	return kind == "review" and not dept_id.is_empty() and not GameConfig.is_customs(dept_id)
+	return GameConfig.has_reject_pile(key)
 
 
 func reject_capacity() -> int:
@@ -114,12 +102,8 @@ func is_output_jammed() -> bool:
 	return produces_rejects() and (not has_outbox_space() or not has_reject_space())
 
 
-func is_specialist_desk(desk: int) -> bool:
-	return desk >= desks
-
-
 func is_staffed(desk: int) -> bool:
-	return desk < staff or is_specialist_desk(desk)
+	return desk >= 0 and desk < staff
 
 
 func is_working(desk: int) -> bool:
@@ -139,21 +123,15 @@ func resting_count() -> int:
 
 
 func workers() -> int:
-	return staff + specialists
+	return staff
 
 
 func add_desk() -> void:
-	jobs.insert(desks, null)
-	moods.insert(desks, DeskMood.new())
+	jobs.append(null)
+	moods.append(DeskMood.new())
 	desks += 1
 	if machine:
 		staff = desks
-
-
-func add_specialist() -> void:
-	specialists += 1
-	jobs.append(null)
-	moods.append(DeskMood.new())
 
 
 func active_jobs() -> int:
@@ -191,8 +169,8 @@ func needs_help() -> bool:
 	return can_be_helped() and inbox.size() >= GameConfig.HELP_BACKLOG
 
 
-func take_next_case(prioritize_urgent: bool, for_specialist: bool, blocked_targets: Array[String] = []) -> CaseFile:
-	var index := _pick(prioritize_urgent, for_specialist, blocked_targets)
+func take_next_case(prioritize_urgent: bool, blocked_targets: Array[String] = []) -> CaseFile:
+	var index := _pick(prioritize_urgent, blocked_targets)
 	if index < 0:
 		return null
 	var case_file := inbox[index]
@@ -200,20 +178,16 @@ func take_next_case(prioritize_urgent: bool, for_specialist: bool, blocked_targe
 	return case_file
 
 
-func _pick(prioritize_urgent: bool, for_specialist: bool, blocked_targets: Array[String]) -> int:
+func _pick(prioritize_urgent: bool, blocked_targets: Array[String]) -> int:
 	var best := -1
 	var best_score := -1
 	for i in inbox.size():
 		var case_file := inbox[i]
-		if specialists > 0 and not for_specialist and case_file.complex:
-			continue
 		if blocked_targets.has(case_file.next_key()):
 			continue
 		var score := 0
 		if not case_file.mail:
 			score += GameConfig.MAIL_CITIZEN_PRIORITY
-		if for_specialist and case_file.complex:
-			score += 2
 		if prioritize_urgent and case_file.urgent:
 			score += 1
 		if score > best_score:
@@ -240,11 +214,8 @@ func to_dict() -> Dictionary:
 		"key": key,
 		"desks": desks,
 		"staff": staff,
-		"specialists": specialists,
-		"level": level,
 		"rejects": rejects,
 		"storage_level": storage_level,
-		"tray_level": tray_level,
 		"reject_level": reject_level,
 		"rush": rush,
 		"inbox": inbox.map(func(c: CaseFile) -> Dictionary: return c.to_dict()),
@@ -258,12 +229,9 @@ static func from_dict(data: Dictionary) -> Station:
 	var station := Station.new(str(data.get("key", "")))
 	station.desks = clampi(int(data.get("desks", 1)), 1, 99)
 	station.staff = station.desks if station.machine else clampi(int(data.get("staff", 0)), 0, station.desks)
-	station.specialists = clampi(int(data.get("specialists", 0)), 0, GameConfig.MAX_SPECIALISTS) if station.supports_specialists() else 0
-	station.level = clampi(int(data.get("level", 1)), 1, GameConfig.MAX_STATION_LEVEL)
 	station.reject_level = clampi(int(data.get("reject_level", 0)), 0, GameConfig.MAX_REJECT_LEVEL) if station.has_reject_pile() else 0
 	station.rejects = clampi(int(data.get("rejects", 0)), 0, station.reject_capacity()) if station.has_reject_pile() else 0
 	station.storage_level = clampi(int(data.get("storage_level", 0)), 0, GameConfig.MAIL_STORAGE_MAX_LEVEL) if station.is_mailroom() else 0
-	station.tray_level = clampi(int(data.get("tray_level", 0)), 0, GameConfig.MAX_TRAY_LEVEL)
 	station.rush = clampf(float(data.get("rush", 0.0)), 0.0, GameConfig.UPGRADE_RUSH_SECONDS)
 	for entry in data.get("inbox", []):
 		station.inbox.append(CaseFile.from_dict(entry))
@@ -273,7 +241,7 @@ static func from_dict(data: Dictionary) -> Station:
 	station.moods.clear()
 	var job_data: Array = data.get("jobs", [])
 	var mood_data: Array = data.get("moods", [])
-	for i in station.desks + station.specialists:
+	for i in station.desks:
 		var entry: Variant = job_data[i] if i < job_data.size() else null
 		station.jobs.append(StationJob.from_dict(entry) if entry is Dictionary else null)
 		station.moods.append(DeskMood.from_dict(mood_data[i] if i < mood_data.size() else null))

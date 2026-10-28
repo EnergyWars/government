@@ -6,7 +6,9 @@ enum Task { IDLE, TO_SOURCE, TO_TARGET }
 const INTAKE := "intake"
 const INTERNAL := "internal"
 const OUTPUT := "output"
-const ROLES: Array[String] = [INTAKE, INTERNAL, OUTPUT]
+const REJECT := "reject"
+const CASE_ROLES: Array[String] = [INTAKE, INTERNAL, OUTPUT]
+const ROLES: Array[String] = [INTAKE, INTERNAL, OUTPUT, REJECT]
 const ALL_DEPARTMENTS := ""
 
 var task := Task.IDLE
@@ -16,6 +18,7 @@ var reserved := 0
 var role := INTAKE
 var dept_id := ALL_DEPARTMENTS
 var level := 0
+var loaded := 0
 
 
 func clear_task() -> void:
@@ -23,6 +26,19 @@ func clear_task() -> void:
 	source = ""
 	target = ""
 	reserved = 0
+
+
+func is_reject() -> bool:
+	return role == REJECT
+
+
+func reset_route() -> void:
+	if task == Task.TO_SOURCE or task == Task.IDLE:
+		clear_task()
+
+
+func serves_rejects_of(station_dept: String) -> bool:
+	return dept_id == ALL_DEPARTMENTS or station_dept == dept_id
 
 
 static func role_for(source_key: String, target_key: String) -> String:
@@ -45,7 +61,7 @@ static func restore_department(value: Variant) -> String:
 
 
 func to_dict() -> Dictionary:
-	return {"x": position.x, "y": position.y, "items": items_to_dict(), "target": target if not items.is_empty() else "", "role": role, "dept": dept_id, "level": level}
+	return {"x": position.x, "y": position.y, "items": items_to_dict(), "target": target if not items.is_empty() else "", "role": role, "dept": dept_id, "level": level, "loaded": loaded}
 
 
 static func from_dict(data: Dictionary, fallback: Vector2) -> Runner:
@@ -58,4 +74,5 @@ static func from_dict(data: Dictionary, fallback: Vector2) -> Runner:
 	runner.role = saved_role if ROLES.has(saved_role) else ""
 	runner.dept_id = restore_department(data.get("dept", ALL_DEPARTMENTS))
 	runner.level = clampi(int(data.get("level", 0)), 0, GameConfig.MAX_RUNNER_LEVEL)
+	runner.loaded = clampi(int(data.get("loaded", 0)), 0, Formulas.runner_load_limit(runner.level))
 	return runner

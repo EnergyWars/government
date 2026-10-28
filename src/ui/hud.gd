@@ -3,7 +3,6 @@ extends Control
 
 signal open_sheet(sheet_id: String, argument: String)
 signal focus_department(dept_id: String)
-signal locate_spot(spot: String)
 
 const NAV_ITEMS := [
 	{"id": "upgrades", "icon": Icons.UPGRADE, "label": "NAV_UPGRADES"},
@@ -234,17 +233,10 @@ func _build_ruckus_banner(column: VBoxContainer) -> void:
 	var text := UiKit.label(tr("RUCKUS_ALERT_TEXT"), "BodySmall", true)
 	text.add_theme_color_override(&"font_color", AppTheme.on_container("error"))
 	text_column.add_child(text)
-	var locate := UiKit.button(tr("ACTION_LOCATE"), "error")
-	locate.pressed.connect(func() -> void: locate_spot.emit(ruckus_spot()))
-	text_column.add_child(locate)
 	row.add_child(text_column)
 	_ruckus_banner.add_child(row)
 	_ruckus_banner.visible = false
 	column.add_child(_ruckus_banner)
-
-
-static func ruckus_spot() -> String:
-	return WorldLayout.STATION_PREFIX + GameConfig.RECEPTION
 
 
 func _build_bonus_card(column: VBoxContainer) -> void:

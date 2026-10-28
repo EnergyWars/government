@@ -68,11 +68,11 @@ func test_mood_serialization_round_trip_and_validation() -> void:
 	assert_eq(broken.resting, 0.0)
 
 
-func test_station_moods_follow_desks_and_specialists() -> void:
+func test_station_moods_follow_desks() -> void:
 	var station := Station.new(REVIEW)
 	assert_eq(station.moods.size(), 1)
 	station.add_desk()
-	station.add_specialist()
+	station.add_desk()
 	assert_eq(station.moods.size(), station.jobs.size())
 	assert_eq(station.moods.size(), 3)
 
@@ -92,8 +92,8 @@ func test_station_working_and_resting_counts() -> void:
 
 func test_station_save_restores_moods_and_old_saves_default() -> void:
 	var station := Station.new(REVIEW)
-	station.staff = 1
-	station.add_specialist()
+	station.add_desk()
+	station.staff = 2
 	station.moods[1].rest(DeskMood.ASLEEP)
 	var loaded := Station.from_dict(station.to_dict())
 	assert_eq(loaded.moods.size(), 2)
@@ -133,18 +133,27 @@ func test_rolled_alert_stays_within_variance() -> void:
 		assert_lte(rolled, duration * (1.0 + GameConfig.ALERT_VARIANCE) + 0.001)
 
 
-func test_supervisors_slow_drowsiness() -> void:
+func test_lead_focus_slows_drowsiness() -> void:
 	var station := state.station(REVIEW)
 	assert_eq(Formulas.drowsiness_rate(state, station), 1.0)
-	state.department("general_services").supervisors = 2
-	assert_almost_eq(Formulas.drowsiness_rate(state, station), 0.49, 0.0001)
+	state.set_upgrade("team_lead", 1, "general_services")
+	state.set_upgrade("lead_focus", 2, "general_services")
+	assert_almost_eq(Formulas.drowsiness_rate(state, station), Formulas.track_value("lead_focus", 2), 0.0001)
 
 
-func test_shared_stations_use_best_supervisor_count() -> void:
+func test_shared_stations_use_the_lead_of_their_room() -> void:
 	state.unlock_department("tax_services")
-	state.department("tax_services").supervisors = 1
 	var reception := state.station(GameConfig.RECEPTION)
-	assert_almost_eq(Formulas.drowsiness_rate(state, reception), GameConfig.SUPERVISOR_DROWSY_FACTOR, 0.0001)
+	state.set_upgrade("team_lead", 1, "tax_services")
+	state.set_upgrade("lead_focus", 5, "tax_services")
+	assert_eq(Formulas.drowsiness_rate(state, reception), 1.0)
+	state.set_upgrade("team_lead", 1, GameConfig.HALL_INTAKE)
+	state.set_upgrade("lead_focus", 1, GameConfig.HALL_INTAKE)
+	assert_almost_eq(Formulas.drowsiness_rate(state, reception), Formulas.track_value("lead_focus", 1), 0.0001)
+	assert_eq(Formulas.drowsiness_rate(state, state.station(GameConfig.COUNTER)), 1.0)
+	state.set_upgrade("team_lead", 1, GameConfig.HALL_PICKUP)
+	state.set_upgrade("lead_focus", 3, GameConfig.HALL_PICKUP)
+	assert_almost_eq(Formulas.drowsiness_rate(state, state.station(GameConfig.COUNTER)), Formulas.track_value("lead_focus", 3), 0.0001)
 
 
 func test_rest_limits_follow_wake_service() -> void:

@@ -99,6 +99,6 @@ static func work_mode(sheet: Sheet, dept_id: String) -> Control:
 	sheet.track(func() -> void:
 		var current := game.state.department(dept_id)
 		var mode: Dictionary = GameConfig.THOROUGHNESS[current.thoroughness]
-		explanation.text = sheet.tr("FMT_MODE_EFFECT") % [UiKit.percent(float(mode.time)), UiKit.percent(Formulas.error_chance(game.state, current))]
+		explanation.text = sheet.tr("FMT_MODE_EFFECT") % [UiKit.percent(float(mode.time)), UiKit.percent(Formulas.error_chance(game.state, current)), UiKit.percent(float(mode.reward))]
 	)
 	return card

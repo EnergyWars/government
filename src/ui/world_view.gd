@@ -5,8 +5,10 @@ signal open_spot(spot: String)
 signal open_sheet(sheet_id: String)
 
 const VISIBLE_WIDTH := 720.0
-const TAP_SLOP := 14.0
+const STICK_DEADZONE := 4.0
 const TAP_TIME := 300
+const DOUBLE_TAP_TIME := 450
+const DOUBLE_TAP_DISTANCE := 48.0
 const CAMERA_FOLLOW := 6.0
 const FOCUS_TIME := 3.0
 const POP_STAGGER := 0.07
@@ -72,11 +74,16 @@ const JOB_BAR_SIZE := Vector2(56, 7)
 const JOB_BAR_OFFSET := Vector2(-28, 24)
 const MAX_FLOATERS := 24
 const LEFT_FLOAT_OFFSET := Vector2(0, -60)
-const PATIENCE_OFFSET := Vector2(0, -38)
-const PATIENCE_RADIUS := 11.0
-const PATIENCE_WIDTH := 3.0
-const PATIENCE_POINTS := 24
-const TICKET_TAG_OFFSET := Vector2(16, -22)
+const PHOTOGRAPHER_OFFSET := Vector2(36, -8)
+const LEAD_RING_OFFSET := Vector2(0, -44)
+const LEAD_RING_RADIUS := 10.0
+const LEAD_RING_WIDTH := 3.0
+const LEAD_PLATE_WIDTH := 96.0
+const LEAD_PLATE_HEIGHT := 16.0
+const LOUNGE_PLATE_WIDTH := 140.0
+const LEAVE_WARNING_OFFSET := Vector2(0, -32)
+const NOTE_MIN_SIZE := 9
+const NOTE_PADDING := 16.0
 const CALL_DISPLAY_OFFSET := Vector2(0, -66)
 const CALL_DISPLAY_SIZE := Vector2(44, 22)
 const RAGE_FLOAT_OFFSET := Vector2(0, -56)
@@ -98,7 +105,10 @@ var _highlight_spot := ""
 var _pressing := false
 var _press_position := Vector2.ZERO
 var _press_time := 0
+var _last_tap_time := -1
+var _last_tap_position := Vector2.ZERO
 var _stick_used := false
+var _dragged := false
 var _walkers: Array[Dictionary] = []
 var _floaters: Array[Dictionary] = []
 var _float_batch := FloatBatcher.new()
@@ -112,7 +122,6 @@ var _styles: Dictionary = {}
 var _flavor_count := 0
 var _shred_time := 0.0
 var _leaving: Dictionary = {}
-var _shredding: Dictionary = {}
 var _dispute_crews: Dictionary = {}
 var _citizens := CitizenTracker.new()
 var _citizen_clock := 0.0
@@ -201,7 +210,6 @@ func setup(p_game: Game, p_joystick: JoystickView) -> void:
 	sim.complaint_shredded.connect(_on_complaint_shredded)
 	sim.case_rejected.connect(_on_case_rejected)
 	sim.case_shredded.connect(_on_case_shredded)
-	sim.dept_shredded.connect(_on_dept_shredded)
 	sim.review_posted.connect(_on_review_posted)
 	sim.review_removed.connect(_on_review_removed)
 	sim.case_piped.connect(_on_case_piped)
@@ -325,23 +333,37 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			_pressing = true
 			_stick_used = false
+			_dragged = false
 			_press_position = button.position
 			_press_time = Time.get_ticks_msec()
 		elif _pressing:
 			_pressing = false
 			joystick.hide_stick()
 			game.actions.set_player_input(Vector2.ZERO)
-			if not _stick_used and Time.get_ticks_msec() - _press_time < TAP_TIME:
-				_handle_tap((button.position - position) / world_scale)
+			if not _dragged and button.position == _press_position and Time.get_ticks_msec() - _press_time < TAP_TIME:
+				register_tap(button.position, Time.get_ticks_msec())
 	elif event is InputEventMouseMotion and _pressing:
 		var motion := event as InputEventMouseMotion
 		var offset := motion.position - _press_position
-		if not _stick_used and offset.length() > TAP_SLOP:
+		if offset != Vector2.ZERO or motion.relative != Vector2.ZERO:
+			_dragged = true
+		if not _stick_used and offset.length() > STICK_DEADZONE:
 			_stick_used = true
 		if _stick_used:
 			var clamped := offset.limit_length(JoystickView.BASE_RADIUS)
 			joystick.show_at(_press_position, _press_position + clamped)
 			game.actions.set_player_input(clamped / JoystickView.BASE_RADIUS)
+
+
+func register_tap(screen_position: Vector2, now: int) -> bool:
+	var is_double := _last_tap_time >= 0 and now - _last_tap_time <= DOUBLE_TAP_TIME and screen_position.distance_to(_last_tap_position) <= DOUBLE_TAP_DISTANCE
+	if is_double:
+		_last_tap_time = -1
+		_handle_tap((screen_position - position) / world_scale)
+		return true
+	_last_tap_time = now
+	_last_tap_position = screen_position
+	return false
 
 
 func _handle_tap(point: Vector2) -> void:
@@ -374,7 +396,6 @@ func _advance_effects(delta: float) -> void:
 	for batch in _float_batch.advance(delta):
 		_float(batch.pos, repeat_text(str(batch.text), int(batch.count)), batch.color, int(batch.size))
 	_count_down(_leaving, delta)
-	_count_down(_shredding, delta)
 	for list: Array[Dictionary] in [_walkers, _floaters, _capsules]:
 		var index := list.size() - 1
 		while index >= 0:
@@ -407,15 +428,14 @@ static func desk_key(key: String, desk: int) -> String:
 
 func _staff_walk(station: Station, desk: int, from: Vector2, to: Vector2) -> float:
 	var duration := Formulas.staff_walk_time(from, to)
-	var expert := station.is_specialist_desk(desk)
-	_walkers.append({"from": from, "to": to, "kind": "staff", "dept": "", "t": 0.0, "duration": duration, "color": AppTheme.SPECIALIST_COAT if expert else AppTheme.STAFF_COLOR, "tie": AppTheme.SPECIALIST if expert else AppTheme.TIE, "expert": expert, "look": staff_look(station, desk)})
+	_walkers.append({"from": from, "to": to, "kind": "staff", "dept": "", "t": 0.0, "duration": duration, "color": AppTheme.STAFF_COLOR, "tie": AppTheme.TIE, "expert": false, "look": staff_look(station, desk)})
 	_redraw_at(from)
 	_redraw_at(to)
 	return duration
 
 
 static func staff_look(station: Station, desk: int) -> int:
-	return desk + 3 if station.is_specialist_desk(desk) else desk
+	return absi(station.key.hash()) % 7 + desk
 
 
 func _desk_seat(key: String, desk: int) -> Vector2:
@@ -691,12 +711,6 @@ func _on_case_shredded(_dept_id: String) -> void:
 	_shred_time = SHRED_ANIMATION
 
 
-func _on_dept_shredded(dept_id: String) -> void:
-	var point := layout.dept_shredder_point(dept_id)
-	_shredding[dept_id] = {"left": SHRED_ANIMATION, "point": point}
-	_redraw_at(point)
-
-
 func _on_intern_broke_down(slot: int) -> void:
 	_float(_intern_position(slot) + Vector2(0, -60), tr("FLOAT_INTERN_BREAKDOWN"), AppTheme.accent("error"), AppTheme.SIZE_TITLE_SMALL)
 
@@ -962,19 +976,15 @@ func _draw_crowd() -> void:
 			continue
 		ItemPainter.draw_person(_canvas, runner.position, AppTheme.RUNNER, 1.0, Color.TRANSPARENT, index + 2, AppTheme.TIE)
 		ItemPainter.draw_stack(_canvas, runner.position + Vector2(0, -28), runner.items)
-	for index in state.collectors.size():
-		var collector := state.collectors[index]
-		if not view.has_point(collector.position):
-			continue
-		ItemPainter.draw_person(_canvas, collector.position, AppTheme.accent("neutral"), 1.0, Color.TRANSPARENT, index + 5, AppTheme.accent("error"))
-		if collector.loaded > 0:
-			OfficePainter.complaint_pile(_canvas, collector.position + Vector2(-24, -8), collector.loaded)
+		if runner.loaded > 0:
+			OfficePainter.complaint_pile(_canvas, runner.position + Vector2(-24, -8), runner.loaded)
 	_draw_citizens(state, view)
 	_draw_visitors(state, view)
 	_draw_complaint_intern(state, view)
 	_draw_coffee_interns(state, view)
 	_draw_disputes(state, view)
 	_draw_ruckus(state, view)
+	_draw_leads(state, view)
 	_draw_effects()
 	_canvas = self
 
@@ -1063,35 +1073,8 @@ func _draw_citizen(case_file: CaseFile, entry: Dictionary) -> void:
 	var bob := -absf(sin(_time * 9.0 + int(entry.look))) * 3.0 if walking else 0.0
 	var seated := str(entry.stage) == STAGE_SEATED and not walking
 	ItemPainter.draw_person_lite(_canvas, pos + Vector2(0, bob), citizen_color(int(entry.look)), 0.8 if seated else 0.9, int(entry.look))
-	_draw_patience(pos, case_file)
-	if case_file.ticket > 0:
-		_text_centered_outlined(pos + TICKET_TAG_OFFSET, str(case_file.ticket % 1000), AppTheme.SIZE_LABEL_SMALL - 3, AppTheme.accent("primary"), AppTheme.SURFACE, _bold)
-
-
-func _draw_patience(pos: Vector2, case_file: CaseFile) -> void:
-	var ratio := patience_ratio(case_file)
-	if ratio < 0.0:
-		return
-	var center := pos + PATIENCE_OFFSET
-	var color := patience_color(ratio)
-	_canvas.draw_arc(center, PATIENCE_RADIUS, 0.0, TAU, PATIENCE_POINTS, Color(AppTheme.OUTLINE, 0.25), PATIENCE_WIDTH)
-	_canvas.draw_arc(center, PATIENCE_RADIUS, RING_START, RING_START + TAU * ratio, PATIENCE_POINTS, color, PATIENCE_WIDTH)
-	_text_centered(center, str(ceili(Formulas.citizen_time_left(case_file))), AppTheme.SIZE_LABEL_SMALL - 4, color, _bold)
-
-
-static func patience_ratio(case_file: CaseFile) -> float:
-	var limit := Formulas.citizen_patience(case_file)
-	if limit <= 0.0:
-		return -1.0
-	return clampf(Formulas.citizen_time_left(case_file) / limit, 0.0, 1.0)
-
-
-static func patience_color(ratio: float) -> Color:
-	if ratio > 0.5:
-		return AppTheme.accent("success")
-	if ratio > 0.25:
-		return AppTheme.accent("warning")
-	return AppTheme.accent("error")
+	if not walking and Formulas.citizen_leaves_soon(case_file):
+		ItemPainter.leave_warning(_canvas, pos + LEAVE_WARNING_OFFSET * (0.8 if seated else 0.9))
 
 
 func _draw_call_displays(state: GameState) -> void:
@@ -1268,9 +1251,7 @@ func _draw_dispute_crew(dept_id: String) -> void:
 			ItemPainter.draw_person(_canvas, pos, AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, absi(dept_id.hash()) % 12 + index * 5, AppTheme.TIE)
 			continue
 		var station := game.state.station(str(crew[index].key))
-		var desk := int(crew[index].desk)
-		var expert := station.is_specialist_desk(desk)
-		ItemPainter.draw_person(_canvas, pos, AppTheme.SPECIALIST_COAT if expert else AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, staff_look(station, desk), AppTheme.SPECIALIST if expert else AppTheme.TIE, false, expert)
+		ItemPainter.draw_person(_canvas, pos, AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, staff_look(station, int(crew[index].desk)), AppTheme.TIE)
 
 
 func _draw_actors() -> void:
@@ -1354,7 +1335,19 @@ func _draw_hall(state: GameState) -> void:
 	_draw_station(state, GameConfig.RECEPTION, "")
 	_draw_station(state, GameConfig.COUNTER, "")
 	_draw_tube_slot(state, GameConfig.ROOM_HALL)
+	for room_id in GameConfig.WAITING_ROOMS:
+		_draw_lead_office(state, room_id)
+	_draw_runner_lounge_sign(state)
 	_draw_ticket_corner(state)
+
+
+func _draw_runner_lounge_sign(state: GameState) -> void:
+	var lounge := layout.runner_lounge()
+	var plate := Rect2(lounge.position + Vector2(lounge.size.x * 0.5 - LOUNGE_PLATE_WIDTH * 0.5, -LEAD_PLATE_HEIGHT * 0.5), Vector2(LOUNGE_PLATE_WIDTH, LEAD_PLATE_HEIGHT))
+	_rounded(plate, AppTheme.SIGN_BOARD, 4, AppTheme.WALL, 1)
+	_text_centered(plate.get_center(), tr("FMT_SIGN_RUNNER_LOUNGE") % [state.runners.size(), GameConfig.MAX_RUNNERS], AppTheme.SIZE_LABEL_SMALL - 2, AppTheme.SIGN_TEXT, _bold)
+	if state.runners.is_empty():
+		_icon(lounge.get_center() + Vector2(0, 30), Icons.SPOTS.get("runners", Icons.UPGRADE), 22, Color(AppTheme.OUTLINE, 0.38))
 
 
 func _draw_ticket_corner(state: GameState) -> void:
@@ -1517,6 +1510,7 @@ func _draw_mail_room(state: GameState) -> void:
 	_draw_hall_sign(Rect2(storage.position + Vector2(0, storage.size.y + 6), Vector2(storage.size.x, 26)), "FMT_MAIL_SHELF_SIGN", room.inbox.size(), room.storage_capacity())
 	_draw_station(state, GameConfig.MAILROOM, "")
 	_draw_tube_slot(state, GameConfig.ROOM_MAIL)
+	_draw_lead_office(state, GameConfig.ROOM_MAIL)
 	var sign_rect := Rect2(layout.mail_desk_point() + Vector2(-86, -40), Vector2(172, 26))
 	_rounded(sign_rect, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
 	_text_centered(sign_rect.get_center(), tr("SIGN_MAIL_%d" % (int(_time / 6.0) % 3 + 1)), AppTheme.SIZE_LABEL_SMALL, AppTheme.SIGN_TEXT, _bold)
@@ -1616,17 +1610,16 @@ func _draw_kitchen_guest(station: Station, desk: int, mood: DeskMood, with_quip:
 		return
 	if is_guest_arriving(station.key, desk):
 		return
-	var expert := station.is_specialist_desk(desk)
-	ItemPainter.draw_person(_canvas, pos, AppTheme.SPECIALIST_COAT if expert else AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, staff_look(station, desk), AppTheme.SPECIALIST if expert else AppTheme.TIE, false, expert)
+	ItemPainter.draw_person(_canvas, pos, AppTheme.STAFF_COLOR, 1.0, Color.TRANSPARENT, staff_look(station, desk), AppTheme.TIE)
 	if mood.state == DeskMood.LUNCH:
-		_draw_lunch_guest(pos, mood, with_quip)
+		_draw_lunch_guest(pos, mood, with_quip, GameConfig.lead_room(station.key))
 		return
 	var cup := pos + Vector2(14, 2)
 	_canvas.draw_rect(Rect2(cup + Vector2(-4, -4), Vector2(8, 8)), AppTheme.SURFACE)
 	_canvas.draw_rect(Rect2(cup + Vector2(-4, -4), Vector2(8, 8)), AppTheme.METAL_DARK, false, 1.0)
 	_canvas.draw_rect(Rect2(cup + Vector2(-3, -3), Vector2(6, 3)), AppTheme.COFFEE_LIQUID)
 	if mood.state == DeskMood.FETCH:
-		_progress_ring(pos + Vector2(0, 6), 26.0, 4.0, AppTheme.accent("success"), _mood_ratio(mood, func() -> float: return mood.resting / Formulas.rest_limit(game.state, DeskMood.FETCH)))
+		_progress_ring(pos + Vector2(0, 6), 26.0, 4.0, AppTheme.accent("success"), _mood_ratio(mood, func() -> float: return mood.resting / Formulas.rest_limit(game.state, DeskMood.FETCH, GameConfig.lead_room(station.key))))
 		return
 
 	if mood.state == DeskMood.SLOW:
@@ -1648,8 +1641,8 @@ func _draw_kitchen_guest(station: Station, desk: int, mood: DeskMood, with_quip:
 			ItemPainter.disc(_canvas, bubble + Vector2(-5 + i * 5, 1), 1.6, AppTheme.accent("tertiary") if int(_time * 3.0) % 3 == i else AppTheme.OUTLINE)
 
 
-func _draw_lunch_guest(pos: Vector2, mood: DeskMood, with_quip: bool) -> void:
-	var limit := Formulas.rest_limit(game.state, DeskMood.LUNCH)
+func _draw_lunch_guest(pos: Vector2, mood: DeskMood, with_quip: bool, room_id: String) -> void:
+	var limit := Formulas.rest_limit(game.state, DeskMood.LUNCH, room_id)
 	var side := 1.0 if pos.y < layout.lunch_table_point().y else -1.0
 	OfficePainter.plate(_canvas, pos + Vector2(0, 24 * side), mood.resting / limit)
 	_progress_ring(pos + Vector2(0, 6), 26.0, 4.0, AppTheme.accent("tertiary"), _mood_ratio(mood, func() -> float: return mood.resting / limit))
@@ -1663,13 +1656,13 @@ func _draw_hall_decor(hall: Rect2) -> void:
 	_text_centered(plate.get_center(), tr("SIGN_BUILDING"), AppTheme.SIZE_TITLE_SMALL, AppTheme.SIGN_TEXT, _bold)
 	_text(Vector2(plate.end.x + 18.0, plate.position.y + 24.0), tr("AREA_PUBLIC"), AppTheme.SIZE_BODY_SMALL, AppTheme.ON_SURFACE_VARIANT, _bold)
 	OfficePainter.cabinet(_canvas, layout.archive_rect())
+	OfficePainter.runner_lounge(_canvas, layout.runner_lounge())
 	var board := layout.hours_board()
 	_rounded(board, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
 	_text_centered(Vector2(board.get_center().x, board.position.y + 16), tr("SIGN_HOURS_TITLE"), AppTheme.SIZE_LABEL_SMALL - 1, AppTheme.FLAG_GOLD, _bold)
 	_canvas.draw_multiline_string(_bold, board.position + Vector2(4, 38), tr("SIGN_HOURS_TEXT"), HORIZONTAL_ALIGNMENT_CENTER, board.size.x - 8, AppTheme.SIZE_LABEL_SMALL - 1, 2, AppTheme.SIGN_TEXT)
-	OfficePainter.flag(_canvas, Vector2(hall.end.x - 140.0, hall.end.y - 30.0), 120.0, _time)
+	OfficePainter.flag(_canvas, Vector2(hall.end.x - 300.0, hall.end.y - 30.0), 120.0, _time)
 	OfficePainter.plant(_canvas, Vector2(hall.position.x + 50.0, hall.end.y - 30.0), 1.2)
-	OfficePainter.plant(_canvas, Vector2(hall.end.x - 30.0, hall.end.y - 26.0), 1.0)
 	_draw_closed_sign(layout.closed_sign_rect())
 
 
@@ -1726,10 +1719,15 @@ func _draw_complaint_office(state: GameState) -> void:
 	_rounded(sign_rect, AppTheme.SIGN_BOARD, 8, AppTheme.WALL, 2)
 	_text_centered(sign_rect.get_center(), tr("SIGN_COMPLAINTS"), AppTheme.SIZE_LABEL_SMALL, AppTheme.SIGN_TEXT, _bold)
 	OfficePainter.service_counter(_canvas, layout.complaint_counter_rect())
-	if state.interns_at_desk() == 0:
+	_draw_work_field(layout.complaint_player_point())
+	if state.interns_at_desk() == 0 and not game.simulation.player_at_complaint_counter():
 		var note := Rect2(desk + Vector2(-130, 44), Vector2(260, 24))
+		var note_text := tr("SIGN_DESK_EMPTY")
+		var note_size := AppTheme.SIZE_LABEL_SMALL
+		while note_size > NOTE_MIN_SIZE and _bold.get_string_size(note_text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_size).x > note.size.x - NOTE_PADDING:
+			note_size -= 1
 		_rounded(note, AppTheme.SURFACE, 6, AppTheme.OUTLINE, 2)
-		_text_centered(note.get_center(), tr("SIGN_DESK_EMPTY"), AppTheme.SIZE_LABEL_SMALL, AppTheme.ON_SURFACE_VARIANT, _bold)
+		_text_centered(note.get_center(), note_text, note_size, AppTheme.ON_SURFACE_VARIANT, _bold)
 	_draw_complaint_box(state)
 	_draw_door(layout.office_door())
 
@@ -1758,8 +1756,6 @@ func _draw_tech_room(state: GameState) -> void:
 
 func _draw_staff_room(state: GameState) -> void:
 	_service_shell(GameConfig.ROOM_STAFF, AppTheme.SIGN_BOARD, Icons.ROOMS.staff_room)
-	_draw_board(layout.staff_board("runners"), tr("BOARD_RUNNERS"), tr("FMT_BOARD_STAFF") % [state.runners.size(), GameConfig.MAX_RUNNERS])
-	_draw_board(layout.staff_board("collectors"), tr("BOARD_COLLECTORS"), tr("FMT_BOARD_COLLECTORS") % [state.collectors.size(), GameConfig.MAX_COLLECTORS, Formulas.collector_capacity(state)])
 	_draw_board(layout.staff_board("coffee_interns"), tr("BOARD_COFFEE_INTERNS"), tr("FMT_BOARD_STAFF") % [state.coffee_interns.size(), GameConfig.MAX_COFFEE_INTERNS])
 	_draw_board(layout.staff_board("phone_clerks"), tr("SIGN_SICK_BOARD"), sick_board_text(state))
 	_draw_board(layout.staff_board("training"), tr("BOARD_TRAINING"), tr("FMT_BOARD_LEVEL") % state.upgrade_level("quality_training"))
@@ -1822,15 +1818,52 @@ func _draw_tube_slot(state: GameState, room_id: String) -> void:
 	_icon(point, Icons.upgrade("tube_station"), 20, Color(AppTheme.OUTLINE, 0.38))
 
 
-func _draw_shredder_slot(state: GameState, dept_id: String) -> void:
-	if GameConfig.is_customs(dept_id):
+func _draw_lead_office(state: GameState, room_id: String) -> void:
+	if not Progression.room_available(state, room_id):
 		return
-	var point := layout.dept_shredder_point(dept_id)
-	if state.has_upgrade("shredder", dept_id):
-		OfficePainter.shredder(_canvas, point + Vector2(0, 22), _shredding.has(dept_id), _time)
+	var rect := layout.lead_office(room_id)
+	if not Formulas.has_lead(state, room_id):
+		OfficePainter.empty_slot(_canvas, rect)
+		_icon(rect.get_center(), Icons.upgrade("team_lead"), 22, Color(AppTheme.OUTLINE, 0.38))
 		return
-	OfficePainter.empty_slot(_canvas, layout.slot_rect(point))
-	_icon(point, Icons.upgrade("shredder"), 20, Color(AppTheme.OUTLINE, 0.38))
+	OfficePainter.lead_office(_canvas, rect, AppTheme.accent("primary"))
+	OfficePainter.desk(_canvas, layout.lead_desk_point(room_id), true, state.is_patrolling(room_id), _time)
+	var plate := Rect2(rect.position + Vector2(rect.size.x * 0.5 - LEAD_PLATE_WIDTH * 0.5, -LEAD_PLATE_HEIGHT * 0.5), Vector2(LEAD_PLATE_WIDTH, LEAD_PLATE_HEIGHT))
+	_rounded(plate, AppTheme.SIGN_BOARD, 4, AppTheme.WALL, 1)
+	_text_centered(plate.get_center(), tr("SIGN_LEAD_OFFICE"), AppTheme.SIZE_LABEL_SMALL - 2, AppTheme.SIGN_TEXT, _bold)
+
+
+func _draw_leads(state: GameState, view: Rect2) -> void:
+	for room_id in GameConfig.lead_rooms():
+		if not Formulas.has_lead(state, room_id) or not Progression.room_available(state, room_id):
+			continue
+		var pos := lead_position(state, layout, room_id)
+		if not view.has_point(pos):
+			continue
+		var walking := state.is_patrolling(room_id)
+		var bob := -absf(sin(_time * 9.0)) * 3.0 if walking else 0.0
+		ItemPainter.draw_person(_canvas, pos + Vector2(0, bob), AppTheme.SPECIALIST_COAT, 0.9, Color.TRANSPARENT, absi(room_id.hash()) % 11, AppTheme.SPECIALIST, false, true)
+		var cooldown := state.patrol_cooldown(room_id)
+		if not walking and cooldown > 0.0:
+			var center := pos + LEAD_RING_OFFSET
+			_canvas.draw_arc(center, LEAD_RING_RADIUS, 0.0, TAU, RING_POINTS, Color(AppTheme.OUTLINE, 0.25), LEAD_RING_WIDTH)
+			_draw_ring(center, LEAD_RING_RADIUS, LEAD_RING_WIDTH, AppTheme.accent("primary"), 1.0 - cooldown / maxf(Formulas.patrol_cooldown(state, room_id), 0.001))
+
+
+static func lead_position(state: GameState, world: WorldLayout, room_id: String) -> Vector2:
+	if not state.is_patrolling(room_id):
+		return world.lead_seat(room_id)
+	var desks: Array[Vector2] = []
+	for station in state.lead_stations(room_id):
+		if station.machine:
+			continue
+		for desk in station.staff:
+			desks.append(world.desk_front(station.key, desk))
+	var path := world.patrol_path(room_id, desks)
+	var progress := 1.0 - state.patrol_left(room_id) / GameConfig.LEAD_PATROL_SECONDS
+	var length := WorldLayout.path_length(path)
+	var travelled := length * GameConfig.LEAD_PATROL_LAPS * clampf(progress, 0.0, 1.0)
+	return WorldLayout.path_point(path, fposmod(travelled, length) if length > 0.0 else 0.0)
 
 
 func _tier(state: GameState, upgrade_id: String, tiers: int) -> int:
@@ -1899,10 +1932,10 @@ func _draw_room(state: GameState, slot: String) -> void:
 		_text(Vector2(header.end.x - 44 - size.x, header.position.y + 34), stats, AppTheme.SIZE_BODY_SMALL, on_band, _bold)
 		for key in dept.station_keys():
 			_draw_station(state, key, weakest)
-		_draw_shredder_slot(state, slot)
 	else:
 		_draw_station(state, GameConfig.INSPECTION, "")
 	_draw_tube_slot(state, slot)
+	_draw_lead_office(state, slot)
 
 
 func department_flow(state: GameState, dept: Department) -> Dictionary:
@@ -1978,9 +2011,6 @@ func _draw_station(state: GameState, key: String, weakest: String) -> void:
 	_rounded(Rect2(area.position + Vector2(2, 2), Vector2(area.size.x - 4, 32)), Color(color, 0.2), AREA_RADIUS - 2, Color.TRANSPARENT, 0, false, true)
 	_icon(area.position + Vector2(20, 18), Icons.station_for(key), 20, color.darkened(0.2))
 	_text(area.position + Vector2(38, 24), _station_label(key), AppTheme.SIZE_LABEL_SMALL + 1, AppTheme.ON_SURFACE, _bold, area.size.x - 90)
-	var level := "L%d" % station.level
-	var level_size := _bold.get_string_size(level, HORIZONTAL_ALIGNMENT_LEFT, -1, AppTheme.SIZE_LABEL_SMALL)
-	_text(Vector2(area.end.x - 12 - level_size.x, area.position.y + 24), level, AppTheme.SIZE_LABEL_SMALL, AppTheme.ON_SURFACE, _bold)
 	if WorldLayout.has_offices(key):
 		_draw_offices(key, station.desks, color)
 	for desk in station.jobs.size():
@@ -2033,16 +2063,18 @@ func _draw_desk(station: Station, desk: int, pos: Vector2, color: Color) -> void
 	if station.machine:
 		OfficePainter.machine(_canvas, GameConfig.station_dept(station.key), pos, color, active, _time)
 	else:
-		var specialist := station.is_specialist_desk(desk)
-		var occupied := specialist or station.is_staffed(desk)
+		var occupied := station.is_staffed(desk)
 		var mood := station.moods[desk]
 		var asleep := occupied and mood.state == DeskMood.ASLEEP
 		var present := occupied and not mood.is_absent()
-		OfficePainter.desk(_canvas, pos, present, active and mood.is_on_duty(), _time, specialist)
-		if specialist and present:
-			ItemPainter.draw_person(_canvas, pos + Vector2(0, -24), AppTheme.SPECIALIST_COAT, 0.85, Color.TRANSPARENT, desk + 3, AppTheme.SPECIALIST, asleep, true)
-		elif present:
-			ItemPainter.draw_person(_canvas, pos + Vector2(0, -24), AppTheme.STAFF_COLOR, 0.85, Color.TRANSPARENT, desk, AppTheme.TIE, asleep)
+		if station.key == GameConfig.PHOTO_STATION:
+			OfficePainter.photo_booth(_canvas, pos, color, active and present and mood.is_on_duty(), _time)
+			if present:
+				ItemPainter.draw_person(_canvas, pos + PHOTOGRAPHER_OFFSET, AppTheme.STAFF_COLOR, 0.85, Color.TRANSPARENT, staff_look(station, desk), AppTheme.TIE, asleep)
+		else:
+			OfficePainter.desk(_canvas, pos, present, active and mood.is_on_duty(), _time)
+			if present:
+				ItemPainter.draw_person(_canvas, pos + Vector2(0, -24), AppTheme.STAFF_COLOR, 0.85, Color.TRANSPARENT, staff_look(station, desk), AppTheme.TIE, asleep)
 		if occupied and (mood.is_resting() or mood.is_absent()):
 			_draw_rest(pos, mood)
 		if occupied and mood.is_absent() and not mood.is_sick():
@@ -2050,7 +2082,7 @@ func _draw_desk(station: Station, desk: int, pos: Vector2, color: Color) -> void
 		if occupied and station.can_cover(desk):
 			_draw_cover_hint(pos)
 		if occupied and mood.is_sick():
-			_draw_sick_timer(pos, mood)
+			_draw_sick_timer(pos, mood, GameConfig.lead_room(station.key))
 	_job_bar(station, desk, pos)
 	if job != null:
 		ItemPainter.draw_item(_canvas, pos + Vector2(-20, -14), job.case_file)
@@ -2099,8 +2131,8 @@ func _mood_ratio(mood: DeskMood, ratio: Callable) -> Callable:
 	return func() -> float: return float(ratio.call()) if mood.state == shown else 0.0
 
 
-func _draw_sick_timer(pos: Vector2, mood: DeskMood) -> void:
-	var text := tr("FMT_SICK_RETURN") % NumberFormat.clock(Formulas.sick_time_left(game.state, mood))
+func _draw_sick_timer(pos: Vector2, mood: DeskMood, room_id: String) -> void:
+	var text := tr("FMT_SICK_RETURN") % NumberFormat.clock(Formulas.sick_time_left(game.state, mood, room_id))
 	_text_centered_outlined(pos + Vector2(0, 46), text, AppTheme.SIZE_LABEL_SMALL, AppTheme.accent("error"), AppTheme.SURFACE, _bold)
 	if mood.bonus > 0:
 		_icon(pos + Vector2(-30, -4), Icons.PAID, 14 + mood.bonus * 3, AppTheme.MONEY)

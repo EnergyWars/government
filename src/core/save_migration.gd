@@ -63,6 +63,12 @@ const RESILIENCE_PER_STEADFAST := 25
 const LEGACY_GUARD_CHANCE := 0.35
 const LEGACY_GUARD_STEP := 0.003
 const LEGACY_GUARD_LEVELS := 150
+const V4_REMOVED_UPGRADES: Array[String] = ["scanners", "digital_records", "digital_signatures", "letter_opener"]
+const V4_REMOVED_ROOM_UPGRADES: Array[String] = ["office_equipment"]
+const V4_REMOVED_STATION_KEYS: Array[String] = ["level", "specialists", "tray_level"]
+const V4_REMOVED_KEYS: Array[String] = ["trainings"]
+const V5_REMOVED_UPGRADES: Array[String] = ["shredder", "collector_carts", "collector_speed"]
+const V5_REMOVED_KEYS: Array[String] = ["collectors", "shredder_timers"]
 const REMOVED_KEYS: Array[String] = ["research", "waiting_level", "seating_level", "ticket_machine_level", "ticket_display_level", "complaint_clerk_level", "complaint_box_level"]
 
 
@@ -112,8 +118,82 @@ static func migrate_v3(data: Dictionary) -> Dictionary:
 	for key in V3_REMOVED_KEYS:
 		result.erase(key)
 	result["upgrades"] = upgrades
+	result["version"] = GameState.V4_SAVE_VERSION
+	return result
+
+
+static func migrate_v4(data: Dictionary) -> Dictionary:
+	var result := data.duplicate(true)
+	var upgrades := _dictionary(result.get("upgrades"))
+	for key in upgrades.keys():
+		var upgrade_id := str(key).get_slice("@", 0)
+		if V4_REMOVED_UPGRADES.has(upgrade_id) or V4_REMOVED_ROOM_UPGRADES.has(upgrade_id):
+			upgrades.erase(key)
+	var departments := _dictionary(result.get("departments"))
+	for dept_id in departments:
+		_dictionary(departments[dept_id]).erase("supervisors")
+	var stations := _dictionary(result.get("stations"))
+	for key in stations:
+		_strip_station(_dictionary(stations[key]))
+	for key in V4_REMOVED_KEYS:
+		result.erase(key)
+	result["upgrades"] = upgrades
+	result["version"] = GameState.V5_SAVE_VERSION
+	return result
+
+
+static func migrate_v5(data: Dictionary) -> Dictionary:
+	var result := data.duplicate(true)
+	var upgrades := _dictionary(result.get("upgrades"))
+	for key in upgrades.keys():
+		if V5_REMOVED_UPGRADES.has(str(key).get_slice("@", 0)):
+			upgrades.erase(key)
+	var runners: Array = result.get("runners", []) if result.get("runners", []) is Array else []
+	var collectors: Array = result.get("collectors", []) if result.get("collectors", []) is Array else []
+	for entry: Variant in collectors:
+		if runners.size() >= GameConfig.MAX_RUNNERS:
+			break
+		if entry is Dictionary:
+			runners.append(_reject_runner(entry))
+	for key in V5_REMOVED_KEYS:
+		result.erase(key)
+	result["runners"] = runners
+	result["upgrades"] = upgrades
 	result["version"] = GameState.SAVE_VERSION
 	return result
+
+
+static func _reject_runner(collector: Dictionary) -> Dictionary:
+	var runner := {"items": [], "target": "", "role": Runner.REJECT, "dept": collector.get("dept", Runner.ALL_DEPARTMENTS), "level": 0, "loaded": maxi(0, int(collector.get("loaded", 0)))}
+	for axis in ["x", "y"]:
+		if collector.has(axis):
+			runner[axis] = collector[axis]
+	return runner
+
+
+static func _strip_station(entry: Dictionary) -> void:
+	var desks := clampi(int(entry.get("desks", 1)), 1, 99)
+	for key in V4_REMOVED_STATION_KEYS:
+		entry.erase(key)
+	var jobs: Array = entry.get("jobs", []) if entry.get("jobs", []) is Array else []
+	var inbox: Array = entry.get("inbox", []) if entry.get("inbox", []) is Array else []
+	var kept: Array = []
+	var returned: Array = []
+	for index in jobs.size():
+		var job := _dictionary(jobs[index])
+		job.erase("specialist")
+		if index < desks:
+			kept.append(jobs[index])
+		elif job.has("case"):
+			returned.append(job.case)
+	returned.append_array(inbox)
+	entry["jobs"] = kept
+	entry["inbox"] = returned
+	var moods: Array = entry.get("moods", []) if entry.get("moods", []) is Array else []
+	var kept_moods: Array = moods.slice(0, desks)
+	for mood: Variant in kept_moods:
+		_dictionary(mood).erase("training")
+	entry["moods"] = kept_moods
 
 
 static func split_seating(upgrades: Dictionary) -> Dictionary:
@@ -123,6 +203,20 @@ static func split_seating(upgrades: Dictionary) -> Dictionary:
 	if level > limit:
 		result["seating"] = limit
 		result["pickup_seating"] = mini(limit, maxi(int(result.get("pickup_seating", 0)), level - limit))
+	return result
+
+
+static func split_hall_leads(upgrades: Dictionary) -> Dictionary:
+	var result := upgrades.duplicate()
+	for upgrade_id in GameConfig.LEAD_TRACKS:
+		var legacy := GameConfig.upgrade_key(upgrade_id, GameConfig.ROOM_HALL)
+		if not result.has(legacy):
+			continue
+		var level := int(result[legacy])
+		result.erase(legacy)
+		for room_id in GameConfig.WAITING_ROOMS:
+			var key := GameConfig.upgrade_key(upgrade_id, room_id)
+			result[key] = maxi(level, int(result.get(key, 0)))
 	return result
 
 

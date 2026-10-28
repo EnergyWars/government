@@ -674,82 +674,8 @@ func test_no_case_shredding_away_from_shredder() -> void:
 	assert_eq(state.player.items.size(), 1)
 
 
-func test_collector_hire_cost_and_limit() -> void:
-	state.money = 1.0e9
-	var first := Formulas.collector_cost(state)
-	assert_true(state.station("shared/counter") != null)
-	for i in GameConfig.MAX_COLLECTORS:
-		assert_true(game_actions().hire_collector())
-	assert_false(game_actions().can_hire_collector())
-	assert_eq(state.collectors.size(), GameConfig.MAX_COLLECTORS)
-	assert_eq(first, GameConfig.COLLECTOR_COST)
-
-
 func game_actions() -> GameActions:
 	return GameActions.new(state, sim)
-
-
-func test_collector_brings_rejects_to_shredder() -> void:
-	state.add_collector()
-	var station := state.station("general_services/review")
-	station.rejects = 4
-	var money := state.money
-	_run(60.0, 0.1)
-	assert_eq(station.rejects, 0)
-	assert_eq(state.collectors[0].loaded, 0)
-	assert_almost_eq(state.money, money + GameConfig.REJECT_SHRED_REWARD * 4.0, 0.001)
-
-
-func test_collector_idles_without_rejects() -> void:
-	var collector := state.add_collector()
-	var start := collector.position
-	_run(5.0, 0.1)
-	assert_eq(collector.loaded, 0)
-	assert_lt(collector.position.distance_to(layout.collector_home()), start.distance_to(layout.collector_home()) + 1.0)
-
-
-func test_two_collectors_split_rejects() -> void:
-	state.add_collector()
-	state.add_collector()
-	state.station("general_services/review").rejects = 6
-	sim.tick(0.1)
-	assert_ne(state.collectors[0].source, state.collectors[1].source if state.collectors[1].source != "" else "x")
-
-
-func test_collectors_and_shred_counter_survive_save() -> void:
-	var collector := state.add_collector()
-	collector.loaded = 2
-	state.cases_shredded = 3
-	var restored := GameState.from_dict(state.to_dict())
-	assert_eq(restored.collectors.size(), 1)
-	assert_eq(restored.collectors[0].loaded, 2)
-	assert_eq(restored.cases_shredded, 3)
-
-
-func test_guidance_skips_reject_pickup_when_collector_exists() -> void:
-	state.station("general_services/review").rejects = 2
-	state.add_collector()
-	var task := Guidance.next_task(state)
-	assert_ne(task.get("action", ""), Guidance.REJECT)
-
-
-func test_collector_translations() -> void:
-	for key in ["STAFF_COLLECTORS", "STAFF_DESC_COLLECTORS", "FMT_COLLECTOR_INFO", "BOARD_COLLECTORS", "COLLECTORS_INTRO", "COLLECTORS_EMPTY", "FMT_COLLECTOR_NAME", "FMT_COLLECTOR_LOAD", "TRACK_COLLECTOR_CARTS", "TRACK_DESC_COLLECTOR_CARTS", "TRACK_COLLECTOR_SPEED", "TRACK_DESC_COLLECTOR_SPEED"]:
-		assert_ne(TranslationServer.translate(key), key, key)
-
-
-func test_collectors_have_their_own_board_in_the_staff_room() -> void:
-	assert_true(GameConfig.BOARD_SPOTS.has("collectors"))
-	assert_true(GameConfig.STAFF_ROOM_BOARDS.has("collectors"))
-	assert_eq(GameConfig.spot_room("collectors"), GameConfig.ROOM_STAFF)
-	assert_true(layout.staff_room.encloses(layout.collectors_board()))
-	assert_true(layout.shredder_room.has_point(layout.collector_home()))
-	var ids: Array[String] = []
-	for entry in UpgradeCatalog.entries_for_spot(state, "collectors"):
-		ids.append(entry.id)
-	assert_true(ids.has("%s:collectors" % UpgradeCatalog.STAFF))
-	assert_true(ids.has("%s:collector_carts" % UpgradeCatalog.TRACK))
-	assert_true(ids.has("%s:collector_speed" % UpgradeCatalog.TRACK))
 
 
 func _reject_piles_by_distance() -> Array[String]:
@@ -762,87 +688,371 @@ func _reject_piles_by_distance() -> Array[String]:
 	return keys
 
 
-func test_collector_capacity_grows_with_carts() -> void:
-	var config := GameConfig.upgrade("collector_carts")
-	var step := int(config.step)
-	assert_eq(Formulas.collector_capacity(state), GameConfig.COLLECTOR_CAPACITY)
-	state.set_upgrade("collector_carts", 2)
-	assert_eq(Formulas.collector_capacity(state), GameConfig.COLLECTOR_CAPACITY + 2 * step)
-	assert_eq(Formulas.runner_capacity(state), GameConfig.RUNNER_BASE_CAPACITY)
-	assert_eq(Formulas.collector_capacity_limit(), GameConfig.COLLECTOR_CAPACITY + step * int(config.max))
-	assert_eq(RejectCollector.from_dict({"loaded": 99}, Vector2.ZERO).loaded, Formulas.collector_capacity_limit())
-	assert_eq(RejectCollector.from_dict({"loaded": -3}, Vector2.ZERO).loaded, 0)
+func test_reject_runner_is_hired_through_the_runner_actions() -> void:
+	state.money = 1.0e9
+	var cost := Formulas.runner_cost(state)
+	assert_true(game_actions().hire_runner(Runner.REJECT))
+	assert_eq(state.runners.size(), 1)
+	assert_eq(state.runners[0].role, Runner.REJECT)
+	assert_eq(state.runners_in(Runner.REJECT), 1)
+	assert_almost_eq(state.money, 1.0e9 - cost, 0.001)
+	assert_eq(cost, GameConfig.RUNNER_COST * Formulas.early_discount(0))
 
 
-func test_collector_prefers_nearly_full_piles_over_near_ones() -> void:
+func test_reject_runners_share_the_runner_limit() -> void:
+	state.money = 1.0e12
+	for i in GameConfig.MAX_RUNNERS:
+		assert_true(game_actions().hire_runner(Runner.REJECT))
+	assert_false(game_actions().can_hire_runner())
+	assert_false(game_actions().hire_runner(Runner.REJECT))
+	assert_eq(state.runners.size(), GameConfig.MAX_RUNNERS)
+
+
+func test_automatic_hiring_never_picks_the_reject_task() -> void:
+	state.add_runner(Runner.INTAKE)
+	state.add_runner(Runner.INTERNAL)
+	state.add_runner(Runner.OUTPUT)
+	assert_ne(state.least_staffed_role(), Runner.REJECT)
+	assert_ne(Formulas.weakest_runner_role(state), Runner.REJECT)
+	assert_ne(state.add_runner().role, Runner.REJECT)
+
+
+func test_collector_tracks_and_department_shredders_are_gone() -> void:
+	for upgrade_id in ["collector_carts", "collector_speed", "shredder"]:
+		assert_true(GameConfig.upgrade(upgrade_id).is_empty(), upgrade_id)
+	assert_false(GameConfig.upgrade_ids().has("shredder"))
+	assert_true(GameConfig.upgrade("shredder_blades").has("max"))
+
+
+func test_reject_runner_brings_rejects_to_shredder() -> void:
+	state.add_runner(Runner.REJECT)
+	var station := state.station("general_services/review")
+	station.rejects = 4
+	var money := state.money
+	watch_signals(sim)
+	_run(60.0, 0.1)
+	assert_eq(station.rejects, 0)
+	assert_eq(state.runners[0].loaded, 0)
+	assert_almost_eq(state.money, money + GameConfig.REJECT_SHRED_REWARD * 4.0, 0.001)
+	assert_eq(state.production.total(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF), 4)
+	assert_signal_emitted_with_parameters(sim, "complaint_shredded", [false])
+
+
+func test_reject_runner_carries_up_to_its_runner_load() -> void:
+	var station := state.station("general_services/review")
+	station.rejects = GameConfig.REJECT_CAPACITY
+	var runner := state.add_runner(Runner.REJECT)
+	runner.level = 3
+	runner.position = layout.reject_point(station.key)
+	runner.source = station.key
+	sim.tick(0.05)
+	assert_eq(Formulas.runner_load(state, runner), Formulas.runner_capacity(state) + 3 * GameConfig.RUNNER_LEVEL_CAPACITY)
+	assert_eq(runner.loaded, Formulas.runner_load(state, runner))
+	assert_eq(station.rejects, GameConfig.REJECT_CAPACITY - runner.loaded)
+	assert_eq(runner.source, "")
+
+
+func test_reject_runner_capacity_grows_with_trolleys() -> void:
+	var runner := state.add_runner(Runner.REJECT)
+	assert_eq(Formulas.runner_load(state, runner), GameConfig.RUNNER_BASE_CAPACITY)
+	state.set_upgrade("runner_trolleys", 2)
+	assert_eq(Formulas.runner_load(state, runner), GameConfig.RUNNER_BASE_CAPACITY + 2)
+
+
+func test_reject_runner_idles_without_rejects() -> void:
+	var runner := state.add_runner(Runner.REJECT)
+	runner.position = layout.shredder_point()
+	var rest := layout.runner_rest_point(0)
+	var start := runner.position.distance_to(rest)
+	_run(3.0, 0.1)
+	assert_eq(runner.loaded, 0)
+	assert_eq(runner.source, "")
+	assert_lt(runner.position.distance_to(rest), start)
+	_run(30.0, 0.1)
+	assert_lt(runner.position.distance_to(rest), 1.0)
+
+
+func test_reject_runners_use_runner_speed() -> void:
+	var runner := state.add_runner(Runner.REJECT)
+	runner.position = layout.shredder_point()
+	var rest := layout.runner_rest_point(0)
+	var before := runner.position.distance_to(rest)
+	sim.tick(0.1)
+	assert_almost_eq(before - runner.position.distance_to(rest), Formulas.runner_speed(state) * 0.1, 0.01)
+	state.boosts["roller_skates"] = 10.0
+	runner.position = layout.shredder_point()
+	sim.tick(0.1)
+	assert_almost_eq(before - runner.position.distance_to(rest), Formulas.runner_speed(state) * 0.1, 0.01)
+	assert_eq(Formulas.runner_speed(state), GameConfig.RUNNER_SPEED * GameConfig.BOOST_RUNNER_SPEED)
+
+
+func test_two_reject_runners_split_rejects() -> void:
+	_unlock_all()
+	var piles := _reject_piles_by_distance()
+	state.station(piles[0]).rejects = 3
+	state.station(piles[1]).rejects = 3
+	var first := state.add_runner(Runner.REJECT)
+	var second := state.add_runner(Runner.REJECT)
+	sim.tick(0.05)
+	assert_ne(first.source, "")
+	assert_ne(second.source, "")
+	assert_ne(first.source, second.source)
+
+
+func test_reject_runner_survives_saving() -> void:
+	var runner := state.add_runner(Runner.REJECT)
+	runner.loaded = 2
+	runner.level = 4
+	runner.dept_id = "tax_services"
+	state.cases_shredded = 3
+	var restored := GameState.from_dict(state.to_dict())
+	assert_eq(restored.runners.size(), 1)
+	assert_eq(restored.runners[0].role, Runner.REJECT)
+	assert_eq(restored.runners[0].loaded, 2)
+	assert_eq(restored.runners[0].level, 4)
+	assert_eq(restored.runners[0].dept_id, "tax_services")
+	assert_eq(restored.cases_shredded, 3)
+	assert_false(state.to_dict().has("collectors"))
+
+
+func test_reject_runner_load_is_clamped_when_loading() -> void:
+	assert_eq(Runner.from_dict({"role": Runner.REJECT, "loaded": 999}, Vector2.ZERO).loaded, Formulas.runner_load_limit(0))
+	assert_eq(Runner.from_dict({"role": Runner.REJECT, "level": 5, "loaded": 999}, Vector2.ZERO).loaded, Formulas.runner_load_limit(5))
+	assert_eq(Runner.from_dict({"role": Runner.REJECT, "loaded": -3}, Vector2.ZERO).loaded, 0)
+	assert_eq(Runner.from_dict({"role": Runner.REJECT}, Vector2.ZERO).loaded, 0)
+	assert_eq(Runner.from_dict({"role": Runner.INTAKE}, Vector2.ZERO).loaded, 0)
+	assert_eq(Formulas.runner_load_limit(0), GameConfig.RUNNER_BASE_CAPACITY + int(GameConfig.upgrade("runner_trolleys").max))
+
+
+func test_runner_role_reject_is_saved_and_unknown_roles_are_replaced() -> void:
+	assert_eq(Runner.from_dict({"role": "reject"}, Vector2.ZERO).role, Runner.REJECT)
+	assert_eq(Runner.from_dict({"role": "collector"}, Vector2.ZERO).role, "")
+	assert_eq(Runner.from_dict({"role": Runner.REJECT, "dept": "nope"}, Vector2.ZERO).dept_id, Runner.ALL_DEPARTMENTS)
+	assert_eq(Runner.ROLES.size(), 4)
+	assert_eq(Runner.ROLES[3], Runner.REJECT)
+	assert_eq(Runner.CASE_ROLES.size(), 3)
+	var data := state.to_dict()
+	data.runners = [{"role": "bogus", "x": 5.0, "y": 6.0}]
+	assert_eq(GameState.from_dict(data).runners[0].role, GameState.from_dict(data).least_staffed_role())
+
+
+func test_guidance_skips_reject_pickup_when_reject_runner_exists() -> void:
+	state.station("general_services/review").rejects = 2
+	state.add_runner(Runner.INTAKE)
+	assert_eq(Guidance.next_task(state).get("action", ""), Guidance.REJECT)
+	state.add_runner(Runner.REJECT)
+	var task := Guidance.next_task(state)
+	assert_ne(task.get("action", ""), Guidance.REJECT)
+
+
+func test_reject_translations() -> void:
+	for key in ["RUNNER_ROLE_REJECT", "RUNNER_ROLE_SHORT_REJECT", "RUNNER_ROLE_DESC_REJECT", "FMT_STATS_REJECT_STATE", "FMT_STATUS_SHREDDER", "RUNNERS_INTRO"]:
+		assert_ne(TranslationServer.translate(key), key, key)
+	for key in ["STAFF_COLLECTORS", "STAFF_DESC_COLLECTORS", "FMT_COLLECTOR_INFO", "BOARD_COLLECTORS", "COLLECTORS_INTRO", "COLLECTORS_EMPTY", "FMT_COLLECTOR_NAME", "FMT_COLLECTOR_LOAD", "TRACK_COLLECTOR_CARTS", "TRACK_DESC_COLLECTOR_CARTS", "TRACK_COLLECTOR_SPEED", "TRACK_DESC_COLLECTOR_SPEED", "TRACK_SHREDDER", "TRACK_DESC_SHREDDER", "SPOT_DESC_DEPT_SHREDDER", "FMT_SPOT_SHREDDER", "STATUS_NO_SHREDDER", "FMT_STATUS_DEPT_SHREDDER", "UPGRADE_COLLECTOR"]:
+		assert_eq(TranslationServer.translate(key), key, key)
+
+
+func test_staff_room_has_no_collector_board() -> void:
+	assert_false(GameConfig.BOARD_SPOTS.has("collectors"))
+	assert_false(GameConfig.STAFF_ROOM_BOARDS.has("collectors"))
+	assert_eq(GameConfig.STAFF_ROOM_BOARDS, ["coffee_interns", "phone_clerks", "training", "works_council"] as Array[String])
+	for board in GameConfig.STAFF_ROOM_BOARDS:
+		assert_true(layout.staff_room.encloses(layout.staff_board(board)), board)
+	assert_true(UpgradeCatalog.entries_for_spot(state, "collectors").is_empty())
+	assert_false(UpgradeCatalog.STAFF_SPOTS.has("collectors"))
+	assert_false(UpgradeCatalog.STAFF_LIMITS.has("collectors"))
+	assert_false(UpgradeCatalog.STAFF_GROWTH.has("collectors"))
+	assert_eq(UpgradeCatalog.staff_count(state, "collectors"), 0)
+	assert_eq(UpgradeCatalog.staff_cost(state, "collectors"), 0.0)
+	assert_false(UpgradeCatalog.hire_staff(game_actions(), "collectors"))
+
+
+func test_reject_runner_prefers_nearly_full_piles_over_near_ones() -> void:
 	_unlock_all()
 	var piles := _reject_piles_by_distance()
 	var near := state.station(piles[0])
 	var far := state.station(piles[piles.size() - 1])
-	var collector := state.add_collector()
-	collector.position = layout.collector_home()
-	var capacity := Formulas.collector_capacity(state)
+	var runner := state.add_runner(Runner.REJECT)
+	runner.position = layout.shredder_point()
+	var capacity := Formulas.runner_load(state, runner)
 	near.rejects = 2
 	far.rejects = 2
-	assert_eq(sim.collector_target(collector, capacity), near.key)
-	far.rejects = GameConfig.REJECT_CAPACITY - GameConfig.COLLECTOR_URGENT_MARGIN
-	assert_eq(sim.collector_target(collector, capacity), far.key)
+	assert_eq(sim.reject_target(runner, capacity), near.key)
+	far.rejects = GameConfig.REJECT_CAPACITY - GameConfig.REJECT_URGENT_MARGIN
+	assert_eq(sim.reject_target(runner, capacity), far.key)
 
 
-func test_collector_skips_far_piles_once_loaded() -> void:
+func test_reject_runner_skips_far_piles_once_loaded() -> void:
 	_unlock_all()
 	var piles := _reject_piles_by_distance()
 	var far_key := piles[piles.size() - 1]
-	assert_gt(2.0 * layout.shredder_point().distance_to(layout.reject_point(far_key)), GameConfig.COLLECTOR_MAX_DETOUR)
-	var collector := state.add_collector()
-	collector.position = layout.shredder_point()
-	collector.loaded = 1
+	assert_gt(2.0 * layout.shredder_point().distance_to(layout.reject_point(far_key)), GameConfig.REJECT_MAX_DETOUR)
+	var runner := state.add_runner(Runner.REJECT)
+	runner.position = layout.shredder_point()
+	runner.loaded = 1
+	var capacity := Formulas.runner_load(state, runner)
 	state.station(far_key).rejects = 1
-	assert_eq(sim.collector_target(collector, Formulas.collector_capacity(state)), "")
+	assert_eq(sim.reject_target(runner, capacity), "")
 	state.station(far_key).rejects = GameConfig.REJECT_CAPACITY
-	assert_eq(sim.collector_target(collector, Formulas.collector_capacity(state)), far_key)
-	collector.loaded = Formulas.collector_capacity(state)
-	assert_eq(sim.collector_target(collector, Formulas.collector_capacity(state)), "")
+	assert_eq(sim.reject_target(runner, capacity), far_key)
+	runner.loaded = capacity
+	assert_eq(sim.reject_target(runner, capacity), "")
 
 
-func test_collector_keeps_collecting_until_full() -> void:
+func test_reject_runner_only_serves_its_department() -> void:
+	_unlock_all()
+	var general := state.station("general_services/review")
+	var tax := state.station("tax_services/review")
+	general.rejects = 5
+	tax.rejects = 1
+	var runner := state.add_runner(Runner.REJECT)
+	runner.position = layout.shredder_point()
+	var capacity := Formulas.runner_load(state, runner)
+	runner.dept_id = "tax_services"
+	assert_eq(sim.reject_target(runner, capacity), tax.key)
+	runner.dept_id = "general_services"
+	assert_eq(sim.reject_target(runner, capacity), general.key)
+	runner.dept_id = "housing"
+	assert_eq(sim.reject_target(runner, capacity), "")
+	runner.dept_id = Runner.ALL_DEPARTMENTS
+	assert_ne(sim.reject_target(runner, capacity), "")
+	assert_true(runner.serves_rejects_of("anything"))
+	runner.dept_id = "housing"
+	assert_false(runner.serves_rejects_of("tax_services"))
+	assert_true(runner.serves_rejects_of("housing"))
+
+
+func test_reject_runner_keeps_collecting_until_full() -> void:
 	_unlock_all()
 	var piles := _reject_piles_by_distance()
 	var first := state.station(piles[0])
 	var second := state.station(piles[1])
 	first.rejects = 1
 	second.rejects = GameConfig.REJECT_CAPACITY
-	var collector := state.add_collector()
-	collector.position = layout.reject_point(first.key)
-	collector.source = first.key
+	var runner := state.add_runner(Runner.REJECT)
+	runner.position = layout.reject_point(first.key)
+	runner.source = first.key
 	sim.tick(0.05)
-	assert_eq(collector.loaded, 1)
+	assert_eq(runner.loaded, 1)
 	assert_eq(first.rejects, 0)
 	sim.tick(0.05)
-	assert_eq(collector.source, second.key)
-	_run(120.0, 0.1)
+	assert_eq(runner.source, second.key)
+	_run(240.0, 0.1)
 	assert_eq(second.rejects, 0)
-	assert_eq(collector.loaded, 0)
+	assert_eq(runner.loaded, 0)
 	assert_eq(state.production.total(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF), GameConfig.REJECT_CAPACITY + 1)
 
 
-func test_collector_handles_a_vanished_pile() -> void:
-	var collector := state.add_collector()
-	collector.source = "nope"
-	collector.position = layout.reject_point("nope")
+func test_reject_runner_handles_a_vanished_pile() -> void:
+	var runner := state.add_runner(Runner.REJECT)
+	runner.source = "nope"
+	runner.position = layout.reject_point("nope")
 	sim.tick(0.05)
-	assert_eq(collector.source, "")
-	assert_eq(collector.loaded, 0)
+	assert_eq(runner.source, "")
+	assert_eq(runner.loaded, 0)
 
 
-func test_roller_skates_and_training_speed_up_collectors() -> void:
-	assert_eq(Formulas.collector_speed(state), GameConfig.COLLECTOR_SPEED)
-	state.boosts["roller_skates"] = 10.0
-	assert_eq(Formulas.collector_speed(state), GameConfig.COLLECTOR_SPEED * GameConfig.BOOST_RUNNER_SPEED)
-	state.boosts.clear()
-	state.set_upgrade("collector_speed", 10)
-	assert_almost_eq(Formulas.collector_speed(state), GameConfig.COLLECTOR_SPEED * Formulas.track_value("collector_speed", 10), 0.001)
-	assert_gt(Formulas.collector_speed(state), GameConfig.COLLECTOR_SPEED)
+func test_reject_runner_unloads_only_at_the_central_shredder() -> void:
+	var runner := state.add_runner(Runner.REJECT)
+	runner.loaded = 2
+	runner.position = layout.reject_point("general_services/review")
+	var money := state.money
+	sim.tick(0.05)
+	assert_eq(runner.loaded, 2)
+	assert_eq(state.money, money)
+	runner.position = layout.shredder_point()
+	sim.tick(0.05)
+	assert_eq(runner.loaded, 0)
+	assert_almost_eq(state.money, money + GameConfig.REJECT_SHRED_REWARD * 2.0, 0.001)
+
+
+func test_reject_distances_are_cached_per_pile() -> void:
+	var key := "general_services/review"
+	var expected := layout.reject_point(key).distance_to(layout.shredder_point())
+	assert_almost_eq(sim._reject_to_shredder(key), expected, 0.001)
+	assert_true(sim._reject_detours.has(key))
+	assert_almost_eq(sim._reject_to_shredder(key), expected, 0.001)
+
+
+func test_normal_runners_leave_rejects_alone() -> void:
+	var station := state.station("general_services/review")
+	station.rejects = 3
+	for role in Runner.CASE_ROLES:
+		state.add_runner(role)
+	_run(30.0, 0.1)
+	assert_eq(station.rejects, 3)
+	for runner in state.runners:
+		assert_eq(runner.loaded, 0)
+		assert_eq(runner.source, "")
+
+
+func test_reject_runners_leave_files_alone() -> void:
+	var review := _fill_outbox(2)
+	var runner := state.add_runner(Runner.REJECT)
+	runner.position = layout.output_point(review.key)
+	assert_false(sim.assign_runner(runner))
+	assert_eq(sim.runner_standby(runner), "")
+	_run(5.0, 0.1)
+	assert_true(runner.items.is_empty())
+	assert_eq(runner.task, Runner.Task.IDLE)
+	assert_eq(review.outbox.size(), 2)
+	assert_false(runner.serves(review.outbox[0], review.key))
+
+
+func test_runner_leaving_reject_duty_still_unloads_what_it_carries() -> void:
+	var runner := state.add_runner(Runner.REJECT)
+	runner.loaded = 2
+	runner.position = layout.shredder_point() + Vector2(30, 0)
+	assert_true(game_actions().set_runner_role(0, Runner.INTAKE))
+	var money := state.money
+	state.station("general_services/review").rejects = 4
+	_run(10.0, 0.1)
+	assert_eq(runner.loaded, 0)
+	assert_eq(runner.source, "")
+	assert_eq(state.station("general_services/review").rejects, 4)
+	assert_almost_eq(state.money, money + GameConfig.REJECT_SHRED_REWARD * 2.0, 0.001)
+
+
+func test_changing_role_or_department_resets_the_reject_route() -> void:
+	var runner := state.add_runner(Runner.REJECT)
+	runner.source = "general_services/review"
+	assert_true(game_actions().cycle_runner_department(0))
+	assert_eq(runner.source, "")
+	runner.source = "general_services/review"
+	assert_true(game_actions().set_runner_role(0, Runner.INTERNAL))
+	assert_eq(runner.source, "")
+	assert_true(game_actions().set_runner_role(0, Runner.REJECT))
+	assert_eq(runner.role, Runner.REJECT)
+	assert_false(game_actions().set_runner_role(0, "collector"))
+
+
+func test_runner_reset_route_keeps_carried_files() -> void:
+	var runner := state.add_runner(Runner.INTAKE)
+	runner.task = Runner.Task.TO_TARGET
+	runner.target = "general_services/review"
+	runner.items.append(_case("general_services"))
+	runner.reset_route()
+	assert_eq(runner.task, Runner.Task.TO_TARGET)
+	runner.task = Runner.Task.TO_SOURCE
+	runner.source = "x"
+	runner.reset_route()
+	assert_eq(runner.task, Runner.Task.IDLE)
+	assert_eq(runner.source, "")
+
+
+func test_reject_runner_with_files_after_a_role_change_delivers_them() -> void:
+	var review := state.station("general_services/review")
+	var signature := state.station("general_services/signature")
+	var case_file := _case("general_services", 1)
+	var runner := state.add_runner(Runner.REJECT)
+	runner.items.append(case_file)
+	runner.task = Runner.Task.TO_TARGET
+	runner.target = signature.key
+	runner.position = layout.input_point(signature.key)
+	sim.tick(0.05)
+	assert_true(runner.items.is_empty())
+	assert_eq(runner.task, Runner.Task.IDLE)
+	assert_eq(review.outbox.size(), 0)
 
 
 func _fill_outbox(count: int) -> Station:

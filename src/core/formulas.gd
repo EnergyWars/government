@@ -19,35 +19,19 @@ static func department_staff_multiplier(config: Dictionary) -> float:
 
 
 static func desk_cost(station: Station) -> float:
-	return float(GameConfig.station_kind(station.kind).desk_cost) * cost_multiplier_for(station) * pow(GameConfig.DESK_GROWTH, station.desks - 1)
+	return float(GameConfig.station_kind(station.kind).desk_cost) * cost_multiplier_for(station) * pow(GameConfig.DESK_GROWTH, station.desks - 1) * early_discount(station.desks - 1)
 
 
 static func hire_cost(station: Station) -> float:
-	return float(GameConfig.station_kind(station.kind).hire_cost) * staff_multiplier_for(station) * pow(GameConfig.HIRE_GROWTH, station.staff)
-
-
-static func tray_cost(station: Station) -> float:
-	return float(GameConfig.station_kind(station.kind).desk_cost) * cost_multiplier_for(station) * GameConfig.TRAY_COST_FACTOR * pow(GameConfig.TRAY_GROWTH, station.tray_level)
+	return float(GameConfig.station_kind(station.kind).hire_cost) * staff_multiplier_for(station) * pow(GameConfig.HIRE_GROWTH, station.staff) * early_discount(station.staff)
 
 
 static func reject_pile_cost(station: Station) -> float:
-	return float(GameConfig.station_kind(station.kind).desk_cost) * cost_multiplier_for(station) * GameConfig.REJECT_PILE_COST_FACTOR * pow(GameConfig.REJECT_PILE_GROWTH, station.reject_level)
+	return float(GameConfig.station_kind(station.kind).desk_cost) * cost_multiplier_for(station) * GameConfig.REJECT_PILE_COST_FACTOR * pow(GameConfig.REJECT_PILE_GROWTH, station.reject_level) * early_discount(station.reject_level)
 
 
 static func staff_walk_time(from: Vector2, to: Vector2) -> float:
 	return clampf(from.distance_to(to) / GameConfig.STAFF_WALK_SPEED, GameConfig.STAFF_WALK_MIN_SECONDS, GameConfig.STAFF_WALK_MAX_SECONDS)
-
-
-static func upgrade_cost(station: Station) -> float:
-	return float(GameConfig.station_kind(station.kind).upgrade_cost) * cost_multiplier_for(station) * pow(GameConfig.UPGRADE_GROWTH, station.level - 1)
-
-
-static func specialist_cost(station: Station) -> float:
-	return float(GameConfig.station_kind(station.kind).hire_cost) * GameConfig.SPECIALIST_FACTOR * staff_multiplier_for(station) * pow(GameConfig.SPECIALIST_GROWTH, station.specialists)
-
-
-static func supervisor_cost(dept: Department) -> float:
-	return GameConfig.SUPERVISOR_COST * department_staff_multiplier(dept.config()) * pow(GameConfig.SUPERVISOR_GROWTH, dept.supervisors)
 
 
 static func track_value(upgrade_id: String, level: int) -> float:
@@ -63,6 +47,8 @@ static func track_value(upgrade_id: String, level: int) -> float:
 			return 1.0 - (1.0 - base) * pow(float(config.rate), capped)
 		"unlock":
 			return 1.0 if capped > 0 else 0.0
+		"milestone":
+			return level_speed(capped + 1)
 	return base + float(config.get("step", 0.0)) * capped
 
 
@@ -78,16 +64,58 @@ static func track_room_factor(upgrade_id: String, room_id: String) -> float:
 			return GameConfig.TUBE_STATION_INSPECTION_FACTOR
 		var unlock_cost := float(GameConfig.department(room_id).get("unlock_cost", 0.0))
 		return maxf(1.0, unlock_cost * GameConfig.TUBE_STATION_FACTOR / GameConfig.TUBE_STATION_MIN_COST)
-	return float(GameConfig.department(room_id).get("cost_multiplier", 1.0))
+	if room_id == GameConfig.ROOM_INSPECTION:
+		return float(GameConfig.SHARED_STATIONS[GameConfig.INSPECTION].cost_multiplier)
+	var config := GameConfig.department(room_id)
+	if bool(GameConfig.upgrade(upgrade_id).get("staff_cost", false)):
+		return department_staff_multiplier(config) if not config.is_empty() else 1.0
+	return float(config.get("cost_multiplier", 1.0))
 
 
 static func track_cost(upgrade_id: String, level: int, room_id: String = "") -> float:
 	var config := GameConfig.upgrade(upgrade_id)
-	return float(config.cost) * track_room_factor(upgrade_id, room_id) * pow(float(config.growth), level)
+	return float(config.cost) * track_room_factor(upgrade_id, room_id) * pow(float(config.growth), level) * early_discount(track_price_level(upgrade_id, level))
 
 
 static func track_bulk_cost(upgrade_id: String, level: int, count: int, room_id: String = "") -> float:
-	return geometric_sum(track_cost(upgrade_id, level, room_id), float(GameConfig.upgrade(upgrade_id).growth), count)
+	return ramped_sum(track_cost(upgrade_id, level, room_id), float(GameConfig.upgrade(upgrade_id).growth), track_price_level(upgrade_id, level), count)
+
+
+static func track_price_level(upgrade_id: String, level: int) -> int:
+	return level + int(GameConfig.upgrade(upgrade_id).get("price_offset", 0))
+
+
+static func early_discount(level: int) -> float:
+	if level >= GameConfig.EARLY_DISCOUNT_LEVELS:
+		return 1.0
+	return lerpf(GameConfig.EARLY_DISCOUNT_START, 1.0, maxi(0, level) / float(GameConfig.EARLY_DISCOUNT_LEVELS))
+
+
+static func ramped_sum(cost: float, growth: float, level: int, count: int) -> float:
+	if count <= 0:
+		return 0.0
+	var start := maxi(0, level)
+	var raw := cost / early_discount(start)
+	var total := 0.0
+	var index := 0
+	while index < count and start + index < GameConfig.EARLY_DISCOUNT_LEVELS:
+		total += raw * pow(growth, index) * early_discount(start + index)
+		index += 1
+	return total + geometric_sum(raw * pow(growth, index), growth, count - index)
+
+
+static func ramped_affordable(cost: float, growth: float, level: int, remaining: int, money: float) -> int:
+	if remaining <= 0 or money + 0.0001 < cost:
+		return 0
+	var low := 1
+	var high := remaining
+	while low < high:
+		var middle := ceili((low + high) / 2.0)
+		if ramped_sum(cost, growth, level, middle) <= money + 0.0001:
+			low = middle
+		else:
+			high = middle - 1
+	return low
 
 
 static func geometric_sum(first: float, growth: float, count: int) -> float:
@@ -138,13 +166,9 @@ static func security_chance(state: GameState) -> float:
 	return clampf(upgrade_value(state, "security_training"), 0.0, 1.0)
 
 
-static func review_base_cost(state: GameState) -> float:
-	return maxf(GameConfig.REVIEW_DELETE_BASE, income_per_second(state) * GameConfig.REVIEW_DELETE_INCOME_SECONDS)
-
-
 static func review_delete_cost(state: GameState, review: Review) -> float:
 	var stars := 5 if review.forced else review.stars
-	return review_base_cost(state) * GameConfig.REVIEW_DELETE_STAR_FACTORS[clampi(stars, 1, 5) - 1] * pow(GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH, review.lawsuits)
+	return float(GameConfig.building_stage(state.building_stage).review_delete) * review.price_factor * GameConfig.REVIEW_DELETE_STAR_FACTORS[clampi(stars, 1, 5) - 1] * pow(GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH, review.lawsuits)
 
 
 static func income_per_second(state: GameState) -> float:
@@ -155,61 +179,63 @@ static func income_per_second(state: GameState) -> float:
 
 
 static func review_lawsuit_cost(state: GameState, review: Review) -> float:
-	return review_base_cost(state) * GameConfig.REVIEW_LAWSUIT_FACTOR * pow(GameConfig.REVIEW_LAWSUIT_GROWTH, review.lawsuits)
+	return float(GameConfig.building_stage(state.building_stage).review_lawsuit) * review.price_factor * pow(GameConfig.REVIEW_LAWSUIT_GROWTH, review.lawsuits)
 
 
 static func review_lawsuit_chance(review: Review) -> float:
 	return minf(GameConfig.REVIEW_LAWSUIT_MAX_CHANCE, GameConfig.REVIEW_LAWSUIT_CHANCE + GameConfig.REVIEW_LAWSUIT_CHANCE_STEP * review.lawsuits)
 
 
-static func training_cost(station: Station, track: String, level: int) -> float:
-	var config: Dictionary = GameConfig.OFFICIAL_TRAININGS[track]
-	return float(GameConfig.station_kind(station.kind).hire_cost) * staff_multiplier_for(station) * float(config.cost) * pow(float(config.growth), level)
+static func station_room(station: Station) -> String:
+	return GameConfig.station_room(station.key)
 
 
-static func training_effect(track: String, level: int) -> float:
-	var effect := float(GameConfig.OFFICIAL_TRAININGS[track].effect)
-	if track == "stamina":
-		return 1.0 - pow(effect, level)
-	return effect * level
+static func lead_room(station: Station) -> String:
+	return GameConfig.lead_room(station.key)
 
 
-static func official_speed(mood: DeskMood) -> float:
-	return 1.0 + training_effect("skill", mood.training_level("skill"))
+static func has_lead(state: GameState, room_id: String) -> bool:
+	return state.has_upgrade("team_lead", room_id)
 
 
-static func official_sick_resist(mood: DeskMood) -> float:
-	return training_effect("health", mood.training_level("health"))
+static func lead_value(state: GameState, upgrade_id: String, room_id: String) -> float:
+	if not GameConfig.upgrade_rooms(upgrade_id).has(room_id) or not has_lead(state, room_id):
+		return lead_neutral(upgrade_id)
+	return upgrade_value(state, upgrade_id, room_id)
 
 
-static func official_drowsy_factor(mood: DeskMood) -> float:
-	return 1.0 - training_effect("stamina", mood.training_level("stamina"))
-
-
-static func official_calm(mood: DeskMood) -> float:
-	return training_effect("calm", mood.training_level("calm"))
-
-
-static func effective_workers(station: Station) -> float:
-	var total := 0.0
-	for desk in station.moods.size():
-		if station.is_staffed(desk):
-			total += official_speed(station.moods[desk])
-	return total
+static func lead_neutral(upgrade_id: String) -> float:
+	return float(GameConfig.upgrade(upgrade_id).get("neutral", track_value(upgrade_id, 0)))
 
 
 static func department_calm(state: GameState, dept_id: String) -> float:
-	var total := 0.0
+	if not has_lead(state, dept_id):
+		return 0.0
+	return clampf(lead_value(state, "lead_calm", dept_id), 0.0, 1.0)
+
+
+static func team_lead_count(state: GameState) -> int:
 	var count := 0
-	for key in GameConfig.department_station_keys(dept_id):
-		var station := state.station(key)
-		if station == null or station.machine:
-			continue
-		for desk in station.moods.size():
-			if station.is_staffed(desk):
-				total += official_calm(station.moods[desk])
-				count += 1
-	return total / count if count > 0 else 0.0
+	for room_id in GameConfig.lead_rooms():
+		if has_lead(state, room_id):
+			count += 1
+	return count
+
+
+static func patrol_speed(state: GameState, room_id: String) -> float:
+	if not state.is_patrolling(room_id):
+		return 1.0
+	return lead_value(state, "lead_patrol", room_id)
+
+
+static func patrol_cooldown(state: GameState, room_id: String) -> float:
+	return lead_value(state, "lead_cooldown", room_id)
+
+
+static func tray_size(state: GameState, room_id: String) -> int:
+	if not GameConfig.office_rooms().has(room_id):
+		return GameConfig.TRAY_BASE
+	return clampi(int(upgrade_value(state, "room_trays", room_id)), GameConfig.TRAY_BASE, GameConfig.TRAY_MAX)
 
 
 static func tube_capacity(state: GameState) -> int:
@@ -229,23 +255,11 @@ static func tube_segment_speed(state: GameState, tube_id: String) -> float:
 
 
 static func tube_segment_cost(level: int) -> float:
-	return GameConfig.TUBE_SEGMENT_COST * pow(GameConfig.TUBE_SEGMENT_GROWTH, level)
-
-
-static func collector_cost(state: GameState) -> float:
-	return GameConfig.COLLECTOR_COST * pow(GameConfig.COLLECTOR_GROWTH, state.collectors.size())
-
-
-static func collector_capacity(state: GameState) -> int:
-	return int(upgrade_value(state, "collector_carts"))
-
-
-static func collector_capacity_limit() -> int:
-	return int(track_value("collector_carts", int(GameConfig.upgrade("collector_carts").max)))
+	return GameConfig.TUBE_SEGMENT_COST * pow(GameConfig.TUBE_SEGMENT_GROWTH, level) * early_discount(level)
 
 
 static func coffee_intern_cost(state: GameState) -> float:
-	return GameConfig.COFFEE_INTERN_COST * pow(GameConfig.COFFEE_INTERN_GROWTH, state.coffee_interns.size())
+	return GameConfig.COFFEE_INTERN_COST * pow(GameConfig.COFFEE_INTERN_GROWTH, state.coffee_interns.size()) * early_discount(state.coffee_interns.size())
 
 
 static func ticket_machines(state: GameState) -> int:
@@ -297,6 +311,37 @@ static func citizen_time_left(case_file: CaseFile) -> float:
 	return maxf(0.0, citizen_patience(case_file) - case_file.waited)
 
 
+static func seat_leave_chance(waited: float) -> float:
+	var chance := 0.0
+	for tier: Dictionary in GameConfig.SEAT_LEAVE_CHANCES:
+		if waited + 0.000001 >= float(tier.after):
+			chance = float(tier.chance)
+	return chance
+
+
+static func seat_leave_checks(before: float, after: float) -> Array[float]:
+	var result: Array[float] = []
+	var first := float(GameConfig.SEAT_LEAVE_CHANCES[0].after)
+	var interval := GameConfig.SEAT_LEAVE_INTERVAL
+	var index := maxi(0, ceili((before - first) / interval - 0.000001))
+	var point := first + index * interval
+	if point <= before + 0.000001 and before > 0.0:
+		point += interval
+	while point <= after + 0.000001 and point < GameConfig.SEAT_PATIENCE:
+		result.append(point)
+		point += interval
+	return result
+
+
+static func citizen_leaves_soon(case_file: CaseFile) -> bool:
+	if not is_citizen_waiting(case_file):
+		return false
+	var time_left := citizen_time_left(case_file)
+	if case_file.seated and case_file.is_seat_waiting():
+		return time_left <= GameConfig.SEAT_LEAVE_WARNING_SECONDS
+	return time_left < GameConfig.STAND_LEAVE_WARNING_SECONDS
+
+
 static func is_citizen_waiting(case_file: CaseFile) -> bool:
 	if citizen_patience(case_file) <= 0.0:
 		return false
@@ -325,7 +370,7 @@ static func dispute_allowed(state: GameState, kind: String) -> bool:
 
 static func dispute_interval(state: GameState, roll: float) -> float:
 	var base := lerpf(GameConfig.DISPUTE_MIN_INTERVAL, GameConfig.DISPUTE_MAX_INTERVAL, clampf(roll, 0.0, 1.0))
-	return base * upgrade_value(state, "climate_control") * (1.0 + GameConfig.DISPUTE_SUPERVISOR_RELIEF * total_supervisors(state))
+	return base * upgrade_value(state, "climate_control") * (1.0 + GameConfig.LEAD_DISPUTE_RELIEF * team_lead_count(state))
 
 
 static func ruckus_interval(state: GameState, roll: float) -> float:
@@ -333,21 +378,14 @@ static func ruckus_interval(state: GameState, roll: float) -> float:
 	return base * (1.0 + GameConfig.RUCKUS_SECURITY_RELIEF * (1.0 if state.has_upgrade("complaint_security") else 0.0))
 
 
-static func total_supervisors(state: GameState) -> int:
-	var total := 0
-	for dept in state.unlocked_departments():
-		total += dept.supervisors
-	return total
-
-
 static func sick_interval(state: GameState, roll: float) -> float:
 	var base := lerpf(GameConfig.SICK_MIN_PER_OFFICIAL, GameConfig.SICK_MAX_PER_OFFICIAL, clampf(roll, 0.0, 1.0))
 	return base / maxi(1, state.staffed_officials()) * (1.0 + GameConfig.SICK_HR_RELIEF * state.hr) * upgrade_value(state, "toilet_hygiene")
 
 
-static func sick_share(state: GameState) -> float:
+static func sick_share(state: GameState, room_id: String = "") -> float:
 	var interval := lerpf(GameConfig.SICK_MIN_PER_OFFICIAL, GameConfig.SICK_MAX_PER_OFFICIAL, 0.5) * (1.0 + GameConfig.SICK_HR_RELIEF * state.hr) * upgrade_value(state, "toilet_hygiene")
-	return clampf(GameConfig.SICK_SECONDS / interval, 0.0, 1.0)
+	return clampf(rest_limit(state, DeskMood.SICK, room_id) / interval, 0.0, 1.0)
 
 
 static func availability(state: GameState, station: Station) -> float:
@@ -356,10 +394,11 @@ static func availability(state: GameState, station: Station) -> float:
 	var alert := alert_duration(state) / maxf(0.01, drowsiness_rate(state, station))
 	var rest := 0.0
 	var weights := doze_weights(state)
+	var room_id := lead_room(station)
 	for rest_state: String in weights:
-		var limit := rest_limit(state, rest_state)
+		var limit := rest_limit(state, rest_state, room_id)
 		rest += float(weights[rest_state]) * (GameConfig.UNATTENDED_REST_ESTIMATE if is_inf(limit) else limit)
-	return alert / (alert + rest) * (1.0 - sick_share(state))
+	return alert / (alert + rest) * (1.0 - sick_share(state, room_id))
 
 
 static func lunch_interval(roll: float) -> float:
@@ -417,14 +456,14 @@ static func sick_recovery_speed(tier: int) -> float:
 	return GameConfig.SICK_BONUS_SPEED[clampi(tier, 0, GameConfig.sick_bonus_tiers())]
 
 
-static func sick_time_left(state: GameState, mood: DeskMood) -> float:
-	return sick_time_left_with(state, mood, mood.bonus)
+static func sick_time_left(state: GameState, mood: DeskMood, room_id: String = "") -> float:
+	return sick_time_left_with(state, mood, mood.bonus, room_id)
 
 
-static func sick_time_left_with(state: GameState, mood: DeskMood, tier: int) -> float:
+static func sick_time_left_with(state: GameState, mood: DeskMood, tier: int, room_id: String = "") -> float:
 	if not mood.is_sick():
 		return 0.0
-	return maxf(0.0, rest_limit(state, DeskMood.SICK) - mood.resting) / sick_recovery_speed(maxi(tier, mood.bonus))
+	return maxf(0.0, rest_limit(state, DeskMood.SICK, room_id) - mood.resting) / sick_recovery_speed(maxi(tier, mood.bonus))
 
 
 static func dispute_limit(state: GameState) -> float:
@@ -433,13 +472,7 @@ static func dispute_limit(state: GameState) -> float:
 
 
 static func runner_cost(state: GameState) -> float:
-	return GameConfig.RUNNER_COST * pow(GameConfig.RUNNER_GROWTH, state.runners.size())
-
-
-static func upgrade_speed_multiplier(state: GameState, kind: String) -> float:
-	if not GameConfig.UPGRADE_SPEED.has(kind):
-		return 1.0
-	return upgrade_value(state, str(GameConfig.UPGRADE_SPEED[kind]))
+	return GameConfig.RUNNER_COST * pow(GameConfig.RUNNER_GROWTH, state.runners.size()) * early_discount(state.runners.size())
 
 
 static func level_speed(level: int) -> float:
@@ -452,46 +485,55 @@ static func levels_to_milestone(level: int) -> int:
 
 
 static func station_speed(state: GameState, station: Station) -> float:
-	var speed := level_speed(station.level)
-	speed *= upgrade_speed_multiplier(state, station.kind)
-	var dept := state.department(station.dept_id)
-	if dept != null:
-		speed *= (1.0 + GameConfig.SUPERVISOR_BONUS * dept.supervisors) * upgrade_value(state, "office_equipment", dept.id)
-	return speed
-
-
-static func complex_time_factor(state: GameState, by_specialist: bool) -> float:
-	if by_specialist:
+	var room_id := station_room(station)
+	if not GameConfig.office_rooms().has(room_id):
 		return 1.0
+	return upgrade_value(state, "room_speed", room_id)
+
+
+static func complex_time_factor(state: GameState) -> float:
 	return 1.0 + GameConfig.COMPLEX_TIME_PENALTY * upgrade_value(state, "ai_classification")
 
 
-static func base_time(station: Station, case_dept: Department, complex: bool, by_specialist: bool, state: GameState) -> float:
+static func thoroughness(dept: Department) -> Dictionary:
+	return GameConfig.THOROUGHNESS[clampi(dept.thoroughness, 0, GameConfig.THOROUGHNESS.size() - 1)]
+
+
+static func thoroughness_time(station: Station, case_dept: Department) -> float:
+	if station.machine or station.dept_id != case_dept.id:
+		return 1.0
+	return float(thoroughness(case_dept).time)
+
+
+static func thoroughness_reward(dept: Department) -> float:
+	return float(thoroughness(dept).get("reward", 1.0))
+
+
+static func base_time(station: Station, case_dept: Department, complex: bool, state: GameState) -> float:
 	var config := case_dept.config()
 	var time := float(GameConfig.station_kind(station.kind).base_time)
 	if station.kind == "review" and station.dept_id == case_dept.id:
 		time = float(config.review_time)
 	elif station.kind == "signature":
 		time = float(config.signature_time)
-	if station.kind == "review":
-		time *= float(GameConfig.THOROUGHNESS[case_dept.thoroughness].time)
+	time *= thoroughness_time(station, case_dept)
 	if station.dept_id == case_dept.id:
 		time *= DepartmentRank.time_factor(case_dept.rank)
 	if complex and (station.kind == "review" or station.kind == "inspection"):
-		time *= complex_time_factor(state, by_specialist)
+		time *= complex_time_factor(state)
 	return time
 
 
-static func required_time(state: GameState, station: Station, case_file: CaseFile, by_specialist: bool = false) -> float:
+static func required_time(state: GameState, station: Station, case_file: CaseFile) -> float:
 	var dept := state.department(case_file.dept_id)
-	var time := base_time(station, dept, case_file.complex, by_specialist, state) / station_speed(state, station)
+	var time := base_time(station, dept, case_file.complex, state) / station_speed(state, station)
 	if station.kind == "reception":
 		time *= 1.0 + GameConfig.MULTI_TIME_PER_EXTRA * case_file.extras.size()
 	return time * GameConfig.BIG_CASE_TIME_FACTOR if case_file.big else time
 
 
 static func work_speed(state: GameState, station: Station) -> float:
-	var speed := event_speed(state, station) * dispute_speed(state, station)
+	var speed := event_speed(state, station) * dispute_speed(state, station) * patrol_speed(state, lead_room(station))
 	if station.rush > 0.0:
 		speed *= GameConfig.UPGRADE_RUSH_SPEED
 	if state.is_boost_active("overtime"):
@@ -503,16 +545,14 @@ static func work_speed(state: GameState, station: Station) -> float:
 	return speed
 
 
-static func error_chance(state: GameState, dept: Department, by_specialist: bool = false) -> float:
-	var chance := float(GameConfig.THOROUGHNESS[dept.thoroughness].error)
+static func error_chance(state: GameState, dept: Department) -> float:
+	var chance := float(thoroughness(dept).error)
 	chance *= upgrade_value(state, "quality_training") * upgrade_value(state, "ai_classification")
-	if by_specialist:
-		chance *= GameConfig.SPECIALIST_ERROR_FACTOR
 	return clampf(chance, 0.0, 1.0)
 
 
-static func flag_chance(station: Station) -> float:
-	return clampf(GameConfig.FLAG_BASE_CHANCE + GameConfig.FLAG_PER_SPECIALIST * station.specialists, 0.0, 1.0)
+static func flag_chance() -> float:
+	return clampf(GameConfig.FLAG_BASE_CHANCE, 0.0, 1.0)
 
 
 static func reputation_multiplier(state: GameState) -> float:
@@ -610,16 +650,24 @@ static func full_boxes(state: GameState, dept: Department) -> Array[Dictionary]:
 	return result
 
 
-static func max_arrivals_per_department() -> float:
-	return GameConfig.MAX_ARRIVALS_PER_MINUTE / float(GameConfig.DEPARTMENTS.size())
+static func base_arrivals_per_minute(departments: int) -> float:
+	if departments >= GameConfig.DEPARTMENTS.size():
+		return GameConfig.MAX_ARRIVALS_PER_MINUTE
+	var extra := GameConfig.ARRIVALS_PER_DEPARTMENT * maxi(0, departments - 1)
+	return minf(GameConfig.MAX_ARRIVALS_PER_MINUTE, GameConfig.START_ARRIVALS_PER_MINUTE + extra)
 
 
 static func arrivals_per_minute(state: GameState) -> float:
-	return max_arrivals_per_department() * state.unlocked_count() * review_arrival_factor(state)
+	return _capped_arrivals(base_arrivals_per_minute(state.unlocked_count()), review_arrival_factor(state))
 
 
 static func arrival_interval(state: GameState) -> float:
-	return 60.0 / (max_arrivals_per_department() * review_arrival_factor(state))
+	var departments := maxi(1, state.unlocked_count())
+	return 60.0 * departments / _capped_arrivals(base_arrivals_per_minute(departments), review_arrival_factor(state))
+
+
+static func _capped_arrivals(base: float, factor: float) -> float:
+	return minf(GameConfig.MAX_ARRIVALS_PER_MINUTE, base * factor)
 
 
 static func mail_batch(state: GameState) -> int:
@@ -641,7 +689,7 @@ static func mail_reward_factor(state: GameState) -> float:
 
 
 static func mail_storage_cost(station: Station) -> float:
-	return GameConfig.MAIL_STORAGE_COST * pow(GameConfig.MAIL_STORAGE_GROWTH, station.storage_level)
+	return GameConfig.MAIL_STORAGE_COST * pow(GameConfig.MAIL_STORAGE_GROWTH, station.storage_level) * early_discount(station.storage_level)
 
 
 static func hands_on_reward(dept: Department) -> float:
@@ -701,10 +749,6 @@ static func runner_speed(state: GameState) -> float:
 	return GameConfig.RUNNER_SPEED * upgrade_value(state, "runner_speed") * _skates(state)
 
 
-static func collector_speed(state: GameState) -> float:
-	return GameConfig.COLLECTOR_SPEED * upgrade_value(state, "collector_speed") * _skates(state)
-
-
 static func coffee_intern_speed(state: GameState) -> float:
 	return GameConfig.COFFEE_INTERN_SPEED * upgrade_value(state, "coffee_intern_speed")
 
@@ -715,10 +759,6 @@ static func _skates(state: GameState) -> float:
 
 static func complaint_transfer_interval(state: GameState) -> float:
 	return GameConfig.COMPLAINT_TRANSFER_INTERVAL * upgrade_value(state, "shredder_blades")
-
-
-static func shredder_interval(state: GameState, dept_id: String) -> float:
-	return upgrade_value(state, "shredder", dept_id)
 
 
 static func phone_speed(state: GameState) -> float:
@@ -734,7 +774,7 @@ static func wake_time(rest_state: String) -> float:
 
 
 static func hr_cost(state: GameState) -> float:
-	return GameConfig.HR_COST * pow(GameConfig.HR_GROWTH, state.hr)
+	return GameConfig.HR_COST * pow(GameConfig.HR_GROWTH, state.hr) * early_discount(state.hr)
 
 
 static func complaint_text_index(serial: int) -> int:
@@ -749,8 +789,12 @@ static func runner_load(state: GameState, runner: Runner) -> int:
 	return runner_capacity(state) + GameConfig.RUNNER_LEVEL_CAPACITY * runner.level
 
 
+static func runner_load_limit(level: int) -> int:
+	return int(track_value("runner_trolleys", int(GameConfig.upgrade("runner_trolleys").max))) + GameConfig.RUNNER_LEVEL_CAPACITY * level
+
+
 static func runner_level_cost(runner: Runner) -> float:
-	return GameConfig.RUNNER_LEVEL_COST * pow(GameConfig.RUNNER_LEVEL_GROWTH, runner.level)
+	return GameConfig.RUNNER_LEVEL_COST * pow(GameConfig.RUNNER_LEVEL_GROWTH, runner.level) * early_discount(runner.level)
 
 
 static func alert_duration(state: GameState) -> float:
@@ -781,17 +825,19 @@ static func doze_weights(state: GameState) -> Dictionary:
 
 
 static func drowsiness_rate(state: GameState, station: Station) -> float:
-	var supervisors := 0
-	var dept := state.department(station.dept_id)
-	if dept != null:
-		supervisors = dept.supervisors
-	else:
-		for user in state.departments_using(station.key):
-			supervisors = maxi(supervisors, user.supervisors)
-	return pow(GameConfig.SUPERVISOR_DROWSY_FACTOR, supervisors) * event_drowsy(state)
+	return lead_value(state, "lead_focus", lead_room(station)) * event_drowsy(state)
 
 
-static func rest_limit(state: GameState, rest_state: String) -> float:
+static func rest_limit(state: GameState, rest_state: String, room_id: String = "") -> float:
+	if rest_state == DeskMood.SICK:
+		return GameConfig.SICK_SECONDS * lead_value(state, "lead_health", room_id)
+	var limit := base_rest_limit(state, rest_state)
+	if is_inf(limit) or rest_state == DeskMood.ASLEEP or rest_state == DeskMood.CHAT:
+		return limit
+	return limit * lead_value(state, "lead_breaks", room_id)
+
+
+static func base_rest_limit(state: GameState, rest_state: String) -> float:
 	if rest_state == DeskMood.FETCH:
 		return GameConfig.FETCH_SECONDS * upgrade_value(state, "coffee_machine")
 	if rest_state == DeskMood.SLOW:
@@ -818,7 +864,8 @@ static func audit_factor(state: GameState) -> float:
 
 
 static func case_outcome(state: GameState, case_file: CaseFile, smuggled: bool = false) -> Dictionary:
-	var money := department_fee(state.department(case_file.dept_id)) * reputation_multiplier(state)
+	var dept := state.department(case_file.dept_id)
+	var money := department_fee(dept) * reputation_multiplier(state) * thoroughness_reward(dept)
 	var rep := 0.0
 	if case_file.follow_up:
 		money *= GameConfig.FOLLOW_UP_REWARD_FACTOR
@@ -883,11 +930,11 @@ static func station_demand(state: GameState, key: String) -> float:
 static func station_throughput(state: GameState, station: Station) -> float:
 	if station.workers() <= 0:
 		return 0.0
-	var case_time := station_case_time(state, station, station.specialists > 0)
-	return effective_workers(station) * availability(state, station) / case_time if case_time > 0.0 else 0.0
+	var case_time := station_case_time(state, station)
+	return station.workers() * availability(state, station) / case_time if case_time > 0.0 else 0.0
 
 
-static func station_case_time(state: GameState, station: Station, with_specialist: bool) -> float:
+static func station_case_time(state: GameState, station: Station) -> float:
 	if station.is_mailroom():
 		return float(GameConfig.station_kind(station.kind).base_time) / station_speed(state, station)
 	var users := state.departments_using(station.key)
@@ -898,8 +945,8 @@ static func station_case_time(state: GameState, station: Station, with_specialis
 	for dept in users:
 		var weight := demand(state, dept)
 		var complex_chance := float(dept.config().complex_chance)
-		var simple_time := base_time(station, dept, false, false, state)
-		var complex_time := base_time(station, dept, true, with_specialist, state)
+		var simple_time := base_time(station, dept, false, state)
+		var complex_time := base_time(station, dept, true, state)
 		total_time += weight * lerpf(simple_time, complex_time, complex_chance)
 		total_weight += weight
 	return total_time / total_weight / station_speed(state, station)
@@ -912,22 +959,55 @@ static func transport_throughput(state: GameState, extra_role: String = "") -> f
 	if total <= 0.0:
 		var loads := (0 if extra_role.is_empty() else runner_capacity(state))
 		for runner in state.runners:
-			loads += runner_load(state, runner)
+			if not runner.is_reject():
+				loads += runner_load(state, runner)
 		return loads / runner_trip_time(state)
 	var result := INF
-	for role in Runner.ROLES:
+	for role in Runner.CASE_ROLES:
 		var share := role_demand(state, role) / total
 		if share > 0.0:
 			result = minf(result, role_capacity(state, role, 1 if role == extra_role else 0) / share)
 	return result
 
 
-static func role_capacity(state: GameState, role: String, extra: int = 0) -> float:
-	var loads := extra * runner_capacity(state)
+static func role_loads(state: GameState, role: String) -> int:
+	var loads := 0
 	for runner in state.runners:
 		if runner.role == role:
 			loads += runner_load(state, runner)
-	return loads / runner_trip_time(state)
+	return loads
+
+
+static func role_capacity(state: GameState, role: String, extra: int = 0) -> float:
+	var loads := extra * runner_capacity(state) + role_loads(state, role)
+	return loads / (reject_trip_time(state) if role == Runner.REJECT else runner_trip_time(state))
+
+
+static func reject_trip_time(state: GameState, speed_factor: float = 1.0) -> float:
+	var layout := WorldLayout.get_default()
+	var speed := runner_speed(state) * speed_factor
+	var weighted := 0.0
+	var total := 0.0
+	for key in state.ordered_station_keys():
+		var station := state.station(key)
+		if not station.has_reject_pile() or station.is_shared():
+			continue
+		var weight := demand(state, state.department(station.dept_id))
+		weighted += weight * 2.0 * layout.reject_point(key).distance_to(layout.shredder_point()) / speed
+		total += weight
+	if total <= 0.0:
+		return GameConfig.REJECT_RUNNER_TRIP_ESTIMATE
+	return maxf(GameConfig.REJECT_RUNNER_TRIP_ESTIMATE, weighted / total)
+
+
+static func reject_demand(state: GameState) -> float:
+	if state.cases_completed < GameConfig.REJECT_MIN_CASES:
+		return 0.0
+	var total := 0.0
+	for dept in state.unlocked_departments():
+		if not dept.is_customs():
+			total += demand(state, dept) * GameConfig.REJECT_CHANCE
+	return total
 
 
 static func runner_trip_time(state: GameState) -> float:
@@ -957,6 +1037,8 @@ static func department_runner_transfers(state: GameState, dept: Department) -> f
 
 
 static func role_demand(state: GameState, role: String) -> float:
+	if role == Runner.REJECT:
+		return reject_demand(state)
 	var total := 0.0
 	for dept in state.unlocked_departments():
 		total += demand(state, dept) * float(runner_transfers(state, dept)[role])
@@ -966,7 +1048,7 @@ static func role_demand(state: GameState, role: String) -> float:
 static func weakest_runner_role(state: GameState) -> String:
 	var best := ""
 	var best_ratio := INF
-	for role in Runner.ROLES:
+	for role in Runner.CASE_ROLES:
 		var needed := role_demand(state, role)
 		if needed <= 0.0:
 			continue
@@ -1034,7 +1116,7 @@ static func department_flow(state: GameState, dept: Department) -> Dictionary:
 
 
 static func expected_case_value(state: GameState, dept: Department) -> float:
-	var money := department_fee(dept) * reputation_multiplier(state)
+	var money := department_fee(dept) * reputation_multiplier(state) * thoroughness_reward(dept)
 	money *= 1.0 + float(dept.config().complex_chance) * (GameConfig.COMPLEX_REWARD_FACTOR - 1.0)
 	var error := error_chance(state, dept)
 	return money * (1.0 - error + error * GameConfig.FLAWED_REWARD_FACTOR)

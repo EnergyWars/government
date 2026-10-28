@@ -8,6 +8,7 @@ var author_index := 0
 var posted_at := 0.0
 var forced := false
 var lawsuits := 0
+var price_factor := 1.0
 
 
 func _init(p_id: int = 0, p_stars: int = 5, p_text_index: int = 0, p_author_index: int = 0, p_posted_at: float = 0.0) -> void:
@@ -42,8 +43,8 @@ func lawsuits_left() -> int:
 	return maxi(0, GameConfig.MAX_REVIEW_LAWSUITS - lawsuits)
 
 
-func needs_ad_lawsuit() -> bool:
-	return not forced and lawsuits >= GameConfig.MAX_REVIEW_LAWSUITS
+func can_win_by_ad() -> bool:
+	return not forced
 
 
 func downgrade(p_text_index: int) -> void:
@@ -63,7 +64,7 @@ func author_key() -> String:
 
 
 func to_dict() -> Dictionary:
-	return {"id": id, "stars": stars, "text": text_index, "author": author_index, "at": posted_at, "forced": forced, "lawsuits": lawsuits}
+	return {"id": id, "stars": stars, "text": text_index, "author": author_index, "at": posted_at, "forced": forced, "lawsuits": lawsuits, "price": price_factor}
 
 
 static func from_dict(data: Variant) -> Review:
@@ -77,6 +78,7 @@ static func from_dict(data: Variant) -> Review:
 		maxf(0.0, float(data.get("at", 0.0)))
 	)
 	review.forced = bool(data.get("forced", false))
+	review.price_factor = clampf(float(data.get("price", 1.0)), 1.0 - GameConfig.REVIEW_PRICE_VARIATION, 1.0 + GameConfig.REVIEW_PRICE_VARIATION)
 	review.lawsuits = clampi(int(data.get("lawsuits", 0)), 0, GameConfig.MAX_REVIEW_LAWSUITS)
 	if review.forced:
 		review.stars = 5

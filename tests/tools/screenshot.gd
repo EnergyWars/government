@@ -69,7 +69,7 @@ func _process(_delta: float) -> bool:
 			for key in state.stations:
 				var station := state.stations[key]
 				station.staff = station.desks if not station.machine else station.staff
-			state.station("general_services/review").add_specialist()
+			state.set_upgrade("team_lead", 1, "general_services")
 		if _tubes:
 			var tube_state: GameState = _main.game.state
 			tube_state.set_upgrade("pneumatic_tubes", 1)

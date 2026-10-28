@@ -119,7 +119,7 @@ func test_goal_hire_runner_and_upgrade_steps() -> void:
 	tutorial.update()
 	assert_eq(tutorial.current().id, "upgrade")
 	tutorial.update()
-	state.station(GameConfig.RECEPTION).level += 1
+	state.set_upgrade("room_speed", 1, GameConfig.ROOM_HALL)
 	tutorial.update()
 	assert_eq(tutorial.current().id, "spot_open")
 
@@ -289,19 +289,55 @@ func test_runner_step_is_skipped_at_runner_limit() -> void:
 	assert_eq(tutorial.current().id, "upgrade")
 
 
-func test_upgrade_step_is_skipped_when_every_station_is_maxed() -> void:
-	for key in state.stations:
-		state.stations[key].level = GameConfig.MAX_STATION_LEVEL
+func _max_open_rooms() -> void:
+	for room_id in GameConfig.office_rooms():
+		if Progression.room_available(state, room_id):
+			state.set_upgrade("room_speed", GameConfig.ROOM_SPEED_LEVELS, room_id)
+
+
+func test_levels_stat_sums_the_room_speed_levels() -> void:
+	assert_eq(tutorial._stat("levels"), 0.0)
+	state.set_upgrade("room_speed", 3, GameConfig.ROOM_HALL)
+	state.set_upgrade("room_speed", 2, "general_services")
+	state.set_upgrade("room_speed", 4, "tax_services")
+	assert_eq(tutorial._stat("levels"), 9.0)
+	state.set_upgrade("room_trays", 5, "general_services")
+	state.set_upgrade("briefcase", 7)
+	assert_eq(tutorial._stat("levels"), 9.0)
+
+
+func test_upgrade_step_counts_room_speed_from_step_entry() -> void:
+	state.set_upgrade("room_speed", 2, "general_services")
+	_go_to_step("upgrade")
+	assert_eq(tutorial.current().id, "upgrade")
+	state.set_upgrade("room_trays", 1, "general_services")
+	tutorial.update()
+	assert_eq(tutorial.current().id, "upgrade")
+	state.set_upgrade("room_speed", 3, "general_services")
+	tutorial.update()
+	assert_eq(tutorial.current().id, "spot_open")
+
+
+func test_upgrade_step_is_skipped_when_every_open_room_is_maxed() -> void:
+	_max_open_rooms()
+	assert_false(tutorial._can_progress("levels"))
 	_go_to_step("upgrade")
 	assert_eq(tutorial.current().id, "spot_open")
 
 
-func test_upgrade_step_waits_while_one_station_can_grow() -> void:
-	for key in state.stations:
-		state.stations[key].level = GameConfig.MAX_STATION_LEVEL
-	state.station(GameConfig.RECEPTION).level = 1
+func test_upgrade_step_waits_while_one_room_can_grow() -> void:
+	_max_open_rooms()
+	state.set_upgrade("room_speed", 0, GameConfig.ROOM_HALL)
+	assert_true(tutorial._can_progress("levels"))
 	_go_to_step("upgrade")
 	assert_eq(tutorial.current().id, "upgrade")
+
+
+func test_new_rooms_reopen_the_upgrade_step() -> void:
+	_max_open_rooms()
+	assert_false(tutorial._can_progress("levels"))
+	state.unlock_department("tax_services")
+	assert_true(tutorial._can_progress("levels"))
 
 
 func test_hire_step_is_skipped_when_no_one_can_be_hired() -> void:

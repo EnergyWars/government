@@ -188,11 +188,12 @@ func test_buying_a_tube_station_for_an_office() -> void:
 
 
 func test_station_cost_follows_the_room() -> void:
-	assert_eq(Formulas.track_cost("tube_station", 0, "general_services"), GameConfig.TUBE_STATION_MIN_COST)
-	assert_eq(Formulas.track_cost("tube_station", 0, "tax_services"), GameConfig.TUBE_STATION_MIN_COST)
-	assert_eq(Formulas.track_cost("tube_station", 0, GameConfig.ROOM_HALL), GameConfig.TUBE_STATION_MIN_COST)
-	assert_almost_eq(Formulas.track_cost("tube_station", 0, "customs"), float(GameConfig.department("customs").unlock_cost) * GameConfig.TUBE_STATION_FACTOR, 0.001)
-	assert_almost_eq(Formulas.track_cost("tube_station", 0, GameConfig.ROOM_INSPECTION), GameConfig.TUBE_STATION_MIN_COST * GameConfig.TUBE_STATION_INSPECTION_FACTOR, 0.001)
+	var first := Formulas.early_discount(0)
+	assert_eq(Formulas.track_cost("tube_station", 0, "general_services"), GameConfig.TUBE_STATION_MIN_COST * first)
+	assert_eq(Formulas.track_cost("tube_station", 0, "tax_services"), GameConfig.TUBE_STATION_MIN_COST * first)
+	assert_eq(Formulas.track_cost("tube_station", 0, GameConfig.ROOM_HALL), GameConfig.TUBE_STATION_MIN_COST * first)
+	assert_almost_eq(Formulas.track_cost("tube_station", 0, "customs"), float(GameConfig.department("customs").unlock_cost) * GameConfig.TUBE_STATION_FACTOR * first, 0.001)
+	assert_almost_eq(Formulas.track_cost("tube_station", 0, GameConfig.ROOM_INSPECTION), GameConfig.TUBE_STATION_MIN_COST * GameConfig.TUBE_STATION_INSPECTION_FACTOR * first, 0.001)
 	assert_gt(Formulas.track_cost("tube_station", 0, "housing"), Formulas.track_cost("tube_station", 0, "vehicle_registration"))
 
 
@@ -417,8 +418,8 @@ func test_tube_segment_formulas() -> void:
 	assert_eq(Formulas.tube_segment_capacity(state, id), Formulas.tube_capacity(state))
 	assert_eq(Formulas.tube_segment_factor(0), 1.0)
 	assert_eq(Formulas.tube_segment_speed(state, id), GameConfig.TUBE_SPEED)
-	assert_eq(Formulas.tube_segment_cost(0), GameConfig.TUBE_SEGMENT_COST)
-	assert_almost_eq(Formulas.tube_segment_cost(2), GameConfig.TUBE_SEGMENT_COST * pow(GameConfig.TUBE_SEGMENT_GROWTH, 2), 0.01)
+	assert_eq(Formulas.tube_segment_cost(0), GameConfig.TUBE_SEGMENT_COST * Formulas.early_discount(0))
+	assert_almost_eq(Formulas.tube_segment_cost(2), GameConfig.TUBE_SEGMENT_COST * pow(GameConfig.TUBE_SEGMENT_GROWTH, 2) * Formulas.early_discount(2), 0.01)
 	state.tube_levels[id] = 2
 	assert_eq(Formulas.tube_segment_capacity(state, id), Formulas.tube_capacity(state) + 2 * GameConfig.TUBE_SEGMENT_CAPACITY_PER_LEVEL)
 	assert_almost_eq(Formulas.tube_segment_speed(state, id), GameConfig.TUBE_SPEED * (1.0 + 2.0 * GameConfig.TUBE_SEGMENT_SPEED_PER_LEVEL), 0.001)
@@ -448,7 +449,7 @@ func test_upgrading_a_single_tube_segment() -> void:
 	assert_true(actions.upgrade_tube(id))
 	assert_eq(state.tube_level(id), 1)
 	assert_eq(state.tube_level(segments[1]), 0)
-	assert_almost_eq(state.money, money - GameConfig.TUBE_SEGMENT_COST, 0.01)
+	assert_almost_eq(state.money, money - GameConfig.TUBE_SEGMENT_COST * Formulas.early_discount(0), 0.01)
 	assert_true(actions.buy_entry("segment:" + id))
 	assert_eq(state.tube_level(id), 2)
 	while state.tube_level(id) < GameConfig.TUBE_SEGMENT_MAX_LEVEL:

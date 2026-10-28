@@ -44,10 +44,9 @@ func test_service_rooms_have_header_spots() -> void:
 	assert_eq(layout.room_header(GameConfig.ROOM_HALL), layout.hall_plate())
 
 
-func test_department_station_shredder_and_tube_spots() -> void:
+func test_department_station_and_tube_spots() -> void:
 	for dept_id in GameConfig.department_ids():
 		assert_eq(layout.spot_rects(WorldLayout.DEPT_PREFIX + dept_id), [layout.header(dept_id)], dept_id)
-		assert_eq(layout.spot_rects(WorldLayout.SHREDDER_PREFIX + dept_id).is_empty(), GameConfig.is_customs(dept_id), dept_id)
 	for room_id in GameConfig.upgrade_rooms("tube_station"):
 		assert_eq(layout.spot_rects(WorldLayout.TUBE_PREFIX + room_id), [layout.slot_rect(layout.tube_station_point(room_id))], room_id)
 	for key: String in layout.areas:
@@ -58,15 +57,11 @@ func test_department_slots_stay_inside_their_room() -> void:
 	for dept_id in GameConfig.department_ids():
 		var room := layout.room(dept_id)
 		assert_true(room.encloses(layout.slot_rect(layout.tube_station_point(dept_id))), dept_id)
-		if not GameConfig.is_customs(dept_id):
-			assert_true(room.encloses(layout.slot_rect(layout.dept_shredder_point(dept_id))), dept_id)
-			assert_false(layout.slot_rect(layout.dept_shredder_point(dept_id)).intersects(layout.slot_rect(layout.tube_station_point(dept_id))), dept_id)
 
 
 func test_spot_at_prefers_the_smallest_area() -> void:
 	assert_eq(layout.spot_at(layout.header("tax_services").get_center()), "dept:tax_services")
 	assert_eq(layout.spot_at(layout.area("general_services/review").get_center()), "station:general_services/review")
-	assert_eq(layout.spot_at(_slot_center(layout.dept_shredder_point("tax_services"))), "shredder:tax_services")
 	assert_eq(layout.spot_at(_slot_center(layout.tube_station_point("general_services"))), "tube:general_services")
 	assert_eq(layout.spot_at(_slot_center(layout.tube_station_point(GameConfig.ROOM_HALL))), "tube:hall")
 	assert_eq(layout.spot_at(_slot_center(layout.tube_station_point(GameConfig.ROOM_MAIL))), "tube:mail")
@@ -134,8 +129,9 @@ func test_staff_room_holds_every_staff_board_near_the_hall() -> void:
 		assert_eq(layout.spot_at(rect.get_center()), board, board)
 		assert_eq(GameConfig.spot_room(board), GameConfig.ROOM_STAFF, board)
 	assert_eq(layout.staff_board("unknown"), layout.staff_board(GameConfig.STAFF_ROOM_BOARDS[0]))
-	for rect in [layout.runners_board(), layout.collectors_board(), layout.coffee_interns_board(), layout.sick_board(), layout.training_board(), layout.works_council_board()]:
+	for rect in [layout.coffee_interns_board(), layout.sick_board(), layout.training_board(), layout.works_council_board()]:
 		assert_true(staff.encloses(rect))
+	assert_false(staff.intersects(layout.runners_board()))
 
 
 func test_phone_office_and_mail_room_are_small() -> void:
@@ -186,7 +182,6 @@ func test_taps_open_the_smallest_spot() -> void:
 	assert_eq(world.tap_spot(layout.place_area(GameConfig.HALL_PICKUP).get_center()), "pickup_seating")
 	assert_eq(world.tap_spot(layout.standing_sign_rect(GameConfig.HALL_PICKUP).get_center()), "pickup_seating")
 	assert_eq(world.tap_spot(layout.ticket_area.get_center()), "tickets")
-	assert_eq(world.tap_spot(_slot_center(layout.dept_shredder_point("general_services"))), "shredder:general_services")
 	assert_eq(world.tap_spot(_slot_center(layout.tube_station_point("general_services"))), "tube:general_services")
 	assert_eq(world.tap_spot(layout.runners_board().get_center()), "runners")
 	assert_eq(world.tap_spot(layout.complaint_read_rect().get_center()), "complaint_desk")
@@ -204,7 +199,7 @@ func test_taps_in_locked_departments_open_the_opening() -> void:
 	var world := _world()
 	assert_false(game.state.department("tax_services").unlocked)
 	assert_eq(world.tap_spot(layout.area("tax_services/review").get_center()), "dept:tax_services")
-	assert_eq(world.tap_spot(_slot_center(layout.dept_shredder_point("tax_services"))), "dept:tax_services")
+	assert_eq(world.tap_spot(_slot_center(layout.tube_station_point("tax_services"))), "dept:tax_services")
 	game.state.unlock_department("tax_services")
 	assert_eq(world.tap_spot(layout.area("tax_services/review").get_center()), "station:tax_services/review")
 
@@ -288,17 +283,13 @@ func test_tube_pairs_are_unique_across_departments() -> void:
 	assert_true(pairs.has("shared/reception>tax_services/review"))
 
 
-func test_nearest_shredder_picks_the_closest_point() -> void:
-	var central := layout.shredder_point()
-	var housing := layout.dept_shredder_point("housing")
-	var none: Array[String] = []
-	var depts: Array[String] = ["general_services", "housing"]
-	assert_eq(layout.shredder_points(none), [central] as Array[Vector2])
-	assert_eq(layout.shredder_points(depts), [central, layout.dept_shredder_point("general_services"), housing] as Array[Vector2])
-	assert_true(layout.room("housing").has_point(housing))
-	assert_eq(layout.nearest_shredder(housing, none), central)
-	assert_eq(layout.nearest_shredder(housing, depts), housing)
-	assert_eq(layout.nearest_shredder(central + Vector2(4.0, 4.0), depts), central)
+func test_only_the_central_shredder_exists() -> void:
+	assert_true(layout.shredder_room.has_point(layout.shredder_point()))
+	assert_eq(layout.spot_at(layout.shredder_point()), "shredder")
+	for method in ["dept_shredder_point", "shredder_points", "nearest_shredder", "collector_home", "collectors_board"]:
+		assert_false(layout.has_method(method), method)
+	for dept_id in GameConfig.department_ids():
+		assert_true(layout.spot_rects("shredder:" + dept_id).is_empty(), dept_id)
 
 
 func test_tier_maps_levels_to_visual_steps() -> void:
@@ -321,7 +312,7 @@ func test_new_rooms_have_their_own_layers() -> void:
 		assert_true(ids.has(layer_id), layer_id)
 
 
-func test_map_draws_slots_stations_and_shredders() -> void:
+func test_map_draws_slots_stations_and_reject_runners() -> void:
 	var world := _world()
 	var state := game.state
 	state.unlock_department("tax_services")
@@ -335,9 +326,10 @@ func test_map_draws_slots_stations_and_shredders() -> void:
 	state.set_upgrade("it_support", 30)
 	for room_id in GameConfig.upgrade_rooms("tube_station"):
 		state.set_upgrade("tube_station", 1, room_id)
-	for room_id in GameConfig.upgrade_rooms("shredder"):
-		state.set_upgrade("shredder", 1, room_id)
-	game.simulation.dept_shredded.emit("general_services")
+	var reject_runner := state.add_runner(Runner.REJECT)
+	reject_runner.position = layout.shredder_point() + Vector2(-40, 20)
+	reject_runner.loaded = 3
+	state.add_runner(Runner.INTAKE)
 	world._process(0.1)
 	world.queue_redraw()
 	await wait_physics_frames(2)
@@ -368,3 +360,95 @@ func test_new_painters_draw() -> void:
 	canvas.queue_redraw()
 	await wait_physics_frames(2)
 	assert_true(is_instance_valid(canvas))
+
+
+func _ids(spot: String) -> Array[String]:
+	var ids: Array[String] = []
+	for entry in UpgradeCatalog.entries_for_spot(game.state, spot):
+		ids.append(entry.id)
+	return ids
+
+
+func test_tray_spots_cover_the_trays_of_every_station() -> void:
+	for key: String in layout.areas:
+		var spot := UpgradeCatalog.TRAYS_PREFIX + key
+		var points := layout.tray_points(key)
+		assert_eq(layout.spot_rects(spot).size(), points.size(), key)
+		for point in points:
+			assert_has(layout.spot_rects(spot), layout.tray_rect(point), key)
+			assert_true(layout.tray_rect(point).has_point(point), key)
+		assert_eq(GameConfig.spot_room(spot), GameConfig.station_room(key), key)
+	assert_eq(layout.tray_points(GameConfig.RECEPTION), [layout.output_point(GameConfig.RECEPTION), layout.reject_point(GameConfig.RECEPTION)] as Array[Vector2])
+	assert_eq(layout.tray_points(GameConfig.COUNTER), [layout.input_point(GameConfig.COUNTER), layout.reject_point(GameConfig.COUNTER)] as Array[Vector2])
+	var review := "general_services/review"
+	assert_eq(layout.tray_points(review), [layout.input_point(review), layout.output_point(review), layout.reject_point(review)] as Array[Vector2])
+	assert_eq(layout.spot_at(layout.output_point(review)), UpgradeCatalog.TRAYS_PREFIX + review)
+
+
+func test_station_and_tray_spots_split_the_station_upgrades() -> void:
+	var review := "general_services/review"
+	var station := _ids(UpgradeCatalog.STATION_PREFIX + review)
+	var trays := _ids(UpgradeCatalog.TRAYS_PREFIX + review)
+	station.sort()
+	trays.sort()
+	assert_eq(station, ["desk:" + review, "hire:" + review, "track:room_speed@general_services"] as Array[String])
+	assert_eq(trays, ["reject_pile:" + review, "track:room_trays@general_services"] as Array[String])
+	var header := _ids(UpgradeCatalog.DEPT_PREFIX + "general_services")
+	for entry_id in station + trays:
+		assert_true(header.has(entry_id), entry_id)
+	var reception := _ids(UpgradeCatalog.TRAYS_PREFIX + GameConfig.RECEPTION)
+	reception.sort()
+	assert_eq(reception, ["reject_pile:" + GameConfig.RECEPTION, "track:room_trays@hall"] as Array[String])
+	assert_true(_ids(UpgradeCatalog.STATION_PREFIX + GameConfig.RECEPTION).has("track:room_speed@hall"))
+	assert_false(_ids(UpgradeCatalog.STATION_PREFIX + GameConfig.RECEPTION).has("track:room_trays@hall"))
+
+
+func test_every_upgrade_is_reachable_without_a_room_header() -> void:
+	var state := game.state
+	state.money = 1e15
+	for dept_id in GameConfig.department_ids():
+		state.unlock_department(dept_id)
+	state.building_stage = GameConfig.MAIL_UNLOCK_STAGE
+	state.ensure_mailroom()
+	state.add_runner()
+	var reachable := {}
+	for spot: String in layout.spots:
+		if spot.begins_with(UpgradeCatalog.DEPT_PREFIX) or spot.begins_with(UpgradeCatalog.ROOM_PREFIX):
+			continue
+		for entry_id in _ids(spot):
+			reachable[entry_id] = true
+	for entry_id in _ids(GameConfig.ROOM_PLAYER):
+		reachable[entry_id] = true
+	for entry in UpgradeCatalog.entries(state):
+		if entry.kind == UpgradeCatalog.UNLOCK or entry.kind == UpgradeCatalog.RANK:
+			continue
+		assert_true(reachable.has(entry.id), entry.id)
+
+
+func test_spot_sheet_groups_only_header_spots() -> void:
+	var two: Array[String] = ["a", "b"]
+	var one: Array[String] = ["a"]
+	assert_true(SpotSheet.is_grouped(UpgradeCatalog.DEPT_PREFIX + "general_services", two))
+	assert_true(SpotSheet.is_grouped(UpgradeCatalog.ROOM_PREFIX + GameConfig.ROOM_HALL, two))
+	assert_false(SpotSheet.is_grouped(UpgradeCatalog.DEPT_PREFIX + "general_services", one))
+	assert_false(SpotSheet.is_grouped(UpgradeCatalog.STATION_PREFIX + "general_services/review", two))
+	assert_false(SpotSheet.is_grouped(UpgradeCatalog.TRAYS_PREFIX + "general_services/review", two))
+
+
+func test_tray_spot_texts_and_status() -> void:
+	var state := game.state
+	var review := "general_services/review"
+	var spot := UpgradeCatalog.TRAYS_PREFIX + review
+	assert_eq(UpgradeTexts.spot_title(spot), TranslationServer.translate("FMT_SPOT_TRAYS") % StationCard.label_for(review))
+	assert_eq(UpgradeTexts.spot_icon(spot), Icons.INBOX)
+	assert_ne(UpgradeTexts.spot_description(spot), "SPOT_DESC_TRAYS")
+	assert_eq(SpotStatus.trays(state, review).size(), 3)
+	assert_eq(SpotStatus.trays(state, GameConfig.RECEPTION).size(), 2)
+	assert_eq(SpotStatus.trays(state, GameConfig.COUNTER).size(), 2)
+	var station := state.station(review)
+	for i in station.outbox_capacity():
+		station.outbox.append(CaseFile.new("general_services"))
+	assert_true(station.is_output_jammed())
+	assert_has(SpotStatus.trays(state, review), TranslationServer.translate("STATUS_OUTPUTS_JAMMED"))
+	assert_true(SpotStatus.trays(state, "nope/review").is_empty())
+	assert_eq(SpotStatus.lines(state, spot), SpotStatus.trays(state, review))

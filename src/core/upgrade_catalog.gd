@@ -2,35 +2,28 @@ class_name UpgradeCatalog
 extends RefCounted
 
 const TRACK := "track"
-const LEVEL := "level"
 const DESK := "desk"
 const HIRE := "hire"
-const SPECIALIST := "specialist"
-const SUPERVISOR := "supervisor"
 const STAFF := "staff"
 const RUNNER_LEVEL := "runner_level"
 const SEGMENT := "segment"
 const STORAGE := "storage"
-const TRAYS := "trays"
 const REJECT_PILE := "reject_pile"
 const UNLOCK := "unlock"
 const RANK := "rank"
 const SINGLE_KINDS: Array[String] = [UNLOCK]
 const STAFF_SPOTS := {
 	"runners": "runners",
-	"collectors": "collectors",
 	"coffee_interns": "coffee_interns",
 	"hr": "phone_clerks",
 }
 const STAFF_LIMITS := {
 	"runners": GameConfig.MAX_RUNNERS,
-	"collectors": GameConfig.MAX_COLLECTORS,
 	"coffee_interns": GameConfig.MAX_COFFEE_INTERNS,
 	"hr": GameConfig.MAX_HR,
 }
 const STAFF_GROWTH := {
 	"runners": GameConfig.RUNNER_GROWTH,
-	"collectors": GameConfig.COLLECTOR_GROWTH,
 	"coffee_interns": GameConfig.COFFEE_INTERN_GROWTH,
 	"hr": GameConfig.HR_GROWTH,
 }
@@ -39,6 +32,10 @@ const TUBE_PREFIX := "tube:"
 const DEPT_PREFIX := "dept:"
 const ROOM_PREFIX := "room:"
 const STATION_PREFIX := "station:"
+const TRAYS_PREFIX := "trays:"
+const STATION_ROOM_TRACKS: Array[String] = ["room_speed"]
+const TRAY_ROOM_TRACKS: Array[String] = ["room_trays"]
+const LEAD_PREFIX := "lead:"
 
 
 static func entries(state: GameState) -> Array[UpgradeEntry]:
@@ -54,8 +51,6 @@ static func entries(state: GameState) -> Array[UpgradeEntry]:
 				result.append(track(state, upgrade_id, room_id))
 	for key in state.ordered_station_keys():
 		result.append_array(station_entries(state, key))
-	for dept in state.unlocked_departments():
-		result.append(supervisor(state, dept))
 	for staff_type: String in STAFF_SPOTS:
 		result.append(staff(state, staff_type))
 	for index in state.runners.size():
@@ -111,11 +106,28 @@ static func entries_for_spot(state: GameState, spot: String) -> Array[UpgradeEnt
 	if spot.begins_with(ROOM_PREFIX):
 		return entries_for_room(state, spot.trim_prefix(ROOM_PREFIX))
 	var result: Array[UpgradeEntry] = []
-	var dept_id := spot.trim_prefix(DEPT_PREFIX) if spot.begins_with(DEPT_PREFIX) else ""
 	for entry in entries(state):
-		if entry.spot == spot or (spot == TUBE_HUB and entry.spot.begins_with(TUBE_PREFIX)) or (not dept_id.is_empty() and entry.room == dept_id):
+		if shows_at(entry, spot):
 			result.append(entry)
 	return result
+
+
+static func shows_at(entry: UpgradeEntry, spot: String) -> bool:
+	if entry.spot == spot:
+		return true
+	if spot == TUBE_HUB:
+		return entry.spot.begins_with(TUBE_PREFIX)
+	if spot.begins_with(DEPT_PREFIX):
+		return entry.room == spot.trim_prefix(DEPT_PREFIX)
+	if spot.begins_with(STATION_PREFIX):
+		return _room_track_at(entry, STATION_ROOM_TRACKS, spot.trim_prefix(STATION_PREFIX))
+	if spot.begins_with(TRAYS_PREFIX):
+		return _room_track_at(entry, TRAY_ROOM_TRACKS, spot.trim_prefix(TRAYS_PREFIX))
+	return false
+
+
+static func _room_track_at(entry: UpgradeEntry, tracks: Array[String], key: String) -> bool:
+	return entry.kind == TRACK and tracks.has(entry.target) and entry.room_id == GameConfig.station_room(key)
 
 
 static func spots_of(entries_list: Array[UpgradeEntry]) -> Array[String]:
@@ -153,13 +165,10 @@ static func find(state: GameState, entry_id: String) -> UpgradeEntry:
 			if not room_id.is_empty() and not GameConfig.upgrade_rooms(upgrade_id).has(room_id):
 				return null
 			return track(state, upgrade_id, room_id)
-		LEVEL, DESK, HIRE, SPECIALIST, TRAYS, REJECT_PILE:
+		DESK, HIRE, REJECT_PILE:
 			for entry in station_entries(state, target):
 				if entry.kind == kind:
 					return entry
-		SUPERVISOR:
-			var dept := state.department(target)
-			return supervisor(state, dept) if dept != null and dept.unlocked else null
 		STAFF:
 			return staff(state, target) if STAFF_SPOTS.has(target) else null
 		RUNNER_LEVEL:
@@ -178,9 +187,7 @@ static func find(state: GameState, entry_id: String) -> UpgradeEntry:
 
 
 static func room_spot(room_id: String) -> String:
-	if not GameConfig.department(room_id).is_empty():
-		return DEPT_PREFIX + room_id
-	return ROOM_PREFIX + room_id
+	return GameConfig.room_spot(room_id)
 
 
 static func rooms() -> Array[String]:
@@ -198,6 +205,7 @@ static func track(state: GameState, upgrade_id: String, room_id: String = "") ->
 	entry.max_level = int(config.max)
 	entry.cost = Formulas.track_cost(upgrade_id, entry.level, room_id)
 	entry.growth = float(config.growth)
+	entry.price_level = Formulas.track_price_level(upgrade_id, entry.level)
 	entry.reason = Progression.upgrade_block_reason(state, upgrade_id, room_id)
 	return entry
 
@@ -208,18 +216,12 @@ static func station_entries(state: GameState, key: String) -> Array[UpgradeEntry
 	if station == null:
 		return result
 	var spot := STATION_PREFIX + key
-	var level := _entry(LEVEL, key, spot, "speed")
-	level.level = station.level
-	level.max_level = GameConfig.MAX_STATION_LEVEL
-	level.cost = Formulas.upgrade_cost(station)
-	level.growth = GameConfig.UPGRADE_GROWTH
-	level.reason = _money_reason(state, level)
-	result.append(level)
 	var desk := _entry(DESK, key, spot, "building")
 	desk.level = station.desks
 	desk.max_level = maxi(station.desks, state.max_desks())
 	desk.cost = Formulas.desk_cost(station)
 	desk.growth = GameConfig.DESK_GROWTH
+	desk.price_level = station.desks - 1
 	desk.reason = "stage" if desk.is_maxed() and state.max_desks() < final_desks() else _money_reason(state, desk)
 	result.append(desk)
 	if not station.machine:
@@ -228,29 +230,16 @@ static func station_entries(state: GameState, key: String) -> Array[UpgradeEntry
 		hire.max_level = station.desks
 		hire.cost = Formulas.hire_cost(station)
 		hire.growth = GameConfig.HIRE_GROWTH
+		hire.price_level = station.staff
 		hire.reason = _hire_reason(state, station, hire)
 		result.append(hire)
-	if station.supports_specialists():
-		var specialist := _entry(SPECIALIST, key, spot, "staff")
-		specialist.level = station.specialists
-		specialist.max_level = GameConfig.MAX_SPECIALISTS
-		specialist.cost = Formulas.specialist_cost(station)
-		specialist.growth = GameConfig.SPECIALIST_GROWTH
-		specialist.reason = _money_reason(state, specialist)
-		result.append(specialist)
-	var trays := _entry(TRAYS, key, spot, "building")
-	trays.level = station.tray_level
-	trays.max_level = GameConfig.MAX_TRAY_LEVEL
-	trays.cost = Formulas.tray_cost(station)
-	trays.growth = GameConfig.TRAY_GROWTH
-	trays.reason = _money_reason(state, trays)
-	result.append(trays)
 	if station.has_reject_pile():
-		var pile := _entry(REJECT_PILE, key, spot, "building")
+		var pile := _entry(REJECT_PILE, key, TRAYS_PREFIX + key, "building")
 		pile.level = station.reject_level
 		pile.max_level = GameConfig.MAX_REJECT_LEVEL
 		pile.cost = Formulas.reject_pile_cost(station)
 		pile.growth = GameConfig.REJECT_PILE_GROWTH
+		pile.price_level = station.reject_level
 		pile.reason = _money_reason(state, pile)
 		result.append(pile)
 	return result
@@ -260,22 +249,13 @@ static func final_desks() -> int:
 	return int(GameConfig.building_stage(GameConfig.BUILDING_STAGES.size() - 1).max_desks)
 
 
-static func supervisor(state: GameState, dept: Department) -> UpgradeEntry:
-	var entry := _entry(SUPERVISOR, dept.id, DEPT_PREFIX + dept.id, "staff")
-	entry.level = dept.supervisors
-	entry.max_level = GameConfig.MAX_SUPERVISORS
-	entry.cost = Formulas.supervisor_cost(dept)
-	entry.growth = GameConfig.SUPERVISOR_GROWTH
-	entry.reason = _money_reason(state, entry)
-	return entry
-
-
 static func staff(state: GameState, staff_type: String) -> UpgradeEntry:
 	var entry := _entry(STAFF, staff_type, str(STAFF_SPOTS[staff_type]), "staff")
 	entry.level = staff_count(state, staff_type)
 	entry.max_level = int(STAFF_LIMITS[staff_type])
 	entry.cost = staff_cost(state, staff_type)
 	entry.growth = float(STAFF_GROWTH[staff_type])
+	entry.price_level = entry.level
 	entry.reason = _money_reason(state, entry)
 	return entry
 
@@ -284,8 +264,6 @@ static func staff_count(state: GameState, staff_type: String) -> int:
 	match staff_type:
 		"runners":
 			return state.runners.size()
-		"collectors":
-			return state.collectors.size()
 		"coffee_interns":
 			return state.coffee_interns.size()
 		"hr":
@@ -297,8 +275,6 @@ static func staff_cost(state: GameState, staff_type: String) -> float:
 	match staff_type:
 		"runners":
 			return Formulas.runner_cost(state)
-		"collectors":
-			return Formulas.collector_cost(state)
 		"coffee_interns":
 			return Formulas.coffee_intern_cost(state)
 		"hr":
@@ -314,6 +290,7 @@ static func runner_level(state: GameState, index: int) -> UpgradeEntry:
 	entry.max_level = GameConfig.MAX_RUNNER_LEVEL
 	entry.cost = Formulas.runner_level_cost(runner)
 	entry.growth = GameConfig.RUNNER_LEVEL_GROWTH
+	entry.price_level = entry.level
 	entry.reason = _money_reason(state, entry)
 	return entry
 
@@ -342,6 +319,7 @@ static func segment(state: GameState, tube_id: String) -> UpgradeEntry:
 	entry.max_level = GameConfig.TUBE_SEGMENT_MAX_LEVEL
 	entry.cost = Formulas.tube_segment_cost(entry.level)
 	entry.growth = GameConfig.TUBE_SEGMENT_GROWTH
+	entry.price_level = entry.level
 	entry.reason = "tubes" if not entry.is_maxed() and not state.tube_link(ends[0], ends[1]) else _money_reason(state, entry)
 	return entry
 
@@ -353,6 +331,7 @@ static func storage(state: GameState) -> UpgradeEntry:
 	entry.max_level = GameConfig.MAIL_STORAGE_MAX_LEVEL
 	entry.cost = Formulas.mail_storage_cost(room)
 	entry.growth = GameConfig.MAIL_STORAGE_GROWTH
+	entry.price_level = entry.level
 	entry.reason = _money_reason(state, entry)
 	return entry
 
@@ -395,20 +374,12 @@ static func buy(actions: GameActions, entry_id: String, count: int = 1) -> bool:
 
 static func _buy_once(actions: GameActions, kind: String, target: String) -> bool:
 	match kind:
-		LEVEL:
-			return actions.upgrade(target)
 		DESK:
 			return actions.add_desk(target)
 		HIRE:
 			return actions.hire(target)
-		SPECIALIST:
-			return actions.hire_specialist(target)
-		TRAYS:
-			return actions.upgrade_trays(target)
 		REJECT_PILE:
 			return actions.upgrade_reject_pile(target)
-		SUPERVISOR:
-			return actions.hire_supervisor(target)
 		STAFF:
 			return hire_staff(actions, target)
 		RUNNER_LEVEL:
@@ -428,8 +399,6 @@ static func hire_staff(actions: GameActions, staff_type: String) -> bool:
 	match staff_type:
 		"runners":
 			return actions.hire_runner()
-		"collectors":
-			return actions.hire_collector()
 		"coffee_interns":
 			return actions.hire_coffee_intern()
 		"hr":

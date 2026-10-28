@@ -39,12 +39,18 @@ func test_level_speed_has_milestones() -> void:
 	assert_eq(Formulas.levels_to_milestone(GameConfig.LEVEL_MILESTONE_STEP - 1), 1)
 
 
-func test_upgrade_starts_inauguration_rush() -> void:
+func test_room_speed_purchase_starts_inauguration_rush() -> void:
 	var review := state.station("general_services/review")
+	var signature := state.station("general_services/signature")
+	var reception := state.station(GameConfig.RECEPTION)
 	assert_eq(Formulas.work_speed(state, review), 1.0)
-	assert_true(actions.upgrade("general_services/review"))
+	assert_true(actions.buy_upgrade("room_speed", "general_services"))
+	assert_eq(state.upgrade_level("room_speed", "general_services"), 1)
 	assert_eq(review.rush, GameConfig.UPGRADE_RUSH_SECONDS)
+	assert_eq(signature.rush, GameConfig.UPGRADE_RUSH_SECONDS)
+	assert_eq(reception.rush, 0.0)
 	assert_eq(Formulas.work_speed(state, review), GameConfig.UPGRADE_RUSH_SPEED)
+	assert_almost_eq(Formulas.station_speed(state, review), Formulas.level_speed(2), 0.0001)
 	sim.tick(1.0)
 	assert_almost_eq(review.rush, GameConfig.UPGRADE_RUSH_SECONDS - 1.0, 0.001)
 	var loaded := Station.from_dict(review.to_dict())
@@ -52,6 +58,29 @@ func test_upgrade_starts_inauguration_rush() -> void:
 	assert_eq(Station.from_dict({"key": review.key, "rush": 1e9}).rush, GameConfig.UPGRADE_RUSH_SECONDS)
 	sim.tick(GameConfig.UPGRADE_RUSH_SECONDS)
 	assert_eq(review.rush, 0.0)
+
+
+func test_other_room_tracks_do_not_start_a_rush() -> void:
+	var review := state.station("general_services/review")
+	assert_true(actions.buy_upgrade("room_trays", "general_services"))
+	assert_eq(review.rush, 0.0)
+	assert_eq(review.tray_size, GameConfig.TRAY_BASE + 1)
+	assert_true(actions.buy_upgrade("room_speed", GameConfig.ROOM_HALL))
+	assert_eq(review.rush, 0.0)
+	assert_eq(state.station(GameConfig.RECEPTION).rush, GameConfig.UPGRADE_RUSH_SECONDS)
+	assert_eq(state.station(GameConfig.COUNTER).rush, GameConfig.UPGRADE_RUSH_SECONDS)
+
+
+func test_swamped_threshold_follows_the_tray_size() -> void:
+	var review := state.station("general_services/review")
+	var lobby := state.lobby_capacity()
+	var before := ceili(review.inbox_capacity(lobby) * GameConfig.SWAMPED_SHARE)
+	state.set_upgrade("room_trays", int(GameConfig.upgrade("room_trays").max), "general_services")
+	assert_eq(review.inbox_capacity(lobby), GameConfig.TRAY_MAX)
+	assert_gt(ceili(review.inbox_capacity(lobby) * GameConfig.SWAMPED_SHARE), before)
+	for i in before:
+		review.inbox.append(_case("general_services", 1))
+	assert_false(review.is_swamped(lobby))
 
 
 func test_swamped_stations() -> void:
@@ -122,6 +151,12 @@ func test_availability_reflects_rests_and_sickness() -> void:
 	assert_gt(Formulas.sick_share(state), 0.0)
 	state.hr = 2
 	assert_lt(Formulas.sick_share(state), Formulas.sick_share(GameState.create_new(1)))
+	var with_hr := Formulas.availability(state, review)
+	state.set_upgrade("team_lead", 1, "general_services")
+	state.set_upgrade("lead_breaks", 30, "general_services")
+	state.set_upgrade("lead_health", 30, "general_services")
+	assert_gt(Formulas.availability(state, review), with_hr)
+	assert_lt(Formulas.sick_share(state, "general_services"), Formulas.sick_share(state))
 
 
 func test_sick_interval_scales_with_staff() -> void:

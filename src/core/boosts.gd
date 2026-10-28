@@ -96,7 +96,7 @@ func cure_by_ad(key: String, desk: int) -> bool:
 
 func can_sue_by_ad(review_id: int) -> bool:
 	var review := state.find_review(review_id)
-	return review != null and review.needs_ad_lawsuit()
+	return review != null and review.can_win_by_ad()
 
 
 func sue_by_ad(review_id: int) -> bool:

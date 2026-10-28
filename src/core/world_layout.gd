@@ -5,9 +5,10 @@ const MAIN_WIDTH := 1400.0
 const SIDE_WIDTH := 660.0
 const MARGIN := 40.0
 const WIDTH := MAIN_WIDTH + SIDE_WIDTH + MARGIN
-const PLACE_COLUMNS := 6
+const PLACE_COLUMNS := 10
+const PLACE_ROWS := 7
 const PLACE_PITCH := Vector2(32.0, 30.0)
-const PLACE_AREA_SIZE := Vector2(208.0, 216.0)
+const PLACE_AREA_SIZE := Vector2(336.0, 216.0)
 const TICKET_LINE_ROWS := 3
 const TICKET_LINE_SPACING := Vector2(36.0, 34.0)
 const TICKET_MACHINE_SPACING := 170.0
@@ -72,8 +73,21 @@ const ROWS: Array = [
 const ROOM_PREFIX := "room:"
 const DEPT_PREFIX := "dept:"
 const STATION_PREFIX := "station:"
-const SHREDDER_PREFIX := "shredder:"
+const TRAYS_PREFIX := "trays:"
+const TRAY_TAP_OFFSET := Vector2(-34.0, -36.0)
+const TRAY_TAP_SIZE := Vector2(100.0, 70.0)
 const TUBE_PREFIX := "tube:"
+const LEAD_PREFIX := "lead:"
+const LEAD_OFFICE_SIZE := Vector2(180.0, 72.0)
+const LEAD_ROOM_OFFSET := Vector2(312.0, 382.0)
+const LEAD_HALL_SIZE := Vector2(150.0, 104.0)
+const LEAD_HALL_INSET := Vector2(100.0, 282.0)
+const LEAD_MAIL_OFFSET := Vector2(470.0, 150.0)
+const LEAD_DESK_OFFSET := Vector2(0.0, 10.0)
+const RUNNER_LOUNGE := Rect2(1130.0, 652.0, 176.0, 140.0)
+const RUNNER_REST_COLUMNS := 6
+const RUNNER_REST_PITCH := Vector2(26.0, 16.0)
+const RUNNER_REST_ORIGIN := Vector2(22.0, 98.0)
 
 static var _default: WorldLayout
 
@@ -196,6 +210,7 @@ func _build_spots() -> void:
 		_add_spot(spot, seating_sign_rect(room))
 		_add_spot(spot, standing_sign_rect(room))
 	_add_spot("tickets", ticket_area)
+	_add_spot("runners", runner_lounge())
 	_add_spot("complaint_box", Rect2(complaint_box_point() + Vector2(-44.0, -48.0), Vector2(110.0, 96.0)))
 	_add_spot("archive", archive_rect())
 	_add_spot("complaint_desk", complaint_read_rect())
@@ -216,12 +231,29 @@ func _build_spots() -> void:
 	_add_spot("mailbox", Rect2(mail_door() + Vector2(-80.0, -56.0), Vector2(86.0, 104.0)))
 	for key in areas:
 		_add_spot(STATION_PREFIX + key, areas[key])
+		for point in tray_points(key):
+			_add_spot(TRAYS_PREFIX + key, tray_rect(point))
 	for dept_id in GameConfig.department_ids():
 		_add_spot(DEPT_PREFIX + dept_id, header(dept_id))
-		if not GameConfig.is_customs(dept_id):
-			_add_spot(SHREDDER_PREFIX + dept_id, slot_rect(dept_shredder_point(dept_id)))
 	for room_id in GameConfig.upgrade_rooms("tube_station"):
 		_add_spot(TUBE_PREFIX + room_id, slot_rect(tube_station_point(room_id)))
+	for room_id in GameConfig.lead_rooms():
+		_add_spot(LEAD_PREFIX + room_id, lead_office(room_id))
+
+
+func tray_points(key: String) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	if not GameConfig.is_entry_station(key):
+		points.append(input_point(key))
+	if not GameConfig.is_final_station(key):
+		points.append(output_point(key))
+	if GameConfig.has_reject_pile(key):
+		points.append(reject_point(key))
+	return points
+
+
+func tray_rect(point: Vector2) -> Rect2:
+	return Rect2(point + TRAY_TAP_OFFSET, TRAY_TAP_SIZE)
 
 
 func _add_spot(spot: String, rect: Rect2) -> void:
@@ -386,13 +418,6 @@ func review_key(dept_id: String) -> String:
 	return keys[0] if not keys.is_empty() else ""
 
 
-func dept_shredder_point(dept_id: String) -> Vector2:
-	var rect := room(dept_id)
-	var key := review_key(dept_id)
-	var x := reject_point(key).x if not key.is_empty() else rect.position.x + 120.0
-	return Vector2(x, rect.position.y + UTILITY_Y)
-
-
 func tube_station_point(room_id: String) -> Vector2:
 	match room_id:
 		GameConfig.ROOM_HALL:
@@ -403,8 +428,34 @@ func tube_station_point(room_id: String) -> Vector2:
 	return Vector2(rect.end.x - 110.0, rect.position.y + UTILITY_Y)
 
 
-func collector_home() -> Vector2:
-	return shredder_point() + Vector2(80.0, 70.0)
+func lead_office(room_id: String) -> Rect2:
+	match room_id:
+		GameConfig.HALL_INTAKE:
+			return _in_room(room_id, Rect2(LEAD_HALL_INSET, LEAD_HALL_SIZE))
+		GameConfig.HALL_PICKUP:
+			var width := waiting_room(room_id).size.x
+			return _in_room(room_id, Rect2(Vector2(width - LEAD_HALL_INSET.x - LEAD_HALL_SIZE.x, LEAD_HALL_INSET.y), LEAD_HALL_SIZE))
+		GameConfig.ROOM_MAIL:
+			return Rect2(mail_room.position + LEAD_MAIL_OFFSET, LEAD_OFFICE_SIZE)
+	var rect := service_room(room_id)
+	return Rect2(rect.position + LEAD_ROOM_OFFSET, LEAD_OFFICE_SIZE)
+
+
+func lead_desk_point(room_id: String) -> Vector2:
+	return lead_office(room_id).get_center() + LEAD_DESK_OFFSET
+
+
+func lead_seat(room_id: String) -> Vector2:
+	return lead_desk_point(room_id) + Vector2(0.0, -24.0)
+
+
+func patrol_path(room_id: String, desks: Array[Vector2]) -> PackedVector2Array:
+	var start := lead_seat(room_id)
+	var path := PackedVector2Array([start])
+	for point in desks:
+		path.append(point)
+	path.append(start)
+	return path
 
 
 func door_in() -> Vector2:
@@ -600,7 +651,7 @@ func complaint_desk_point() -> Vector2:
 
 
 func complaint_player_point() -> Vector2:
-	return complaint_desk_point() + Vector2(0.0, -60.0)
+	return complaint_desk_point() + Vector2(-125.0, -34.0)
 
 
 func complaint_counter_rect() -> Rect2:
@@ -635,25 +686,6 @@ func shredder_point() -> Vector2:
 	return shredder_room.position + Vector2(170.0, 200.0)
 
 
-func shredder_points(dept_ids: Array[String]) -> Array[Vector2]:
-	var points: Array[Vector2] = [shredder_point()]
-	for dept_id in dept_ids:
-		points.append(dept_shredder_point(dept_id))
-	return points
-
-
-func nearest_shredder(from: Vector2, dept_ids: Array[String]) -> Vector2:
-	return nearest_of(from, shredder_point(), shredder_points(dept_ids))
-
-
-static func nearest_of(from: Vector2, fallback: Vector2, points: Array[Vector2]) -> Vector2:
-	var best := fallback
-	for point in points:
-		if from.distance_squared_to(point) < from.distance_squared_to(best):
-			best = point
-	return best
-
-
 func intern_home(slot: int = 0) -> Vector2:
 	var index := clampi(slot, 0, GameConfig.MAX_DESK_INTERNS - 1)
 	return complaint_desk_point() + Vector2((index - 1) * INTERN_SPACING, -30.0)
@@ -685,12 +717,19 @@ func complaint_drop_spot() -> Vector2:
 	return complaint_box_point() + Vector2(-44.0, 24.0)
 
 
-func collectors_board() -> Rect2:
-	return staff_board("collectors")
-
-
 func runners_board() -> Rect2:
-	return staff_board("runners")
+	return runner_lounge()
+
+
+func runner_lounge() -> Rect2:
+	return _in_hall(RUNNER_LOUNGE)
+
+
+func runner_rest_point(index: int) -> Vector2:
+	var slot := posmod(index, GameConfig.MAX_RUNNERS)
+	var column := slot % RUNNER_REST_COLUMNS
+	var row := floori(slot / float(RUNNER_REST_COLUMNS))
+	return runner_lounge().position + RUNNER_REST_ORIGIN + Vector2(column * RUNNER_REST_PITCH.x, (row % 3) * RUNNER_REST_PITCH.y)
 
 
 func server_rect() -> Rect2:
@@ -706,7 +745,7 @@ func tube_hub_point() -> Vector2:
 
 
 func runner_home() -> Vector2:
-	return tech_room.position + Vector2(180.0, TECH_HEIGHT - 40.0)
+	return runner_rest_point(0)
 
 
 func dispute_point(dept_id: String) -> Vector2:

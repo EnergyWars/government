@@ -242,6 +242,36 @@ func test_tapping_phone_office_opens_phone_room() -> void:
 	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.room_spot(GameConfig.ROOM_PHONE)])
 
 
+func test_spots_open_only_on_a_double_tap() -> void:
+	var joystick := JoystickView.new()
+	add_child_autofree(joystick)
+	var world := WorldView.new()
+	add_child_autofree(world)
+	world.setup(game, joystick)
+	watch_signals(world)
+	var point := world.layout.phone_header().get_center() * world.world_scale + world.position
+	assert_false(world.register_tap(point, 1000))
+	assert_signal_not_emitted(world, "open_spot")
+	assert_true(world.register_tap(point + Vector2(10, 5), 1000 + WorldView.DOUBLE_TAP_TIME))
+	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.room_spot(GameConfig.ROOM_PHONE)])
+
+
+func test_slow_or_distant_second_taps_do_not_open_a_spot() -> void:
+	var joystick := JoystickView.new()
+	add_child_autofree(joystick)
+	var world := WorldView.new()
+	add_child_autofree(world)
+	world.setup(game, joystick)
+	watch_signals(world)
+	var point := world.layout.phone_header().get_center() * world.world_scale + world.position
+	assert_false(world.register_tap(point, 1000))
+	assert_false(world.register_tap(point, 1000 + WorldView.DOUBLE_TAP_TIME + 1))
+	assert_false(world.register_tap(point + Vector2(WorldView.DOUBLE_TAP_DISTANCE + 1.0, 0.0), 1000 + WorldView.DOUBLE_TAP_TIME + 2))
+	assert_signal_not_emitted(world, "open_spot")
+	assert_true(world.register_tap(point + Vector2(WorldView.DOUBLE_TAP_DISTANCE + 1.0, 0.0), 1000 + WorldView.DOUBLE_TAP_TIME + 3))
+	assert_false(world.register_tap(point, 1000 + WorldView.DOUBLE_TAP_TIME + 4))
+
+
 func test_phone_and_toilet_painters_draw() -> void:
 	var canvas := Control.new()
 	add_child_autofree(canvas)
@@ -279,7 +309,7 @@ func test_tapping_inspection_room_opens_inspection_room() -> void:
 	assert_eq(world.tap_spot(body), "station:" + GameConfig.INSPECTION)
 	var opened := _sheet(SpotSheet.new(), inspection_spot)
 	assert_false(_has_label(opened.content, opened.tr("ROOM_LOCKED_INSPECTION")))
-	assert_true(_has_label(opened.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:%s" % [UpgradeCatalog.LEVEL, GameConfig.INSPECTION]))))
+	assert_true(_has_label(opened.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:%s" % [UpgradeCatalog.TRACK, GameConfig.upgrade_key("room_speed", GameConfig.ROOM_INSPECTION)]))))
 
 
 func test_phone_clerk_board_hires_hr() -> void:
@@ -545,6 +575,64 @@ func test_world_view_renders_and_handles_input() -> void:
 	assert_false(joystick.active)
 
 
+func _tap_world(world: WorldView, point: Vector2, wiggle: Vector2) -> void:
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = point
+	world._unhandled_input(press)
+	if wiggle != Vector2.ZERO:
+		var motion := InputEventMouseMotion.new()
+		motion.position = point + wiggle
+		motion.relative = wiggle
+		world._unhandled_input(motion)
+		var back := InputEventMouseMotion.new()
+		back.position = point
+		back.relative = -wiggle
+		world._unhandled_input(back)
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = point
+	world._unhandled_input(release)
+
+
+func test_world_view_tap_opens_only_without_any_drag() -> void:
+	var joystick := JoystickView.new()
+	add_child_autofree(joystick)
+	var world := WorldView.new()
+	add_child_autofree(world)
+	world.setup(game, joystick)
+	watch_signals(world)
+	world.top_inset = 0.0
+	world.bottom_inset = 0.0
+	world.position = Vector2.ZERO
+	var point := world.layout.header("tax_services").get_center() * world.world_scale
+	world.position = world.get_viewport_rect().size * 0.5 - point
+	var screen := world.position + point
+	_tap_world(world, screen, Vector2(1, 0))
+	assert_signal_not_emitted(world, "open_spot")
+	_tap_world(world, screen, Vector2.ZERO)
+	assert_signal_emitted_with_parameters(world, "open_spot", [UpgradeCatalog.DEPT_PREFIX + "tax_services"])
+
+
+func test_world_view_small_drag_moves_the_player() -> void:
+	var joystick := JoystickView.new()
+	add_child_autofree(joystick)
+	var world := WorldView.new()
+	add_child_autofree(world)
+	world.setup(game, joystick)
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = world.get_viewport_rect().size * 0.5
+	world._unhandled_input(press)
+	var motion := InputEventMouseMotion.new()
+	motion.position = press.position + Vector2(WorldView.STICK_DEADZONE + 2.0, 0)
+	world._unhandled_input(motion)
+	assert_gt(game.state.player.input.x, 0.0)
+
+
 func test_world_view_tap_opens_department() -> void:
 	var joystick := JoystickView.new()
 	add_child_autofree(joystick)
@@ -629,6 +717,13 @@ func test_office_painter_draws_every_element() -> void:
 		OfficePainter.ticket_dispenser(canvas, Vector2(30, 30))
 		for occupied in [true, false]:
 			OfficePainter.desk(canvas, Vector2(50, 50), occupied, occupied, 0.1)
+			OfficePainter.desk(canvas, Vector2(50, 50), occupied, occupied, 0.1, true)
+		for time in [0.1, 0.45]:
+			OfficePainter.photo_booth(canvas, Vector2(80, 80), Color.WHITE, true, time)
+		OfficePainter.photo_booth(canvas, Vector2(80, 80), Color.WHITE, false, 0.0)
+		OfficePainter.lead_office(canvas, Rect2(0, 0, 160, 120), AppTheme.accent("primary"))
+		OfficePainter.runner_lounge(canvas, Rect2(0, 0, 176, 140))
+		ItemPainter.leave_warning(canvas, Vector2(20, 20))
 		for dept_id in GameConfig.department_ids() + ["unknown"]:
 			for time in [0.1, 0.45]:
 				OfficePainter.machine(canvas, dept_id, Vector2(50, 50), Color.WHITE, true, time)
@@ -1219,20 +1314,6 @@ func test_world_view_places_every_citizen_by_phase() -> void:
 		assert_eq(placement.target, (placement.case as CaseFile).spot)
 
 
-func test_patience_ring_shrinks_and_changes_colour() -> void:
-	var citizen := _citizen()
-	assert_eq(WorldView.patience_ratio(citizen), -1.0)
-	citizen.phase = CaseFile.Phase.LINE
-	assert_eq(WorldView.patience_ratio(citizen), 1.0)
-	citizen.waited = GameConfig.LINE_PATIENCE * 0.5
-	assert_almost_eq(WorldView.patience_ratio(citizen), 0.5, 0.0001)
-	citizen.waited = GameConfig.LINE_PATIENCE * 2.0
-	assert_eq(WorldView.patience_ratio(citizen), 0.0)
-	assert_eq(WorldView.patience_color(0.9), AppTheme.accent("success"))
-	assert_eq(WorldView.patience_color(0.4), AppTheme.accent("warning"))
-	assert_eq(WorldView.patience_color(0.1), AppTheme.accent("error"))
-
-
 func test_desks_show_the_called_number() -> void:
 	var world := _world()
 	var state := game.state
@@ -1401,3 +1482,95 @@ func test_world_view_draws_every_absence_state() -> void:
 		world.queue_redraw()
 		await wait_physics_frames(2)
 	assert_true(is_instance_valid(world))
+
+
+func test_world_view_draws_the_photo_booth_with_its_photographer() -> void:
+	var world := _world()
+	var photo := game.state.station(GameConfig.PHOTO_STATION)
+	assert_not_null(photo)
+	photo.staff = 1
+	for layer in world._layers:
+		layer.node.queue_redraw()
+	world.queue_redraw()
+	await wait_physics_frames(2)
+	photo.moods[0].rest(DeskMood.ASLEEP)
+	for layer in world._layers:
+		layer.node.queue_redraw()
+	await wait_physics_frames(2)
+	assert_true(is_instance_valid(world))
+
+
+func test_lead_sits_in_the_office_until_patrolling() -> void:
+	var state := game.state
+	var layout := WorldLayout.get_default()
+	var room_id := "general_services"
+	var review := state.station("general_services/review")
+	review.staff = 1
+	assert_eq(WorldView.lead_position(state, layout, room_id), layout.lead_seat(room_id))
+	state.set_upgrade("team_lead", 1, room_id)
+	assert_true(game.simulation.start_patrol(room_id))
+	assert_eq(WorldView.lead_position(state, layout, room_id), layout.lead_seat(room_id))
+	state.advance_patrols(GameConfig.LEAD_PATROL_SECONDS * 0.5)
+	assert_ne(WorldView.lead_position(state, layout, room_id), layout.lead_seat(room_id))
+
+
+func test_world_view_draws_lead_offices_and_patrols() -> void:
+	var world := _world()
+	var state := game.state
+	state.station("general_services/review").staff = 1
+	for layer in world._layers:
+		layer.node.queue_redraw()
+	world.queue_redraw()
+	await wait_physics_frames(2)
+	for room_id in [GameConfig.HALL_INTAKE, GameConfig.HALL_PICKUP, "general_services"]:
+		state.set_upgrade("team_lead", 1, room_id)
+	assert_true(game.simulation.start_patrol("general_services"))
+	assert_true(game.simulation.start_patrol(GameConfig.HALL_PICKUP))
+	state.lead_cooldowns[GameConfig.HALL_INTAKE] = 20.0
+	world._process(0.1)
+	for layer in world._layers:
+		layer.node.queue_redraw()
+	world.queue_redraw()
+	await wait_physics_frames(2)
+	assert_true(is_instance_valid(world))
+
+
+func _patrol_button(sheet: Sheet) -> Button:
+	for button in _all_buttons(sheet.content):
+		if button.text == sheet.tr("ACTION_PATROL"):
+			return button
+	return null
+
+
+func _all_buttons(node: Node) -> Array[Button]:
+	var result: Array[Button] = []
+	if node is Button:
+		result.append(node)
+	for child in node.get_children():
+		result.append_array(_all_buttons(child))
+	return result
+
+
+func test_lead_spot_sheet_starts_a_patrol() -> void:
+	var room_id := "general_services"
+	game.state.station("general_services/review").staff = 1
+	var sheet := _sheet(SpotSheet.new(), GameConfig.lead_spot(room_id))
+	assert_eq(sheet.title(), sheet.tr("FMT_SPOT_LEAD") % UpgradeTexts.room_title(room_id))
+	assert_true(_has_label(sheet.content, sheet.tr("STATUS_NO_LEAD")))
+	assert_true(_has_label(sheet.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "%s:%s" % [UpgradeCatalog.TRACK, GameConfig.upgrade_key("team_lead", room_id)]))))
+	var patrol := _patrol_button(sheet)
+	assert_not_null(patrol)
+	assert_true(patrol.disabled)
+	game.state.set_upgrade("team_lead", 1, room_id)
+	sheet.rebuild()
+	patrol = _patrol_button(sheet)
+	assert_false(patrol.disabled)
+	patrol.pressed.emit()
+	assert_true(game.state.is_patrolling(room_id))
+	sheet.refresh()
+	assert_true(patrol.disabled)
+	assert_eq(patrol.text, SpotSheet.patrol_label(game.state, room_id))
+	assert_eq(SpotSheet.patrol_label(game.state, room_id), TranslationServer.translate("FMT_PATROL_ACTIVE") % UiKit.duration(game.state.patrol_left(room_id)))
+	game.state.advance_patrols(GameConfig.LEAD_PATROL_SECONDS + 0.1)
+	assert_eq(SpotSheet.patrol_label(game.state, room_id), TranslationServer.translate("FMT_PATROL_COOLDOWN") % UiKit.duration(game.state.patrol_cooldown(room_id)))
+	await wait_physics_frames(2)

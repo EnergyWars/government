@@ -203,6 +203,12 @@ static func shadow_texture() -> ImageTexture:
 	return _shadow_texture
 
 
+static func leave_warning(canvas: CanvasItem, tip: Vector2) -> void:
+	disc(canvas, tip, 7.0, AppTheme.FLAG_RED)
+	canvas.draw_rect(Rect2(tip + Vector2(-1.5, -4.5), Vector2(3, 6)), AppTheme.SURFACE)
+	canvas.draw_rect(Rect2(tip + Vector2(-1.5, 2.5), Vector2(3, 2.5)), AppTheme.SURFACE)
+
+
 static func shadow(canvas: CanvasItem, center: Vector2, radius_x: float, radius_y: float) -> void:
 	canvas.draw_texture_rect(shadow_texture(), Rect2(center - Vector2(radius_x, radius_y), Vector2(radius_x, radius_y) * 2.0), false, AppTheme.SHADOW_SOFT)
 

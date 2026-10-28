@@ -232,8 +232,33 @@ func test_player_looks_over_the_shoulder_of_a_working_official() -> void:
 	assert_true(sim.work_at_desk(1.0))
 	assert_not_null(review.jobs[0])
 	review.moods[0].rest(DeskMood.ASLEEP)
-	assert_false(sim.can_work_desk(review, 0))
-	assert_true(sim.player_desk().is_empty())
+	assert_true(sim.can_work_desk(review, 0))
+	assert_eq(sim.player_desk(), ["general_services/review", 0])
+
+
+func test_player_can_work_every_desk_state() -> void:
+	var review := state.station("general_services/review")
+	review.inbox.append(_at("general_services/review", _case()))
+	state.player.position = layout.desk_work_point("general_services/review", 0)
+	assert_true(sim.can_work_desk(review, 0))
+	review.staff = review.desks
+	for rest_state in [DeskMood.ASLEEP, DeskMood.COFFEE, DeskMood.LUNCH, DeskMood.CHAT]:
+		review.moods[0].rest(rest_state)
+		assert_true(sim.can_work_desk(review, 0), str(rest_state))
+		assert_eq(sim.player_desk(), ["general_services/review", 0], str(rest_state))
+	assert_true(sim.work_at_desk(1.0))
+	assert_not_null(review.jobs[0])
+
+
+func test_player_can_work_the_photo_desk() -> void:
+	var photo := state.station(GameConfig.PHOTO_STATION)
+	assert_false(photo.machine)
+	state.player.position = layout.desk_work_point(GameConfig.PHOTO_STATION, 0)
+	assert_true(sim.can_work_desk(photo, 0))
+	photo.staff = photo.desks
+	photo.moods[0].rest(DeskMood.COFFEE)
+	assert_true(sim.can_work_desk(photo, 0))
+	assert_eq(sim.player_desk(), [GameConfig.PHOTO_STATION, 0])
 
 
 func test_the_room_floor_is_no_work_field() -> void:
@@ -257,15 +282,14 @@ func test_start_job_rules() -> void:
 	assert_false(sim.finish_job(review, 0))
 
 
-func test_specialist_desk_takes_complex_cases() -> void:
+func test_regular_desks_take_complex_cases() -> void:
 	var review := state.station("general_services/review")
-	review.add_specialist()
 	var complex := _at("general_services/review", _case("general_services", true))
 	review.inbox.append(complex)
 	sim.tick(0.01)
-	assert_null(review.jobs[0])
-	assert_eq(review.jobs[1].case_file, complex)
-	assert_true(review.jobs[1].by_specialist)
+	assert_eq(review.jobs.size(), 1)
+	assert_eq(review.jobs[0].case_file, complex)
+	assert_almost_eq(review.jobs[0].required, Formulas.required_time(state, review, complex), 0.0001)
 
 
 func test_reception_calls_by_ticket_number_not_urgency() -> void:
@@ -314,7 +338,7 @@ func test_counter_completes_case_and_pays() -> void:
 
 func test_signature_marks_result_produced() -> void:
 	var case_file := _at("general_services/signature", _case())
-	sim.apply_station_effect(state.station("general_services/signature"), case_file, false)
+	sim.apply_station_effect(state.station("general_services/signature"), case_file)
 	assert_true(case_file.produced)
 
 
@@ -324,7 +348,7 @@ func test_review_sets_errors_by_chance() -> void:
 	var flawed := 0
 	for i in 200:
 		var case_file := _at("general_services/review", _case())
-		sim.apply_station_effect(review, case_file, false)
+		sim.apply_station_effect(review, case_file)
 		flawed += int(case_file.flawed)
 	assert_between(flawed, 20, 120)
 
@@ -334,7 +358,7 @@ func test_referral_station_does_not_review_foreign_cases() -> void:
 	state.department("housing").thoroughness = 0
 	for i in 50:
 		var case_file := _at("general_services/review", _case("housing"))
-		sim.apply_station_effect(state.station("general_services/review"), case_file, false)
+		sim.apply_station_effect(state.station("general_services/review"), case_file)
 		assert_false(case_file.flawed)
 
 
@@ -342,12 +366,12 @@ func test_customs_fast_lane_skips_scanner() -> void:
 	state.unlock_department("customs")
 	var review := state.station("customs/review")
 	var clean := _at("customs/review", _case("customs"))
-	sim.apply_station_effect(review, clean, false)
+	sim.apply_station_effect(review, clean)
 	assert_false(clean.flagged)
 	assert_eq(clean.next_key(), "customs/clearance")
 	state.department("customs").scan_all = true
 	var scanned := _at("customs/review", _case("customs"))
-	sim.apply_station_effect(review, scanned, false)
+	sim.apply_station_effect(review, scanned)
 	assert_eq(scanned.next_key(), "customs/signature")
 
 
@@ -356,23 +380,23 @@ func test_customs_flags_suspicious_cargo_and_scanner_finds_contraband() -> void:
 	state.unlock_department("customs")
 	var review := state.station("customs/review")
 	var scanner := state.station("customs/signature")
-	review.specialists = GameConfig.MAX_SPECIALISTS
 	var flagged := 0
 	var seized := 0
 	for i in 60:
 		var cargo := _at("customs/review", _case("customs"))
 		cargo.suspicious = true
-		sim.apply_station_effect(review, cargo, false)
+		sim.apply_station_effect(review, cargo)
 		if not cargo.flagged:
 			continue
 		flagged += 1
 		cargo.step += 1
-		sim.apply_station_effect(scanner, cargo, false)
+		sim.apply_station_effect(scanner, cargo)
 		assert_true(cargo.scanned)
 		if cargo.contraband:
 			seized += 1
 			assert_eq(cargo.next_key(), GameConfig.INSPECTION)
-	assert_gt(flagged, 40)
+	assert_gt(flagged, 20)
+	assert_lt(flagged, 55)
 	assert_gt(seized, 5)
 	assert_signal_emitted(sim, "contraband_found")
 
@@ -550,11 +574,72 @@ func test_runner_gives_up_when_source_is_empty() -> void:
 	assert_eq(runner.task, Runner.Task.IDLE)
 
 
-func test_idle_runner_returns_home() -> void:
+func test_idle_runner_rests_in_the_lounge_only_without_any_work() -> void:
 	var runner := state.add_runner()
 	runner.position = Vector2(100, 100)
-	_run(30.0)
-	assert_lt(runner.position.distance_to(layout.runner_home()), 1.0)
+	assert_eq(sim.runner_standby(runner), "")
+	_run(60.0)
+	assert_lt(runner.position.distance_to(layout.runner_rest_point(0)), 1.0)
+	assert_true(layout.runner_lounge().has_point(runner.position))
+	var second := state.add_runner()
+	second.position = Vector2(100, 100)
+	_run(60.0)
+	assert_lt(second.position.distance_to(layout.runner_rest_point(1)), 1.0)
+
+
+func test_idle_runner_keeps_moving_next_to_upcoming_work() -> void:
+	var runner := state.add_runner()
+	runner.role = Runner.INTAKE
+	var reception := state.station(GameConfig.RECEPTION)
+	reception.staff = 0
+	reception.inbox.append(_case())
+	assert_eq(sim.runner_standby(runner), GameConfig.RECEPTION)
+	runner.position = layout.output_point(GameConfig.RECEPTION)
+	_run(3.0)
+	assert_eq(runner.task, Runner.Task.IDLE)
+	assert_false(layout.runner_lounge().has_point(runner.position))
+	assert_lt(runner.position.distance_to(layout.output_point(GameConfig.RECEPTION)), GameConfig.RUNNER_PACE_DISTANCE * 2.0)
+	var before := runner.position
+	_run(GameConfig.RUNNER_PACE_SECONDS * 0.25)
+	assert_ne(runner.position, before)
+	runner.role = Runner.OUTPUT
+	assert_eq(sim.runner_standby(runner), "")
+
+
+func test_runner_standby_prefers_the_busiest_then_the_nearest_station() -> void:
+	state.unlock_department("tax_services")
+	var runner := state.add_runner()
+	runner.role = Runner.INTERNAL
+	var general := state.station("general_services/review")
+	var tax := state.station("tax_services/review")
+	general.staff = 0
+	tax.staff = 0
+	general.inbox.append(_at(general.key, _case()))
+	tax.inbox.append(_at(tax.key, _case("tax_services")))
+	tax.inbox.append(_at(tax.key, _case("tax_services")))
+	runner.position = layout.output_point(general.key)
+	assert_eq(sim.runner_standby(runner), tax.key)
+	tax.inbox.pop_back()
+	assert_eq(sim.runner_standby(runner), general.key)
+	runner.position = layout.output_point(tax.key)
+	assert_eq(sim.runner_standby(runner), tax.key)
+	tax.inbox.clear()
+	tax.jobs[0] = StationJob.new(_at(tax.key, _case("tax_services")), 5.0)
+	assert_eq(sim.runner_standby(runner), tax.key)
+
+
+func test_runner_idle_point_paces_near_the_standby_station() -> void:
+	assert_eq(sim.runner_idle_point(3, ""), layout.runner_rest_point(3))
+	var output := layout.output_point(GameConfig.RECEPTION)
+	for time in [0.0, 0.4, 0.8, 1.2]:
+		state.play_time = time
+		var point := sim.runner_idle_point(0, GameConfig.RECEPTION)
+		assert_lt(point.distance_to(output), GameConfig.RUNNER_PACE_DISTANCE * 1.6, str(time))
+	state.play_time = 0.0
+	var start := sim.runner_idle_point(0, GameConfig.RECEPTION)
+	state.play_time = GameConfig.RUNNER_PACE_SECONDS * 0.25
+	assert_ne(sim.runner_idle_point(0, GameConfig.RECEPTION), start)
+	assert_ne(sim.runner_idle_point(1, GameConfig.RECEPTION), sim.runner_idle_point(0, GameConfig.RECEPTION))
 
 
 func test_pneumatic_tubes_route_files_through_tubes() -> void:
@@ -584,7 +669,7 @@ func test_full_loop_earns_money_with_staff() -> void:
 		var station := state.stations[key]
 		if not station.machine:
 			station.staff = 1
-	for role in Runner.ROLES:
+	for role in Runner.CASE_ROLES:
 		state.add_runner(role)
 	_quiet_disruptions()
 	state.department("general_services").arrival_timer = 0.0

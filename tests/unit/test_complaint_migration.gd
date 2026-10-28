@@ -16,7 +16,7 @@ func _migrated(upgrades: Dictionary, extra: Dictionary = {}) -> Dictionary:
 
 func test_result_is_current_version_without_old_keys() -> void:
 	var result := SaveMigration.migrate_v3(_v3({"shredder_service": 3, "intern_training": 2, "intern_resilience": 10, "complaint_tube": 4, "complaint_clerk": 7, "guard_training": 9}, {"intern": {}, "helpers": [{}], "guards": 1, "complaints_fended": 3}))
-	assert_eq(int(result.version), GameState.SAVE_VERSION)
+	assert_eq(int(result.version), GameState.V4_SAVE_VERSION)
 	for key in SaveMigration.V3_REMOVED_KEYS:
 		assert_false(result.has(key), key)
 	for upgrade_id in SaveMigration.V3_REMOVED_UPGRADES:

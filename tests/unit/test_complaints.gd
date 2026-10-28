@@ -123,11 +123,11 @@ func test_nothing_happens_away_from_desk_and_shredder() -> void:
 	assert_false(sim.move_complaints())
 
 
-func test_player_shreds_at_a_bought_department_shredder() -> void:
+func test_player_shreds_only_at_the_central_shredder() -> void:
 	state.player.complaints = 1
-	state.player.position = layout.dept_shredder_point("general_services")
+	state.player.position = layout.reject_point("general_services/review")
 	assert_false(sim.move_complaints())
-	state.set_upgrade("shredder", 1, "general_services")
+	state.player.position = layout.shredder_point()
 	assert_true(sim.move_complaints())
 	assert_eq(state.player.complaints, 0)
 	assert_eq(state.complaints_shredded, 1)
@@ -235,13 +235,10 @@ func test_guidance_leads_to_box_then_shredder() -> void:
 	assert_eq(task.point, layout.shredder_point())
 
 
-func test_guidance_leads_to_the_nearest_shredder() -> void:
-	var dept_shredder := layout.dept_shredder_point("general_services")
+func test_guidance_leads_to_the_central_shredder() -> void:
 	state.player.complaints = 1
-	state.player.position = dept_shredder
+	state.player.position = layout.reject_point("general_services/review")
 	assert_eq(Guidance.next_task(state).point, layout.shredder_point())
-	state.set_upgrade("shredder", 1, "general_services")
-	assert_eq(Guidance.next_task(state).point, dept_shredder)
 	state.player.position = layout.shredder_point()
 	assert_eq(Guidance.next_task(state).point, layout.shredder_point())
 
@@ -270,7 +267,10 @@ func test_overcrowded_office_does_not_flood_the_box() -> void:
 	state.sick_timer = 1e6
 	state.kranz_timer = 1e6
 	state.dispute_timer = 1e6
-	state.department("general_services").arrival_timer = 0.0
+	for dept_id in ["tax_services", "business_licences"]:
+		state.unlock_department(dept_id)
+	for dept in state.unlocked_departments():
+		dept.arrival_timer = 0.0
 	var seconds := 600.0
 	_run(seconds, 0.1)
 	var received := state.complaints_filed + state.complaints_absorbed

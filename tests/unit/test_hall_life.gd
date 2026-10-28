@@ -572,10 +572,10 @@ func test_intern_state_is_saved_and_sanitised() -> void:
 func test_coffee_intern_hire_cost_and_limit() -> void:
 	state.money = 1.0e9
 	var actions := GameActions.new(state, sim)
-	assert_eq(Formulas.coffee_intern_cost(state), GameConfig.COFFEE_INTERN_COST)
+	assert_eq(Formulas.coffee_intern_cost(state), GameConfig.COFFEE_INTERN_COST * Formulas.early_discount(0))
 	_staff_review(1)
 	assert_true(actions.hire_coffee_intern())
-	assert_almost_eq(Formulas.coffee_intern_cost(state), GameConfig.COFFEE_INTERN_COST * GameConfig.COFFEE_INTERN_GROWTH, 0.001)
+	assert_almost_eq(Formulas.coffee_intern_cost(state), GameConfig.COFFEE_INTERN_COST * GameConfig.COFFEE_INTERN_GROWTH * Formulas.early_discount(1), 0.001)
 	assert_eq(state.staff_hired, 1)
 	while state.coffee_interns.size() < GameConfig.MAX_COFFEE_INTERNS:
 		assert_true(actions.hire_coffee_intern())
@@ -742,10 +742,10 @@ func _assert_track_costs_and_limit(upgrade_id: String) -> void:
 	assert_eq(Progression.upgrade_block_reason(state, upgrade_id), "money")
 	assert_false(actions.buy_upgrade(upgrade_id))
 	state.money = 1.0e12
-	assert_eq(Formulas.track_cost(upgrade_id, 0), float(config.cost))
+	assert_eq(Formulas.track_cost(upgrade_id, 0), float(config.cost) * Formulas.early_discount(0))
 	assert_true(actions.buy_upgrade(upgrade_id))
 	assert_eq(state.upgrade_level(upgrade_id), 1)
-	assert_almost_eq(Formulas.track_cost(upgrade_id, 1), float(config.cost) * float(config.growth), 0.001)
+	assert_almost_eq(Formulas.track_cost(upgrade_id, 1), float(config.cost) * float(config.growth) * Formulas.early_discount(1), 0.001)
 	assert_true(actions.buy_upgrade(upgrade_id, "", _max_level(upgrade_id)))
 	assert_eq(state.upgrade_level(upgrade_id), _max_level(upgrade_id))
 	assert_eq(Progression.upgrade_block_reason(state, upgrade_id), "max")
@@ -1387,7 +1387,7 @@ func test_ruckus_needs_a_citizen_at_the_reception() -> void:
 	var reception := state.station(GameConfig.RECEPTION)
 	var follow_up := sim.create_case(state.department("general_services"), true)
 	follow_up.mail = true
-	reception.jobs[0] = StationJob.new(follow_up, 1.0, false)
+	reception.jobs[0] = StationJob.new(follow_up, 1.0)
 	assert_false(follow_up.takes_seat())
 	assert_false(sim.start_ruckus())
 	state.stations.erase(GameConfig.RECEPTION)
@@ -1418,7 +1418,7 @@ func test_ruckus_timer_starts_ruckus_only_after_enough_cases() -> void:
 	reception.staff = 1
 	state.player.position = Vector2(-500, -500)
 	state.ruckus_timer = 0.0
-	reception.jobs[0] = StationJob.new(sim.create_case(state.department("general_services")), 1.0e6, false)
+	reception.jobs[0] = StationJob.new(sim.create_case(state.department("general_services")), 1.0e6)
 	sim.tick(0.05)
 	assert_false(state.has_ruckus())
 	assert_eq(state.ruckus_timer, 0.0)

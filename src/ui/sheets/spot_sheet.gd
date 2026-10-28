@@ -110,6 +110,9 @@ func _add_extras(container: VBoxContainer) -> void:
 		if state.station(key) != null:
 			container.add_child(StationCard.build(self, key))
 		return
+	if argument.begins_with(UpgradeCatalog.LEAD_PREFIX):
+		_add_patrol(container, argument.trim_prefix(UpgradeCatalog.LEAD_PREFIX))
+		return
 	if argument == "complaint_desk":
 		var read := UiKit.button(tr("ACTION_READ_COMPLAINTS"))
 		read.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -117,9 +120,28 @@ func _add_extras(container: VBoxContainer) -> void:
 		container.add_child(read)
 
 
+func _add_patrol(container: VBoxContainer, room_id: String) -> void:
+	var patrol := UiKit.button(tr("ACTION_PATROL"))
+	patrol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	patrol.pressed.connect(func() -> void: game.actions.start_patrol(room_id))
+	container.add_child(patrol)
+	track(func() -> void:
+		patrol.disabled = not game.actions.can_patrol(room_id)
+		patrol.text = patrol_label(game.state, room_id)
+	)
+
+
+static func patrol_label(state: GameState, room_id: String) -> String:
+	if state.is_patrolling(room_id):
+		return TranslationServer.translate("FMT_PATROL_ACTIVE") % UiKit.duration(state.patrol_left(room_id))
+	if state.patrol_cooldown(room_id) > 0.0:
+		return TranslationServer.translate("FMT_PATROL_COOLDOWN") % UiKit.duration(state.patrol_cooldown(room_id))
+	return TranslationServer.translate("ACTION_PATROL")
+
+
 func _add_entries(container: VBoxContainer, entries: Array[UpgradeEntry]) -> void:
 	var spots := UpgradeCatalog.spots_of(entries)
-	var grouped := spots.size() > 1
+	var grouped := is_grouped(argument, spots)
 	for spot in spots:
 		if grouped:
 			container.add_child(_group_header(spot))
@@ -127,6 +149,12 @@ func _add_entries(container: VBoxContainer, entries: Array[UpgradeEntry]) -> voi
 		for entry in entries:
 			if entry.spot == spot:
 				container.add_child(UpgradeEntryCard.build(self, entry.id))
+
+
+static func is_grouped(spot: String, spots: Array[String]) -> bool:
+	if spot.begins_with(UpgradeCatalog.STATION_PREFIX) or spot.begins_with(UpgradeCatalog.TRAYS_PREFIX):
+		return false
+	return spots.size() > 1
 
 
 func _add_group_status(container: VBoxContainer, spot: String) -> void:

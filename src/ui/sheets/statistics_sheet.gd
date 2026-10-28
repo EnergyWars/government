@@ -407,7 +407,7 @@ func _station_card(key: String) -> Control:
 			if station.is_working(desk):
 				working += 1
 		var lines: Array[String] = [tr("FMT_STATS_LOAD") % UiKit.percent(value)]
-		var case_time := Formulas.station_case_time(state, station, station.specialists > 0)
+		var case_time := Formulas.station_case_time(state, station)
 		if case_time > 0.0:
 			lines.append(tr("FMT_STATS_CASE_TIME") % [UiKit.decimal(case_time), _per_minute(1.0 / case_time)])
 		lines.append(tr("FMT_STATS_BOXES") % [station.inbox.size(), station.inbox_capacity(state.lobby_capacity()), station.outbox.size(), station.outbox_capacity()])
@@ -489,7 +489,7 @@ func _complaint_card() -> Control:
 
 
 func _reject_card() -> Control:
-	var parts := _area_card(ThroughputReport.REJECTS, Icons.STAFF.collectors)
+	var parts := _area_card(ThroughputReport.REJECTS, Icons.STAFF.runners)
 	var column: VBoxContainer = parts.column
 	var incoming := _metric(column, "STATS_AREA_INCOMING")
 	var measured := _metric(column, "STATS_AREA_MEASURED")
@@ -499,7 +499,7 @@ func _reject_card() -> Control:
 		incoming.text = _rate(ProductionStats.REJECTED)
 		measured.text = _rate(ProductionStats.REJECT_SHREDDED)
 		var extra: Array[String] = [tr("FMT_STATS_HANDLED_BY") % [_rate(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_PLAYER), _rate(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF)]]
-		extra.append(tr("FMT_STATS_REJECT_STATE") % [state.rejects_waiting(), state.collectors.size()])
+		extra.append(tr("FMT_STATS_REJECT_STATE") % [state.rejects_waiting(), state.runners_in(Runner.REJECT)])
 		footer.call(extra)
 	)
 	return parts.card
@@ -560,22 +560,22 @@ func _absence_card() -> Control:
 	var column := UiKit.vbox(AppTheme.SPACING_SM)
 	var sick_now := _metric(column, "STATS_SICK_NOW")
 	var sick := _metric(column, "STATS_SICK_RATE")
-	var avoided := _metric(column, "STATS_SICK_AVOIDED")
+	var woken := _metric(column, "STATS_LEAD_WOKEN")
 	var dozed := _metric(column, "STATS_DOZED")
 	var disputes := _metric(column, "STATS_DISPUTES")
 	var calmed := _metric(column, "STATS_DISPUTES_CALMED")
-	var trainings := _metric(column, "STATS_TRAININGS")
+	var patrols := _metric(column, "STATS_PATROLS")
 	card.add_child(column)
 	track(func() -> void:
 		var state := game.state
 		var production := state.production
 		sick_now.text = str(state.sick_count())
 		sick.text = _rate(ProductionStats.SICK)
-		avoided.text = str(production.total(ProductionStats.SICK_AVOIDED))
+		woken.text = str(production.total(ProductionStats.LEAD_WOKEN))
 		dozed.text = _rate(ProductionStats.DOZED)
 		disputes.text = tr("FMT_STATS_DISPUTES") % [state.disputes.size(), _rate(ProductionStats.DISPUTE)]
 		calmed.text = str(production.total(ProductionStats.DISPUTE_CALMED))
-		trainings.text = str(state.trainings)
+		patrols.text = str(state.patrols)
 	)
 	return card
 
@@ -583,24 +583,16 @@ func _absence_card() -> Control:
 func _officials_card(station: Station) -> Control:
 	var card := UiKit.card()
 	var column := UiKit.vbox(AppTheme.SPACING_SM)
-	var head := UiKit.hbox(AppTheme.SPACING_MD)
-	head.add_child(UiKit.label(StationCard.label_for(station.key), "TitleSmall", true))
-	var train := UiKit.button(tr("ACTION_OFFICIALS"))
-	train.pressed.connect(func() -> void: navigate.emit("officials", station.key))
-	head.add_child(train)
-	column.add_child(head)
+	column.add_child(UiKit.label(StationCard.label_for(station.key), "TitleSmall", true))
 	var rows: Array[Dictionary] = []
-	for desk in OfficialsSheet.staffed_desks(station):
+	for desk in staffed_desks(station):
 		rows.append(_official_row(column, station, desk))
 	card.add_child(column)
 	track(func() -> void:
 		var state := game.state
 		for row in rows:
 			var mood: DeskMood = row.mood
-			(row.info as Label).text = tr("FMT_STATS_OFFICIAL") % [OfficialsSheet.state_text(mood), UiKit.decimal(mood.output.per_minute(state.play_time, state.production.started)), mood.output.total, mood.sick_count, mood.doze_count]
-			var levels: Array = row.levels
-			for index in levels.size():
-				(levels[index] as Label).text = str(mood.training_level(GameConfig.OFFICIAL_TRAINING_ORDER[index]))
+			(row.info as Label).text = tr("FMT_STATS_OFFICIAL") % [official_state(mood), UiKit.decimal(mood.output.per_minute(state.play_time, state.production.started)), mood.output.total, mood.sick_count, mood.doze_count]
 	)
 	return card
 
@@ -608,15 +600,25 @@ func _officials_card(station: Station) -> Control:
 func _official_row(column: VBoxContainer, station: Station, desk: int) -> Dictionary:
 	var row := UiKit.vbox(2)
 	var head := UiKit.hbox(AppTheme.SPACING_SM)
-	head.add_child(UiKit.label(OfficialsSheet.official_name(station, desk), "BodyMedium", true))
-	var levels: Array[Label] = []
-	for track_id in GameConfig.OFFICIAL_TRAINING_ORDER:
-		head.add_child(UiKit.icon(Icons.TRAININGS[track_id], AppTheme.accent("primary"), AppTheme.SIZE_ICON_SMALL))
-		var level := UiKit.label("", "LabelSmall")
-		head.add_child(level)
-		levels.append(level)
+	head.add_child(UiKit.label(official_name(desk), "BodyMedium", true))
 	row.add_child(head)
 	var info := UiKit.label("", "BodySmall", true)
 	row.add_child(info)
 	column.add_child(row)
-	return {"mood": station.moods[desk], "info": info, "levels": levels}
+	return {"mood": station.moods[desk], "info": info}
+
+
+static func staffed_desks(target: Station) -> Array[int]:
+	var result: Array[int] = []
+	for desk in target.moods.size():
+		if target.is_staffed(desk):
+			result.append(desk)
+	return result
+
+
+static func official_name(desk: int) -> String:
+	return TranslationServer.translate("FMT_OFFICIAL_NAME") % (desk + 1)
+
+
+static func official_state(mood: DeskMood) -> String:
+	return TranslationServer.translate("OFFICIAL_STATE_" + mood.state.to_upper())

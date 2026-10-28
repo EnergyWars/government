@@ -4,7 +4,6 @@ extends RefCounted
 var id: String
 var unlocked := false
 var rank := 1
-var supervisors := 0
 var thoroughness := 1
 var prioritize_urgent := true
 var scan_all := false
@@ -38,7 +37,6 @@ func to_dict() -> Dictionary:
 		"id": id,
 		"unlocked": unlocked,
 		"rank_level": rank,
-		"supervisors": supervisors,
 		"thoroughness": thoroughness,
 		"prioritize_urgent": prioritize_urgent,
 		"scan_all": scan_all,
@@ -52,7 +50,6 @@ static func from_dict(data: Dictionary) -> Department:
 	var dept := Department.new(str(data.get("id", "")))
 	dept.unlocked = bool(data.get("unlocked", false))
 	dept.rank = _restore_rank(data) if dept.unlocked else 1
-	dept.supervisors = clampi(int(data.get("supervisors", 0)), 0, GameConfig.MAX_SUPERVISORS)
 	dept.thoroughness = clampi(int(data.get("thoroughness", 1)), 0, GameConfig.THOROUGHNESS.size() - 1)
 	dept.prioritize_urgent = bool(data.get("prioritize_urgent", true))
 	dept.scan_all = bool(data.get("scan_all", false))

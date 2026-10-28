@@ -99,8 +99,9 @@ func test_spot_titles() -> void:
 	assert_eq(UpgradeTexts.spot_title("room:hall"), _t("ROOM_HALL"))
 	assert_eq(UpgradeTexts.spot_title("dept:tax_services"), _t("DEPT_TAX_SERVICES"))
 	assert_eq(UpgradeTexts.spot_title("station:shared/reception"), StationCard.label_for(GameConfig.RECEPTION))
-	assert_eq(UpgradeTexts.spot_title("shredder:housing"), _t("FMT_SPOT_SHREDDER") % _t("DEPT_HOUSING"))
 	assert_eq(UpgradeTexts.spot_title("tube:hall"), _t("FMT_SPOT_TUBE_STATION") % _t("ROOM_HALL"))
+	assert_eq(UpgradeTexts.spot_title("lead:general_services"), _t("FMT_SPOT_LEAD") % _t("DEPT_GENERAL_SERVICES"))
+	assert_eq(UpgradeTexts.spot_title("lead:hall"), _t("FMT_SPOT_LEAD") % _t("ROOM_HALL"))
 	assert_eq(UpgradeTexts.spot_title("entrance"), _t("SPOT_ENTRANCE"))
 
 
@@ -108,19 +109,20 @@ func test_spot_description_keys() -> void:
 	assert_eq(UpgradeTexts.spot_description_key("room:kitchen"), "ROOM_DESC_KITCHEN")
 	assert_eq(UpgradeTexts.spot_description_key("dept:housing"), "DEPT_DESC_HOUSING")
 	assert_eq(UpgradeTexts.spot_description_key("station:shared/reception"), "SPOT_DESC_STATION")
-	assert_eq(UpgradeTexts.spot_description_key("shredder:housing"), "SPOT_DESC_DEPT_SHREDDER")
 	assert_eq(UpgradeTexts.spot_description_key("shredder"), "SPOT_DESC_SHREDDER")
 	assert_eq(UpgradeTexts.spot_description_key("tube:hall"), "SPOT_DESC_TUBE_STATION")
 	assert_eq(UpgradeTexts.spot_description_key("tube_hub"), "SPOT_DESC_TUBE_HUB")
+	assert_eq(UpgradeTexts.spot_description_key("lead:hall"), "SPOT_DESC_LEAD")
+	assert_eq(UpgradeTexts.spot_description_key("lead:general_services"), "SPOT_DESC_LEAD")
+	assert_eq(UpgradeTexts.spot_description("lead:mail"), _t("SPOT_DESC_LEAD"))
 	assert_eq(UpgradeTexts.spot_description_key("seating"), "SPOT_DESC_SEATING")
 	assert_eq(UpgradeTexts.spot_description("seating"), _t("SPOT_DESC_SEATING"))
 
 
-func test_static_shredder_spot_is_not_a_department_shredder() -> void:
+func test_shredder_spot_texts_and_status() -> void:
 	var state := game.state
 	assert_eq(UpgradeTexts.spot_title("shredder"), _t("SPOT_SHREDDER"))
 	assert_eq(UpgradeTexts.spot_icon("shredder"), Icons.SPOTS["shredder"])
-	assert_ne(UpgradeTexts.spot_icon("shredder"), UpgradeTexts.spot_icon("shredder:housing"))
 	assert_eq(SpotStatus.lines(state, "shredder"), [_t("FMT_STATUS_SHREDDER") % [state.rejects_waiting(), 0]] as Array[String])
 
 
@@ -134,8 +136,8 @@ func test_every_spot_has_translated_texts() -> void:
 	for dept_id in GameConfig.department_ids():
 		spots.append("dept:" + dept_id)
 		spots.append("tube:" + dept_id)
-		if not GameConfig.is_customs(dept_id):
-			spots.append("shredder:" + dept_id)
+	for room_id in GameConfig.office_rooms():
+		spots.append(GameConfig.lead_spot(room_id))
 	spots.append("station:" + GameConfig.RECEPTION)
 	for spot in spots:
 		_assert_translated(UpgradeTexts.spot_title(spot), spot)
@@ -147,8 +149,10 @@ func test_spot_icons() -> void:
 	assert_eq(UpgradeTexts.spot_icon("room:hall"), Icons.room(GameConfig.ROOM_HALL))
 	assert_eq(UpgradeTexts.spot_icon("dept:housing"), Icons.room("housing"))
 	assert_eq(UpgradeTexts.spot_icon("station:shared/reception"), Icons.station_for(GameConfig.RECEPTION))
-	assert_eq(UpgradeTexts.spot_icon("shredder:housing"), Icons.upgrade("shredder"))
 	assert_eq(UpgradeTexts.spot_icon("tube:hall"), Icons.upgrade("tube_station"))
+	assert_eq(UpgradeTexts.spot_icon("lead:hall"), Icons.upgrade("team_lead"))
+	assert_eq(UpgradeTexts.spot_icon("lead:general_services"), Icons.upgrade("team_lead"))
+	assert_ne(Icons.upgrade("team_lead"), Icons.UPGRADE)
 	assert_eq(UpgradeTexts.spot_icon("nope"), Icons.UPGRADE)
 
 
@@ -178,7 +182,9 @@ func test_every_entry_text_is_translated() -> void:
 func test_entry_titles() -> void:
 	var state := game.state
 	assert_eq(UpgradeTexts.title(UpgradeCatalog.find(state, "track:briefcase")), _t("TRACK_BRIEFCASE"))
-	assert_eq(UpgradeTexts.title(UpgradeCatalog.find(state, "track:office_equipment@general_services")), _t("FMT_ENTRY_IN_ROOM") % [_t("TRACK_OFFICE_EQUIPMENT"), _t("DEPT_GENERAL_SERVICES")])
+	assert_eq(UpgradeTexts.title(UpgradeCatalog.find(state, "track:room_speed@general_services")), _t("FMT_ENTRY_IN_ROOM") % [_t("TRACK_ROOM_SPEED"), _t("DEPT_GENERAL_SERVICES")])
+	assert_eq(UpgradeTexts.title(UpgradeCatalog.find(state, "track:team_lead@intake")), _t("FMT_ENTRY_IN_ROOM") % [_t("TRACK_TEAM_LEAD"), _t("ROOM_INTAKE")])
+	assert_eq(UpgradeTexts.title(UpgradeCatalog.find(state, "track:team_lead@pickup")), _t("FMT_ENTRY_IN_ROOM") % [_t("TRACK_TEAM_LEAD"), _t("ROOM_PICKUP")])
 	assert_eq(UpgradeTexts.title(UpgradeCatalog.find(state, "desk:shared/reception")), _t("FMT_ENTRY_DESK") % StationCard.label_for(GameConfig.RECEPTION))
 	assert_eq(UpgradeTexts.title(UpgradeCatalog.find(state, "unlock:tax_services")), _t("FMT_ENTRY_UNLOCK") % _t("DEPT_TAX_SERVICES"))
 	state.unlock_department("tax_services")
@@ -194,9 +200,9 @@ func test_entry_descriptions() -> void:
 	var state := game.state
 	assert_eq(UpgradeTexts.description(UpgradeCatalog.find(state, "track:briefcase")), _t("TRACK_DESC_BRIEFCASE"))
 	assert_eq(UpgradeTexts.description(UpgradeCatalog.find(state, "staff:runners")), _t("STAFF_DESC_RUNNERS"))
-	assert_eq(UpgradeTexts.description(UpgradeCatalog.find(state, "specialist:general_services/review")), _t("STAFF_DESC_SPECIALISTS"))
-	assert_eq(UpgradeTexts.description(UpgradeCatalog.find(state, "supervisor:general_services")), _t("STAFF_DESC_SUPERVISORS"))
-	assert_eq(UpgradeTexts.description(UpgradeCatalog.find(state, "level:shared/reception")), _t("ENTRY_DESC_LEVEL"))
+	assert_eq(UpgradeTexts.description(UpgradeCatalog.find(state, "track:room_speed@hall")), _t("TRACK_DESC_ROOM_SPEED"))
+	assert_eq(UpgradeTexts.description(UpgradeCatalog.find(state, "track:team_lead@general_services")), _t("TRACK_DESC_TEAM_LEAD"))
+	assert_eq(UpgradeTexts.description(UpgradeCatalog.find(state, "desk:shared/reception")), _t("ENTRY_DESC_DESK"))
 	assert_eq(UpgradeTexts.description(UpgradeCatalog.find(state, "unlock:tax_services")), _t("ENTRY_DESC_UNLOCK"))
 
 
@@ -218,6 +224,8 @@ func test_format_values() -> void:
 	assert_eq(UpgradeTexts.format_value("percent", 1.05), "%s %%" % UiKit.decimal(1.05 * 100.0))
 	assert_eq(UpgradeTexts.format_value("unlock", 1.0), _t("LABEL_YES"))
 	assert_eq(UpgradeTexts.format_value("unlock", 0.0), _t("LABEL_NO"))
+	assert_eq(UpgradeTexts.format_value("factor", 1.5), "×" + UiKit.decimal(1.5, 2))
+	assert_eq(UpgradeTexts.format_value("factor", Formulas.level_speed(11)), "×" + UiKit.decimal(Formulas.level_speed(11), 2))
 	assert_eq(UpgradeTexts.format_value("other", 2.5), UiKit.decimal(2.5))
 
 
@@ -238,15 +246,18 @@ func test_unlock_track_effect() -> void:
 	assert_eq(UpgradeTexts.effect(game.state, entry), _t("FMT_EFFECT") % [_t("LABEL_OFF"), UpgradeTexts.format_value("seconds", Formulas.track_value("mediation", 1))])
 
 
-func test_station_and_unlock_effects() -> void:
+func test_room_speed_and_unlock_effects() -> void:
 	var state := game.state
-	var level := UpgradeCatalog.find(state, "level:shared/reception")
-	var speed_now := "×%s" % UiKit.decimal(Formulas.level_speed(level.level), 2)
-	var speed_next := "×%s" % UiKit.decimal(Formulas.level_speed(level.level + 1), 2)
-	assert_eq(UpgradeTexts.effect(state, level), _t("FMT_EFFECT_SPEED") % [speed_now, speed_next])
-	state.station(GameConfig.RECEPTION).level = GameConfig.MAX_STATION_LEVEL
-	level = UpgradeCatalog.find(state, "level:shared/reception")
-	assert_eq(UpgradeTexts.effect(state, level), _t("FMT_EFFECT_SPEED_MAX") % ("×%s" % UiKit.decimal(Formulas.level_speed(level.level), 2)))
+	var speed := UpgradeCatalog.find(state, "track:room_speed@hall")
+	var speed_now := "×%s" % UiKit.decimal(Formulas.level_speed(1), 2)
+	var speed_next := "×%s" % UiKit.decimal(Formulas.level_speed(2), 2)
+	assert_eq(UpgradeTexts.effect(state, speed), _t("FMT_EFFECT") % [speed_now, speed_next])
+	state.set_upgrade("room_speed", GameConfig.ROOM_SPEED_LEVELS, GameConfig.ROOM_HALL)
+	speed = UpgradeCatalog.find(state, "track:room_speed@hall")
+	assert_true(speed.is_maxed())
+	assert_eq(UpgradeTexts.effect(state, speed), _t("FMT_EFFECT_MAX") % ("×%s" % UiKit.decimal(Formulas.level_speed(GameConfig.ROOM_SPEED_LEVELS + 1), 2)))
+	var lead := UpgradeCatalog.find(state, "track:team_lead@pickup")
+	assert_eq(UpgradeTexts.effect(state, lead), _t("FMT_EFFECT") % [_t("LABEL_NO"), _t("LABEL_YES")])
 	var unlock := UpgradeCatalog.find(state, "unlock:tax_services")
 	assert_eq(UpgradeTexts.effect(state, unlock), UpgradeTexts.gain_text("FMT_EFFECT_UNLOCK_GAIN", Formulas.potential_income(state, state.department("tax_services")), unlock.cost))
 	assert_false(UpgradeTexts.effect(state, unlock).is_empty())
@@ -268,15 +279,21 @@ func test_block_texts() -> void:
 	assert_eq(UpgradeTexts.block_text(state, UpgradeCatalog.find(state, "track:tube_capacity")), _t("FMT_REQ_UPGRADE") % _t("TRACK_PNEUMATIC_TUBES"))
 	assert_eq(UpgradeTexts.block_text(state, UpgradeCatalog.find(state, "track:intern_steadfast")), _t("FMT_REQ_UPGRADE") % _t("TRACK_COMPLAINT_INTERNS"))
 	assert_eq(UpgradeTexts.block_text(state, UpgradeCatalog.find(state, "track:intern_box_runs")), _t("FMT_REQ_UPGRADE") % (_t("FMT_REQ_TRACK_LEVEL") % [_t("TRACK_COMPLAINT_INTERNS"), 2]))
+	var lead_bonus := UpgradeCatalog.find(state, "track:lead_breaks@general_services")
+	assert_eq(lead_bonus.reason, "requires")
+	assert_eq(UpgradeTexts.block_text(state, lead_bonus), _t("FMT_REQ_UPGRADE") % _t("TRACK_TEAM_LEAD"))
+	assert_eq(UpgradeTexts.button_text(state, lead_bonus, 1), UpgradeTexts.block_text(state, lead_bonus))
+	var machine := UpgradeCatalog.find(state, "track:ticket_machine_2")
+	assert_eq(UpgradeTexts.block_text(state, machine), _t("FMT_REQ_UPGRADE") % (_t("FMT_REQ_TRACK_LEVEL") % [_t("TRACK_TICKET_SPEED"), GameConfig.TICKET_UNLOCK_LEVEL]))
 	state.unlock_department("tax_services")
 	var hire := UpgradeCatalog.find(state, "hire:tax_services/review")
 	assert_eq(hire.reason, "onboarding")
 	assert_eq(UpgradeTexts.block_text(state, hire), StationCard.onboarding_text(state.department("tax_services")))
 	state.reputation = 0.0
 	state.reputation_peak = 0.0
-	var gated := UpgradeCatalog.find(state, "track:digital_records")
+	var gated := UpgradeCatalog.find(state, "track:it_support")
 	assert_eq(gated.reason, "reputation")
-	assert_eq(UpgradeTexts.block_text(state, gated), _t("FMT_REQ_REPUTATION") % int(GameConfig.upgrade("digital_records").reputation))
+	assert_eq(UpgradeTexts.block_text(state, gated), _t("FMT_REQ_REPUTATION") % int(GameConfig.upgrade("it_support").reputation))
 	var unknown := UpgradeEntry.new()
 	unknown.reason = "whatever"
 	assert_eq(UpgradeTexts.block_text(state, unknown), _t("LABEL_UNAVAILABLE"))
@@ -292,7 +309,8 @@ func test_block_texts() -> void:
 
 func test_required_reputation() -> void:
 	var state := game.state
-	assert_eq(UpgradeTexts.required_reputation(UpgradeCatalog.find(state, "track:digital_records")), float(GameConfig.upgrade("digital_records").reputation))
+	assert_eq(UpgradeTexts.required_reputation(UpgradeCatalog.find(state, "track:it_support")), float(GameConfig.upgrade("it_support").reputation))
+	assert_eq(UpgradeTexts.required_reputation(UpgradeCatalog.find(state, "track:room_speed@hall")), 0.0)
 	assert_eq(UpgradeTexts.required_reputation(UpgradeCatalog.find(state, "unlock:tax_services")), float(GameConfig.department("tax_services").unlock_reputation))
 	assert_eq(UpgradeTexts.required_reputation(UpgradeCatalog.find(state, "staff:runners")), 0.0)
 
@@ -457,8 +475,31 @@ func test_complaint_desk_links_to_the_complaints() -> void:
 
 func test_station_spot_shows_the_station_card() -> void:
 	var sheet := _sheet(SpotSheet.new(), "station:" + GameConfig.RECEPTION)
-	assert_true(_has_text(sheet.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "level:shared/reception"))))
+	assert_true(_has_text(sheet.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "desk:shared/reception"))))
 	assert_true(_has_text(sheet.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "hire:shared/reception"))))
+	assert_null(UpgradeCatalog.find(game.state, "level:shared/reception"))
+
+
+func test_lead_spot_sheet_lists_the_lead_tracks() -> void:
+	var sheet: SpotSheet = _sheet(SpotSheet.new(), "lead:general_services")
+	assert_eq(sheet.title(), _t("FMT_SPOT_LEAD") % _t("DEPT_GENERAL_SERVICES"))
+	assert_eq(sheet.room_id(), "general_services")
+	assert_true(_has_text(sheet.content, _t("SPOT_DESC_LEAD")))
+	assert_true(_has_text(sheet.content, _t("DEPT_GENERAL_SERVICES")))
+	for upgrade_id in GameConfig.LEAD_TRACKS:
+		var entry := UpgradeCatalog.find(game.state, "track:%s@general_services" % upgrade_id)
+		assert_true(_has_text(sheet.content, UpgradeTexts.title(entry)), upgrade_id)
+	assert_true(_open_spot_buttons(sheet).is_empty())
+
+
+func test_room_sheet_groups_room_tracks_and_the_lead_office() -> void:
+	var spots := UpgradeCatalog.spots_of(SpotSheet.visible_entries(game.state, "dept:general_services"))
+	assert_true(spots.has("dept:general_services"))
+	assert_true(spots.has("lead:general_services"))
+	var sheet := _sheet(SpotSheet.new(), "dept:general_services")
+	assert_true(_has_text(sheet.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "track:room_speed@general_services"))))
+	assert_true(_has_text(sheet.content, UpgradeTexts.title(UpgradeCatalog.find(game.state, "track:room_trays@general_services"))))
+	assert_true(_has_text(sheet.content, UpgradeTexts.spot_title("lead:general_services")))
 
 
 func test_spot_without_content_says_so() -> void:
@@ -476,7 +517,7 @@ func test_every_spot_sheet_builds_translated() -> void:
 			spots.append("room:" + room_id)
 	for dept_id in ["general_services", "tax_services", "housing", "customs"]:
 		spots.append("dept:" + dept_id)
-	spots.append_array(["shredder:general_services", "tube:hall", "tube:general_services", "station:" + GameConfig.MAILROOM])
+	spots.append_array(["tube:hall", "tube:general_services", "station:" + GameConfig.MAILROOM, "lead:hall", "lead:general_services", "lead:mail"])
 	for spot in spots:
 		var sheet := _sheet(SpotSheet.new(), spot)
 		assert_gt(sheet.content.get_child_count(), 1, spot)
@@ -517,12 +558,11 @@ func test_board_sections_show_their_staff() -> void:
 	assert_true(_has_text(empty.content, _t("SECTION_SHIFT_PLAN")))
 	assert_true(_has_text(empty.content, _t("RUNNERS_EMPTY")))
 	state.add_runner()
-	state.add_collector()
+	state.add_runner(Runner.REJECT)
 	state.add_coffee_intern()
 	state.hr = 1
 	var expected := {
 		"runners": _t("FMT_RUNNER_NAME") % 1,
-		"collectors": _t("FMT_COLLECTOR_NAME") % 1,
 		"coffee_interns": _t("FMT_COFFEE_INTERN_NAME") % 1,
 		"phone_clerks": _t("FMT_PHONE_LINE") % 1,
 	}
@@ -534,7 +574,6 @@ func test_board_sections_show_their_staff() -> void:
 
 func test_board_sections_show_empty_hints() -> void:
 	var expected := {
-		"collectors": "COLLECTORS_EMPTY",
 		"coffee_interns": "COFFEE_INTERNS_EMPTY",
 		"phone_clerks": "PHONE_CLERKS_EMPTY",
 	}
@@ -544,15 +583,16 @@ func test_board_sections_show_empty_hints() -> void:
 		sheet.free()
 
 
-func test_collector_focus_button_cycles_the_department() -> void:
+func test_reject_runner_focus_button_cycles_the_department() -> void:
 	var state := game.state
-	state.add_collector()
-	var before := state.collectors[0].dept_id
-	var sheet := _sheet(SpotSheet.new(), "collectors")
-	var focus := _button(sheet.content, _t("FMT_FOCUS") % BoardSection.department_text(before))
+	var runner := state.add_runner(Runner.REJECT)
+	var before := runner.dept_id
+	var sheet := _sheet(SpotSheet.new(), "runners")
+	var focus := _button(sheet.content, _t("FMT_RUNNER_DEPARTMENT") % BoardSection.department_text(before))
 	assert_not_null(focus)
 	focus.pressed.emit()
-	assert_ne(state.collectors[0].dept_id, before)
+	assert_ne(runner.dept_id, before)
+	assert_eq(runner.role, Runner.REJECT)
 
 
 func test_board_helpers() -> void:
@@ -777,9 +817,7 @@ func test_spot_status_tubes() -> void:
 
 func test_spot_status_shredders_and_interns() -> void:
 	var state := game.state
-	assert_eq(SpotStatus.lines(state, "shredder:general_services"), [_t("STATUS_NO_SHREDDER")] as Array[String])
-	state.set_upgrade("shredder", 5, "general_services")
-	assert_eq(SpotStatus.dept_shredder(state, "general_services"), _t("FMT_STATUS_DEPT_SHREDDER") % UiKit.decimal(Formulas.shredder_interval(state, "general_services")))
+	assert_true(SpotStatus.lines(state, "shredder:general_services").is_empty())
 	assert_eq(SpotStatus.lines(state, "complaint_desk"), [_t("FMT_STATUS_COMPLAINT_DESK") % [0, 0, Formulas.intern_steadfast(state), 0]] as Array[String])
 	state.set_upgrade("complaint_interns", 2)
 	state.interns[1].mood = ComplaintIntern.Mood.CRYING
@@ -791,7 +829,9 @@ func test_spot_status_shredders_and_interns() -> void:
 	assert_eq(SpotStatus.lines(state, "security"), [_t("STATUS_NO_SECURITY")] as Array[String])
 	state.set_upgrade("complaint_security", 1)
 	assert_eq(SpotStatus.lines(state, "security"), [_t("FMT_SECURITY_INFO") % [roundi(GameConfig.SECURITY_BASE_CHANCE * 100.0), 0]] as Array[String])
-	assert_eq(SpotStatus.lines(state, "shredder"), [_t("FMT_STATUS_SHREDDER") % [state.rejects_waiting(), 1]] as Array[String])
+	state.add_runner(Runner.REJECT)
+	state.station("general_services/review").rejects = 3
+	assert_eq(SpotStatus.lines(state, "shredder"), [_t("FMT_STATUS_SHREDDER") % [3, 1]] as Array[String])
 
 
 func test_spot_status_mail() -> void:
@@ -808,6 +848,10 @@ func test_goal_texts_for_upgrades() -> void:
 	assert_eq(GoalText.describe({"type": "upgrade_level", "target": 1.0, "param": "pneumatic_tubes"}), _t("FMT_GOAL_UPGRADE_UNLOCK") % name)
 	assert_eq(GoalText.describe({"type": "upgrade_level", "target": 25.0, "param": "pneumatic_tubes"}), _t("FMT_GOAL_UPGRADE_LEVEL") % [name, 25])
 	assert_eq(GoalText.describe({"type": "upgrades", "target": 3.0, "param": ""}), _t("FMT_GOAL_UPGRADES") % 3)
+	assert_eq(GoalText.describe({"type": "room_speed", "target": 5.0, "param": ""}), _t("FMT_GOAL_ROOM_SPEED") % 5)
+	assert_ne(_t("FMT_GOAL_ROOM_SPEED"), "FMT_GOAL_ROOM_SPEED")
+	assert_true(GameConfig.GOALS.any(func(goal: Dictionary) -> bool: return goal.type == "room_speed"))
+	assert_false(GameConfig.GOALS.any(func(goal: Dictionary) -> bool: return goal.type == "station_level"))
 	for goal: Dictionary in GameConfig.GOALS:
 		_assert_translated(GoalText.describe(goal), str(goal.type))
 

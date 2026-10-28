@@ -102,8 +102,21 @@ func test_case_file_citizen_phases() -> void:
 	assert_false(case_file.is_in_hall())
 
 
+func test_case_file_seat_waiting_covers_both_waiting_rooms() -> void:
+	var case_file := _case()
+	for phase in [CaseFile.Phase.WAITING, CaseFile.Phase.WAITING_DOC]:
+		case_file.phase = phase
+		assert_true(case_file.is_seat_waiting(), str(phase))
+		case_file.seated = false
+		assert_true(case_file.is_seat_waiting(), str(phase))
+		case_file.seated = true
+	for phase in [CaseFile.Phase.NONE, CaseFile.Phase.LINE, CaseFile.Phase.CALLED, CaseFile.Phase.SERVED, CaseFile.Phase.CALLED_DOC, CaseFile.Phase.COLLECTING]:
+		case_file.phase = phase
+		assert_false(case_file.is_seat_waiting(), str(phase))
+
+
 func test_station_job_progress() -> void:
-	var job := StationJob.new(_case(), 2.0, true)
+	var job := StationJob.new(_case(), 2.0)
 	assert_false(job.is_done())
 	job.progress = 1.0
 	assert_almost_eq(job.ratio(), 0.5, 0.001)
@@ -113,9 +126,21 @@ func test_station_job_progress() -> void:
 	var copy := StationJob.from_dict(job.to_dict())
 	assert_eq(copy.required, 2.0)
 	assert_eq(copy.progress, 5.0)
-	assert_true(copy.by_specialist)
 	assert_false(copy.by_hand)
+	assert_eq(copy.to_dict(), job.to_dict())
 	assert_eq(StationJob.new(null, 0.0).required, 0.01)
+
+
+func test_station_job_save_has_no_specialist_flag() -> void:
+	var job := StationJob.new(_case(), 3.0)
+	var data := job.to_dict()
+	assert_false(data.has("specialist"))
+	assert_eq(data.keys().size(), 4)
+	data.specialist = true
+	var copy := StationJob.from_dict(data)
+	assert_eq(copy.required, 3.0)
+	assert_false(copy.to_dict().has("specialist"))
+	assert_eq(copy.to_dict(), job.to_dict())
 
 
 func test_station_job_counts_hand_work_once() -> void:
@@ -137,7 +162,7 @@ func test_station_derives_kind_and_machine() -> void:
 	assert_eq(review.dept_id, "general_services")
 	assert_false(review.machine)
 	assert_eq(review.staff, 0)
-	assert_true(review.supports_specialists())
+	assert_eq(review.tray_size, GameConfig.TRAY_BASE)
 	var printer := Station.new("vehicle_registration/signature")
 	assert_true(printer.machine)
 	assert_eq(printer.staff, 1)
@@ -152,51 +177,70 @@ func test_station_derives_kind_and_machine() -> void:
 	assert_eq(Station.new(GameConfig.INSPECTION).kind, "inspection")
 
 
-func test_station_capacities() -> void:
+func test_station_capacities_follow_the_tray_size() -> void:
 	var station := Station.new("general_services/review")
-	assert_eq(station.inbox_capacity(10), GameConfig.INBOX_BASE + GameConfig.INBOX_PER_DESK)
-	assert_eq(station.outbox_capacity(), GameConfig.OUTBOX_BASE + GameConfig.OUTBOX_PER_DESK)
+	assert_eq(station.inbox_capacity(10), GameConfig.TRAY_BASE)
+	assert_eq(station.outbox_capacity(), GameConfig.TRAY_BASE)
 	assert_eq(Station.new(GameConfig.RECEPTION).inbox_capacity(10), 10)
 	for i in station.outbox_capacity():
 		station.outbox.append(_case())
 	assert_false(station.has_outbox_space())
 	assert_true(station.has_inbox_space(10))
-	station.tray_level = 4
-	assert_eq(station.tray_capacity(), 4 * GameConfig.TRAY_CAPACITY_PER_LEVEL)
-	assert_eq(station.inbox_capacity(10), GameConfig.INBOX_BASE + GameConfig.INBOX_PER_DESK + station.tray_capacity())
-	assert_eq(station.outbox_capacity(), GameConfig.OUTBOX_BASE + GameConfig.OUTBOX_PER_DESK + station.tray_capacity())
+	station.tray_size = GameConfig.TRAY_MAX
+	assert_eq(station.inbox_capacity(10), GameConfig.TRAY_MAX)
+	assert_eq(station.outbox_capacity(), GameConfig.TRAY_MAX)
 	assert_true(station.has_outbox_space())
 
 
-func test_station_tray_level_is_saved_and_clamped() -> void:
+func test_station_trays_ignore_the_desk_count() -> void:
 	var station := Station.new("general_services/review")
-	station.tray_level = 7
-	assert_eq(Station.from_dict(station.to_dict()).tray_level, 7)
+	var inbox := station.inbox_capacity(10)
+	var outbox := station.outbox_capacity()
+	for i in 4:
+		station.add_desk()
+	station.staff = station.desks
+	assert_eq(station.inbox_capacity(10), inbox)
+	assert_eq(station.outbox_capacity(), outbox)
+	var mailroom := Station.new(GameConfig.MAILROOM)
+	assert_eq(mailroom.inbox_capacity(10), mailroom.storage_capacity())
+	assert_eq(mailroom.outbox_capacity(), GameConfig.TRAY_BASE)
+
+
+func test_station_tray_size_is_not_saved() -> void:
+	var station := Station.new("general_services/review")
+	station.tray_size = 17
 	var data := station.to_dict()
-	data.tray_level = 9999
-	assert_eq(Station.from_dict(data).tray_level, GameConfig.MAX_TRAY_LEVEL)
-	data.tray_level = -3
-	assert_eq(Station.from_dict(data).tray_level, 0)
-	data.erase("tray_level")
-	assert_eq(Station.from_dict(data).tray_level, 0)
+	assert_false(data.has("tray_size"))
+	assert_false(data.has("tray_level"))
+	assert_eq(Station.from_dict(data).tray_size, GameConfig.TRAY_BASE)
+	data.tray_level = 40
+	assert_eq(Station.from_dict(data).tray_size, GameConfig.TRAY_BASE)
+	assert_false(Station.from_dict(data).to_dict().has("tray_level"))
 
 
-func test_station_desks_and_specialists() -> void:
+func test_station_desks_and_staffing() -> void:
 	var station := Station.new("general_services/review")
-	station.add_specialist()
 	station.add_desk()
 	assert_eq(station.desks, 2)
-	assert_eq(station.jobs.size(), 3)
-	assert_false(station.is_specialist_desk(1))
-	assert_true(station.is_specialist_desk(2))
-	assert_true(station.is_staffed(2))
+	assert_eq(station.jobs.size(), 2)
+	assert_eq(station.moods.size(), 2)
 	assert_false(station.is_staffed(0))
+	assert_false(station.is_staffed(1))
 	station.staff = 1
 	assert_true(station.is_staffed(0))
+	assert_false(station.is_staffed(1))
+	assert_false(station.is_staffed(2))
+	assert_false(station.is_staffed(-1))
+	assert_eq(station.workers(), 1)
+	station.staff = 2
+	assert_true(station.is_staffed(1))
 	assert_eq(station.workers(), 2)
 	var machine := Station.new("tax_services/signature")
 	machine.add_desk()
 	assert_eq(machine.staff, 2)
+	assert_eq(machine.workers(), 2)
+	assert_true(machine.is_staffed(1))
+	assert_false(machine.is_staffed(2))
 
 
 func test_station_manual_work_detection() -> void:
@@ -241,30 +285,49 @@ func test_station_case_selection() -> void:
 	var complex := _case("general_services", true)
 	var urgent := _case("general_services", false, true)
 	station.inbox.append_array([simple, complex, urgent])
-	assert_eq(station.take_next_case(true, false), urgent)
-	assert_eq(station.take_next_case(false, false), simple)
-	assert_eq(station.take_next_case(false, false), complex)
-	assert_null(station.take_next_case(false, false))
-	station.add_specialist()
+	assert_eq(station.take_next_case(true), urgent)
+	assert_eq(station.take_next_case(false), simple)
+	assert_eq(station.take_next_case(false), complex)
+	assert_null(station.take_next_case(false))
 	station.inbox.append_array([complex, simple])
-	assert_eq(station.take_next_case(false, false), simple)
-	assert_null(station.take_next_case(false, false))
-	station.inbox.append(simple)
-	assert_eq(station.take_next_case(false, true), complex)
-	assert_eq(station.take_next_case(false, true), simple)
+	assert_eq(station.take_next_case(false), complex)
+	assert_eq(station.take_next_case(false), simple)
+	var mail := _case()
+	mail.mail = true
+	station.inbox.append_array([mail, simple])
+	assert_eq(station.take_next_case(false), simple)
+	assert_eq(station.take_next_case(false), mail)
+
+
+func test_station_case_selection_skips_blocked_targets() -> void:
+	var station := Station.new("general_services/review")
+	var waiting := _case()
+	waiting.step = 1
+	var other := _case()
+	station.inbox.append_array([waiting, other])
+	var blocked: Array[String] = [waiting.next_key()]
+	assert_eq(station.take_next_case(false, blocked), other)
+	assert_null(station.take_next_case(false, blocked))
+	assert_eq(station.take_next_case(false), waiting)
 
 
 func test_station_all_cases_and_roundtrip() -> void:
 	var station := Station.new("general_services/review")
-	station.add_specialist()
+	station.add_desk()
 	station.staff = 1
-	station.level = 4
+	station.rush = 12.0
 	station.inbox.append(_case())
 	station.outbox.append(_case())
-	station.jobs[1] = StationJob.new(_case(), 3.0, true)
+	station.jobs[1] = StationJob.new(_case(), 3.0)
 	assert_eq(station.all_cases().size(), 3)
 	var copy := Station.from_dict(station.to_dict())
 	assert_eq(copy.to_dict(), station.to_dict())
+	assert_eq(copy.jobs.size(), 2)
+	assert_eq(copy.moods.size(), 2)
+	assert_eq(copy.jobs[1].required, 3.0)
+	var saved := station.to_dict()
+	for removed: String in ["level", "specialists", "tray_level", "tray_size"]:
+		assert_false(saved.has(removed), removed)
 	var data := station.to_dict()
 	data.desks = 0
 	data.staff = 50
@@ -274,16 +337,29 @@ func test_station_all_cases_and_roundtrip() -> void:
 	var clamped := Station.from_dict(data)
 	assert_eq(clamped.desks, 1)
 	assert_eq(clamped.staff, 1)
-	assert_eq(clamped.level, GameConfig.MAX_STATION_LEVEL)
-	assert_eq(clamped.specialists, GameConfig.MAX_SPECIALISTS)
-	assert_eq(clamped.jobs.size(), 1 + GameConfig.MAX_SPECIALISTS)
+	assert_eq(clamped.jobs.size(), 1)
+	assert_eq(clamped.moods.size(), 1)
 	assert_null(clamped.jobs[0])
+	assert_false(clamped.to_dict().has("level"))
+	assert_false(clamped.to_dict().has("specialists"))
 	var machine_data := Station.new("tax_services/signature").to_dict()
 	machine_data.staff = 0
 	machine_data.specialists = 2
 	var machine := Station.from_dict(machine_data)
 	assert_eq(machine.staff, 1)
-	assert_eq(machine.specialists, 0)
+	assert_eq(machine.jobs.size(), 1)
+
+
+func test_desk_mood_save_has_no_training() -> void:
+	var mood := DeskMood.new()
+	mood.rest(DeskMood.SICK)
+	mood.bonus = 1
+	var data := mood.to_dict()
+	assert_false(data.has("training"))
+	data.training = {"skill": 5}
+	var copy := DeskMood.from_dict(data)
+	assert_false(copy.to_dict().has("training"))
+	assert_eq(copy.to_dict(), mood.to_dict())
 
 
 func test_department_roundtrip() -> void:
@@ -292,7 +368,6 @@ func test_department_roundtrip() -> void:
 	assert_eq(dept.station_keys().size(), 4)
 	assert_eq(dept.config().id, "customs")
 	dept.unlocked = true
-	dept.supervisors = 2
 	dept.thoroughness = 2
 	dept.prioritize_urgent = false
 	dept.scan_all = true
@@ -300,11 +375,14 @@ func test_department_roundtrip() -> void:
 	dept.follow_ups.append(30.0)
 	assert_eq(Department.from_dict(dept.to_dict()).to_dict(), dept.to_dict())
 	var data := dept.to_dict()
+	assert_false(data.has("supervisors"))
 	data.supervisors = 99
 	data.thoroughness = -3
 	var clamped := Department.from_dict(data)
-	assert_eq(clamped.supervisors, GameConfig.MAX_SUPERVISORS)
+	assert_false(clamped.to_dict().has("supervisors"))
 	assert_eq(clamped.thoroughness, 0)
+	data.thoroughness = 99
+	assert_eq(Department.from_dict(data).thoroughness, GameConfig.THOROUGHNESS.size() - 1)
 	assert_false(Department.new("tax_services").is_customs())
 
 

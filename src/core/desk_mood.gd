@@ -22,7 +22,6 @@ var slot := -1
 var left_slot := -1
 var reported := false
 var bonus := 0
-var training := {}
 var output := RateCounter.new()
 var sick_count := 0
 var doze_count := 0
@@ -117,28 +116,8 @@ func arrive() -> void:
 	return_time = 0.0
 
 
-func training_level(track: String) -> int:
-	return int(training.get(track, 0))
-
-
-func can_train(track: String) -> bool:
-	return GameConfig.OFFICIAL_TRAININGS.has(track) and training_level(track) < GameConfig.MAX_OFFICIAL_TRAINING
-
-
-func train(track: String) -> void:
-	if can_train(track):
-		training[track] = training_level(track) + 1
-
-
-func training_total() -> int:
-	var total := 0
-	for track: String in training:
-		total += int(training[track])
-	return total
-
-
 func to_dict() -> Dictionary:
-	return {"state": state, "alert": alert, "resting": resting, "slot": slot, "reported": reported, "bonus": bonus, "training": training.duplicate()}
+	return {"state": state, "alert": alert, "resting": resting, "slot": slot, "reported": reported, "bonus": bonus}
 
 
 static func from_dict(data: Variant) -> DeskMood:
@@ -151,12 +130,6 @@ static func from_dict(data: Variant) -> DeskMood:
 	mood.resting = maxf(0.0, float(data.get("resting", 0.0)))
 	mood.reported = bool(data.get("reported", true)) and mood.is_sick()
 	mood.bonus = clampi(int(data.get("bonus", 0)), 0, GameConfig.sick_bonus_tiers()) if mood.is_sick() else 0
-	var saved_training: Variant = data.get("training", {})
-	if saved_training is Dictionary:
-		for track: String in GameConfig.OFFICIAL_TRAININGS:
-			var level := clampi(int(saved_training.get(track, 0)), 0, GameConfig.MAX_OFFICIAL_TRAINING)
-			if level > 0:
-				mood.training[track] = level
 	if mood.state == LOO:
 		mood.slot = clampi(int(data.get("slot", -1)), GameConfig.KITCHEN_SLOTS, GameConfig.KITCHEN_SLOTS + GameConfig.MAX_LOO_SLOTS - 1)
 	elif mood.is_away():

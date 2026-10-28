@@ -279,18 +279,18 @@ func test_reception_and_counter_have_reject_piles() -> void:
 	assert_true(Formulas.full_boxes(state, dept).filter(func(box: Dictionary) -> bool: return box.side == "rejects").is_empty())
 	_reception().rejects = GameConfig.REJECT_CAPACITY
 	assert_true(Formulas.full_boxes(state, dept).filter(func(box: Dictionary) -> bool: return box.side == "rejects").is_empty())
-	assert_gt(ThroughputReport.collector_trip(state), 0.0)
+	assert_gt(Formulas.reject_trip_time(state), 0.0)
 
 
-func test_collectors_and_player_clear_hall_reject_piles() -> void:
+func test_reject_runners_and_player_clear_hall_reject_piles() -> void:
 	_counter().rejects = 2
 	state.player.position = layout.reject_point(GameConfig.COUNTER)
 	assert_true(sim.move_complaints())
 	assert_eq(state.player.rejects, 1)
 	assert_eq(_counter().rejects, 1)
-	var collector := RejectCollector.new(layout.collector_home())
-	state.collectors.append(collector)
-	assert_eq(sim.collector_target(collector, Formulas.collector_capacity(state)), GameConfig.COUNTER)
+	var runner := state.add_runner(Runner.REJECT)
+	runner.position = layout.shredder_point()
+	assert_eq(sim.reject_target(runner, Formulas.runner_load(state, runner)), GameConfig.COUNTER)
 
 
 func test_hall_report_lists_both_waiting_rooms() -> void:

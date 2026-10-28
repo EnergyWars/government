@@ -62,7 +62,43 @@ func test_income_tracker_starts_empty_and_averages_samples() -> void:
 	tracker.advance(1.0, 12.0)
 	assert_almost_eq(tracker.per_minute(), 120.0, 0.001)
 	tracker.advance(1.0, 16.0)
-	assert_almost_eq(tracker.per_minute(), 180.0, 0.001)
+	assert_almost_eq(tracker.per_minute(), 120.0, 0.001)
+
+
+func test_income_tracker_refreshes_only_every_thirty_seconds() -> void:
+	var tracker := IncomeTracker.new()
+	tracker.advance(1.0, 0.0)
+	tracker.advance(1.0, 1.0)
+	assert_almost_eq(tracker.per_minute(), 60.0, 0.001)
+	var earned := 1.0
+	for i in 29:
+		earned += 3.0
+		tracker.advance(1.0, earned)
+	assert_almost_eq(tracker.per_minute(), 60.0, 0.001)
+	earned += 3.0
+	tracker.advance(1.0, earned)
+	var expected := (1.0 + 30.0 * 3.0) / 31.0 * 60.0
+	assert_almost_eq(tracker.per_minute(), expected, 0.001)
+	earned += 3.0
+	tracker.advance(1.0, earned)
+	assert_almost_eq(tracker.per_minute(), expected, 0.001)
+
+
+func test_income_tracker_looks_back_ten_minutes() -> void:
+	assert_eq(IncomeTracker.WINDOW, 600)
+	assert_eq(IncomeTracker.REFRESH_SECONDS, 30.0)
+	var tracker := IncomeTracker.new()
+	var earned := 0.0
+	tracker.advance(1.0, earned)
+	for i in 600:
+		earned += 1.0
+		tracker.advance(1.0, earned)
+	assert_almost_eq(tracker.per_minute(), 60.0, 0.001)
+	for i in 601:
+		earned += 5.0
+		tracker.advance(1.0, earned)
+	assert_eq(tracker.samples.size(), IncomeTracker.WINDOW)
+	assert_almost_eq(tracker.per_minute(), 300.0, 0.001)
 
 
 func test_income_tracker_keeps_window_and_ignores_spending() -> void:
@@ -96,7 +132,7 @@ func test_offline_earnings_do_not_inflate_the_income_per_minute() -> void:
 	for key in state.stations:
 		if not state.stations[key].machine:
 			state.stations[key].staff = maxi(1, state.stations[key].staff)
-	for role in Runner.ROLES:
+	for role in Runner.CASE_ROLES:
 		state.add_runner(role)
 	assert_gt(OfflineCalculator.earnings_per_second(state), 0.0)
 	_fill_income(2.0, 5)
@@ -410,10 +446,11 @@ func test_staff_reduces_sickness_disputes_kranz_and_complaints() -> void:
 	assert_almost_eq(Formulas.complaint_interval(0.0), GameConfig.COMPLAINT_INTERVAL * 0.7, 0.001)
 	assert_almost_eq(Formulas.complaint_interval(1.0), GameConfig.COMPLAINT_INTERVAL * 1.3, 0.001)
 	assert_almost_eq(Formulas.complaint_interval(0.5), GameConfig.COMPLAINT_INTERVAL, 0.001)
-	assert_eq(Formulas.total_supervisors(state), 0)
-	state.department("general_services").supervisors = 2
-	assert_eq(Formulas.total_supervisors(state), 2)
-	assert_almost_eq(Formulas.dispute_interval(state, 0.0), GameConfig.DISPUTE_MIN_INTERVAL * (1.0 + 2.0 * GameConfig.DISPUTE_SUPERVISOR_RELIEF), 0.001)
+	assert_eq(Formulas.team_lead_count(state), 0)
+	state.set_upgrade("team_lead", 1, "general_services")
+	state.set_upgrade("team_lead", 1, GameConfig.HALL_PICKUP)
+	assert_eq(Formulas.team_lead_count(state), 2)
+	assert_almost_eq(Formulas.dispute_interval(state, 0.0), GameConfig.DISPUTE_MIN_INTERVAL * (1.0 + 2.0 * GameConfig.LEAD_DISPUTE_RELIEF), 0.001)
 
 
 func test_early_game_trouble_without_sickness_spiral() -> void:

@@ -235,7 +235,7 @@ func test_delete_review_costs_money_and_returns_reputation() -> void:
 	state.reputation = 10.0
 	watch_signals(sim)
 	var cost := Formulas.review_delete_cost(state, review)
-	assert_almost_eq(cost, Formulas.review_base_cost(state) * GameConfig.REVIEW_DELETE_STAR_FACTORS[0], 0.001)
+	assert_almost_eq(cost, 75.0 * review.price_factor, 0.001)
 	assert_true(sim.delete_review(review.id))
 	assert_null(state.find_review(review.id))
 	assert_eq(state.reviews.size(), 1)
@@ -254,8 +254,8 @@ func test_delete_cost_falls_with_more_stars_and_five_stars_are_free() -> void:
 	var forced := Review.new(0, 1)
 	forced.force_praise(0)
 	assert_eq(Formulas.review_delete_cost(state, forced), 0.0)
-	assert_gt(Formulas.review_delete_cost(state, Review.new(0, 1)), Formulas.review_base_cost(state))
-	assert_lt(Formulas.review_delete_cost(state, Review.new(0, 1)), Formulas.review_lawsuit_cost(state, Review.new(0, 1)) * 3.0)
+	assert_almost_eq(Formulas.review_delete_cost(state, Review.new(0, 1)), 75.0, 0.001)
+	assert_lt(Formulas.review_delete_cost(state, Review.new(0, 1)), Formulas.review_lawsuit_cost(state, Review.new(0, 1)))
 
 
 func test_any_review_can_be_deleted() -> void:
@@ -294,11 +294,13 @@ func test_lawsuit_cost_is_the_same_for_every_rating() -> void:
 	var first := Formulas.review_lawsuit_cost(state, Review.new(0, 1))
 	for stars in range(2, 6):
 		assert_almost_eq(Formulas.review_lawsuit_cost(state, Review.new(0, stars)), first, 0.001)
-	assert_almost_eq(first, Formulas.review_base_cost(state) * GameConfig.REVIEW_LAWSUIT_FACTOR, 0.001)
+	assert_almost_eq(first, 100.0, 0.001)
 
 
 func test_deleting_is_always_cheaper_than_suing() -> void:
-	assert_gt(GameConfig.REVIEW_LAWSUIT_FACTOR, GameConfig.REVIEW_DELETE_STAR_FACTORS.max())
+	assert_eq(GameConfig.REVIEW_DELETE_STAR_FACTORS.max(), 1.0)
+	for stage in GameConfig.BUILDING_STAGES:
+		assert_lt(float(stage.review_delete), float(stage.review_lawsuit))
 	assert_gte(GameConfig.REVIEW_LAWSUIT_GROWTH, GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH)
 	for stars in range(1, 6):
 		for lawsuits in range(GameConfig.MAX_REVIEW_LAWSUITS + 1):
@@ -407,16 +409,16 @@ func test_lawsuits_start_likelier_and_are_limited_to_three() -> void:
 	var review := Review.new(0, 2)
 	assert_eq(review.lawsuits_left(), 3)
 	assert_true(review.can_be_sued())
-	assert_false(review.needs_ad_lawsuit())
+	assert_true(review.can_win_by_ad())
 	for attempt in GameConfig.MAX_REVIEW_LAWSUITS:
 		assert_true(review.can_be_sued(), "attempt %d" % attempt)
 		assert_lte(Formulas.review_lawsuit_chance(review), GameConfig.REVIEW_LAWSUIT_MAX_CHANCE)
 		review.downgrade(0)
 	assert_eq(review.lawsuits_left(), 0)
 	assert_false(review.can_be_sued())
-	assert_true(review.needs_ad_lawsuit())
+	assert_true(review.can_win_by_ad())
 	review.force_praise(0)
-	assert_false(review.needs_ad_lawsuit())
+	assert_false(review.can_win_by_ad())
 
 
 func test_delete_gets_dearer_with_each_failed_lawsuit() -> void:
@@ -450,14 +452,13 @@ func test_lost_lawsuit_raises_the_delete_price() -> void:
 	assert_almost_eq(Formulas.review_delete_cost(state, review), before * GameConfig.REVIEW_DELETE_LAWSUIT_GROWTH, 0.001)
 
 
-func test_ad_lawsuit_wins_only_after_all_attempts_failed() -> void:
+func test_ad_lawsuit_is_always_available_until_the_review_is_corrected() -> void:
 	var boosts := game.boosts
 	var review := state.add_review(1)
 	state.money = 1000.0
 	state.reputation = 10.0
-	assert_false(boosts.can_sue_by_ad(review.id))
-	assert_false(boosts.sue_by_ad(review.id))
 	assert_false(boosts.can_sue_by_ad(999))
+	assert_true(boosts.can_sue_by_ad(review.id))
 	review.lawsuits = GameConfig.MAX_REVIEW_LAWSUITS
 	assert_false(game.simulation.can_sue_for_defamation(review.id))
 	assert_true(boosts.can_sue_by_ad(review.id))
@@ -841,11 +842,15 @@ func test_sheet_offers_ad_lawsuit_after_three_failures() -> void:
 	await wait_physics_frames(2)
 
 
-func test_sheet_hides_ad_lawsuit_while_attempts_remain() -> void:
+func test_sheet_offers_ad_lawsuit_while_attempts_remain() -> void:
 	var review := state.add_review(1)
 	review.lawsuits = GameConfig.MAX_REVIEW_LAWSUITS - 1
 	var sheet := _sheet(str(review.id))
-	assert_false(_has_label(sheet.content, sheet.tr("REVIEW_SUE_AD_HINT")))
+	assert_true(_has_label(sheet.content, sheet.tr("REVIEW_SUE_AD_HINT")))
+	var found := false
+	for button in _buttons(sheet.content):
+		found = found or button.text == sheet.tr("ACTION_REVIEW_SUE_AD")
+	assert_true(found)
 	assert_true(_has_label(sheet.content, sheet.tr("FMT_REVIEW_LAWSUIT_INFO") % [UiKit.percent(Formulas.review_lawsuit_chance(review)), 1]))
 
 
@@ -894,8 +899,7 @@ func test_delete_cost_scales_with_income() -> void:
 			state.stations[key].staff = state.stations[key].desks
 	var low := Formulas.review_delete_cost(state, review)
 	state.unlock_department("tax_services")
-	assert_gte(Formulas.review_delete_cost(state, review), low)
-	assert_almost_eq(Formulas.review_base_cost(state), maxf(GameConfig.REVIEW_DELETE_BASE, Formulas.income_per_second(state) * GameConfig.REVIEW_DELETE_INCOME_SECONDS), 0.001)
+	assert_gt(Formulas.review_delete_cost(state, review), low)
 	assert_gt(Formulas.income_per_second(state), 0.0)
 
 
@@ -932,3 +936,49 @@ func test_new_reviews_pick_texts_within_their_star_pool() -> void:
 	assert_eq(high.text_index, 39)
 	var clamped := Review.from_dict({"stars": 4, "text": 39})
 	assert_eq(clamped.text_index, GameConfig.review_texts(4) - 1)
+
+
+func test_review_prices_follow_the_building_stage() -> void:
+	var expected := [[75.0, 100.0], [150.0, 250.0], [500.0, 800.0], [2000.0, 3500.0], [10000.0, 18000.0]]
+	var review := Review.new(0, 1)
+	for stage in expected.size():
+		state.building_stage = stage
+		assert_almost_eq(Formulas.review_delete_cost(state, review), expected[stage][0], 0.001, str(stage))
+		assert_almost_eq(Formulas.review_lawsuit_cost(state, review), expected[stage][1], 0.001, str(stage))
+
+
+func test_unlocking_the_tax_office_raises_the_review_prices() -> void:
+	var review := Review.new(0, 1)
+	assert_almost_eq(Formulas.review_lawsuit_cost(state, review), 100.0, 0.001)
+	state.unlock_department("tax_services")
+	assert_eq(state.building_stage, 1)
+	assert_almost_eq(Formulas.review_delete_cost(state, review), 150.0, 0.001)
+	assert_almost_eq(Formulas.review_lawsuit_cost(state, review), 250.0, 0.001)
+
+
+func test_each_review_has_a_price_variation_of_thirty_percent() -> void:
+	var low := INF
+	var high := 0.0
+	for i in 60:
+		var review := state.add_review(1)
+		assert_gte(review.price_factor, 0.7)
+		assert_lte(review.price_factor, 1.3)
+		low = minf(low, review.price_factor)
+		high = maxf(high, review.price_factor)
+		assert_almost_eq(Formulas.review_lawsuit_cost(state, review), 100.0 * review.price_factor, 0.001)
+		assert_almost_eq(Formulas.review_delete_cost(state, review), 75.0 * review.price_factor, 0.001)
+	assert_lt(low, 0.85)
+	assert_gt(high, 1.15)
+
+
+func test_price_variation_survives_saving_and_is_clamped() -> void:
+	var review := state.add_review(1)
+	var copy := Review.from_dict(review.to_dict())
+	assert_almost_eq(copy.price_factor, review.price_factor, 0.00001)
+	var data := review.to_dict()
+	data.price = 9.0
+	assert_almost_eq(Review.from_dict(data).price_factor, 1.3, 0.00001)
+	data.price = -3.0
+	assert_almost_eq(Review.from_dict(data).price_factor, 0.7, 0.00001)
+	data.erase("price")
+	assert_eq(Review.from_dict(data).price_factor, 1.0)

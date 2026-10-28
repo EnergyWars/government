@@ -10,16 +10,19 @@ static func lines(state: GameState, spot: String) -> Array[String]:
 	var result: Array[String] = []
 	var target := GameConfig.spot_target(spot)
 	match GameConfig.spot_kind(spot):
-		"shredder":
-			result.append(dept_shredder(state, target))
-			return result
 		"tube":
 			result.append(tube_station(state, target))
+			return result
+		"lead":
+			result.append_array(team_lead(state, target))
 			return result
 		"station":
 			var station := state.station(target)
 			if station != null and station.is_output_jammed():
 				result.append(t("STATUS_OUTPUTS_JAMMED"))
+			return result
+		"trays":
+			result.append_array(trays(state, target))
 			return result
 	match spot:
 		"player":
@@ -41,9 +44,7 @@ static func lines(state: GameState, spot: String) -> Array[String]:
 		"security":
 			result.append(security(state))
 		"shredder":
-			result.append(t("FMT_STATUS_SHREDDER") % [state.rejects_waiting(), state.shredder_rooms().size()])
-		"collectors":
-			result.append(t("FMT_COLLECTOR_INFO") % [Formulas.collector_capacity(state), state.rejects_waiting()])
+			result.append(t("FMT_STATUS_SHREDDER") % [state.rejects_waiting(), state.runners_in(Runner.REJECT)])
 		"coffee_interns":
 			result.append(t("FMT_COFFEE_INTERN_INFO") % state.coffees_served)
 		"canteen":
@@ -60,6 +61,22 @@ static func lines(state: GameState, spot: String) -> Array[String]:
 			result.append(t("FMT_HR_INFO") % [state.sick_count(), state.reported_sick_count(), state.ringing_count()])
 		"mail_shelf", "mailbox":
 			result.append(mail(state))
+	return result
+
+
+static func trays(state: GameState, key: String) -> Array[String]:
+	var result: Array[String] = []
+	var station := state.station(key)
+	if station == null:
+		return result
+	if not station.is_entry():
+		result.append(t("FMT_INBOX") % [station.inbox.size(), station.inbox_capacity(state.lobby_capacity())])
+	if not station.is_final():
+		result.append(t("FMT_OUTBOX") % [station.outbox.size(), station.outbox_capacity()])
+	if station.has_reject_pile():
+		result.append(t("FMT_STATUS_REJECT_PILE") % [station.rejects, station.reject_capacity()])
+	if station.is_output_jammed():
+		result.append(t("STATUS_OUTPUTS_JAMMED"))
 	return result
 
 
@@ -111,10 +128,14 @@ static func tube_station(state: GameState, room_id: String) -> String:
 	return t("STATUS_TUBE_CONNECTED") if state.has_tube_station(room_id) else t("STATUS_TUBE_MISSING")
 
 
-static func dept_shredder(state: GameState, dept_id: String) -> String:
-	if not state.has_upgrade("shredder", dept_id):
-		return t("STATUS_NO_SHREDDER")
-	return t("FMT_STATUS_DEPT_SHREDDER") % UiKit.decimal(Formulas.shredder_interval(state, dept_id))
+static func team_lead(state: GameState, room_id: String) -> Array[String]:
+	var result: Array[String] = []
+	if not Formulas.has_lead(state, room_id):
+		result.append(t("STATUS_NO_LEAD"))
+		return result
+	result.append(t("FMT_STATUS_LEAD") % [UiKit.percent(1.0 - Formulas.lead_value(state, "lead_breaks", room_id)), UiKit.percent(1.0 - Formulas.lead_value(state, "lead_health", room_id)), UiKit.percent(1.0 - Formulas.lead_value(state, "lead_focus", room_id))])
+	result.append(t("FMT_STATUS_PATROL") % [UiKit.decimal(Formulas.lead_value(state, "lead_patrol", room_id), 2), UiKit.duration(GameConfig.LEAD_PATROL_SECONDS), UiKit.duration(Formulas.patrol_cooldown(state, room_id))])
+	return result
 
 
 static func mail(state: GameState) -> String:

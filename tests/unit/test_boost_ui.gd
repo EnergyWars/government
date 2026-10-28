@@ -229,12 +229,12 @@ func test_station_card_shows_upgrade_dynamics_and_onboarding() -> void:
 	review.rush = 10.0
 	var lines := StationCard.dynamics_lines(game.state, review, 100.0)
 	assert_has(lines, tr("FMT_RUSH") % UiKit.duration(10.0))
-	assert_has(lines, tr("FMT_MILESTONE") % [Formulas.levels_to_milestone(1), UiKit.decimal(GameConfig.LEVEL_MILESTONE_BONUS)])
+	assert_has(lines, tr("FMT_MILESTONE") % [Formulas.levels_to_milestone(game.state.upgrade_level("room_speed", "general_services")), UiKit.decimal(GameConfig.LEVEL_MILESTONE_BONUS)])
 	var next := game.state.station("general_services/signature")
 	assert_has(lines, tr("FMT_DOWNSTREAM_SLOW") % [StationCard.label_for(next.key), UiKit.decimal(Formulas.station_throughput(game.state, next) * 60.0)])
 	lines = StationCard.dynamics_lines(game.state, review, 0.0)
 	assert_has(lines, tr("FMT_DOWNSTREAM") % [StationCard.label_for(next.key), UiKit.decimal(Formulas.station_throughput(game.state, next) * 60.0)])
-	review.level = GameConfig.MAX_STATION_LEVEL
+	game.state.set_upgrade("room_speed", GameConfig.ROOM_SPEED_LEVELS, "general_services")
 	review.rush = 0.0
 	for line in StationCard.dynamics_lines(game.state, review, 0.0):
 		assert_false(line.begins_with(tr("FMT_MILESTONE").split("%")[0]))
@@ -414,6 +414,75 @@ func test_runner_board_assigns_roles_and_departments() -> void:
 	assert_has(_texts(sheet.content), sheet.tr("LABEL_TUBES_ACTIVE"))
 	assert_has(_texts(sheet.content), sheet.tr("RUNNERS_TUBES_PARTIAL_TEXT"))
 	await wait_physics_frames(2)
+
+
+func _segments(sheet: Sheet) -> Array[Button]:
+	var labels: Array[String] = []
+	for role in Runner.ROLES:
+		labels.append(sheet.tr("RUNNER_ROLE_SHORT_" + role.to_upper()))
+	var result: Array[Button] = []
+	for button in _buttons(sheet.content):
+		if labels.has(button.text):
+			result.append(button)
+	return result
+
+
+func test_runner_board_offers_four_task_segments_per_runner() -> void:
+	game.state.add_runner(Runner.INTAKE)
+	game.state.add_runner(Runner.REJECT)
+	var sheet := _sheet(SpotSheet.new(), "runners")
+	var segments := _segments(sheet)
+	assert_eq(Runner.ROLES.size(), 4)
+	assert_eq(segments.size(), 8)
+	var first: Array[String] = []
+	for index in 4:
+		first.append(segments[index].text)
+	assert_eq(first, [sheet.tr("RUNNER_ROLE_SHORT_INTAKE"), sheet.tr("RUNNER_ROLE_SHORT_INTERNAL"), sheet.tr("RUNNER_ROLE_SHORT_OUTPUT"), sheet.tr("RUNNER_ROLE_SHORT_REJECT")] as Array[String])
+	assert_true(segments[0].button_pressed)
+	assert_false(segments[3].button_pressed)
+	assert_true(segments[7].button_pressed)
+	assert_false(segments[4].button_pressed)
+	await wait_physics_frames(2)
+
+
+func test_runner_board_assigns_the_reject_task() -> void:
+	game.state.add_runner(Runner.INTAKE)
+	var sheet := _sheet(SpotSheet.new(), "runners")
+	_segments(sheet)[3].pressed.emit()
+	assert_eq(game.state.runners[0].role, Runner.REJECT)
+	assert_eq(game.state.runners_in(Runner.REJECT), 1)
+	assert_has(_texts(sheet.content), BoardSection.role_summary(game.state, Runner.REJECT))
+	assert_true(_segments(sheet)[3].button_pressed)
+	assert_has(_texts(sheet.content), BoardSection.level_text(game.state, game.state.runners[0]))
+	await wait_physics_frames(2)
+
+
+func test_reject_runner_row_shows_busy_while_carrying_rejects() -> void:
+	var runner := game.state.add_runner(Runner.REJECT)
+	var sheet := _sheet(SpotSheet.new(), "runners")
+	assert_false(BoardSection.is_busy(runner))
+	sheet.refresh()
+	assert_has(_texts(sheet.content), sheet.tr("RUNNER_IDLE"))
+	runner.loaded = 1
+	assert_true(BoardSection.is_busy(runner))
+	sheet.refresh()
+	assert_has(_texts(sheet.content), sheet.tr("RUNNER_BUSY"))
+	runner.loaded = 0
+	runner.source = "general_services/review"
+	assert_true(BoardSection.is_busy(runner))
+	runner.source = ""
+	runner.task = Runner.Task.TO_TARGET
+	assert_true(BoardSection.is_busy(runner))
+	await wait_physics_frames(2)
+
+
+func test_reject_role_summary_uses_waiting_rejects_and_reject_capacity() -> void:
+	game.state.add_runner(Runner.REJECT)
+	game.state.cases_completed = GameConfig.REJECT_MIN_CASES
+	game.state.station("general_services/review").rejects = 4
+	var expected := TranslationServer.translate("FMT_RUNNER_ROLE_SUMMARY") % [TranslationServer.translate("RUNNER_ROLE_DESC_REJECT"), 4, UiKit.decimal(Formulas.role_capacity(game.state, Runner.REJECT) * 60.0), UiKit.decimal(Formulas.reject_demand(game.state) * 60.0)]
+	assert_eq(BoardSection.role_summary(game.state, Runner.REJECT), expected)
+	assert_eq(BoardSection.role_info(game.state, Runner.REJECT), TranslationServer.translate("FMT_RUNNER_ROLE_INFO") % [TranslationServer.translate("RUNNER_ROLE_REJECT"), 1, 4])
 
 
 func _runner_upgrade_button(sheet: Sheet) -> Button:

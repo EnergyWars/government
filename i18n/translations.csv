@@ -44,16 +44,12 @@ MODE_NORMAL,By the book,Nach Vorschrift
 MODE_THOROUGH,Triple-checked,Dreifach geprüft
 MODE_HINT,Flawed cases only pay 40% and cost reputation. Reputation raises every fee. Whoever stamps fast also stamps wrong fast.,"Fehlerhafte Fälle bringen nur 40 % und kosten Ansehen. Ansehen erhöht jede Gebühr. Wer schnell stempelt, stempelt auch schnell falsch."
 SWITCH_URGENT_FIRST,Process urgent cases first (just this once),Dringende Fälle zuerst bearbeiten (ausnahmsweise)
-FMT_MODE_EFFECT,Processing time %s · Error rate %s,Bearbeitungszeit %s · Fehlerquote %s
+FMT_MODE_EFFECT,Processing time %s · Error rate %s · Fee %s,Bearbeitungszeit %s · Fehlerquote %s · Gebühr %s
 FMT_STEP,%d. %s,%d. %s
 LABEL_SHARED_STATION,"Shared with other departments (responsible: everyone, so nobody)","Wird mit anderen Abteilungen geteilt (zuständig: alle, also keiner)"
 HINT_UNSTAFFED,"Unstaffed desks only work while you stand at the marked spot. No staff, no service, just like Friday afternoon.","Unbesetzte Tische arbeiten nur, solange du am markierten Platz stehst. Ohne Personal kein Dienst, wie am Freitagnachmittag."
 LABEL_NEED_DESK,Get a desk first,Erst einen Tisch anschaffen
 LABEL_MAX_LEVEL,Maximum reached,Maximum erreicht
-STAFF_SPECIALISTS,Specialists,Fachkräfte
-STAFF_SUPERVISORS,Supervisors,Teamleitung
-STAFF_DESC_SPECIALISTS,"Specialists take complex cases at their own desk so they do not clog regular desks. Fewer errors, more small talk.","Fachkräfte übernehmen komplexe Fälle an einem eigenen Tisch, damit normale Tische frei bleiben. Weniger Fehler, mehr Fachsimpelei."
-STAFF_DESC_SUPERVISORS,"Make every desk and machine of this department 20% faster, and colleagues doze off 30% slower. Purely by looking sternly. Office disputes also break out less often.","Machen jeden Tisch und jede Maschine dieser Abteilung 20 % schneller, und Kollegen nicken 30 % langsamer ein. Allein durch strenges Hinsehen. Bürostreits brechen außerdem seltener aus."
 SECTION_STATISTICS,Statistics,Statistik
 FMT_STATISTICS,"Cases completed: %s
 Accuracy: %s
@@ -72,7 +68,7 @@ GOALS_ALL_DONE,Tenure for life!,Beamtung auf Lebenszeit!
 GOALS_ALL_DONE_TEXT,"Your city hall runs like clockwork. The clock is five minutes slow, though. Keep growing as you like.","Dein Rathaus läuft wie ein Uhrwerk. Die Uhr geht allerdings fünf Minuten nach. Wachse weiter, wie du möchtest."
 FMT_GOAL_CASES,Complete %s cases,Erledige %s Fälle
 FMT_GOAL_STAFF_HIRED,Hire %d employee,Stelle %d Person ein
-FMT_GOAL_STATION_LEVEL,Upgrade a station to level %d,Baue eine Station auf Stufe %d aus
+FMT_GOAL_ROOM_SPEED,Upgrade the pace of a room to level %d,Baue das Tempo eines Raums auf Stufe %d aus
 FMT_GOAL_REPUTATION,Reach %d reputation,Erreiche %d Ansehen
 FMT_GOAL_DEPARTMENT,Open the %s,Eröffne: %s
 FMT_REWARD_BOTH,Reward: %s and %d reputation,Belohnung: %s und %d Ansehen
@@ -140,7 +136,7 @@ STATION_SOCIAL_BENEFITS_SIGNATURE,Payment officer,Zahlstelle
 STATION_CUSTOMS_REVIEW,Declaration check,Anmeldeprüfung
 STATION_CUSTOMS_SIGNATURE,Cargo scanner,Frachtscanner
 STAFF_RUNNERS,Runners,Boten
-STAFF_DESC_RUNNERS,"Carry files from tray to tray. Each runner has one job: reception to department, within a department, or department to the issue counter. The official channel, now in trainers.","Tragen Akten von Fach zu Fach. Jeder Bote hat eine Aufgabe: Empfang → Amt, innerhalb eines Amts oder Amt → Ausgabe. Der Dienstweg, jetzt in Turnschuhen."
+STAFF_DESC_RUNNERS,"Carry files from tray to tray. Each runner has one job: reception to department, within a department, department to the issue counter, or bringing rejects to the shredder. The official channel, now in trainers.","Tragen Akten von Fach zu Fach. Jeder Bote hat eine Aufgabe: Empfang → Amt, innerhalb eines Amts, Amt → Ausgabe oder Ablehnungen zum Schredder bringen. Der Dienstweg, jetzt in Turnschuhen."
 STAGE_SERVICE_COUNTER,Service counter,Service-Schalter
 STAGE_MULTI_SERVICE_OFFICE,Multi-service office,Bürgeramt
 STAGE_REGIONAL_ADMINISTRATION,Regional administration,Kreisverwaltung
@@ -155,9 +151,8 @@ FMT_RUNNER_INFO,%d files per trip · about %s files/min,%d Akten pro Gang · etw
 FMT_INBOX,Intake tray: %d/%d,Eingangsfach: %d/%d
 FMT_QUEUE,Waiting: %d/%d,Wartend: %d/%d
 FMT_OUTBOX,Output tray: %d/%d,Ablage: %d/%d
-FMT_STAFFING,Staff %d/%d desks · max %d · level %d,Personal %d/%d Tische · max. %d · Stufe %d
-FMT_MACHINES,%d/%d machines · level %d,%d/%d Maschinen · Stufe %d
-FMT_SPECIALISTS,Specialist desks: %d/%d,Fachkraft-Tische: %d/%d
+FMT_STAFFING,Staff %d/%d desks · max %d · room pace %d,Personal %d/%d Tische · max. %d · Raumtempo %d
+FMT_MACHINES,%d/%d machines · room pace %d,%d/%d Maschinen · Raumtempo %d
 FMT_THROUGHPUT,Capacity: %s cases/min,Kapazität: %s Fälle/Min.
 FMT_ROUTE,Route: %s,Ablauf: %s
 FMT_TASK_ROW,%d waiting · %s,%d wartend · %s
@@ -201,7 +196,7 @@ TUTORIAL_ARROW_TEXT,"The arrow always points to the most useful job: deliver a f
 TUTORIAL_FIRST_CASE_TITLE,Your first citizen,Dein erster Bürger
 TUTORIAL_FIRST_CASE_TEXT,"Every citizen takes the same path: reception, case review, approval, collection counter. Follow the arrow. Near a tray you pick up or drop folders automatically, at a pulsing spot you work. Handwork pays: every step you do yourself raises the fee, up to 2.5 times. Finish one citizen. Do not say 'that is not my department'.","Jeder Bürger durchläuft denselben Weg: Empfang, Sachbearbeitung, Freigabe, Ausgabeschalter. Folge dem Pfeil. In der Nähe eines Fachs nimmst du Akten automatisch auf oder legst sie ab, an einem pulsierenden Platz arbeitest du. Handarbeit lohnt sich: Jeder Schritt, den du selbst erledigst, erhöht die Gebühr, bis zum 2,5-Fachen. Schließe einen Bürger ab. Sage bitte nicht „Dafür bin ich nicht zuständig“."
 TUTORIAL_QUEUE_TITLE,Numbers and patience,Wartemarken und Geduld
-TUTORIAL_QUEUE_TEXT,"Citizens queue at the ticket machines (12 places each) and wait up to 30 seconds for a number. Then they sit for up to 60 seconds or stand for up to 20 until a desk calls their number. At the desk they wait 20 seconds more. The ring above every head shows the seconds left. Whoever gives up complains. If every place at the machines is taken, newcomers leave in a huff.","Bürger stellen sich an den Wartemarkenautomaten an (je 12 Plätze) und warten bis zu 30 Sekunden auf eine Nummer. Danach sitzen sie bis zu 60 Sekunden oder stehen bis zu 20, bis ein Schalter ihre Nummer aufruft. Am Schalter warten sie noch einmal 20 Sekunden. Der Ring über jedem Kopf zeigt die restlichen Sekunden. Wer aufgibt, beschwert sich. Sind alle Plätze an den Automaten belegt, gehen Neuankömmlinge wütend wieder."
+TUTORIAL_QUEUE_TEXT,"Citizens queue at the ticket machines (12 places each) and wait up to 30 seconds for a number. Seated citizens wait at most 5 minutes, and from 2 minutes on some give up early. Standing citizens leave after 90 seconds. At the desk they wait 20 seconds more. Whoever gives up complains. If every place at the machines is taken, newcomers leave in a huff.","Bürger stellen sich an den Wartemarkenautomaten an (je 12 Plätze) und warten bis zu 30 Sekunden auf eine Nummer. Sitzende warten höchstens 5 Minuten, ab 2 Minuten geben manche früher auf. Stehende gehen nach 90 Sekunden. Am Schalter warten sie noch einmal 20 Sekunden. Wer aufgibt, beschwert sich. Sind alle Plätze an den Automaten belegt, gehen Neuankömmlinge wütend wieder."
 TUTORIAL_GOAL_TITLE,Goals,Ziele
 TUTORIAL_GOAL_TEXT,"The goal card at the top shows your current task. Serve citizens until it reaches 3 cases, then tap Claim on the flashing card. Every goal pays money and reputation, and the next goal builds on it. Think of it as a performance review, only with a bonus.","Die Zielkarte oben zeigt deine aktuelle Aufgabe. Bediene Bürger, bis 3 Fälle erreicht sind, und tippe dann auf die blinkende Karte auf Abholen. Jedes Ziel bringt Geld und Ansehen, das nächste Ziel baut darauf auf. Stell dir ein Mitarbeitergespräch vor, nur mit Bonus."
 TUTORIAL_TASKS_TITLE,Task panel,Aufgaben-Panel
@@ -209,11 +204,11 @@ TUTORIAL_TASKS_TEXT,"The panel at the top left lists waiting citizens and the wo
 TUTORIAL_HIRE_TITLE,Hire staff,Personal einstellen
 TUTORIAL_HIRE_TEXT,"Staff are expensive, and you work much faster than any of them. Still, nobody can be everywhere: hire an employee for the reception desk once you can afford it, under Rooms → Public hall or by tapping the sign ""Public hall"" on the map. Not enough money? Close the window, serve more citizens and come back. The budget will not be approved sooner by asking.","Personal ist teuer, und du arbeitest viel schneller als jede Kraft. Trotzdem kannst du nicht überall sein: Stelle am Empfang eine Angestellte oder einen Angestellten ein, sobald du es dir leisten kannst, unter Räume → Publikumshalle oder durch Tippen auf das Schild „Publikumshalle“ in der Karte. Zu wenig Geld? Schließe das Fenster, bediene weitere Bürger und komme wieder. Durch Nachfragen wird der Haushalt auch nicht schneller genehmigt."
 TUTORIAL_RUNNER_TITLE,Hire a runner,Boten einstellen
-TUTORIAL_RUNNER_TEXT,"Runners carry folders from tray to tray, so you no longer have to. Each has one job: reception to department, within a department, or department to the issue counter. Hire them via the sign of the staff room, in the runner board section, for the job where folders pile up. Folders you carry yourself keep the hand bonus. They take the official channel literally.","Boten tragen Akten von Fach zu Fach, sodass du das nicht mehr tun musst. Jeder hat eine Aufgabe: Empfang → Amt, innerhalb des Amts oder Amt → Ausgabe. Stelle sie über das Schild des Personalraums im Bereich Botenplan für die Aufgabe ein, bei der sich Akten stapeln. Selbst getragene Akten behalten den Handarbeit-Bonus. Sie nehmen den Dienstweg wörtlich."
-TUTORIAL_UPGRADE_TITLE,Upgrade a station,Station ausbauen
-TUTORIAL_UPGRADE_TEXT,"Upgrade a station: each level makes it faster. Extra desks and machines add capacity, but how many you can have depends on your building. Upgrade the reception once. A promotion without a raise does not count.","Baue eine Station aus: Jede Stufe macht sie schneller. Zusätzliche Tische und Maschinen schaffen Kapazität, wie viele es sein dürfen, hängt von deinem Gebäude ab. Baue den Empfang einmal aus. Eine Beförderung ohne Gehaltserhöhung zählt nicht."
-TUTORIAL_WORK_MODES_TITLE,Work mode and specialists,Arbeitsmodus und Fachkräfte
-TUTORIAL_WORK_MODES_TEXT,"Rushed, by the book or triple-checked trades speed for errors (time x0.7 / 1.0 / 1.5, errors 30 / 12 / 3%). Specialists handle complex cases with 70% fewer errors, team leads give the whole department +20% speed. The bottleneck line shows what slows you down.","Husch-husch, nach Vorschrift oder dreifach geprüft tauscht Tempo gegen Fehler (Zeit ×0,7 / 1,0 / 1,5, Fehler 30 / 12 / 3 %). Fachkräfte bearbeiten komplexe Fälle mit 70 % weniger Fehlern, Teamleitungen geben der ganzen Abteilung +20 % Tempo. Die Engpass-Zeile zeigt, was dich bremst."
+TUTORIAL_RUNNER_TEXT,"Runners carry folders from tray to tray, so you no longer have to. Each has one job: reception to department, within a department, department to the issue counter, or carrying rejects to the shredder. Hire them in the runner lounge of the entrance hall, for the job where folders pile up. Folders you carry yourself keep the hand bonus. They take the official channel literally.","Boten tragen Akten von Fach zu Fach, sodass du das nicht mehr tun musst. Jeder hat eine Aufgabe: Empfang → Amt, innerhalb des Amts, Amt → Ausgabe oder Ablehnungen zum Schredder bringen. Stelle sie im Botenpausenraum der Eingangshalle für die Aufgabe ein, bei der sich Akten stapeln. Selbst getragene Akten behalten den Handarbeit-Bonus. Sie nehmen den Dienstweg wörtlich."
+TUTORIAL_UPGRADE_TITLE,Speed up a room,Raum beschleunigen
+TUTORIAL_UPGRADE_TEXT,"Upgrade the pace of a room: each level makes every desk and machine in it faster. Extra desks add capacity, one official per desk, and how many you can have depends on your building. Buy one level of pace. A promotion without a raise does not count.","Baue das Tempo eines Raums aus: Jede Stufe macht alle Tische und Maschinen darin schneller. Zusätzliche Tische schaffen Kapazität, ein Beamter je Tisch, und wie viele es sein dürfen, hängt von deinem Gebäude ab. Kaufe eine Stufe Tempo. Eine Beförderung ohne Gehaltserhöhung zählt nicht."
+TUTORIAL_WORK_MODES_TITLE,Work mode and team leads,Arbeitsmodus und Teamleitung
+TUTORIAL_WORK_MODES_TEXT,"Rushed, by the book or triple-checked trades speed for errors and money (time ×0.45 / 1.0 / 2.0, errors 30 / 12 / 2 %, fee ×1.0 / 1.0 / 2.6). Every room can get a team lead with a small office of their own: shorter breaks, shorter sick leave, less dozing and a patrol that wakes everyone and speeds up the room. The bottleneck line shows what slows you down.","Husch-husch, nach Vorschrift oder dreifach geprüft tauscht Tempo gegen Fehler und Geld (Zeit ×0,45 / 1,0 / 2,0, Fehler 30 / 12 / 2 %, Gebühr ×1,0 / 1,0 / 2,6). Jeder Raum kann eine Teamleitung mit eigenem Mini-Büro bekommen: kürzere Pausen, kürzere Krankheit, weniger Einnicken und ein Rundgang, der alle weckt und den Raum beschleunigt. Die Engpass-Zeile zeigt, was dich bremst."
 TUTORIAL_EVENTS_TITLE,Events,Ereignisse
 TUTORIAL_EVENTS_TEXT,"From time to time a banner at the top announces an event: rush hour (twice the citizens), audit visit (reputation effects count double) or tax deadline (three times the returns). Prepare your team and cash in. Or hide under the desk, that is also a tradition.","Ab und zu kündigt ein Banner oben ein Ereignis an: Stoßzeit (doppelt so viele Bürger), Rechnungsprüfung (Ansehenseffekte zählen doppelt) oder Steuerfrist (dreimal so viele Erklärungen). Bereite dein Team vor und profitiere davon. Oder verstecke dich unter dem Schreibtisch, auch das hat Tradition."
 TUTORIAL_OFFLINE_TITLE,While you are away,Wenn du weg bist
@@ -256,7 +251,7 @@ FLOAT_FLAWED_3,Please resubmit,Bitte nachreichen
 FMT_TASK_ROW_RESTING,%d waiting · %s · Break %d,%d wartend · %s · Pause %d
 FMT_RESTING,"Not at work: %d (wake them up, fetch them from the kitchen, encourage them at the WC or call the sick ones)","Nicht bei der Arbeit: %d (aufwecken, aus der Küche holen, am WC ermutigen oder Kranke anrufen)"
 TUTORIAL_WAKE_TITLE,Wake them up,Beamte aufwecken
-TUTORIAL_WAKE_TEXT,"Officials are lazy: after a while they doze off (Zzz), vanish into an endless coffee break (cup) or wander off to the kitchen. Some fetch their own coffee there and come back fresher. Others get lost in conversation and stay until you fetch them: walk to them in the kitchen and stay close for a moment. Sleepers are woken at their desk the same way. Upgrades help: coffee quality at the coffee machine keeps them awake longer, the wake-up service at the restrooms calls everyone back by itself, and team leads slow down the dozing. Machines never sleep.","Beamte sind faul: Nach einer Weile nicken sie ein (Zzz), verschwinden in eine endlose Kaffeepause (Tasse) oder gehen in die Küche. Manche holen sich dort selbst Kaffee und kommen frischer zurück. Andere verquatschen sich und bleiben, bis du sie holst: Laufe in der Küche zu ihnen und bleibe kurz daneben stehen. Schläfer weckst du genauso an ihrem Tisch. Upgrades helfen: Kaffeequalität an der Kaffeemaschine hält sie länger wach, der Weckdienst an den Toiletten ruft alle von selbst zurück und Teamleitungen bremsen das Einnicken. Maschinen schlafen nie."
+TUTORIAL_WAKE_TEXT,"Officials are lazy: after a while they doze off (Zzz), vanish into an endless coffee break (cup) or wander off to the kitchen. Some fetch their own coffee there and come back fresher. Others get lost in conversation and stay until you fetch them: walk to them in the kitchen and stay close for a moment. Sleepers are woken at their desk the same way. Upgrades help: coffee quality at the coffee machine keeps them awake longer, the wake-up service at the restrooms calls everyone back by itself, and a team lead slows down the dozing and wakes everyone on a patrol. Machines never sleep.","Beamte sind faul: Nach einer Weile nicken sie ein (Zzz), verschwinden in eine endlose Kaffeepause (Tasse) oder gehen in die Küche. Manche holen sich dort selbst Kaffee und kommen frischer zurück. Andere verquatschen sich und bleiben, bis du sie holst: Laufe in der Küche zu ihnen und bleibe kurz daneben stehen. Schläfer weckst du genauso an ihrem Tisch. Upgrades helfen: Kaffeequalität an der Kaffeemaschine hält sie länger wach, der Weckdienst an den Toiletten ruft alle von selbst zurück und eine Teamleitung bremst das Einnicken und weckt auf ihrem Rundgang alle. Maschinen schlafen nie."
 NAP_1,Just resting my eyes…,Nur kurz die Augen ausruhen …
 NAP_2,I'm thinking. Thoroughly.,Ich denke nach. Gründlich.
 NAP_3,Zzz… carbon copy… Zzz…,Zzz … Durchschlag … Zzz …
@@ -492,14 +487,11 @@ EVENT_DESC_FIRE_DRILL,The whole building is evacuated because someone burnt toas
 EVENT_RENOVATION,Renovation without a backup plan,Renovierung ohne Ausweichplan
 EVENT_DESC_RENOVATION,A department is blocked by construction work. Fewer citizens find it and its desks work slower.,"Eine Abteilung ist durch Bauarbeiten blockiert. Weniger Bürger finden hin, die Schreibtische arbeiten langsamer."
 EVENT_GARDEN_SHED,The garden shed,Der Geräteschuppen
-EVENT_DESC_GARDEN_SHED,"The building authority gets an enormous application for a tiny shed. It pays well, but takes a long time and needs a specialist.","Das Bauamt bekommt einen riesigen Antrag für einen winzigen Schuppen. Er bringt viel Geld, dauert aber lange und braucht eine Fachkraft."
+EVENT_DESC_GARDEN_SHED,"The building authority gets an enormous application for a tiny shed. It pays well, but takes a long time and counts as complex.","Das Bauamt bekommt einen riesigen Antrag für einen winzigen Schuppen. Er bringt viel Geld, dauert aber lange und gilt als komplex."
 EVENT_INSPECTOR_AUDIT,The inspector gets audited,Der Prüfer wird geprüft
 EVENT_DESC_INSPECTOR_AUDIT,The inspection service has to audit its own procedures first and works very slowly.,Der Prüfdienst muss zuerst seine eigenen Abläufe prüfen und arbeitet sehr langsam.
 EVENT_AUTHORITY_COMPARISON,The authority comparison,Der Behördenvergleich
 EVENT_DESC_AUTHORITY_COMPARISON,A neighbouring authority boasts about its numbers. Prepare a presentation for reputation (everyone works slower for a while) or ignore it.,Eine Nachbarbehörde prahlt mit ihren Zahlen. Bereite eine Präsentation für Ansehen vor (alle arbeiten eine Weile langsamer) oder ignoriere sie.
-STAFF_COLLECTORS,Reject collectors,Ablehnungs-Boten
-STAFF_DESC_COLLECTORS,"Collect rejected applications from the clerks' reject trays, nearly full trays first, and take them to the nearest shredder once their hands are full. They do nothing else.","Sammeln abgelehnte Anträge aus den Ablehnungs-Ausgängen, fast volle zuerst, und bringen sie mit vollen Händen zum nächsten Aktenschredder. Mehr tun sie nicht."
-FMT_COLLECTOR_INFO,%d rejects per trip · currently waiting: %d,%d Ablehnungen pro Gang · aktuell wartend: %d
 STAFF_COFFEE_INTERNS,Coffee interns,Kaffee-Praktikanten
 STAFF_DESC_COFFEE_INTERNS,"Brew a cup in the kitchen and carry it straight to the desk of a tired clerk, so nobody has to walk to the kitchen. Coffee parties also happen less often.","Brühen in der Küche eine Tasse und bringen sie direkt an den Platz müder Beamter, damit niemand mehr in die Küche laufen muss. Kaffeekränzchen finden außerdem seltener statt."
 FMT_COFFEE_INTERN_INFO,Cups served so far: %d,Bisher ausgeschenkte Tassen: %d
@@ -932,7 +924,7 @@ FMT_COMPLAINTS_MORE,… and %d more underneath,… und %d weitere darunter
 ACTION_REVIEW_DELETE_FREE,Delete for free,Kostenlos löschen lassen
 FMT_REVIEW_LAWSUIT_INFO,Chance of success: %s · attempts left: %d,Erfolgschance: %s · verbleibende Versuche: %d
 ACTION_REVIEW_SUE_AD,Win the lawsuit via ad,Klage per Werbung gewinnen
-REVIEW_SUE_AD_HINT,Three lawsuits have failed and the court no longer listens. An ad pays for a better lawyer who wins for sure. Otherwise only deleting is left.,"Drei Klagen sind gescheitert, das Gericht hört nicht mehr zu. Eine Werbung bezahlt einen besseren Anwalt, der sicher gewinnt. Sonst bleibt nur das Löschen."
+REVIEW_SUE_AD_HINT,An ad pays for a better lawyer who wins for sure, whatever the court said before. The review is replaced by five stars and you get a little reputation.,"Eine Werbung bezahlt einen besseren Anwalt, der sicher gewinnt, egal was das Gericht vorher sagte. Die Bewertung wird durch fünf Sterne ersetzt, und du bekommst etwas Ansehen."
 NAV_STATISTICS,Statistics,Statistik
 SHEET_STATISTICS,Statistics,Statistik
 STATS_INTRO,Measured over the last minute. Compare what arrives with what each step manages to find bottlenecks.,"Gemessen über die letzte Minute. Vergleiche, was ankommt, mit dem, was jeder Schritt schafft, um Engpässe zu finden."
@@ -964,26 +956,16 @@ FMT_STATS_WORKING,At work: %d of %d · files in progress: %d,Bei der Arbeit: %d 
 STATS_SECTION_ABSENCES,Absences and quarrels,Ausfälle und Streits
 STATS_SICK_NOW,Sick right now,Gerade krank
 STATS_SICK_RATE,Sick notes,Krankmeldungen
-STATS_SICK_AVOIDED,Sick notes avoided by health training,Durch Gesundheitstraining vermiedene Krankmeldungen
+STATS_LEAD_WOKEN,Officials woken by team lead patrols,Durch Rundgänge der Teamleitung geweckt
 STATS_DOZED,Naps and breaks,Nickerchen und Pausen
 STATS_DISPUTES,Quarrels (now · rate),Streits (aktuell · Rate)
 FMT_STATS_DISPUTES,%d · %s,%d · %s
 STATS_DISPUTES_CALMED,Quarrels avoided by calm officials,Durch gelassene Beamte vermiedene Streits
-STATS_TRAININGS,Trainings completed,Abgeschlossene Schulungen
+STATS_PATROLS,Team lead patrols,Rundgänge der Teamleitung
 STATS_SECTION_OFFICIALS,Officials,Beamte
-STATS_OFFICIALS_HINT,"Symbols: pace, health, stamina, calm, each with its training level.","Symbole: Tempo, Gesundheit, Ausdauer, Gelassenheit, jeweils mit Schulungsstufe."
+STATS_OFFICIALS_HINT,"State, files per minute, total, sick notes and naps of every official.","Zustand, Akten pro Minute, gesamt, Krankmeldungen und Nickerchen je Beamtem."
 FMT_STATS_OFFICIAL,%s · %s files/min · %d done · %d× sick · %d× break,%s · %s Akten/Min. · %d erledigt · %d× krank · %d× Pause
-ACTION_OFFICIALS,Train officials,Beamte schulen
-SHEET_OFFICIALS,Officials,Beamte
-FMT_OFFICIALS_TITLE,Officials: %s,Beamte: %s
-OFFICIALS_INTRO,"Each official can be trained individually. Training stays with the desk, even after a break.","Jeder Beamte lässt sich einzeln schulen. Die Schulung bleibt am Platz, auch nach jeder Pause."
-OFFICIALS_MACHINE,Machines do not attend training.,Maschinen besuchen keine Schulungen.
-OFFICIALS_EMPTY,"Nobody works here yet.
-Hire an official first.","Hier arbeitet noch niemand.
-Stelle zuerst einen Beamten ein."
 FMT_OFFICIAL_NAME,Desk %d,Platz %d
-FMT_SPECIALIST_NAME,Specialist %d,Fachkraft %d
-FMT_OFFICIAL_STATS,%s files/min · %d done · %d× sick · %d× break,%s Akten/Min. · %d erledigt · %d× krank · %d× Pause
 OFFICIAL_STATE_AWAKE,At work,Bei der Arbeit
 OFFICIAL_STATE_ASLEEP,Asleep,Eingenickt
 OFFICIAL_STATE_COFFEE,Coffee break,Kaffeepause
@@ -993,20 +975,6 @@ OFFICIAL_STATE_SLOW,Dawdling,Trödelt
 OFFICIAL_STATE_SICK,Sick,Krank
 OFFICIAL_STATE_LOO,On the loo,Auf der Toilette
 OFFICIAL_STATE_LUNCH,At lunch in the canteen,Beim Mittagessen in der Kantine
-FMT_TRAINING_LEVEL,%s (%d/%d),%s (%d/%d)
-ACTION_TRAIN,Train,Schulen
-TRAINING_SKILL,Pace,Tempo
-TRAINING_HEALTH,Health,Gesundheit
-TRAINING_STAMINA,Stamina,Ausdauer
-TRAINING_CALM,Calm,Gelassenheit
-TRAINING_DESC_SKILL,Typing course with a stamp workshop. Works through files faster.,Tippkurs mit Stempel-Workshop. Arbeitet Akten schneller ab.
-TRAINING_DESC_HEALTH,Back school and a fruit basket. Calls in sick less often.,Rückenschule und Obstkorb. Meldet sich seltener krank.
-TRAINING_DESC_STAMINA,Power-nap prevention seminar. Gets tired more slowly.,Seminar gegen den Mittagsschlaf. Wird langsamer müde.
-TRAINING_DESC_CALM,Conflict coaching. Keeps the department out of quarrels.,Konflikt-Coaching. Hält die Abteilung aus Streits heraus.
-FMT_TRAINING_EFFECT_SKILL,Currently +%s pace,Aktuell +%s Tempo
-FMT_TRAINING_EFFECT_HEALTH,Currently %s fewer sick notes,Aktuell %s weniger Krankmeldungen
-FMT_TRAINING_EFFECT_STAMINA,Currently tires %s more slowly,Aktuell %s langsamer müde
-FMT_TRAINING_EFFECT_CALM,"Currently avoids quarrels with %s, shared with the department","Aktuell %s Streit-Vermeidung, im Abteilungsschnitt"
 ROOM_INSPECTION,Inspection office,Prüfdienst
 ROOM_DESC_INSPECTION,Checks marked files before they move on.,"Prüft markierte Akten, bevor sie weiterwandern."
 ROOM_KITCHEN,Canteen,Kantine
@@ -1017,7 +985,7 @@ ROOM_DESC_TOILETS,Officials vanish here. The wake service fetches them back soon
 ROOM_PHONE,Phone office,Telefonzentrale
 ROOM_DESC_PHONE,Sick calls come in here.,Hier gehen die Krankmeldungen ein.
 ROOM_HALL,Public hall,Publikumshalle
-ROOM_DESC_HALL,"Entrance, reception, counter, waiting and ticket area and the archive.","Eingang, Empfang, Ausgabe, Warte- und Wartemarkenbereich und das Archiv."
+ROOM_DESC_HALL,"Entrance, reception, counter, waiting and ticket area, the runner lounge and the archive.","Eingang, Empfang, Ausgabe, Warte- und Wartemarkenbereich, der Botenpausenraum und das Archiv."
 STATS_SECTION_UPGRADES,What to upgrade?,Was ausbauen?
 STATS_UPGRADES_HINT,Busiest areas first. Each line shows how much more an upgrade handles per minute.,"Die vollsten Bereiche zuerst. Jede Zeile zeigt, wie viel mehr ein Ausbau pro Minute schafft."
 STATS_UPGRADES_EMPTY,No area is busy. Open more departments to attract more citizens.,"Kein Bereich ist ausgelastet. Eröffne weitere Ämter, um mehr Bürger anzulocken."
@@ -1032,11 +1000,7 @@ FMT_GAIN_PLACES,+%s places,+%s Plätze
 UPGRADE_HIRE,+1 official,+1 Beamter
 UPGRADE_DESK,+1 desk with official,+1 Tisch mit Beamtem
 UPGRADE_MACHINE,+1 machine,+1 Maschine
-UPGRADE_LEVEL,+1 level,+1 Stufe
-UPGRADE_SPECIALIST,+1 specialist,+1 Fachkraft
-UPGRADE_SUPERVISOR,+1 supervisor,+1 Teamleitung
 UPGRADE_RUNNER,+1 runner,+1 Bote
-UPGRADE_COLLECTOR,+1 reject collector,+1 Ablehnungs-Bote
 UPGRADE_HR,+1 phone clerk,+1 Telefonist
 STATS_UNLIMITED,Unlimited,Unbegrenzt
 FMT_STATS_CASE_TIME,Ø %s s per file · %s per official,Ø %s s je Akte · %s je Beamtem
@@ -1057,7 +1021,7 @@ FMT_STATS_RUNNERS,Runners: %d · %d files per trip,Boten: %d · %d Akten je Gang
 FMT_STATS_TUBES,Tubes: %d capsules per tube · %d on the way,Rohrpost: %d Kapseln je Röhre · %d unterwegs
 FMT_STATS_HANDLED_BY,You %s · staff %s,Du %s · Personal %s
 FMT_STATS_COMPLAINT_STATE,In the box: %d/%d · interns: %d · security: %s,Im Briefkasten: %d/%d · Praktikanten: %d · Security: %s
-FMT_STATS_REJECT_STATE,Waiting: %d · reject collectors: %d,Wartend: %d · Ablehnungs-Boten: %d
+FMT_STATS_REJECT_STATE,Waiting: %d · runners on rejects: %d,Wartend: %d · Boten für Ablehnungen: %d
 STATS_CALLS_ANSWERED,Calls answered,Angenommene Anrufe
 STATS_CALLS_MISSED,Calls missed,Verpasste Anrufe
 FMT_STATS_PHONE_STATE,Ringing: %d · phone clerks: %d · answered: %s,Klingelt: %d · Telefonisten: %d · Annahmequote: %s
@@ -1157,15 +1121,18 @@ EVENT_DESC_NEWSPAPER_PRAISE,"""Authority surprisingly fast!"" Citizens happily p
 RUNNER_ROLE_INTAKE,Reception → department,Empfang → Amt
 RUNNER_ROLE_INTERNAL,Within the department,Innerhalb des Amts
 RUNNER_ROLE_OUTPUT,Department → issue counter,Amt → Ausgabe
+RUNNER_ROLE_REJECT,Rejects → shredder,Ablehnungen → Schredder
 RUNNER_ROLE_SHORT_INTAKE,Intake,Annahme
 RUNNER_ROLE_SHORT_INTERNAL,Internal,Intern
 RUNNER_ROLE_SHORT_OUTPUT,Issue,Ausgabe
+RUNNER_ROLE_SHORT_REJECT,Rejects,Ablehnung
 RUNNER_ROLE_DESC_INTAKE,"Carries new files from the reception, mail room and loading dock into the departments.","Bringt neue Akten von Empfang, Poststelle und Laderampe in die Ämter."
 RUNNER_ROLE_DESC_INTERNAL,"Carries files between the desks of a department, including inspection and registry.","Trägt Akten zwischen den Stationen eines Amts, auch zum Prüfdienst und zur Meldestelle."
 RUNNER_ROLE_DESC_OUTPUT,Brings finished files from the departments to the issue counter.,Bringt fertige Akten aus den Ämtern zum Ausgabeschalter.
+RUNNER_ROLE_DESC_REJECT,"Fetches rejected applications from the reject trays, nearly full trays first, and shreds them in the shredder room.","Holt abgelehnte Anträge aus den Ablehnungs-Ausgängen, fast volle zuerst, und schreddert sie im Schredderraum."
 FMT_RUNNER_ROLE_INFO,%s: %d runners · %d files waiting,%s: %d Boten · %d Akten warten
 FMT_RUNNER_ROLE_SUMMARY,%s Waiting: %d · capacity %s/min · demand %s/min,%s Wartend: %d · Kapazität %s/Min. · Bedarf %s/Min.
-RUNNERS_INTRO,Each runner only carries files for their job. Assign them to one department to keep a busy department moving. Reassigning is free; the paperwork is filed later.,"Jeder Bote trägt nur Akten seiner Aufgabe. Teile ihn einem Amt zu, damit ein volles Amt Vorrang bekommt. Umsetzen ist kostenlos, der Versetzungsantrag wird nachgereicht."
+RUNNERS_INTRO,"Each runner only does their own job: carrying files, or on reject duty bringing rejected applications to the shredder. Assign them to one department to keep a busy department moving. Reassigning is free; the paperwork is filed later.","Jeder Bote macht nur seine Aufgabe: Akten tragen oder, mit der Aufgabe Ablehnung, abgelehnte Anträge zum Schredder bringen. Teile ihn einem Amt zu, damit ein volles Amt Vorrang bekommt. Umsetzen ist kostenlos, der Versetzungsantrag wird nachgereicht."
 RUNNERS_EMPTY,"No runners yet.
 Hire the first one above.","Noch keine Boten.
 Stelle oben den ersten ein."
@@ -1174,7 +1141,7 @@ FMT_RUNNER_DEPARTMENT,Responsible for: %s,Zuständig für: %s
 FMT_RUNNER_NAME,Runner %d,Bote %d
 RUNNER_BUSY,on the way,unterwegs
 RUNNER_IDLE,waiting,wartet
-FMT_RUNNER_LEVEL,Level %d/%d · carries %d files per trip,Stufe %d/%d · trägt %d Akten pro Gang
+FMT_RUNNER_LEVEL,Level %d/%d · carries %d per trip,Stufe %d/%d · trägt %d pro Gang
 RUNNERS_TUBES_PARTIAL_TEXT,Rooms with a tube station send their files by tube. Runners carry everything else and help out when the outbox of a station is half full.,"Räume mit Rohrpost-Station schicken ihre Akten per Rohr. Boten tragen alles Übrige und helfen aus, wenn der Ausgang einer Station halb voll ist."
 FLOAT_REVIEW_EXPIRED,A review sank into the depths of the internet,Eine Bewertung ist im Internet versunken
 FMT_REVIEW_EXPIRES,Disappears by itself in %s,Verschwindet von selbst in %s
@@ -1203,18 +1170,8 @@ TRACK_WORK_ETHIC,Work ethic,Arbeitseifer
 TRACK_DESC_WORK_ETHIC,"You work faster at every desk. Yes, that is possible.","Du arbeitest an jedem Tisch schneller. Ja, das geht."
 TRACK_SNEAKERS,Comfy sneakers,Bequeme Turnschuhe
 TRACK_DESC_SNEAKERS,You walk faster through the office. Running in the corridor is still prohibited.,Du läufst schneller durchs Amt. Rennen auf dem Flur bleibt trotzdem verboten.
-TRACK_SCANNERS,Document scanners,Dokumentenscanner
-TRACK_DESC_SCANNERS,"Reception and loading dock work faster. Reads any handwriting, except the boss's.","Empfang und Laderampe arbeiten schneller. Liest jede Handschrift, nur nicht die vom Chef."
-TRACK_DIGITAL_RECORDS,Digital records,Digitale Akte
-TRACK_DESC_DIGITAL_RECORDS,Case review and approval work faster in every department. The file is digital now. Printed out anyway.,Sachbearbeitung und Freigabe arbeiten in jeder Abteilung schneller. Die Akte ist jetzt digital. Ausgedruckt wird trotzdem.
-TRACK_DIGITAL_SIGNATURES,Digital signatures,Digitale Signatur
-TRACK_DESC_DIGITAL_SIGNATURES,Collection counter and customs clearance work faster. The stamp stays out of respect.,Ausgabeschalter und Zollfreigabe arbeiten schneller. Der Stempel bleibt aus Respekt.
-TRACK_LETTER_OPENER,Electric letter opener,Elektrischer Brieföffner
-TRACK_DESC_LETTER_OPENER,The mail room works faster. Opens envelopes and occasionally fingers.,Die Poststelle arbeitet schneller. Öffnet Umschläge und gelegentlich Finger.
-TRACK_OFFICE_EQUIPMENT,Office equipment,Büroausstattung
-TRACK_DESC_OFFICE_EQUIPMENT,"Better chairs, faster computers: every desk and machine in this department works faster.","Bessere Stühle, schnellere Rechner: Jeder Tisch und jede Maschine dieser Abteilung arbeitet schneller."
 TRACK_SEATING,Intake: seat instead of standing place,Annahme: Sitzplatz statt Stehplatz
-TRACK_DESC_SEATING,"Replaces one standing place in the intake waiting room with a seat. Seated citizens wait up to 60 seconds, standing ones only 20.","Ersetzt im Warteraum der Annahme einen Stehplatz durch einen Sitzplatz. Sitzende Bürger warten bis zu 60 Sekunden, stehende nur 20."
+TRACK_DESC_SEATING,"Replaces one standing place in the intake waiting room with a seat. Seated citizens wait up to 5 minutes (from 2 minutes on some give up early), standing ones 90 seconds.","Ersetzt im Warteraum der Annahme einen Stehplatz durch einen Sitzplatz. Sitzende Bürger warten bis zu 5 Minuten (ab 2 Minuten gehen manche früher), stehende 90 Sekunden."
 TRACK_TICKET_SPEED,Machine 1: printing speed,Automat 1: Druckgeschwindigkeit
 TRACK_DESC_TICKET_SPEED,The first ticket machine prints faster. Fully upgraded it serves one citizen per second.,Der erste Wartemarkenautomat druckt schneller. Voll ausgebaut bedient er einen Bürger pro Sekunde.
 TRACK_COMPLAINT_BOX,Bigger complaint box,Größerer Beschwerdebriefkasten
@@ -1239,14 +1196,8 @@ INTERN_MOOD_TO_BOX,heading to the box,auf dem Weg zum Briefkasten
 STATS_SECURITY_NONE,none,keine
 TRACK_SHREDDER_BLADES,Sharper blades,Schärfere Schneidwerke
 TRACK_DESC_SHREDDER_BLADES,You feed complaints into the shredder faster.,Du fütterst Beschwerden schneller in den Schredder.
-TRACK_SHREDDER,Department shredder,Abteilungsschredder
-TRACK_DESC_SHREDDER,A shredder of its own destroys this department's rejected applications on the spot at a fixed interval. Reject collectors and you use it as a shortcut. Each level shortens the interval.,"Ein eigener Schredder vernichtet abgelehnte Anträge dieser Abteilung direkt vor Ort, in festem Takt. Ablehnungs-Boten und du nutzt ihn als kürzeren Weg. Jede Stufe verkürzt den Takt."
-TRACK_COLLECTOR_CARTS,Collection carts,Sammelwagen
-TRACK_DESC_COLLECTOR_CARTS,Reject collectors carry one more reject per trip.,Ablehnungs-Boten tragen pro Gang eine Ablehnung mehr.
-TRACK_COLLECTOR_SPEED,Swift collectors,Flinke Ablehnungs-Boten
-TRACK_DESC_COLLECTOR_SPEED,Reject collectors walk faster.,Ablehnungs-Boten laufen schneller.
 TRACK_RUNNER_TROLLEYS,File trolleys,Aktenwagen
-TRACK_DESC_RUNNER_TROLLEYS,"Runners carry one more file per trip. It squeaks, but it rolls.","Boten tragen pro Gang eine Akte mehr. Quietscht, rollt aber."
+TRACK_DESC_RUNNER_TROLLEYS,"Runners carry one more file or reject per trip. It squeaks, but it rolls.","Boten tragen pro Gang eine Akte oder Ablehnung mehr. Quietscht, rollt aber."
 TRACK_RUNNER_SPEED,Runner shoes,Botenschuhe
 TRACK_DESC_RUNNER_SPEED,Runners walk faster. The official channel feels shorter.,Boten laufen schneller. Der Dienstweg fühlt sich kürzer an.
 TRACK_PNEUMATIC_TUBES,Pneumatic tubes,Rohrpost
@@ -1300,7 +1251,7 @@ SPOT_DESC_PLAYER,"Your own upgrades: briefcase, work ethic and shoes. Plus your 
 SPOT_ENTRANCE,Entrance,Eingang
 SPOT_DESC_ENTRANCE,"The main entrance. Every opened department brings more citizens, up to 180 per minute, and makes the building grow by itself.","Der Haupteingang. Jedes eröffnete Amt bringt mehr Bürger, bis zu 180 pro Minute, und lässt das Gebäude von selbst wachsen."
 SPOT_SEATING,Intake waiting area,Wartebereich Annahme
-SPOT_DESC_SEATING,"Seats and standing places for everyone with a number who waits for the reception. Seated citizens wait up to 60 seconds, standing ones 20.","Sitz- und Stehplätze für alle mit Wartemarke, die auf den Empfang warten. Sitzende warten bis zu 60 Sekunden, Stehende 20."
+SPOT_DESC_SEATING,"Seats and standing places for everyone with a number who waits for the reception. Seated citizens wait up to 5 minutes, standing ones 90 seconds.","Sitz- und Stehplätze für alle mit Wartemarke, die auf den Empfang warten. Sitzende warten bis zu 5 Minuten, Stehende 90 Sekunden."
 SPOT_TICKETS,Ticket machines,Wartemarkenautomaten
 SPOT_DESC_TICKETS,Citizens take a number here. Up to three machines with 12 places each. The next machine can only be bought once the previous one is fully upgraded.,"Hier ziehen Bürger ihre Nummer. Bis zu drei Automaten mit je 12 Plätzen. Den nächsten Automaten gibt es erst, wenn der vorherige voll ausgebaut ist."
 SPOT_COMPLAINT_BOX,Complaint box,Beschwerdebriefkasten
@@ -1312,17 +1263,15 @@ SPOT_DESC_TRAINING,Notices for quality training. Fewer errors in every departmen
 SPOT_COMPLAINT_DESK,Complaint counter,Beschwerdetresen
 SPOT_DESC_COMPLAINT_DESK,"Interns stand behind the counter and fend off complaints until they burst into tears. Comfort them in the restroom. Stand behind the counter yourself and every visitor leaves out of sheer respect. If nobody stands here, complaints go straight into the box. If the box is full, every complainant posts a one- or two-star review.","Hinter dem Tresen stehen Praktikanten und wimmeln Beschwerden ab, bis sie in Tränen ausbrechen. Tröste sie auf der Toilette. Stellst du dich selbst hinter den Tresen, gehen alle Besucher aus lauter Respekt wieder. Steht hier niemand, landen die Beschwerden direkt im Briefkasten. Ist er voll, hinterlässt jeder Beschwerdeführer eine Bewertung mit ein oder zwei Sternen."
 SPOT_SHREDDER,Document shredder,Aktenschredder
-SPOT_DESC_SHREDDER,The central shredder in the shredder room. Complaints and rejected applications end up here.,Der zentrale Schredder im Schredderraum. Hier landen Beschwerden und abgelehnte Anträge.
-SPOT_COLLECTORS,Collector roster,Plan der Ablehnungs-Boten
-SPOT_DESC_COLLECTORS,The reject collectors' board: who collects rejects where?,Das Brett der Ablehnungs-Boten: Wer sammelt wo abgelehnte Anträge ein?
+SPOT_DESC_SHREDDER,The central shredder in the shredder room. Complaints and rejected applications end up here; runners on reject duty bring the rejects.,Der zentrale Schredder im Schredderraum. Hier landen Beschwerden und abgelehnte Anträge; die Ablehnungen bringen Boten mit der Aufgabe Ablehnung.
 SPOT_TUBE_HUB,Tube hub,Rohrpost-Zentrale
 SPOT_DESC_TUBE_HUB,"The heart of the tubes: unlock them, capacity, speed, capsules and every station and tube.","Das Herz der Rohrpost: freischalten, Kapazität, Tempo, Kapseln und alle Stationen und Röhren."
 SPOT_SERVER,Server rack,Serverschrank
 SPOT_DESC_SERVER,"IT support and AI. Fewer outages, fewer errors.","IT-Wartung und KI. Weniger Ausfälle, weniger Fehler."
 SPOT_CLIMATE,Climate unit,Klimagerät
 SPOT_DESC_CLIMATE,"Cool heads, fewer quarrels. Ends the window and thermostat wars for good.","Kühler Kopf, weniger Streit. Beendet Fenster- und Thermostatkriege für immer."
-SPOT_RUNNERS,Runner roster,Botenplan
-SPOT_DESC_RUNNERS,"The runners' board: jobs, departments, levels and equipment.","Das Brett der Boten: Aufgaben, Abteilungen, Stufen und Ausstattung."
+SPOT_RUNNERS,Runner lounge,Botenpausenraum
+SPOT_DESC_RUNNERS,"The runners' break room in the entrance hall. Hire and upgrade runners here and assign their jobs. Runners only rest here when there is truly nothing to carry.","Der Pausenraum der Boten in der Eingangshalle. Hier stellst du Boten ein, baust sie aus und teilst ihre Aufgaben ein. Boten ruhen sich hier nur aus, wenn es wirklich nichts zu tragen gibt."
 SPOT_COFFEE_MACHINE,Coffee machine,Kaffeemaschine
 SPOT_DESC_COFFEE_MACHINE,"The fuel of the office: quality, speed and espresso.","Der Treibstoff des Amts: Qualität, Tempo und Espresso."
 SPOT_KITCHEN,Kitchenette,Küchenzeile
@@ -1341,15 +1290,17 @@ SPOT_MAIL_SHELF,Letter shelf,Briefregal
 SPOT_DESC_MAIL_SHELF,Postal applications wait here until the mail room processes them.,"Hier lagern Postanträge, bis die Poststelle sie bearbeitet."
 SPOT_MAILBOX,Mailbox,Postkasten
 SPOT_DESC_MAILBOX,The post arrives here. More letters per delivery and more frequent deliveries.,Hier kommt die Post an. Mehr Briefe pro Lieferung und häufigere Zustellung.
-SPOT_DESC_STATION,"A work station. Shows its load; buy levels, desks, staff and specialists here.","Eine Arbeitsstation. Hier siehst du ihre Auslastung und kaufst Stufen, Tische, Personal und Fachkräfte."
-SPOT_DESC_DEPT_SHREDDER,"A slot for a shredder of its own. Once bought it destroys this department's rejects on the spot, and reject collectors and you use it as a shortcut.","Ein Stellplatz für einen eigenen Schredder. Gekauft vernichtet er die Ablehnungen dieser Abteilung direkt vor Ort, und Ablehnungs-Boten und du nutzt ihn als kürzeren Weg."
+SPOT_DESC_STATION,"A work station. Shows its load; buy desks, staff and the pace of the room here.","Eine Arbeitsstation. Hier siehst du ihre Auslastung und kaufst Tische, Personal und das Tempo des Raums."
+FMT_SPOT_TRAYS,Trays: %s,Ablagen: %s
+SPOT_DESC_TRAYS,"The in-tray, out-tray and reject pile of this desk. Bigger trays hold more files for the whole room.","Eingangsfach, Ablage und Ablehnungsstapel dieser Station. Größere Ablagen fassen mehr Akten für den ganzen Raum."
+FMT_STATUS_REJECT_PILE,Reject pile: %d/%d,Ablehnungsstapel: %d/%d
 SPOT_DESC_TUBE_STATION,This room's connection to the pneumatic tubes. Files travel by tube when both the start and the target room are connected.,"Der Anschluss dieses Raums an die Rohrpost. Akten reisen per Rohr, wenn Start- und Zielraum angeschlossen sind."
 SPOT_EMPTY,Nothing to do here right now.,Hier gibt es gerade nichts zu tun.
 ROOM_PLAYER,You,Du
 ROOM_COMPLAINT_OFFICE,Complaint office,Beschwerdebüro
 ROOM_DESC_COMPLAINT_OFFICE,"A counter with up to three interns, a complaint box next to it and security at the entrance. Empty counter: every complaint goes straight into the box.","Ein Tresen mit bis zu drei Praktikanten, daneben der Briefkasten und am Eingang die Security. Ist der Tresen unbesetzt, landet jede Beschwerde direkt im Briefkasten."
 ROOM_SHREDDER_ROOM,Shredder room,Schredderraum
-ROOM_DESC_SHREDDER_ROOM,The central document shredder and the reject collectors.,Der zentrale Aktenschredder und die Ablehnungs-Boten.
+ROOM_DESC_SHREDDER_ROOM,The central document shredder. Runners on reject duty bring rejected applications here.,Der zentrale Aktenschredder. Boten mit der Aufgabe Ablehnung bringen abgelehnte Anträge hierher.
 ROOM_TECH_ROOM,Tech room,Technikraum
 ROOM_DESC_TECH_ROOM,"Tube hub, server rack and climate unit.","Rohrpost-Zentrale, Serverschrank und Klimagerät."
 ROOM_LOCKED_TITLE,Still closed,Noch geschlossen
@@ -1364,7 +1315,6 @@ TOPIC_COMPLAINTS,Complaints,Beschwerden
 TOPIC_MAIL,Mail,Post
 TOPIC_QUALITY,Quality and IT,Qualität und IT
 TOPIC_BUILDING,Building and expansion,Gebäude und Ausbau
-ENTRY_DESC_LEVEL,Each level makes this station faster.,Jede Stufe macht diese Station schneller.
 ENTRY_DESC_DESK,Another desk or machine: more cases at once. How many you can have grows with the number of opened departments.,"Ein weiterer Tisch oder eine weitere Maschine: mehr Fälle gleichzeitig. Wie viele möglich sind, wächst mit der Zahl eröffneter Abteilungen."
 ENTRY_DESC_HIRE,Hires someone for a free desk. Staffed desks work without you.,Stellt jemanden für einen freien Tisch ein. Besetzte Tische arbeiten ohne dich.
 ENTRY_DESC_RUNNER_LEVEL,A more experienced runner carries more files per trip.,Ein erfahrenerer Bote trägt pro Gang mehr Akten.
@@ -1397,20 +1347,18 @@ TUTORIAL_UPGRADES_OPEN_TEXT,Everything you can buy lives under Upgrades. Tap Upg
 TUTORIAL_UPGRADE_GROUPS_TITLE,Five views,Fünf Ansichten
 TUTORIAL_UPGRADE_GROUPS_TEXT,"At the top you pick a view: by room, by topic, everything affordable, the suggestions of the statistics or the big expansion steps side by side. ×1, ×10 and Max buy several levels at once. The target icon shows you the spot on the map. Hundreds of levels are waiting, so take your time.","Oben wählst du die Ansicht: nach Räumen, nach Themen, alles Kaufbare, die Empfehlungen der Statistik oder die großen Ausbauschritte im Vergleich. Mit ×1, ×10 und Max kaufst du mehrere Stufen auf einmal. Die Zielscheibe zeigt dir den Ort auf der Karte. Es warten Hunderte Stufen, also nur keine Eile."
 TUTORIAL_SPOT_OPEN_TITLE,Tap a room sign,Ein Raumschild antippen
-TUTORIAL_SPOT_OPEN_TEXT,"Close this window and briefly tap the name sign of a room on the map, for example ""Public hall"". Do not drag, or you will walk off.","Schließe dieses Fenster und tippe kurz auf das Namensschild eines Raums in der Karte, zum Beispiel auf „Publikumshalle“. Nicht ziehen, sonst läufst du los."
+TUTORIAL_SPOT_OPEN_TEXT,"Close this window and double-tap the name sign of a room on the map, for example ""Public hall"". A single tap does nothing, so you do not open menus by accident. Do not drag, or you will walk off.","Schließe dieses Fenster und tippe doppelt auf das Namensschild eines Raums in der Karte, zum Beispiel auf „Publikumshalle“. Ein einzelner Tipp bewirkt nichts, so öffnest du keine Menüs aus Versehen. Nicht ziehen, sonst läufst du los."
 TUTORIAL_SPOTS_INFO_TITLE,Room signs open upgrades,Raumschilder öffnen die Upgrades
-TUTORIAL_SPOTS_INFO_TEXT,"Every room and department sign opens the overview of its room: all upgrades of that room, grouped by spot. Tap a single spot directly, such as the seats, the ticket machine or the sign of the reception, to open only its upgrades. Tap yourself for your own upgrades and the complaint box to read the complaints.","Jedes Raum- und Amtsschild öffnet die Übersicht seines Raums: alle Upgrades des Raums, gegliedert nach Bereichen. Tippe einen einzelnen Bereich direkt an, etwa die Sitzplätze, den Nummernautomaten oder das Schild des Empfangs, um nur seine Upgrades zu öffnen. Tippe auf dich selbst für deine eigenen Upgrades und auf den Beschwerde-Briefkasten, um die Beschwerden zu lesen."
+TUTORIAL_SPOTS_INFO_TEXT,"Every room and department sign opens the overview of its room: all upgrades of that room, grouped by spot. Double-tap a single spot directly, such as the seats, the ticket machine or the sign of the reception, to open only its upgrades. Double-tap yourself for your own upgrades and the complaint box to read the complaints.","Jedes Raum- und Amtsschild öffnet die Übersicht seines Raums: alle Upgrades des Raums, gegliedert nach Bereichen. Tippe einen einzelnen Bereich direkt doppelt an, etwa die Sitzplätze, den Nummernautomaten oder das Schild des Empfangs, um nur seine Upgrades zu öffnen. Tippe doppelt auf dich selbst für deine eigenen Upgrades und auf den Beschwerde-Briefkasten, um die Beschwerden zu lesen."
 TUTORIAL_BOARDS_INFO_TITLE,Notice boards,Schwarze Bretter
-TUTORIAL_BOARDS_INFO_TEXT,"Runners, reject collectors, interns, coffee interns, guards and phone clerks each have a notice board with their shift plan. All boards hang in the staff room next to your office. Tap a board to hire, assign and train the staff.","Boten, Ablehnungs-Boten, Praktikanten, Kaffee-Praktikanten, Wachleute und Telefonisten haben je ein schwarzes Brett mit ihrem Schichtplan. Alle Bretter hängen im Personalraum neben deinem Büro. Tippe ein Brett an, um das Personal einzustellen, einzuteilen und zu schulen."
+TUTORIAL_BOARDS_INFO_TEXT,"Coffee interns and phone clerks each have a notice board in the staff room next to your office. Runners have their own lounge in the entrance hall. Double-tap a board or the lounge to hire, assign and upgrade the staff.","Kaffee-Praktikanten und Telefonisten haben je ein schwarzes Brett im Personalraum neben deinem Büro. Boten haben ihren eigenen Pausenraum in der Eingangshalle. Tippe doppelt auf ein Brett oder den Pausenraum an, um das Personal einzustellen, einzuteilen und auszubauen."
 TUTORIAL_EXPAND_INFO_TITLE,Expanding,Ausbauen
-TUTORIAL_EXPAND_INFO_TEXT,"Via a department sign you open a department, the building grows by itself. Reputation decides when: every department and every block of office ranks needs more of it. Instead of opening the next department you can also promote an existing one to a higher office rank: tap its name sign. Every department can get its own shredder and tube station: dashed outlines mark free slots.","Über das Raumschild eröffnest du eine Abteilung, das Gebäude wächst dabei von selbst mit. Wann das geht, entscheidet dein Ansehen: Jedes Amt und jeder Block Amtsstufen verlangt mehr davon. Statt das nächste Amt zu eröffnen, kannst du auch ein bestehendes auf eine höhere Amtsstufe heben: Tippe dazu auf sein Namensschild. Jede Abteilung kann einen eigenen Schredder und eine Rohrpost-Station bekommen: Gestrichelte Felder zeigen freie Stellplätze."
+TUTORIAL_EXPAND_INFO_TEXT,"Via a department sign you open a department, the building grows by itself. Reputation decides when: every department and every block of office ranks needs more of it. Instead of opening the next department you can also promote an existing one to a higher office rank: double-tap its name sign. Every department can get its own tube station: dashed outlines mark free slots.","Über das Raumschild eröffnest du eine Abteilung, das Gebäude wächst dabei von selbst mit. Wann das geht, entscheidet dein Ansehen: Jedes Amt und jeder Block Amtsstufen verlangt mehr davon. Statt das nächste Amt zu eröffnen, kannst du auch ein bestehendes auf eine höhere Amtsstufe heben: Tippe dazu doppelt auf sein Namensschild. Jede Abteilung kann einen eigene Rohrpost-Station bekommen: Gestrichelte Felder zeigen freie Stellplätze."
 FMT_GOAL_UPGRADES,Buy %d upgrade level,Kaufe %d Upgrade-Stufe
 FMT_GOAL_UPGRADE_UNLOCK,Introduce %s,Führe ein: %s
 FMT_GOAL_UPGRADE_LEVEL,%s to level %d,%s auf Stufe %d
 FMT_EFFECT,%s → %s,%s → %s
 FMT_EFFECT_MAX,%s (maximum),%s (Maximum)
-FMT_EFFECT_SPEED,Speed %s → %s,Tempo %s → %s
-FMT_EFFECT_SPEED_MAX,Speed %s (maximum),Tempo %s (Maximum)
 FMT_EFFECT_CAPACITY,Capacity %s → %s,Kapazität %s → %s
 FMT_EFFECT_CAPACITY_MAX,Capacity %s (maximum),Kapazität %s (Maximum)
 FMT_EFFECT_COUNT,Count %s → %s,Anzahl %s → %s
@@ -1425,12 +1373,9 @@ LABEL_OFF,off,aus
 LABEL_YES,installed,vorhanden
 LABEL_NO,missing,fehlt
 FMT_ENTRY_IN_ROOM,%s · %s,%s · %s
-FMT_ENTRY_LEVEL,Upgrade %s,%s ausbauen
 FMT_ENTRY_MACHINE,Machine for %s,Maschine für %s
 FMT_ENTRY_DESK,Desk for %s,Tisch für %s
 FMT_ENTRY_HIRE,Staff for %s,Personal für %s
-FMT_ENTRY_SPECIALIST,Specialist for %s,Fachkraft für %s
-FMT_ENTRY_SUPERVISOR,Supervisor: %s,Teamleitung: %s
 FMT_ENTRY_RUNNER_LEVEL,Train runner %d,Bote %d schulen
 FMT_ENTRY_UNLOCK,Open %s,%s eröffnen
 FMT_ENTRY_RANK,Office rank: %s,Amtsstufe: %s
@@ -1449,7 +1394,6 @@ DEPT_RANK_11,Authority of authorities,Behörde der Behörden
 FMT_ENTRY_PLACE,%s · %s,%s · %s
 FMT_LEVEL_OF,Level %d/%d,Stufe %d/%d
 LABEL_ONCE,one-off,einmalig
-FMT_SPOT_SHREDDER,Shredder: %s,Schredder: %s
 FMT_SPOT_TUBE_STATION,Tube station: %s,Rohrpost-Station: %s
 LABEL_REQUIRES,Requirement missing,Voraussetzung fehlt
 LABEL_NEEDS_REPUTATION,Not enough reputation,Zu wenig Ansehen
@@ -1473,23 +1417,15 @@ FMT_STATUS_SEATING,Seats %d/%d · standing %d/%d,Sitzplätze %d/%d · Stehplätz
 FMT_STATUS_TICKETS,%d machines · %s citizens per minute · line %d/%d,%d Automaten · %s Bürger pro Minute · Schlange %d/%d
 FMT_STATUS_COMPLAINT_BOX,Complaints in the box: %d/%d,Beschwerden im Kasten: %d/%d
 FMT_STATUS_COMPLAINT_DESK,At the counter: %d/%d · each holds out for %d complaints · fended off: %d,Am Tresen: %d/%d · jeder hält %d Beschwerden aus · abgewimmelt: %d
-FMT_STATUS_SHREDDER,Rejects waiting: %d · shredders in the building: %d,Wartende Ablehnungen: %d · Schredder im Haus: %d
+FMT_STATUS_SHREDDER,Rejects waiting: %d · runners on rejects: %d,Wartende Ablehnungen: %d · Boten für Ablehnungen: %d
 FMT_STATUS_TUBE_HUB,Capacity per tube: %d · in transit: %d · stations: %d/%d,Kapazität je Röhre: %d · unterwegs: %d · Stationen: %d/%d
-FMT_STATUS_DEPT_SHREDDER,Shreds every %s s,Schreddert alle %s s
 FMT_STATUS_DISPUTES,Ongoing quarrels: %d · settled: %d,Laufende Streits: %d · geschlichtet: %d
 FMT_STATUS_TOILETS,%d stalls,%d Kabinen
 STATUS_TUBES_LOCKED,Pneumatic tubes not introduced yet. Unlock them at the tube hub in the tech room.,Rohrpost noch nicht eingeführt. Schalte sie an der Rohrpost-Zentrale im Technikraum frei.
 STATUS_TUBE_CONNECTED,Connected to the tubes,An die Rohrpost angeschlossen
 STATUS_TUBE_MISSING,No tube station yet,Noch keine Rohrpost-Station
-STATUS_NO_SHREDDER,No shredder yet: rejects go to the shredder room.,Noch kein Schredder: Ablehnungen wandern in den Schredderraum.
 SECTION_SHIFT_PLAN,Shift plan,Schichtplan
-COLLECTORS_INTRO,Reject collectors gather rejected applications and take them to the nearest shredder. Give them a focus so busy departments come first.,"Ablehnungs-Boten sammeln abgelehnte Anträge ein und bringen sie zum nächsten Schredder. Gib ihnen einen Schwerpunkt, damit volle Abteilungen Vorrang haben."
-COLLECTORS_EMPTY,"No reject collectors yet.
-Hire the first one above.","Noch keine Ablehnungs-Boten.
-Stelle oben den ersten ein."
-FMT_COLLECTOR_NAME,Collector %d,Ablehnungs-Bote %d
 FMT_FOCUS,Focus: %s,Schwerpunkt: %s
-FMT_COLLECTOR_LOAD,Carrying %d/%d,Trägt %d/%d
 COFFEE_INTERNS_INTRO,Every coffee intern can focus on one department. Without a focus they serve everyone.,Jeder Kaffee-Praktikant kann sich auf eine Abteilung konzentrieren. Ohne Schwerpunkt bedient er alle.
 COFFEE_INTERNS_EMPTY,"No coffee interns yet.
 Hire the first one above.","Noch keine Kaffee-Praktikanten.
@@ -1519,12 +1455,10 @@ FMT_MORE_ENTRIES,… and %d more,… und %d weitere
 FMT_GROUP_DETAIL,%d affordable · levels %d/%d,%d kaufbar · Stufen %d/%d
 FMT_UPGRADES_SUMMARY,%d levels bought · %d upgrade lines · %d affordable now,%d Stufen gekauft · %d Upgrade-Linien · %d jetzt kaufbar
 BOARD_COFFEE_INTERNS,Coffee duty,Kaffeedienst
-BOARD_COLLECTORS,Reject collectors,Ablehnungs-Boten
 BOARD_RUNNERS,Runner plan,Botenplan
 BOARD_TRAINING,Training,Schulung
 BOARD_WORKS_COUNCIL,Works council,Betriebsrat
 FMT_BOARD_STAFF,%d/%d on duty,%d/%d im Dienst
-FMT_BOARD_COLLECTORS,%d/%d on duty · %d each,%d/%d im Dienst · je %d
 FMT_BOARD_DISPUTES,Quarrels: %d · settled: %d,Streits: %d · geschlichtet: %d
 FMT_BOARD_LEVEL,Level %d,Stufe %d
 SIGN_TUBE_HUB,Tube hub,Rohrpost
@@ -1581,19 +1515,15 @@ DESK_GIFT_TITLE,Gift on your desk,Geschenk auf deinem Schreibtisch
 FMT_DESK_GIFT,%s · worth %s,%s · Wert %s
 FMT_STATUS_CANTEEN,%d lunches served · break %ss · alertness ×%s,%d Mittagessen serviert · Pause %ss · Wachheit ×%s
 ROOM_STAFF_ROOM,Staff room,Personalraum
-ROOM_DESC_STAFF_ROOM,"Every staff notice board in one place: runners, reject collectors, coffee duty, sick list, training and works council.","Alle schwarzen Bretter fürs Personal an einem Ort: Boten, Ablehnungs-Boten, Kaffeedienst, Krankenliste, Schulungen und Betriebsrat."
+ROOM_DESC_STAFF_ROOM,"Staff notice boards in one place: coffee duty, sick list, training and works council.","Schwarze Bretter fürs Personal an einem Ort: Kaffeedienst, Krankenliste, Schulungen und Betriebsrat."
 OFFICIAL_STATE_DISPUTE,Quarrelling in the department,Streitet sich in der Abteilung
 OFFICIAL_STATE_RETURNING,On the way back,Auf dem Rückweg
 FLOAT_RECALLED,Back to your desk,Zurück an den Platz
-FMT_ENTRY_TRAYS,Trays for %s,Ablagen für %s
-ENTRY_DESC_TRAYS,Bigger in- and out-trays: more files fit before the desk stalls and runners have to hurry.,"Größere Eingangs- und Ausgangsablage: Es passen mehr Akten hinein, bevor der Platz stockt und die Boten hetzen müssen."
 FMT_ENTRY_REJECT_PILE,Reject pile for %s,Ablehnungsstapel für %s
 ENTRY_DESC_REJECT_PILE,"A higher pile for rejected files. If the pile or the out-tray of a desk is full, its whole team goes on a break and nobody may work there until both have room again.","Ein höherer Stapel für abgelehnte Akten. Ist der Stapel oder die Ausgangsablage eines Platzes voll, geht das ganze Team in die Pause, und dort darf erst wieder gearbeitet werden, wenn in beiden Platz ist."
 FLOAT_OUTPUTS_JAMMED,"Trays full, break time!","Ablage voll, Pause!"
 FLOAT_RESPECT,Respect. Leaves without a word.,Respekt. Geht wortlos.
 STATUS_OUTPUTS_JAMMED,Trays full: the team is on a break until both trays have room.,Ablage voll: Das Team macht Pause, bis in beiden Ablagen Platz ist.
-FMT_EFFECT_TRAYS,Extra tray slots +%s → +%s,Zusätzliche Ablageplätze +%s → +%s
-FMT_EFFECT_TRAYS_MAX,Extra tray slots +%s (maximum),Zusätzliche Ablageplätze +%s (Maximum)
 FMT_EFFECT_RANK_TIME,Processing time %s → %s,Bearbeitungszeit %s → %s
 SECTION_FEEDBACK,Sound and vibration,Ton und Vibration
 SETTING_SOUND,Sound effects,Soundeffekte
@@ -1618,17 +1548,17 @@ STREAK_4,Unstoppable!,Unaufhaltsam!
 FMT_STREAK_MANY,Duty streak ×%d!,Dienstserie ×%d!
 FMT_FLOAT_CASE_STREAK,Assembly line ×%d!,Fließband ×%d!
 TRACK_TICKET_MACHINE_2,Second ticket machine,Zweiter Wartemarkenautomat
-TRACK_DESC_TICKET_MACHINE_2,Adds a second machine with 12 more places in line. Requires the first machine fully upgraded.,Ein zweiter Automat mit 12 weiteren Plätzen in der Schlange. Benötigt den voll ausgebauten ersten Automaten.
+TRACK_DESC_TICKET_MACHINE_2,Adds a second machine with 12 more places in line. Requires the first machine at level 50.,Ein zweiter Automat mit 12 weiteren Plätzen in der Schlange. Benötigt den ersten Automaten auf Stufe 50.
 TRACK_TICKET_SPEED_2,Machine 2: printing speed,Automat 2: Druckgeschwindigkeit
 TRACK_DESC_TICKET_SPEED_2,The second ticket machine prints faster. Fully upgraded it serves one citizen per second.,Der zweite Wartemarkenautomat druckt schneller. Voll ausgebaut bedient er einen Bürger pro Sekunde.
 TRACK_TICKET_MACHINE_3,Third ticket machine,Dritter Wartemarkenautomat
-TRACK_DESC_TICKET_MACHINE_3,Adds a third machine with 12 more places in line. Requires the second machine fully upgraded.,Ein dritter Automat mit 12 weiteren Plätzen in der Schlange. Benötigt den voll ausgebauten zweiten Automaten.
+TRACK_DESC_TICKET_MACHINE_3,Adds a third machine with 12 more places in line. Requires the second machine at level 50.,Ein dritter Automat mit 12 weiteren Plätzen in der Schlange. Benötigt den zweiten Automaten auf Stufe 50.
 TRACK_TICKET_SPEED_3,Machine 3: printing speed,Automat 3: Druckgeschwindigkeit
 TRACK_DESC_TICKET_SPEED_3,The third ticket machine prints faster. Fully upgraded it serves one citizen per second.,Der dritte Wartemarkenautomat druckt schneller. Voll ausgebaut bedient er einen Bürger pro Sekunde.
 FMT_EFFECT_PER_SECOND,%s/s,%s/s
 FMT_REQ_TRACK_LEVEL,%s level %d,%s Stufe %d
 TRACK_PICKUP_SEATING,Pickup: seat instead of standing place,Abholung: Sitzplatz statt Stehplatz
-TRACK_DESC_PICKUP_SEATING,"Replaces one standing place in the pickup waiting room with a seat. Seated citizens wait up to 60 seconds, standing ones only 20.","Ersetzt im Warteraum der Abholung einen Stehplatz durch einen Sitzplatz. Sitzende Bürger warten bis zu 60 Sekunden, stehende nur 20."
+TRACK_DESC_PICKUP_SEATING,"Replaces one standing place in the pickup waiting room with a seat. Seated citizens wait up to 5 minutes (from 2 minutes on some give up early), standing ones 90 seconds.","Ersetzt im Warteraum der Abholung einen Stehplatz durch einen Sitzplatz. Sitzende Bürger warten bis zu 5 Minuten (ab 2 Minuten gehen manche früher), stehende 90 Sekunden."
 SPOT_PICKUP_SEATING,Pickup waiting area,Wartebereich Abholung
 SPOT_DESC_PICKUP_SEATING,"Seats and standing places for citizens waiting for their documents. When it is full, the reception stops calling.","Sitz- und Stehplätze für Bürger, die auf ihre Unterlagen warten. Ist er voll, ruft der Empfang niemanden mehr auf."
 AREA_PICKUP_SEATING,Seats pickup,Sitzplätze Abholung
@@ -1646,3 +1576,33 @@ RAGE_7,I am writing a letter to the editor!,Ich schreibe einen Leserbrief!
 RAGE_8,That is the absolute limit!,Das ist doch wohl die Höhe!
 RAGE_9,In my day things were orderly!,Früher gab es noch Ordnung!
 RAGE_10,Where do I file the complaint about the waiting?,Wo kann ich mich hier übers Warten beschweren?
+TRACK_ROOM_SPEED,Room pace,Raumtempo
+TRACK_DESC_ROOM_SPEED,Every desk and machine in this room works faster. Every 10 levels there is an extra boost.,Alle Tische und Maschinen in diesem Raum arbeiten schneller. Alle 10 Stufen gibt es einen Extra-Schub.
+TRACK_ROOM_TRAYS,Trays,Ablagen
+TRACK_DESC_ROOM_TRAYS,"Bigger in- and out-trays for every desk in this room, up to 25 files. More desks do not make them bigger.","Größere Eingangs- und Ausgangsablagen für alle Tische in diesem Raum, bis zu 25 Akten. Mehr Tische machen sie nicht größer."
+TRACK_TEAM_LEAD,Team lead,Teamleitung
+TRACK_DESC_TEAM_LEAD,Hires a team lead with a small office of their own in this room. Unlocks their permanent bonuses and the patrol.,Stellt eine Teamleitung mit eigenem Mini-Büro in diesem Raum ein. Schaltet ihre dauerhaften Boni und den Rundgang frei.
+TRACK_LEAD_BREAKS,Short breaks,Kurze Pausen
+TRACK_DESC_LEAD_BREAKS,"The team lead keeps an eye on the clock: coffee, lunch and restroom breaks in this room are shorter.","Die Teamleitung behält die Uhr im Blick: Kaffee-, Mittags- und Toilettenpausen in diesem Raum sind kürzer."
+TRACK_LEAD_HEALTH,Return to work talks,Rückkehrgespräche
+TRACK_DESC_LEAD_HEALTH,Officials of this room are back from sick leave sooner. Nobody wants that talk twice.,Beamte dieses Raums sind früher wieder gesund. Niemand will das Gespräch zweimal führen.
+TRACK_LEAD_FOCUS,Stern looks,Strenger Blick
+TRACK_DESC_LEAD_FOCUS,Officials of this room doze off more slowly.,Beamte dieses Raums nicken langsamer ein.
+TRACK_LEAD_CALM,Mediation,Schlichtung
+TRACK_DESC_LEAD_CALM,Chance that the team lead settles a quarrel in this department before it starts.,"Chance, dass die Teamleitung einen Streit in dieser Abteilung schlichtet, bevor er beginnt."
+TRACK_LEAD_PATROL,Patrol pace,Rundgang-Tempo
+TRACK_DESC_LEAD_PATROL,During a patrol every desk in this room works this much faster.,Während eines Rundgangs arbeiten alle Tische in diesem Raum um so viel schneller.
+TRACK_LEAD_COOLDOWN,Patrol routine,Rundgang-Routine
+TRACK_DESC_LEAD_COOLDOWN,Shorter wait until the team lead can go on the next patrol.,"Kürzere Wartezeit, bis die Teamleitung den nächsten Rundgang machen kann."
+FMT_SPOT_LEAD,Team lead: %s,Teamleitung: %s
+SPOT_DESC_LEAD,"The office of the team lead. Hire them here, upgrade their bonuses and send them on a patrol.","Das Büro der Teamleitung. Hier stellst du sie ein, baust ihre Boni aus und schickst sie auf einen Rundgang."
+ROOM_INTAKE,Intake,Annahme
+ROOM_PICKUP,Pickup,Abholung
+SIGN_LEAD_OFFICE,Team lead,Teamleitung
+FMT_SIGN_RUNNER_LOUNGE,Runner lounge %d/%d,Botenpause %d/%d
+ACTION_PATROL,Send on patrol,Auf Rundgang schicken
+FMT_PATROL_ACTIVE,On patrol · %s,Auf Rundgang · %s
+FMT_PATROL_COOLDOWN,Next patrol in %s,Nächster Rundgang in %s
+STATUS_NO_LEAD,No team lead yet.,Noch keine Teamleitung.
+FMT_STATUS_LEAD,Breaks −%s · sick leave −%s · dozing −%s,Pausen −%s · Krankheit −%s · Einnicken −%s
+FMT_STATUS_PATROL,Patrol: speed ×%s for %s · cooldown %s,Rundgang: Tempo ×%s für %s · Abklingzeit %s

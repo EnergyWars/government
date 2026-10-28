@@ -1,7 +1,9 @@
 class_name GameState
 extends RefCounted
 
-const SAVE_VERSION := 4
+const SAVE_VERSION := 6
+const V5_SAVE_VERSION := 5
+const V4_SAVE_VERSION := 4
 const PREVIOUS_SAVE_VERSION := 3
 const LEGACY_SAVE_VERSION := 2
 
@@ -12,6 +14,8 @@ var reputation_loss_budget := GameConfig.REP_MAX_LOSS_PER_MINUTE
 var seals := GameConfig.START_SEALS
 var boosts: Dictionary[String, float] = {}
 var boost_cooldowns: Dictionary[String, float] = {}
+var lead_patrols: Dictionary[String, float] = {}
+var lead_cooldowns: Dictionary[String, float] = {}
 var ads_watched := 0
 var boosts_used := 0
 var mail_timer := GameConfig.MAIL_FIRST_SECONDS
@@ -29,10 +33,8 @@ var intro_seen := false
 var departments: Dictionary[String, Department] = {}
 var stations: Dictionary[String, Station] = {}
 var upgrades: Dictionary[String, int] = {}
-var shredder_timers: Dictionary[String, float] = {}
 var player := Player.new()
 var runners: Array[Runner] = []
-var collectors: Array[RejectCollector] = []
 var tube_parcels: Array[TubeParcel] = []
 var tube_levels: Dictionary[String, int] = {}
 var coffee_interns: Array[CoffeeIntern] = []
@@ -55,7 +57,7 @@ var contraband_seized := 0
 var staff_hired := 0
 var wakes := 0
 var recalls := 0
-var trainings := 0
+var patrols := 0
 var complaints := 0
 var reviews: Array[Review] = []
 var review_seq := 0
@@ -113,8 +115,6 @@ var _unlocked_signature := -1
 var _upgrade_values: Dictionary = {}
 var _tube_rooms: Dictionary = {}
 var _tube_links: Dictionary = {}
-var _shredder_rooms: Array[String] = []
-var _shredder_signature := -1
 
 
 func _init() -> void:
@@ -288,6 +288,56 @@ func max_desks() -> int:
 	return int(stage_config().max_desks)
 
 
+func room_stations(room_id: String) -> Array[Station]:
+	var result: Array[Station] = []
+	for key in ordered_station_keys():
+		if GameConfig.station_room(key) == room_id:
+			result.append(stations[key])
+	return result
+
+
+func lead_stations(room_id: String) -> Array[Station]:
+	var result: Array[Station] = []
+	for key in ordered_station_keys():
+		if GameConfig.lead_room(key) == room_id:
+			result.append(stations[key])
+	return result
+
+
+func is_patrolling(room_id: String) -> bool:
+	return lead_patrols.get(room_id, 0.0) > 0.0
+
+
+func patrol_left(room_id: String) -> float:
+	return lead_patrols.get(room_id, 0.0)
+
+
+func patrol_cooldown(room_id: String) -> float:
+	return lead_cooldowns.get(room_id, 0.0)
+
+
+func advance_patrols(delta: float) -> void:
+	for room_id in lead_patrols.keys():
+		lead_patrols[room_id] -= delta
+		if lead_patrols[room_id] <= 0.0:
+			lead_patrols.erase(room_id)
+	for room_id in lead_cooldowns.keys():
+		lead_cooldowns[room_id] -= delta
+		if lead_cooldowns[room_id] <= 0.0:
+			lead_cooldowns.erase(room_id)
+
+
+func sync_trays() -> void:
+	for key in stations:
+		stations[key].tray_size = Formulas.tray_size(self, GameConfig.station_room(key))
+
+
+func max_room_speed() -> int:
+	var best := 0
+	for room_id in GameConfig.office_rooms():
+		best = maxi(best, upgrade_level("room_speed", room_id))
+	return best
+
 func upgrade_level(upgrade_id: String, room_id: String = "") -> int:
 	return upgrades.get(GameConfig.upgrade_key(upgrade_id, room_id), 0)
 
@@ -317,20 +367,10 @@ func set_upgrade(upgrade_id: String, level: int, room_id: String = "") -> void:
 	_upgrade_values.clear()
 	if upgrade_id == "complaint_interns":
 		_sync_interns()
+	if upgrade_id == "room_trays":
+		sync_trays()
 	_tube_rooms.clear()
 	_tube_links.clear()
-	_shredder_signature = -1
-
-
-func shredder_rooms() -> Array[String]:
-	var signature := _unlocked_mask()
-	if signature != _shredder_signature:
-		_shredder_signature = signature
-		_shredder_rooms = []
-		for dept in unlocked_departments():
-			if has_upgrade("shredder", dept.id):
-				_shredder_rooms.append(dept.id)
-	return _shredder_rooms
 
 
 func unlock_department(dept_id: String) -> void:
@@ -342,6 +382,7 @@ func unlock_department(dept_id: String) -> void:
 		if not stations.has(key):
 			stations[key] = Station.new(key)
 	sync_building_stage()
+	sync_trays()
 
 
 func sync_building_stage() -> void:
@@ -359,7 +400,9 @@ func mailroom() -> Station:
 
 func ensure_mailroom() -> Station:
 	if mail_unlocked() and not stations.has(GameConfig.MAILROOM):
-		stations[GameConfig.MAILROOM] = Station.new(GameConfig.MAILROOM)
+		var created := Station.new(GameConfig.MAILROOM)
+		created.tray_size = Formulas.tray_size(self, GameConfig.ROOM_MAIL)
+		stations[GameConfig.MAILROOM] = created
 	return mailroom()
 
 
@@ -538,20 +581,11 @@ func _compute_ordered_keys() -> Array[String]:
 
 
 func total_staff() -> int:
-	var count := runners.size() + collectors.size() + coffee_interns.size() + interns.size()
+	var count := runners.size() + coffee_interns.size() + interns.size()
 	for key in stations:
 		var item := stations[key]
-		count += item.specialists + (0 if item.machine else item.staff)
-	for dept in unlocked_departments():
-		count += dept.supervisors
-	return count
-
-
-func max_station_level() -> int:
-	var best := 0
-	for key in stations:
-		best = maxi(best, stations[key].level)
-	return best
+		count += 0 if item.machine else item.staff
+	return count + Formulas.team_lead_count(self)
 
 
 func upgrade_count() -> int:
@@ -614,6 +648,9 @@ func add_review(stars: int, forced_text: int = -1) -> Review:
 		review_rng.randi_range(0, GameConfig.REVIEW_AUTHORS - 1),
 		play_time
 	)
+	var price_rng := RandomNumberGenerator.new()
+	price_rng.seed = hash([review_rng.seed, review_seq])
+	review.price_factor = price_rng.randf_range(1.0 - GameConfig.REVIEW_PRICE_VARIATION, 1.0 + GameConfig.REVIEW_PRICE_VARIATION)
 	if forced_text >= 0:
 		review.force_praise(forced_text)
 	review_seq += 1
@@ -716,7 +753,7 @@ func spend(cost: float) -> bool:
 
 
 func add_runner(role: String = "") -> Runner:
-	var runner := Runner.new(WorldLayout.get_default().runner_home() + Vector2(runners.size() * 18.0, 0))
+	var runner := Runner.new(WorldLayout.get_default().runner_rest_point(runners.size()))
 	runner.role = role if Runner.ROLES.has(role) else least_staffed_role()
 	runners.append(runner)
 	return runner
@@ -730,7 +767,13 @@ func runners_in(role: String) -> int:
 	return count
 
 
+func case_runner_count() -> int:
+	return runners.size() - runners_in(Runner.REJECT)
+
+
 func transfer_backlog(role: String) -> int:
+	if role == Runner.REJECT:
+		return rejects_waiting()
 	var count := 0
 	for key in ordered_station_keys():
 		for case_file in station(key).outbox:
@@ -740,8 +783,8 @@ func transfer_backlog(role: String) -> int:
 
 
 func least_staffed_role() -> String:
-	var best := Runner.ROLES[0]
-	for role in Runner.ROLES:
+	var best := Runner.CASE_ROLES[0]
+	for role in Runner.CASE_ROLES:
 		if runners_in(role) < runners_in(best):
 			best = role
 	return best
@@ -763,12 +806,6 @@ func interns_at_desk() -> int:
 		if unit.is_at_desk():
 			count += 1
 	return count
-
-
-func add_collector() -> RejectCollector:
-	var collector := RejectCollector.new(WorldLayout.get_default().collector_home() + Vector2(collectors.size() * 18.0, 0))
-	collectors.append(collector)
-	return collector
 
 
 func add_coffee_intern() -> CoffeeIntern:
@@ -810,6 +847,8 @@ func to_dict() -> Dictionary:
 		"seals": seals,
 		"boosts": boosts.duplicate(),
 		"boost_cooldowns": boost_cooldowns.duplicate(),
+		"lead_patrols": lead_patrols.duplicate(),
+		"lead_cooldowns": lead_cooldowns.duplicate(),
 		"ads_watched": ads_watched,
 		"boosts_used": boosts_used,
 		"mail_timer": mail_timer,
@@ -830,7 +869,6 @@ func to_dict() -> Dictionary:
 		"runners": runners.map(func(r: Runner) -> Dictionary: return r.to_dict()),
 		"tube_parcels": tube_parcels.map(func(t: TubeParcel) -> Dictionary: return t.to_dict()),
 		"tube_levels": tube_levels.duplicate(),
-		"collectors": collectors.map(func(c: RejectCollector) -> Dictionary: return c.to_dict()),
 		"coffee_interns": coffee_interns.map(func(c: CoffeeIntern) -> Dictionary: return c.to_dict()),
 		"disputes": disputes.map(func(d: Dispute) -> Dictionary: return d.to_dict()),
 		"interns": interns.map(func(i: ComplaintIntern) -> Dictionary: return i.to_dict()),
@@ -863,7 +901,7 @@ func to_dict() -> Dictionary:
 		"staff_hired": staff_hired,
 		"wakes": wakes,
 		"recalls": recalls,
-		"trainings": trainings,
+		"patrols": patrols,
 		"complaints": complaints,
 		"complaints_shredded": complaints_shredded,
 		"complaint_timer": complaint_timer,
@@ -899,12 +937,13 @@ static func from_dict(data: Dictionary) -> GameState:
 		return from_dict(SaveMigration.migrate_v2(data))
 	if int(data.get("version", 0)) == PREVIOUS_SAVE_VERSION:
 		return from_dict(SaveMigration.migrate_v3(data))
-	var state := GameState.new()
+	if int(data.get("version", 0)) == V4_SAVE_VERSION:
+		return from_dict(SaveMigration.migrate_v4(data))
+	if int(data.get("version", 0)) == V5_SAVE_VERSION:
+		return from_dict(SaveMigration.migrate_v5(data))
 	if int(data.get("version", 0)) != SAVE_VERSION:
-		state.rng.randomize()
-		state.unlock_department("general_services")
-		state.station("general_services/review").staff = 1
-		return state
+		return create_new()
+	var state := GameState.new()
 	state.money = maxf(0.0, float(data.get("money", GameConfig.START_MONEY)))
 	state.reputation = maxf(0.0, float(data.get("reputation", 0.0)))
 	state.reputation_peak = maxf(state.reputation, float(data.get("reputation_peak", 0.0)))
@@ -955,9 +994,6 @@ static func from_dict(data: Dictionary) -> GameState:
 		if parcel != null and state.tube_parcels.size() < GameConfig.MAX_TUBE_PARCELS:
 			state.tube_parcels.append(parcel)
 	state._restore_tube_levels(data.get("tube_levels", {}))
-	for entry in data.get("collectors", []):
-		if entry is Dictionary and state.collectors.size() < GameConfig.MAX_COLLECTORS:
-			state.collectors.append(RejectCollector.from_dict(entry, layout.collector_home()))
 	for entry in data.get("coffee_interns", []):
 		if entry is Dictionary and state.coffee_interns.size() < GameConfig.MAX_COFFEE_INTERNS:
 			state.coffee_interns.append(CoffeeIntern.from_dict(entry, layout.coffee_home()))
@@ -996,7 +1032,7 @@ static func from_dict(data: Dictionary) -> GameState:
 	state.staff_hired = int(data.get("staff_hired", 0))
 	state.wakes = maxi(0, int(data.get("wakes", 0)))
 	state.recalls = maxi(0, int(data.get("recalls", 0)))
-	state.trainings = maxi(0, int(data.get("trainings", 0)))
+	state.patrols = maxi(0, int(data.get("patrols", 0)))
 	state.complaints = clampi(int(data.get("complaints", 0)), 0, Formulas.complaint_cap(state))
 	state.hr = clampi(int(data.get("hr", 0)), 0, GameConfig.MAX_HR)
 	state.sick_timer = clampf(float(data.get("sick_timer", GameConfig.SICK_FIRST_SECONDS)), 0.0, GameConfig.SICK_MAX_PER_OFFICIAL)
@@ -1032,6 +1068,9 @@ static func from_dict(data: Dictionary) -> GameState:
 		state.unlock_department("general_services")
 	state._ensure_stations()
 	state.sync_building_stage()
+	state._restore_patrols(state.lead_patrols, data.get("lead_patrols", {}), GameConfig.LEAD_PATROL_SECONDS)
+	state._restore_patrols(state.lead_cooldowns, data.get("lead_cooldowns", {}), float(GameConfig.upgrade("lead_cooldown").base))
+	state.sync_trays()
 	state._restore_disputes(data.get("disputes", []))
 	state._settle_dispute_moods()
 	state._repair_kitchen_slots()
@@ -1052,6 +1091,15 @@ static func _timer_limit(boost_id: String, limit_key: String) -> float:
 	if boost_id == Boosts.SICK_NOTE and limit_key == "cooldown":
 		return GameConfig.AD_SICK_COOLDOWN
 	return float(GameConfig.boost(boost_id).get(limit_key, 0.0))
+
+
+func _restore_patrols(target: Dictionary[String, float], entries: Variant, limit: float) -> void:
+	if not entries is Dictionary:
+		return
+	for room_id in entries:
+		var value := float(entries[room_id])
+		if value > 0.0 and has_upgrade("team_lead", str(room_id)):
+			target[str(room_id)] = minf(value, limit)
 
 
 func _restore_disputes(entries: Variant) -> void:
@@ -1079,16 +1127,13 @@ func _ensure_stations() -> void:
 	for dept in unlocked_departments():
 		for key in RouteBuilder.required_stations(dept.id):
 			if not stations.has(key):
-				var created := Station.new(key)
-				if not created.machine:
-					created.staff = 1
-				stations[key] = created
+				stations[key] = Station.new(key)
 
 
 func _restore_upgrades(data: Variant) -> void:
 	if not data is Dictionary:
 		return
-	var entries := SaveMigration.split_seating(data)
+	var entries := SaveMigration.split_hall_leads(SaveMigration.split_seating(data))
 	for key in entries:
 		var text := str(key)
 		var upgrade_id := text.get_slice("@", 0)

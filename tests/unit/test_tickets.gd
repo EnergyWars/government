@@ -84,15 +84,21 @@ func _complaints_raised() -> int:
 	return state.visitors.size() + state.complaints + state.complaints_absorbed
 
 
-func test_arrivals_grow_linearly_with_unlocked_departments() -> void:
-	var per_department := GameConfig.MAX_ARRIVALS_PER_MINUTE / GameConfig.DEPARTMENTS.size()
+func test_arrivals_start_at_ten_and_grow_by_sixteen_per_department() -> void:
 	assert_eq(state.unlocked_count(), 1)
-	assert_almost_eq(Formulas.arrivals_per_minute(state), per_department, 0.0001)
-	assert_almost_eq(Formulas.arrival_interval(state), 60.0 / per_department, 0.0001)
+	assert_almost_eq(Formulas.arrivals_per_minute(state), 10.0, 0.0001)
+	assert_almost_eq(Formulas.arrival_interval(state), 6.0, 0.0001)
 	state.department("tax_services").unlocked = true
-	assert_almost_eq(Formulas.arrivals_per_minute(state), per_department * 2.0, 0.0001)
+	assert_almost_eq(Formulas.arrivals_per_minute(state), 26.0, 0.0001)
+	assert_almost_eq(Formulas.arrival_interval(state), 60.0 * 2.0 / 26.0, 0.0001)
 	_unlock_all()
-	assert_almost_eq(Formulas.arrivals_per_minute(state), GameConfig.MAX_ARRIVALS_PER_MINUTE, 0.0001)
+	assert_almost_eq(Formulas.arrivals_per_minute(state), 180.0, 0.0001)
+
+
+func test_base_arrivals_per_department_count() -> void:
+	var expected: Array[float] = [10.0, 10.0, 26.0, 42.0, 58.0, 74.0, 90.0, 106.0, 180.0, 180.0]
+	for count in expected.size():
+		assert_almost_eq(Formulas.base_arrivals_per_minute(count), expected[count], 0.0001, str(count))
 
 
 func test_reputation_does_not_change_arrivals() -> void:
@@ -103,6 +109,12 @@ func test_reputation_does_not_change_arrivals() -> void:
 
 
 func test_reviews_scale_arrivals_in_tiers() -> void:
+	assert_eq(Formulas.review_arrival_factor(state), 1.0)
+	_review_average([5, 5, 5, 5, 5])
+	assert_almost_eq(state.average_rating(), 5.0, 0.0001)
+	assert_eq(Formulas.review_arrival_factor(state), 1.25)
+	_review_average([5, 5, 5, 5, 5, 5, 5, 5, 5, 4])
+	assert_almost_eq(state.average_rating(), 4.9, 0.0001)
 	assert_eq(Formulas.review_arrival_factor(state), 1.0)
 	_review_average([5, 5, 5, 5, 3])
 	assert_almost_eq(state.average_rating(), 4.6, 0.0001)
@@ -125,11 +137,27 @@ func test_reviews_scale_arrivals_in_tiers() -> void:
 	assert_eq(Formulas.review_arrival_factor(state), 0.4)
 
 
+func test_five_star_rating_adds_a_quarter_more_citizens() -> void:
+	state.department("tax_services").unlocked = true
+	_review_average([5, 5])
+	assert_almost_eq(Formulas.arrivals_per_minute(state), 26.0 * 1.25, 0.0001)
+	assert_almost_eq(Formulas.arrival_interval(state), 60.0 * 2.0 / (26.0 * 1.25), 0.0001)
+
+
+func test_five_star_bonus_never_exceeds_the_absolute_maximum() -> void:
+	_unlock_all()
+	_review_average([5, 5, 5])
+	assert_eq(Formulas.arrivals_per_minute(state), GameConfig.MAX_ARRIVALS_PER_MINUTE)
+	assert_almost_eq(Formulas.arrival_interval(state), 60.0 * GameConfig.DEPARTMENTS.size() / GameConfig.MAX_ARRIVALS_PER_MINUTE, 0.0001)
+	for count in GameConfig.DEPARTMENTS.size() + 1:
+		assert_lte(Formulas.base_arrivals_per_minute(count) * 1.25, GameConfig.MAX_ARRIVALS_PER_MINUTE * 1.25)
+
+
 func test_bad_reviews_slow_down_arrivals() -> void:
 	_unlock_all()
 	_review_average([1, 1])
 	assert_almost_eq(Formulas.arrivals_per_minute(state), GameConfig.MAX_ARRIVALS_PER_MINUTE * 0.4, 0.0001)
-	assert_almost_eq(Formulas.arrival_interval(state), 60.0 / (GameConfig.MAX_ARRIVALS_PER_MINUTE / GameConfig.DEPARTMENTS.size() * 0.4), 0.0001)
+	assert_almost_eq(Formulas.arrival_interval(state), 60.0 * GameConfig.DEPARTMENTS.size() / (GameConfig.MAX_ARRIVALS_PER_MINUTE * 0.4), 0.0001)
 
 
 func test_departments_spawn_at_the_fixed_interval() -> void:
@@ -306,7 +334,7 @@ func test_line_patience_is_thirty_seconds() -> void:
 	assert_eq(_complaints_raised(), before + 2)
 
 
-func test_seated_citizens_wait_sixty_seconds_and_standing_twenty() -> void:
+func test_seated_citizens_wait_at_most_five_minutes_and_standing_ninety_seconds() -> void:
 	var seated := _with_ticket()
 	for i in GameConfig.BASE_SEATS - 1:
 		_with_ticket()
@@ -341,7 +369,7 @@ func test_walking_to_a_place_pauses_the_seat_timer() -> void:
 
 func test_mayor_speech_freezes_every_timer() -> void:
 	var citizen := _with_ticket()
-	state.boosts["mayor_speech"] = 100.0
+	state.boosts["mayor_speech"] = GameConfig.SEAT_PATIENCE + 60.0
 	_run(GameConfig.SEAT_PATIENCE + 5.0)
 	assert_true(state.citizens.has(citizen))
 	assert_eq(citizen.waited, 0.0)
@@ -563,7 +591,7 @@ func test_ticket_machines_follow_the_upgrade_chain() -> void:
 	assert_eq(Formulas.ticket_machines(state), 1)
 	assert_eq(Progression.upgrade_block_reason(state, "ticket_machine_2"), "requires")
 	assert_eq(Progression.upgrade_block_reason(state, "ticket_speed_2"), "requires")
-	state.set_upgrade("ticket_speed", GameConfig.TICKET_MACHINE_LEVELS - 1)
+	state.set_upgrade("ticket_speed", GameConfig.TICKET_UNLOCK_LEVEL - 1)
 	assert_eq(Progression.upgrade_block_reason(state, "ticket_machine_2"), "requires")
 	state.set_upgrade("ticket_speed", GameConfig.TICKET_MACHINE_LEVELS)
 	state.money = 1e15

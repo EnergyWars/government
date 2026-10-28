@@ -215,7 +215,7 @@ func test_reject_pile_entry_fields_and_purchase() -> void:
 	assert_eq(entry.kind, UpgradeCatalog.REJECT_PILE)
 	assert_eq(entry.topic, "building")
 	assert_eq(entry.room, "general_services")
-	assert_eq(entry.spot, UpgradeCatalog.STATION_PREFIX + REVIEW)
+	assert_eq(entry.spot, UpgradeCatalog.TRAYS_PREFIX + REVIEW)
 	assert_eq(entry.max_level, GameConfig.MAX_REJECT_LEVEL)
 	assert_eq(entry.growth, GameConfig.REJECT_PILE_GROWTH)
 	assert_almost_eq(entry.cost, Formulas.reject_pile_cost(review), 0.001)
@@ -226,7 +226,7 @@ func test_reject_pile_entry_fields_and_purchase() -> void:
 	assert_true(UpgradeCatalog.buy(actions, entry.id, 3))
 	assert_eq(review.reject_level, 3)
 	assert_gt(Formulas.reject_pile_cost(review), entry.cost)
-	assert_almost_eq(Formulas.reject_pile_cost(review), entry.cost * pow(GameConfig.REJECT_PILE_GROWTH, 3), 0.01)
+	assert_almost_eq(Formulas.reject_pile_cost(review), entry.cost * pow(GameConfig.REJECT_PILE_GROWTH, 3) * Formulas.early_discount(3) / Formulas.early_discount(0), 0.01)
 
 
 func test_reject_pile_upgrade_respects_maximum_and_missing_piles() -> void:

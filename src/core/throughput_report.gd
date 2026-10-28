@@ -17,12 +17,8 @@ const TICKETS := "tickets"
 const HIRE := "hire"
 const DESK := "desk"
 const MACHINE := "machine"
-const LEVEL := "level"
-const SPECIALIST := "specialist"
-const SUPERVISOR := "supervisor"
 const TRACK := "track"
 const RUNNER := "runner"
-const COLLECTOR := "collector"
 const HR := "hr"
 
 const CAPACITY := "capacity"
@@ -70,7 +66,7 @@ static func station_area(state: GameState, station: Station) -> Dictionary:
 
 static func station_upgrades(state: GameState, station: Station) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	var case_time := Formulas.station_case_time(state, station, station.specialists > 0)
+	var case_time := Formulas.station_case_time(state, station)
 	if case_time <= 0.0:
 		return result
 	var capacity := Formulas.station_throughput(state, station)
@@ -83,23 +79,23 @@ static func station_upgrades(state: GameState, station: Station) -> Array[Dictio
 		result.append(upgrade(HIRE, per_official, CAPACITY, "%s:%s" % [UpgradeCatalog.HIRE, station.key]))
 	elif station.desks < state.max_desks():
 		result.append(upgrade(DESK, per_official, CAPACITY, "%s:%s" % [UpgradeCatalog.DESK, station.key]))
-	if station.level < GameConfig.MAX_STATION_LEVEL:
-		result.append(upgrade(LEVEL, capacity * (Formulas.level_speed(station.level + 1) / Formulas.level_speed(station.level) - 1.0), CAPACITY, "%s:%s" % [UpgradeCatalog.LEVEL, station.key]))
-	if station.supports_specialists() and station.specialists < GameConfig.MAX_SPECIALISTS:
-		var with_specialist := Formulas.station_case_time(state, station, true)
-		result.append(upgrade(SPECIALIST, (Formulas.effective_workers(station) + 1.0) * availability / with_specialist - capacity, CAPACITY, "%s:%s" % [UpgradeCatalog.SPECIALIST, station.key]))
-	var dept := state.department(station.dept_id)
-	if dept != null and dept.supervisors < GameConfig.MAX_SUPERVISORS:
-		dept.supervisors += 1
-		var with_supervisor := Formulas.station_throughput(state, station)
-		dept.supervisors -= 1
-		result.append(upgrade(SUPERVISOR, with_supervisor - capacity, CAPACITY, "%s:%s" % [UpgradeCatalog.SUPERVISOR, dept.id]))
-	if dept != null and can_upgrade(state, "office_equipment", dept.id):
-		result.append(track("office_equipment", capacity * track_gain(state, "office_equipment", dept.id), CAPACITY, dept.id))
-	if GameConfig.UPGRADE_SPEED.has(station.kind):
-		var upgrade_id := str(GameConfig.UPGRADE_SPEED[station.kind])
-		if can_upgrade(state, upgrade_id):
-			result.append(track(upgrade_id, capacity * track_gain(state, upgrade_id)))
+	var room_id := GameConfig.station_room(station.key)
+	if can_upgrade(state, "room_speed", room_id):
+		result.append(track("room_speed", capacity * track_gain(state, "room_speed", room_id), CAPACITY, room_id))
+	room_id = GameConfig.lead_room(station.key)
+	if not station.machine and can_upgrade(state, "team_lead", room_id):
+		state.set_upgrade("team_lead", 1, room_id)
+		state.set_upgrade("lead_focus", 1, room_id)
+		var with_lead := Formulas.station_throughput(state, station)
+		state.set_upgrade("lead_focus", 0, room_id)
+		state.set_upgrade("team_lead", 0, room_id)
+		result.append(track("team_lead", with_lead - capacity, CAPACITY, room_id))
+	elif not station.machine and can_upgrade(state, "lead_focus", room_id):
+		var level := state.upgrade_level("lead_focus", room_id)
+		state.set_upgrade("lead_focus", level + 1, room_id)
+		var focused := Formulas.station_throughput(state, station)
+		state.set_upgrade("lead_focus", level, room_id)
+		result.append(track("lead_focus", focused - capacity, CAPACITY, room_id))
 	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.gain) > float(b.gain))
 	return result
 
@@ -118,9 +114,9 @@ static func transport_area(state: GameState) -> Dictionary:
 	var current := Formulas.transport_throughput(state)
 	if state.runners.size() < GameConfig.MAX_RUNNERS:
 		upgrades.append(upgrade(RUNNER, Formulas.transport_throughput(state, Formulas.weakest_runner_role(state)) - current, CAPACITY, staff_entry("runners")))
-	if not state.runners.is_empty() and can_upgrade(state, "runner_trolleys"):
+	if state.case_runner_count() > 0 and can_upgrade(state, "runner_trolleys"):
 		upgrades.append(track("runner_trolleys", current / Formulas.runner_capacity(state)))
-	if not state.runners.is_empty() and can_upgrade(state, "runner_speed"):
+	if state.case_runner_count() > 0 and can_upgrade(state, "runner_speed"):
 		upgrades.append(track("runner_speed", current * track_gain(state, "runner_speed")))
 	return area(TRANSPORT, "", demand, current, upgrades)
 
@@ -169,69 +165,18 @@ static func complaint_area(state: GameState) -> Dictionary:
 	return area(COMPLAINTS, "", demand, current, upgrades)
 
 
-static func reject_demand(state: GameState) -> float:
-	if state.cases_completed < GameConfig.REJECT_MIN_CASES:
-		return 0.0
-	var total := 0.0
-	for dept in state.unlocked_departments():
-		if not dept.is_customs():
-			total += Formulas.demand(state, dept) * GameConfig.REJECT_CHANCE
-	return total
-
-
-static func collector_trip(state: GameState, speed_factor: float = 1.0) -> float:
-	var layout := WorldLayout.get_default()
-	var speed := Formulas.collector_speed(state) * speed_factor
-	var weighted := 0.0
-	var total := 0.0
-	for key in state.ordered_station_keys():
-		var station := state.station(key)
-		if not station.has_reject_pile() or station.is_shared():
-			continue
-		var point := layout.reject_point(key)
-		var distance := point.distance_to(layout.shredder_point())
-		if state.has_upgrade("shredder", station.dept_id):
-			distance = minf(distance, point.distance_to(layout.dept_shredder_point(station.dept_id)))
-		var demand := Formulas.demand(state, state.department(station.dept_id))
-		weighted += demand * 2.0 * distance / speed
-		total += demand
-	if total <= 0.0:
-		return GameConfig.COLLECTOR_TRIP_ESTIMATE
-	return maxf(GameConfig.COLLECTOR_TRIP_ESTIMATE, weighted / total)
-
-
-static func collector_rate(state: GameState) -> float:
-	return Formulas.collector_capacity(state) / collector_trip(state)
-
-
-static func shredder_capacity(state: GameState) -> float:
-	var total := 0.0
-	for dept_id in state.shredder_rooms():
-		total += GameConfig.SHREDDER_BATCH / Formulas.shredder_interval(state, dept_id)
-	return total
-
-
-static func missing_shredder(state: GameState) -> String:
-	for dept in state.unlocked_departments():
-		if not dept.is_customs() and can_upgrade(state, "shredder", dept.id) and not state.has_upgrade("shredder", dept.id):
-			return dept.id
-	return ""
-
-
 static func reject_area(state: GameState) -> Dictionary:
 	var upgrades: Array[Dictionary] = []
-	var rate := collector_rate(state)
-	if state.collectors.size() < GameConfig.MAX_COLLECTORS:
-		upgrades.append(upgrade(COLLECTOR, rate, CAPACITY, staff_entry("collectors")))
-	if not state.collectors.is_empty() and can_upgrade(state, "collector_carts"):
-		upgrades.append(track("collector_carts", state.collectors.size() / collector_trip(state)))
-	if not state.collectors.is_empty() and can_upgrade(state, "collector_speed"):
-		var faster := Formulas.collector_capacity(state) / collector_trip(state, 1.0 + track_gain(state, "collector_speed"))
-		upgrades.append(track("collector_speed", state.collectors.size() * (faster - rate)))
-	var dept_id := missing_shredder(state)
-	if not dept_id.is_empty():
-		upgrades.append(track("shredder", GameConfig.SHREDDER_BATCH / Formulas.track_value("shredder", 1), CAPACITY, dept_id))
-	return area(REJECTS, "", reject_demand(state), state.collectors.size() * rate + shredder_capacity(state), upgrades)
+	var current := Formulas.role_capacity(state, Runner.REJECT)
+	var staffed := state.runners_in(Runner.REJECT)
+	if state.runners.size() < GameConfig.MAX_RUNNERS:
+		upgrades.append(upgrade(RUNNER, Formulas.role_capacity(state, Runner.REJECT, 1) - current, CAPACITY, staff_entry("runners")))
+	if staffed > 0 and can_upgrade(state, "runner_trolleys"):
+		upgrades.append(track("runner_trolleys", staffed / Formulas.reject_trip_time(state)))
+	if staffed > 0 and can_upgrade(state, "runner_speed"):
+		var faster := Formulas.role_loads(state, Runner.REJECT) / Formulas.reject_trip_time(state, 1.0 + track_gain(state, "runner_speed"))
+		upgrades.append(track("runner_speed", faster - current))
+	return area(REJECTS, "", Formulas.reject_demand(state), current, upgrades)
 
 
 static func sick_demand(state: GameState, hr: int) -> float:

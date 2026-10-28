@@ -109,8 +109,11 @@ func test_buy_entry_emits_purchased() -> void:
 	watch_signals(actions)
 	assert_true(actions.buy_entry("track:briefcase", 3))
 	assert_signal_emitted_with_parameters(actions, "purchased", ["track:briefcase", 3])
-	assert_true(actions.buy_entry("level:shared/reception", 0))
-	assert_signal_emitted_with_parameters(actions, "purchased", ["level:shared/reception", 1])
+	assert_true(actions.buy_entry("track:room_speed@hall", 0))
+	assert_signal_emitted_with_parameters(actions, "purchased", ["track:room_speed@hall", 1])
+	assert_eq(state.upgrade_level("room_speed", GameConfig.ROOM_HALL), 1)
+	assert_true(actions.buy_entry("desk:shared/reception", 0))
+	assert_signal_emitted_with_parameters(actions, "purchased", ["desk:shared/reception", 1])
 
 
 func test_failed_purchase_emits_nothing() -> void:
@@ -118,6 +121,7 @@ func test_failed_purchase_emits_nothing() -> void:
 	watch_signals(actions)
 	assert_false(actions.buy_entry("track:briefcase"))
 	assert_false(actions.buy_entry("bogus:1"))
+	assert_false(actions.buy_entry("level:shared/reception"))
 	assert_signal_not_emitted(actions, "purchased")
 
 

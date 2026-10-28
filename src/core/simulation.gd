@@ -23,7 +23,6 @@ signal sick_call_missed(key: String, desk: int)
 signal kranz_ended(by_player: bool)
 signal complaint_filed(overflow: bool)
 signal complaint_shredded(by_player: bool)
-signal dept_shredded(dept_id: String)
 signal review_posted(review: Review)
 signal review_removed(outcome: String)
 signal employee_woke(key: String, desk: int, by_player: bool)
@@ -39,7 +38,6 @@ signal coffee_served(key: String, desk: int)
 signal dispute_started(kind: String, dept_id: String)
 signal dispute_ended(kind: String, dept_id: String, by_player: bool)
 signal bonus_left(key: String, desk: int, tier: int)
-signal sick_avoided(key: String, desk: int)
 signal dispute_calmed(dept_id: String)
 signal mail_delivered(count: int, dropped: int, returned: int)
 signal mail_answered(dept_id: String, money: float)
@@ -55,14 +53,14 @@ signal lunch_called(count: int)
 signal complaint_absorbed(slot: int)
 signal gift_arrived(kind: int)
 signal gift_claimed(kind: int, money: float)
+signal patrol_started(room_id: String, woken: int)
+signal patrol_ended(room_id: String)
 
 var state: GameState
 var layout: WorldLayout
 var _wake_clock := 0.0
 var _seat_layout := Vector2i(-1, -1)
 var _pad_clock := 0.0
-var _shredder_rooms: Array[String] = []
-var _shredder_points: Array[Vector2] = []
 var _reject_detours: Dictionary = {}
 
 
@@ -76,6 +74,7 @@ func tick(delta: float) -> void:
 	state.play_time += delta
 	state.refill_loss_budget(delta)
 	state.advance_boosts(delta)
+	_update_patrols(delta)
 	_update_event(delta)
 	_age_cases(delta)
 	_spawn_citizens(delta)
@@ -95,8 +94,6 @@ func tick(delta: float) -> void:
 	_work_stations(delta)
 	_update_player(delta)
 	_update_runners(delta)
-	_update_collectors(delta)
-	_update_dept_shredders(delta)
 	_pneumatic_transport(delta)
 	state.income.advance(delta, state.money_earned)
 
@@ -352,10 +349,20 @@ func _update_citizens(delta: float) -> void:
 		var waiting := Formulas.is_citizen_waiting(citizen)
 		citizen.walk = maxf(0.0, citizen.walk - delta)
 		if waiting and not frozen:
+			var before := citizen.waited
 			citizen.waited += delta
-			if citizen.waited >= Formulas.citizen_patience(citizen):
+			if citizen.waited >= Formulas.citizen_patience(citizen) or _seat_leave_roll(citizen, before):
 				give_up(citizen)
 		index -= 1
+
+
+func _seat_leave_roll(citizen: CaseFile, before: float) -> bool:
+	if not citizen.seated or not citizen.is_seat_waiting():
+		return false
+	for point in Formulas.seat_leave_checks(before, citizen.waited):
+		if state.rng.randf() < Formulas.seat_leave_chance(point):
+			return true
+	return false
 
 
 func give_up(citizen: CaseFile) -> void:
@@ -735,7 +742,6 @@ func _work_stations(delta: float) -> void:
 			continue
 		var step := delta * Formulas.work_speed(state, station)
 		var idle_failed := false
-		var specialist_failed := false
 		var jobs := station.jobs
 		for desk in jobs.size():
 			var working := station.is_working(desk) or (temps and _is_temp_desk(station, desk))
@@ -743,19 +749,14 @@ func _work_stations(delta: float) -> void:
 			if job == null:
 				if not working:
 					continue
-				var specialist := station.is_specialist_desk(desk)
-				if (specialist_failed if specialist else idle_failed) or not start_job(station, desk):
-					if specialist:
-						specialist_failed = true
-					else:
-						idle_failed = true
+				if idle_failed or not start_job(station, desk):
+					idle_failed = true
 					continue
 				job = jobs[desk]
 			if working:
-				job.progress += step * Formulas.official_speed(station.moods[desk])
+				job.progress += step
 			if job.progress >= job.required and finish_job(station, desk):
 				idle_failed = false
-				specialist_failed = false
 
 
 func _update_jam(station: Station) -> bool:
@@ -794,6 +795,8 @@ func _update_moods(delta: float) -> void:
 		var station := state.station(key)
 		if station.machine:
 			continue
+		var room_id := GameConfig.lead_room(key)
+		var watched := caffeinated or state.is_patrolling(room_id)
 		var rate := -1.0
 		for desk in station.moods.size():
 			if not station.is_staffed(desk):
@@ -808,14 +811,14 @@ func _update_moods(delta: float) -> void:
 				continue
 			elif mood.is_resting():
 				mood.resting += delta * (Formulas.sick_recovery_speed(mood.bonus) if mood.is_sick() else 1.0)
-				if mood.resting >= Formulas.rest_limit(state, mood.state):
+				if mood.resting >= Formulas.rest_limit(state, mood.state, room_id):
 					wake_up(station, desk, false)
-			elif not caffeinated and (station.jobs[desk] != null or not station.inbox.is_empty()):
+			elif not watched and (station.jobs[desk] != null or not station.inbox.is_empty()):
 				if rate < 0.0:
 					rate = Formulas.drowsiness_rate(state, station)
 					if station.is_swamped(state.lobby_capacity()):
 						rate *= GameConfig.SWAMPED_DROWSY_FACTOR
-				mood.alert -= delta * rate * Formulas.official_drowsy_factor(mood)
+				mood.alert -= delta * rate
 				if mood.alert <= 0.0:
 					doze_off(station, desk)
 
@@ -1466,122 +1469,66 @@ func shred_case(case_file: CaseFile) -> bool:
 	return true
 
 
-func _update_collectors(delta: float) -> void:
-	var capacity := Formulas.collector_capacity(state)
-	var speed := Formulas.collector_speed(state)
-	for collector in state.collectors:
-		if collector.source.is_empty() and collector.loaded < capacity:
-			collector.source = collector_target(collector, capacity)
-		if not collector.source.is_empty():
-			if collector.move_towards(layout.reject_point(collector.source), speed, delta):
-				_collect_rejects(collector, capacity)
-		elif collector.loaded > 0:
-			if collector.move_towards(nearest_shredder(collector.position), speed, delta):
-				_unload_collector(collector)
-		else:
-			collector.move_towards(layout.collector_home(), speed * 0.5, delta)
-
-
-func shredder_points() -> Array[Vector2]:
-	var rooms := state.shredder_rooms()
-	if not is_same(rooms, _shredder_rooms):
-		_shredder_rooms = rooms
-		_shredder_points = layout.shredder_points(rooms)
-		_reject_detours.clear()
-	return _shredder_points
+func _update_reject_runner(runner: Runner, index: int, delta: float) -> void:
+	var capacity := Formulas.runner_load(state, runner)
+	var speed := _runner_speed()
+	if runner.is_reject() and runner.source.is_empty() and runner.loaded < capacity:
+		runner.source = reject_target(runner, capacity)
+	if not runner.source.is_empty():
+		if runner.move_towards(layout.reject_point(runner.source), speed, delta):
+			_collect_rejects(runner, capacity)
+	elif runner.loaded > 0:
+		if runner.move_towards(layout.shredder_point(), speed, delta):
+			_unload_reject_runner(runner)
+	else:
+		runner.move_towards(layout.runner_rest_point(index), speed, delta)
 
 
 func _reject_to_shredder(key: String) -> float:
-	var points := shredder_points()
 	var cached: Variant = _reject_detours.get(key)
 	if cached == null:
-		var point := layout.reject_point(key)
-		cached = point.distance_to(WorldLayout.nearest_of(point, layout.shredder_point(), points))
+		cached = layout.reject_point(key).distance_to(layout.shredder_point())
 		_reject_detours[key] = cached
 	return cached
 
 
-func nearest_shredder(from: Vector2) -> Vector2:
-	return WorldLayout.nearest_of(from, layout.shredder_point(), shredder_points())
-
-
-func near_shredder(position: Vector2) -> bool:
-	for point in shredder_points():
-		if layout.near(position, point):
-			return true
-	return false
-
-
-func _update_dept_shredders(delta: float) -> void:
-	var rooms := state.shredder_rooms()
-	if rooms.is_empty():
-		return
-	var reject_stations := _reject_stations()
-	for dept_id in rooms:
-		var station: Station = reject_stations.get(dept_id)
-		if station == null:
-			state.shredder_timers[dept_id] = 0.0
-			continue
-		var timer := float(state.shredder_timers.get(dept_id, 0.0)) + delta
-		var interval := Formulas.shredder_interval(state, dept_id)
-		if timer >= interval:
-			timer = 0.0
-			var shredded := mini(GameConfig.SHREDDER_BATCH, station.rejects)
-			station.rejects -= shredded
-			state.production.record(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF, state.play_time, shredded)
-			state.earn(GameConfig.REJECT_SHRED_REWARD * shredded)
-			dept_shredded.emit(dept_id)
-		state.shredder_timers[dept_id] = timer
-
-
-func _reject_stations() -> Dictionary:
-	var best := {}
-	for key in state.ordered_station_keys():
-		var station := state.station(key)
-		if station.rejects <= 0:
-			continue
-		var current: Station = best.get(station.dept_id)
-		if current == null or station.rejects > current.rejects:
-			best[station.dept_id] = station
-	return best
-
-
-func _collect_rejects(collector: RejectCollector, capacity: int) -> void:
-	var station := state.station(collector.source)
-	collector.source = ""
+func _collect_rejects(runner: Runner, capacity: int) -> void:
+	var station := state.station(runner.source)
+	runner.source = ""
 	if station == null:
 		return
-	var taken := mini(capacity - collector.loaded, station.rejects)
-	collector.loaded += taken
+	var taken := mini(capacity - runner.loaded, station.rejects)
+	runner.loaded += taken
 	station.rejects -= taken
 
 
-func _unload_collector(collector: RejectCollector) -> void:
-	state.production.record(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF, state.play_time, collector.loaded)
-	state.earn(GameConfig.REJECT_SHRED_REWARD * collector.loaded)
-	collector.loaded = 0
+func _unload_reject_runner(runner: Runner) -> void:
+	state.production.record(ProductionStats.REJECT_SHREDDED, ProductionStats.BY_STAFF, state.play_time, runner.loaded)
+	state.earn(GameConfig.REJECT_SHRED_REWARD * runner.loaded)
+	runner.loaded = 0
 	complaint_shredded.emit(false)
 
 
-func collector_target(collector: RejectCollector, capacity: int) -> String:
-	var free := capacity - collector.loaded
+func reject_target(runner: Runner, capacity: int) -> String:
+	var free := capacity - runner.loaded
 	if free <= 0:
 		return ""
-	var straight := collector.position.distance_to(nearest_shredder(collector.position)) if collector.loaded > 0 else 0.0
+	var shredder := layout.shredder_point()
+	var straight := runner.position.distance_to(shredder) if runner.loaded > 0 else 0.0
 	var best := ""
 	var best_urgent := false
 	var best_score := 0.0
-	var claimed := _claimed_sources(collector)
+	var claimed := _claimed_sources(runner)
 	for key in state.ordered_station_keys():
 		var station := state.station(key)
-		if station.rejects <= 0 or claimed.has(key) or not collector.serves(station.dept_id):
+		if station.rejects <= 0 or claimed.has(key) or not runner.serves_rejects_of(station.dept_id):
 			continue
 		var point := layout.reject_point(key)
-		var detour := collector.position.distance_to(point) + _reject_to_shredder(key) - straight
-		var urgent := station.rejects >= GameConfig.REJECT_CAPACITY - GameConfig.COLLECTOR_URGENT_MARGIN
-		if collector.loaded > 0 and not urgent and detour > GameConfig.COLLECTOR_MAX_DETOUR:
+		var detour := runner.position.distance_to(point) + _reject_to_shredder(key) - straight
+		var urgent := station.rejects >= station.reject_capacity() - GameConfig.REJECT_URGENT_MARGIN
+		if runner.loaded > 0 and not urgent and detour > GameConfig.REJECT_MAX_DETOUR:
 			continue
-		var score := float(mini(station.rejects, free)) / (maxf(0.0, detour) + GameConfig.COLLECTOR_DISTANCE_BIAS)
+		var score := float(mini(station.rejects, free)) / (maxf(0.0, detour) + GameConfig.REJECT_DISTANCE_BIAS)
 		if (urgent and not best_urgent) or (urgent == best_urgent and score > best_score):
 			best = key
 			best_urgent = urgent
@@ -1589,17 +1536,17 @@ func collector_target(collector: RejectCollector, capacity: int) -> String:
 	return best
 
 
-func _claimed_sources(collector: RejectCollector) -> Dictionary:
+func _claimed_sources(runner: Runner) -> Dictionary:
 	var claimed := {}
-	for other in state.collectors:
-		if other != collector and not other.source.is_empty():
+	for other in state.runners:
+		if other != runner and other.is_reject() and other.task == Runner.Task.IDLE and not other.source.is_empty():
 			claimed[other.source] = true
 	return claimed
 
 
 func move_complaints() -> bool:
 	var player := state.player
-	if near_shredder(player.position):
+	if layout.near(player.position, layout.shredder_point()):
 		if player.complaints > 0:
 			return shred_complaints(1, true) > 0
 		if player.rejects > 0:
@@ -1654,11 +1601,6 @@ func report_sick() -> bool:
 		candidates = swamped
 	var pick: Array = candidates[state.rng.randi_range(0, candidates.size() - 1)]
 	var station: Station = pick[0]
-	var resist := Formulas.official_sick_resist(station.moods[pick[1]])
-	if resist > 0.0 and state.life_rng.randf() < resist:
-		state.production.record(ProductionStats.SICK_AVOIDED, station.key, state.play_time)
-		sick_avoided.emit(station.key, pick[1])
-		return false
 	station.moods[pick[1]].rest(DeskMood.SICK)
 	station.moods[pick[1]].sick_count += 1
 	state.production.record(ProductionStats.SICK, station.key, state.play_time)
@@ -1965,18 +1907,18 @@ func recall(station: Station, desk: int) -> bool:
 	return true
 
 
-func start_job(station: Station, desk: int) -> bool:
+func start_job(station: Station, desk: int, by_hand: bool = false) -> bool:
 	if station.jobs[desk] != null or station.inbox.is_empty():
 		return false
-	var for_specialist := station.is_specialist_desk(desk)
 	var case_file: CaseFile = null
 	if station.calls_citizens():
 		case_file = _take_called(station, desk)
 	else:
-		case_file = station.take_next_case(_prioritize_for(station), for_specialist, _saturated_targets(station))
+		var blocked: Array[String] = [] if by_hand else _saturated_targets(station)
+		case_file = station.take_next_case(_prioritize_for(station), blocked)
 	if case_file == null:
 		return false
-	station.jobs[desk] = StationJob.new(case_file, Formulas.required_time(state, station, case_file, for_specialist), for_specialist)
+	station.jobs[desk] = StationJob.new(case_file, Formulas.required_time(state, station, case_file))
 	return true
 
 
@@ -2034,7 +1976,7 @@ func finish_job(station: Station, desk: int) -> bool:
 	_record_output(station, desk)
 	if job.by_hand:
 		_count_hands_on(station, case_file)
-	apply_station_effect(station, case_file, job.by_specialist)
+	apply_station_effect(station, case_file)
 	if _misses_form(station, case_file):
 		state.mail_promised.append(case_file.dept_id)
 		dismiss_citizen(case_file)
@@ -2096,15 +2038,15 @@ func _record_output(station: Station, desk: int) -> void:
 	state.production.record(ProductionStats.STATION, station.key, state.play_time)
 
 
-func apply_station_effect(station: Station, case_file: CaseFile, by_specialist: bool) -> void:
+func apply_station_effect(station: Station, case_file: CaseFile) -> void:
 	var dept := state.department(case_file.dept_id)
 	match station.kind:
 		"review":
 			if station.dept_id != case_file.dept_id:
 				return
-			case_file.flawed = state.rng.randf() < Formulas.error_chance(state, dept, by_specialist)
+			case_file.flawed = state.rng.randf() < Formulas.error_chance(state, dept)
 			if dept.is_customs():
-				case_file.flagged = case_file.suspicious and state.rng.randf() < Formulas.flag_chance(station)
+				case_file.flagged = case_file.suspicious and state.rng.randf() < Formulas.flag_chance()
 				if not dept.scan_all and not case_file.flagged:
 					case_file.remove_from_route("customs/signature")
 		"signature":
@@ -2243,16 +2185,14 @@ func player_desk() -> Array:
 func can_work_desk(station: Station, desk: int) -> bool:
 	if desk < 0 or desk >= station.desks:
 		return false
-	if not station.is_staffed(desk):
-		return true
-	return not station.machine and (station.is_working(desk) or station.can_cover(desk))
+	return not station.machine or not station.is_staffed(desk)
 
 
 func work_desk(station: Station, desk: int, power: float) -> bool:
 	if is_halted(station) or station.is_output_jammed():
 		return false
 	if station.jobs[desk] == null:
-		start_job(station, desk)
+		start_job(station, desk, true)
 	var job := station.jobs[desk]
 	if job == null or job.is_done():
 		return false
@@ -2328,23 +2268,59 @@ func rank_up(dept_id: String) -> bool:
 
 func _update_runners(delta: float) -> void:
 	var unassignable := {}
+	var standby := {}
 	var speed := _runner_speed()
-	for runner in state.runners:
+	for index in state.runners.size():
+		var runner := state.runners[index]
+		if runner.task == Runner.Task.IDLE and (runner.is_reject() or runner.loaded > 0):
+			_update_reject_runner(runner, index, delta)
+			continue
 		match runner.task:
 			Runner.Task.IDLE:
 				var group := "%s|%s" % [runner.role, runner.dept_id]
 				if unassignable.has(group) or not assign_runner(runner):
 					unassignable[group] = true
-					runner.move_towards(layout.runner_home(), speed, delta)
+					if not standby.has(group):
+						standby[group] = runner_standby(runner)
+					runner.move_towards(runner_idle_point(index, str(standby[group])), speed, delta)
 			Runner.Task.TO_SOURCE:
 				if _reservation_lost(runner):
 					runner.clear_task()
 					unassignable.clear()
-					runner.move_towards(layout.runner_home(), speed, delta)
 				elif _runner_to_source(runner, delta):
 					unassignable.clear()
 			Runner.Task.TO_TARGET:
 				_runner_to_target(runner, delta)
+
+
+func runner_standby(runner: Runner) -> String:
+	var best := ""
+	var best_pending := 0
+	var best_distance := INF
+	for key in state.ordered_station_keys():
+		var station := state.station(key)
+		var pending := 0
+		for job in station.jobs:
+			if job != null and runner_takes(runner, job.case_file, key):
+				pending += 1
+		for case_file in station.inbox:
+			if runner_takes(runner, case_file, key):
+				pending += 1
+		if pending == 0:
+			continue
+		var distance := runner.position.distance_to(layout.output_point(key))
+		if pending > best_pending or (pending == best_pending and distance < best_distance):
+			best = key
+			best_pending = pending
+			best_distance = distance
+	return best
+
+
+func runner_idle_point(index: int, standby_key: String) -> Vector2:
+	if standby_key.is_empty():
+		return layout.runner_rest_point(index)
+	var phase := state.play_time * TAU / GameConfig.RUNNER_PACE_SECONDS + index
+	return layout.output_point(standby_key) + Vector2(sin(phase) * GameConfig.RUNNER_PACE_DISTANCE, GameConfig.RUNNER_PACE_DISTANCE * 0.5 + cos(phase) * 8.0)
 
 
 func reserved_for(source: String, target: String) -> int:
@@ -2548,6 +2524,36 @@ func _launch_parcels() -> void:
 
 func _runner_speed() -> float:
 	return Formulas.runner_speed(state)
+
+
+func _update_patrols(delta: float) -> void:
+	var active := state.lead_patrols.keys()
+	state.advance_patrols(delta)
+	for room_id: String in active:
+		if not state.is_patrolling(room_id):
+			patrol_ended.emit(room_id)
+
+
+func can_patrol(room_id: String) -> bool:
+	return Formulas.has_lead(state, room_id) and not state.is_patrolling(room_id) and state.patrol_cooldown(room_id) <= 0.0 and not state.lead_stations(room_id).is_empty()
+
+
+func start_patrol(room_id: String) -> bool:
+	if not can_patrol(room_id):
+		return false
+	state.lead_patrols[room_id] = GameConfig.LEAD_PATROL_SECONDS
+	state.lead_cooldowns[room_id] = Formulas.patrol_cooldown(state, room_id)
+	state.patrols += 1
+	var woken := 0
+	for station in state.lead_stations(room_id):
+		if station.machine:
+			continue
+		for desk in station.moods.size():
+			if station.is_staffed(desk) and station.moods[desk].needs_help() and wake_up(station, desk, false):
+				woken += 1
+				state.production.record(ProductionStats.LEAD_WOKEN, station.key, state.play_time)
+	patrol_started.emit(room_id, woken)
+	return true
 
 
 func wake_everyone(include_sick: bool) -> int:

@@ -54,8 +54,8 @@ func _buy(game: Game) -> void:
 	for entry in UpgradeCatalog.expansion_entries(state):
 		if entry.kind == UpgradeCatalog.RANK and entry.is_buyable() and actions.buy_entry(entry.id):
 			return
-	if game.goals.has_goal() and str(game.goals.current().type) == "station_level":
-		actions.upgrade(GameConfig.RECEPTION)
+	if game.goals.has_goal() and str(game.goals.current().type) == "room_speed":
+		actions.buy_upgrade("room_speed", GameConfig.ROOM_HALL)
 	for dept in state.unlocked_departments():
 		var weakest := Formulas.bottleneck(state, dept)
 		if weakest == "demand":
@@ -73,7 +73,7 @@ func _buy(game: Game) -> void:
 		if not station.machine and station.staff < station.desks:
 			actions.hire(weakest)
 		elif not actions.add_desk(weakest):
-			actions.upgrade(weakest)
+			actions.buy_upgrade("room_speed", GameConfig.station_room(weakest))
 	var cheapest := _cheapest_track(state)
 	if cheapest != null and state.money > 3.0 * cheapest.cost:
 		actions.buy_entry(cheapest.id)
@@ -90,11 +90,12 @@ func _buy(game: Game) -> void:
 		if mailroom.inbox.size() >= mailroom.storage_capacity():
 			actions.upgrade_mail_storage()
 	for dept in state.unlocked_departments():
-		if state.money > 4.0 * Formulas.supervisor_cost(dept):
-			actions.hire_supervisor(dept.id)
-		var review := state.station(dept.station_keys()[0 if not dept.is_customs() else 1])
-		if state.money > 4.0 * Formulas.specialist_cost(review):
-			actions.hire_specialist(review.key)
+		if state.money > 4.0 * Formulas.track_cost("team_lead", 0, dept.id):
+			actions.buy_upgrade("team_lead", dept.id)
+		if state.money > 4.0 * Formulas.track_cost("room_trays", state.upgrade_level("room_trays", dept.id), dept.id):
+			actions.buy_upgrade("room_trays", dept.id)
+		if game.simulation.can_patrol(dept.id):
+			game.simulation.start_patrol(dept.id)
 
 
 func _install_tube_stations(game: Game, dept_id: String) -> bool:

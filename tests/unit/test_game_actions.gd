@@ -24,7 +24,7 @@ func test_add_desk_until_stage_limit() -> void:
 	assert_false(actions.can_add_desk("general_services/review"))
 	assert_false(actions.add_desk("general_services/review"))
 	assert_false(actions.add_desk("nope"))
-	assert_almost_eq(state.money, 1e6 - 120.0, 0.01)
+	assert_almost_eq(state.money, 1e6 - 120.0 * Formulas.early_discount(0), 0.01)
 
 
 func test_add_desk_needs_money() -> void:
@@ -46,35 +46,70 @@ func test_hire_needs_free_desk_and_no_machine() -> void:
 	assert_false(actions.hire(GameConfig.COUNTER))
 
 
-func test_upgrade_until_max_level() -> void:
-	state.money = 1e30
-	var station := state.station(GameConfig.COUNTER)
-	assert_true(actions.upgrade(GameConfig.COUNTER))
-	assert_eq(station.level, 2)
-	station.level = GameConfig.MAX_STATION_LEVEL
-	assert_false(actions.upgrade(GameConfig.COUNTER))
-	assert_false(actions.upgrade("nope"))
-
-
-func test_specialists_only_at_review_stations() -> void:
+func test_room_speed_rushes_only_the_stations_of_its_room() -> void:
 	state.money = 1e9
-	assert_false(actions.can_hire_specialist(GameConfig.RECEPTION))
-	for i in GameConfig.MAX_SPECIALISTS:
-		assert_true(actions.hire_specialist("general_services/review"))
-	assert_false(actions.hire_specialist("general_services/review"))
-	assert_eq(state.station("general_services/review").specialists, GameConfig.MAX_SPECIALISTS)
-	assert_eq(state.staff_hired, GameConfig.MAX_SPECIALISTS)
-	assert_false(actions.hire_specialist("nope"))
+	var reception := state.station(GameConfig.RECEPTION)
+	var counter := state.station(GameConfig.COUNTER)
+	var review := state.station("general_services/review")
+	var signature := state.station("general_services/signature")
+	var cost := Formulas.track_cost("room_speed", 0, GameConfig.ROOM_HALL)
+	assert_true(actions.buy_upgrade("room_speed", GameConfig.ROOM_HALL))
+	assert_eq(state.upgrade_level("room_speed", GameConfig.ROOM_HALL), 1)
+	assert_almost_eq(state.money, 1e9 - cost, 0.01)
+	assert_eq(reception.rush, GameConfig.UPGRADE_RUSH_SECONDS)
+	assert_eq(counter.rush, GameConfig.UPGRADE_RUSH_SECONDS)
+	assert_eq(review.rush, 0.0)
+	assert_eq(signature.rush, 0.0)
+	assert_eq(state.staff_hired, 0)
+	assert_true(actions.buy_upgrade("room_speed", "general_services", 3))
+	assert_eq(state.upgrade_level("room_speed", "general_services"), 3)
+	assert_eq(review.rush, GameConfig.UPGRADE_RUSH_SECONDS)
+	assert_eq(signature.rush, GameConfig.UPGRADE_RUSH_SECONDS)
+	state.set_upgrade("room_speed", GameConfig.ROOM_SPEED_LEVELS, "general_services")
+	review.rush = 0.0
+	assert_false(actions.buy_upgrade("room_speed", "general_services"))
+	assert_eq(review.rush, 0.0)
+	assert_false(actions.buy_upgrade("room_speed"))
+	assert_false(actions.buy_upgrade("room_speed", "tax_services"))
 
 
-func test_supervisors_per_unlocked_department() -> void:
+func test_team_lead_is_hired_once_per_room_and_counts_as_staff() -> void:
 	state.money = 1e9
-	assert_false(actions.hire_supervisor("tax_services"))
-	assert_false(actions.hire_supervisor("nope"))
-	for i in GameConfig.MAX_SUPERVISORS:
-		assert_true(actions.hire_supervisor("general_services"))
-	assert_false(actions.hire_supervisor("general_services"))
-	assert_eq(state.department("general_services").supervisors, GameConfig.MAX_SUPERVISORS)
+	assert_eq(Progression.upgrade_block_reason(state, "lead_focus", "general_services"), "requires")
+	assert_false(actions.buy_upgrade("lead_focus", "general_services"))
+	assert_true(actions.buy_upgrade("team_lead", "general_services"))
+	assert_true(state.has_upgrade("team_lead", "general_services"))
+	assert_eq(state.staff_hired, 1)
+	assert_false(actions.buy_upgrade("team_lead", "general_services"))
+	assert_eq(state.staff_hired, 1)
+	assert_eq(Progression.upgrade_block_reason(state, "lead_focus", GameConfig.HALL_INTAKE), "requires")
+	assert_eq(Progression.upgrade_block_reason(state, "lead_focus", GameConfig.ROOM_HALL), "unknown")
+	assert_true(actions.buy_upgrade("lead_focus", "general_services", 2))
+	assert_eq(state.upgrade_level("lead_focus", "general_services"), 2)
+	assert_eq(state.staff_hired, 1)
+	assert_false(actions.buy_upgrade("team_lead", "tax_services"))
+	assert_false(actions.buy_upgrade("team_lead"))
+	assert_false(actions.buy_upgrade("team_lead", GameConfig.ROOM_HALL))
+	assert_true(actions.buy_upgrade("team_lead", GameConfig.HALL_INTAKE))
+	assert_true(actions.buy_upgrade("team_lead", GameConfig.HALL_PICKUP))
+	assert_eq(state.staff_hired, 3)
+	assert_eq(Formulas.team_lead_count(state), 3)
+
+
+func test_patrol_actions_delegate_to_the_simulation() -> void:
+	assert_false(actions.can_patrol("general_services"))
+	assert_false(actions.start_patrol("general_services"))
+	assert_eq(state.patrols, 0)
+	state.set_upgrade("team_lead", 1, "general_services")
+	assert_eq(actions.can_patrol("general_services"), sim.can_patrol("general_services"))
+	assert_true(actions.can_patrol("general_services"))
+	assert_true(actions.start_patrol("general_services"))
+	assert_true(state.is_patrolling("general_services"))
+	assert_eq(state.patrols, 1)
+	assert_false(actions.can_patrol("general_services"))
+	assert_false(actions.start_patrol("general_services"))
+	assert_eq(state.patrols, 1)
+	assert_false(actions.can_patrol(GameConfig.HALL_INTAKE))
 
 
 func test_runners_up_to_limit() -> void:
@@ -145,20 +180,21 @@ func test_upgrades_can_be_bought_in_bulk() -> void:
 
 func test_room_upgrades_need_an_open_room() -> void:
 	state.money = 1e9
-	assert_false(actions.buy_upgrade("office_equipment"))
+	assert_false(actions.buy_upgrade("room_speed"))
 	assert_false(actions.buy_upgrade("briefcase", "general_services"))
-	assert_false(actions.buy_upgrade("office_equipment", "tax_services"))
-	assert_false(actions.buy_upgrade("shredder", "customs"))
-	var cost := Formulas.track_cost("office_equipment", 0, "general_services")
-	assert_true(actions.buy_upgrade("office_equipment", "general_services"))
-	assert_eq(state.upgrade_level("office_equipment", "general_services"), 1)
-	assert_eq(state.upgrade_level("office_equipment"), 0)
+	assert_false(actions.buy_upgrade("room_speed", "tax_services"))
+	assert_false(actions.buy_upgrade("room_speed", GameConfig.ROOM_PLAYER))
+	assert_false(actions.buy_upgrade("shredder", "general_services"))
+	var cost := Formulas.track_cost("room_speed", 0, "general_services")
+	assert_true(actions.buy_upgrade("room_speed", "general_services"))
+	assert_eq(state.upgrade_level("room_speed", "general_services"), 1)
+	assert_eq(state.upgrade_level("room_speed"), 0)
 	assert_almost_eq(state.money, 1e9 - cost, 0.01)
 	state.reputation = float(GameConfig.department("tax_services").unlock_reputation)
 	assert_true(actions.unlock_department("tax_services"))
-	assert_true(actions.buy_upgrade("office_equipment", "tax_services"))
-	assert_true(actions.buy_upgrade("shredder", "tax_services"))
-	assert_eq(state.shredder_rooms(), ["tax_services"] as Array[String])
+	assert_true(actions.buy_upgrade("room_speed", "tax_services"))
+	assert_true(actions.buy_upgrade("room_trays", "tax_services"))
+	assert_eq(state.upgrade_level("room_trays", "tax_services"), 1)
 
 
 func test_upgrades_need_their_requirements() -> void:
@@ -224,12 +260,18 @@ func test_next_locked_department() -> void:
 
 func test_upgrade_block_reasons() -> void:
 	assert_eq(Progression.upgrade_block_reason(state, "nope"), "unknown")
-	assert_eq(Progression.upgrade_block_reason(state, "office_equipment"), "unknown")
+	assert_eq(Progression.upgrade_block_reason(state, "office_equipment", "general_services"), "unknown")
+	assert_eq(Progression.upgrade_block_reason(state, "room_speed"), "unknown")
+	assert_eq(Progression.upgrade_block_reason(state, "room_speed", GameConfig.ROOM_PLAYER), "unknown")
 	assert_eq(Progression.upgrade_block_reason(state, "briefcase", "general_services"), "unknown")
-	assert_eq(Progression.upgrade_block_reason(state, "shredder", "customs"), "unknown")
-	assert_eq(Progression.upgrade_block_reason(state, "office_equipment", "tax_services"), "room")
-	assert_eq(Progression.upgrade_block_reason(state, "letter_opener"), "room")
+	assert_eq(Progression.upgrade_block_reason(state, "shredder", "general_services"), "unknown")
+	assert_eq(Progression.upgrade_block_reason(state, "lead_calm", GameConfig.ROOM_HALL), "unknown")
+	assert_eq(Progression.upgrade_block_reason(state, "room_speed", "tax_services"), "room")
+	assert_eq(Progression.upgrade_block_reason(state, "room_speed", GameConfig.ROOM_MAIL), "room")
+	assert_eq(Progression.upgrade_block_reason(state, "registered_mail"), "room")
+	assert_eq(Progression.upgrade_block_reason(state, "lead_breaks", "general_services"), "requires")
 	assert_eq(Progression.upgrade_block_reason(state, "tube_station", GameConfig.ROOM_INSPECTION), "room")
+	state.money = 0.0
 	assert_eq(Progression.upgrade_block_reason(state, "ticket_speed"), "money")
 	assert_eq(Progression.upgrade_block_reason(state, "tube_capacity"), "requires")
 	assert_eq(Progression.upgrade_block_reason(state, "runner_trolleys"), "reputation")
@@ -239,7 +281,7 @@ func test_upgrade_block_reasons() -> void:
 	assert_eq(Progression.upgrade_block_reason(state, "briefcase", "", 2), "money")
 	state.money = Formulas.track_bulk_cost("briefcase", 0, 2)
 	assert_eq(Progression.upgrade_block_reason(state, "briefcase", "", 2), "")
-	assert_eq(Progression.upgrade_block_reason(state, "office_equipment", "general_services"), "money")
+	assert_eq(Progression.upgrade_block_reason(state, "team_lead", "general_services"), "money")
 	state.set_upgrade("briefcase", int(GameConfig.upgrade("briefcase").max))
 	assert_eq(Progression.upgrade_block_reason(state, "briefcase"), "max")
 	assert_eq(Progression.upgrade_block_reason(state, "briefcase", "", 5), "max")

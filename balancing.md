@@ -1,6 +1,6 @@
 # Balancing – Review und Todos
 
-Stand: 25.10.2026 (Upgrade-Neugliederung in 4.13, Amtsstufen in 4.14). Grundlage: Code-Review von `game_config.gd`, `formulas.gd`, `simulation.gd`, `progression.gd`, `goal_tracker.gd`, `offline_calculator.gd`, dazu Simulationen mit `tests/tools/balance_bot.gd` (8 h, 30 min bzw. 480 min aktiv) und einem Diagnose-Bot (Stationen alle 5 min, Varianten „ohne Krankheit“ / „ohne Ansehensverlust“).
+Stand: 27.10.2026 (Upgrade-Neugliederung in 4.13, Amtsstufen in 4.14, Einstieg und Unterbrechungen in 4.18). Grundlage: Code-Review von `game_config.gd`, `formulas.gd`, `simulation.gd`, `progression.gd`, `goal_tracker.gd`, `offline_calculator.gd`, dazu Simulationen mit `tests/tools/balance_bot.gd` (8 h, 30 min bzw. 480 min aktiv) und einem Diagnose-Bot (Stationen alle 5 min, Varianten „ohne Krankheit“ / „ohne Ansehensverlust“).
 
 Ziele des Balancings (Vorgabe):
 1. Bei jeder neuen Abteilung muss der Spieler erst viel selbst machen.
@@ -110,13 +110,13 @@ Schlussfolgerung: Es gibt **drei unabhängige Blocker**, die jeder für sich das
 ## 3. Hohe Priorität
 
 ### 3.1 [H] Nach Stufe 3 gibt es nichts Kleines mehr zu kaufen
-**Befund.** Summe aller Technik-Kosten außer Rohrpost/Röhren/Portal/KI: ~0,9 Mio. Summe aller globalen Mitarbeiter und Bereiche (12 Boten, 3 Ablehnungs-Boten, 4 Kaffee-Praktikanten, 4 Telefonisten, 2 Wachen, 2 Praktikanten, Warte- 8/Sitzbereich 12): ~0,55 Mio. Das Bauamt kostet allein 400 000 €, das Wohnungsamt 2 Mio. Ab Kreisverwaltung ist alles Kleine gekauft; danach gibt es nur noch Tische/Stufen in teuren Abteilungen und vier Großtechniken. Zwischen Wohnungsamt (2 Mio.) und Sozialamt (12 Mio.) liegen Stunden ohne „kleines Upgrade“.
+**Befund.** Summe aller Technik-Kosten außer Rohrpost/Röhren/Portal/KI: ~0,9 Mio. Summe aller globalen Mitarbeiter und Bereiche (12 Boten, 4 Kaffee-Praktikanten, 4 Telefonisten, 2 Wachen, 2 Praktikanten, Warte- 8/Sitzbereich 12): ~0,55 Mio. Das Bauamt kostet allein 400 000 €, das Wohnungsamt 2 Mio. Ab Kreisverwaltung ist alles Kleine gekauft; danach gibt es nur noch Tische/Stufen in teuren Abteilungen und vier Großtechniken. Zwischen Wohnungsamt (2 Mio.) und Sozialamt (12 Mio.) liegen Stunden ohne „kleines Upgrade“.
 **Todos.**
 - [ ] Alle globalen Mitarbeiter-/Bereichspreise an das **aktuelle Einkommen** koppeln (`max(Basis, Einkommen/min × Faktor) × Wachstum^n`) wie bereits `sick_bonus_cost`; dann bleiben Bote Nr. 9 oder Telefonist Nr. 3 in jeder Phase eine spürbare, aber kurze Investition.
-- [x] Obergrenzen anheben. **Umgesetzt (4.13):** Boten 30, Ablehnungs-Boten 12, Kaffee-Praktikanten 8, Beschwerde-Praktikanten 5, Wachen 6, Telefonisten 4, Teamleitungen 4 je Abteilung, Fachkräfte 3; flacheres Preiswachstum (×1,5 bis ×2,2). Bindung an die Gebäudestufe bewusst nicht, die Preise begrenzen ausreichend.
+- [x] Obergrenzen anheben. **Umgesetzt (4.13):** Boten 30, Kaffee-Praktikanten 8, Beschwerde-Praktikanten 5, Wachen 6, Telefonisten 4, Teamleitungen 4 je Abteilung, Fachkräfte 3; flacheres Preiswachstum (×1,5 bis ×2,2). Bindung an die Gebäudestufe bewusst nicht, die Preise begrenzen ausreichend.
 - [x] Technik-Stufen verlängern mit kleinen Schritten statt harter `max_level`. **Umgesetzt (4.13):** alle Spuren 40–300 Stufen mit Wachstum ×1,04–×1,2.
-- [x] Neue **Dauer-Senke**. **Umgesetzt (4.13):** Büroausstattung je Abteilung (200 Stufen), Abteilungsschredder (100 Stufen je Abteilung), Rohrpost-Stationen und Röhrenabschnitte je Raum, Briefregal 300 Stufen, Sitzplätze 300 Stufen. Ob die Startpreise in jeder Phase bei 1–2 min Einkommen liegen, misst der Balance-Bot noch (4.13).
-- [ ] Beamten-Schulungen (4 Spuren × 30 Stufen je Beamtem) als Klein-Upgrades sichtbarer machen: Sammelknopf „Alle Beamten dieser Station schulen“ und Hinweis im Statistik-Report, wenn Schulungen günstiger als eine Stufe sind.
+- [x] Neue **Dauer-Senke**. **Umgesetzt (4.13):** Büroausstattung je Abteilung (200 Stufen), Rohrpost-Stationen und Röhrenabschnitte je Raum, Briefregal 300 Stufen, Sitzplätze 300 Stufen. Ob die Startpreise in jeder Phase bei 1–2 min Einkommen liegen, misst der Balance-Bot noch (4.13).
+- [~] Beamten-Schulungen sichtbarer machen. **Entfällt:** Schulungen je Beamtem sind entfernt; Pausen, Krankheit und Einnicken laufen jetzt über die Boni der Teamleitung je Raum.
 
 ### 3.2 [H] Freischalt-Sprünge wachsen zu steil
 **Befund.** Amortisation nur aus Rohertrag der neuen Abteilung (Gebühr/Intervall ÷ Freischaltkosten): Steuer 2,4 min, Gewerbe 11 min, Kfz 34 min, Bauamt 1,9 h, Wohnungsamt 3,6 h, Sozialamt 9,3 h, Zoll 19 h. Multiplikatoren (Ansehen ×2–2,8, Andrang ×3–5,5) verkürzen das später, aber die Ansehensschwellen (300/500/800/1 300) bremsen zusätzlich. Gleichzeitig steigen die Kostenfaktoren der Abteilungen ×3 je Stufe (1, 3, 9, 27, 80, 220, 650, 1 900) – ein Sachbearbeiter-Tisch im Zoll kostet 228 000 €, eine Stufe 171 000 €.
@@ -159,8 +159,8 @@ Stufe n gibt +15 % Tempo (additiv), Preis ×1,45 je Stufe. Stufe 10 (×2,35) kos
 
 ### 4.2 [M] Fachkräfte und Teamleitungen zu schwach bzw. zu teuer
 Fachkraft: 5 × Einstellkosten × 2,4^n, nur komplexe Fälle (10–35 %) ohne Zeitstrafe, Fehler ×0,3. Teamleitung 1 000 € × Multiplikator × 3^n für +20 % Tempo und weniger Einnicken.
-- [ ] Fachkraft zusätzlich als vollwertiger Arbeiter zählen (heute `effective_workers` zählt sie, aber `_pick` reserviert ihr nur komplexe Fälle → steht oft leer). Fachkraft nimmt einfache Fälle, wenn kein komplexer wartet.
-- [ ] Teamleitung: zweite Stufe halbiert Krankheits- und Streitwahrscheinlichkeit der Abteilung; Preis ×3 → ×2,2.
+- [~] Fachkraft als vollwertiger Arbeiter. **Entfällt:** Fachkräfte sind entfernt (ein Beamter je Tisch).
+- [x] Teamleitung neu gedacht. **Umgesetzt:** eine Teamleitung je Leitungsbereich (Annahme und Abholung getrennt, 400 × Personalfaktor) mit eigenem Büro und sechs ausbaubaren Boni (Pausen, Krankheit, Einnicken, Schlichtung, Rundgang-Tempo, Abklingzeit; je 150 Stufen ×1,04, Grundpreis 50–80) und dem aktiven Rundgang (30 s, weckt alle, Tempo ×2+, Abklingzeit 120 s). Schon die Einstellung wirkt sofort stark (Pausen und Krankheit ×0,75, Einnicken ×0,7, Schlichtung 25 %). Noch offen: Preise im Balance-Bot gegen Raumtempo prüfen.
 
 ### 4.3 [M] Rohrpost entwertet eine ganze Upgrade-Linie schlagartig
 250 000 € einmalig → Transport unendlich, 12 Boten und 3 Stufen Aktenwagen wertlos.
@@ -264,7 +264,7 @@ Befund: Der Wartebereich-Ausbau änderte nichts am Durchsatz, allein der Sitzber
 - [x] Kaufmengen ×1, ×10 und Max über die geschlossene geometrische Summe (`geometric_sum`, `geometric_affordable`), damit Hunderte Stufen ohne Schleife bezahlt werden.
 - [x] Migration v2 → v3 hält die Wirkung alter Stände ungefähr gleich: Stufen werden je Spur skaliert (`SaveMigration.LEVEL_SCALES`, Stufentabellen `LEVEL_STEPS`). Beispiel Küche: früher 0,07 von 0,26 Verquatsch-Gewicht je Stufe (≈ 26,9 %), heute −0,45 % je Stufe, daher ×60 (alte Stufe 3 → 180 = −81 %).
 - [x] Transportschätzung nutzt das Lauftempo der Boten: `Formulas.runner_trip_time` = `RUNNER_TRIP_ESTIMATE` / Botenschuhe; Kapazität und Ausbau-Gewinn steigen damit mit jeder Stufe Botenschuhe.
-- [x] Ausbau-Gewinn der Flinken Ablehnungs-Boten exakt über `ThroughputReport.collector_trip(state, speed_factor)`: Sobald die Mindestdauer von 12 s greift, bringt eine weitere Stufe rechnerisch nichts mehr.
+- [x] Ausbau-Gewinn der Botenschuhe für Boten mit der Aufgabe Ablehnung exakt über `Formulas.reject_trip_time(state, speed_factor)`: Sobald die Mindestdauer von 12 s greift, bringt eine weitere Stufe rechnerisch nichts mehr.
 - [x] Röhrenkapazität-Gewinn aus dem Schritt der Spur (+1 Akte je Röhre und Stufe) statt fester Annahme.
 - [ ] Mit Balance-Bot (kauft bereits die günstigste Spur über `UpgradeCatalog` und `buy_entry`) prüfen, ob die feinen Spuren in jeder Phase ein „kleines Upgrade“ zu 1–2 min Einkommen bieten und die Max-Kaufmenge nicht zu schnell ganze Spuren leert.
 
@@ -289,7 +289,7 @@ Befund: Der Wartebereich-Ausbau änderte nichts am Durchsatz, allein der Sitzber
 
 ### 4.16 [H] Fester Zulauf, Bürger-Timer und Bewertungen als Bremse
 Vorgabe: höchstens 180 Bürger/min, nur abhängig von der Zahl eröffneter Abteilungen; harte Timer je Phase; Bewertungen senken den Zulauf.
-- [x] Zulauf 22,5/min je eröffneter Abteilung (`MAX_ARRIVALS_PER_MINUTE` ÷ 8), alle Abteilungen = 180/min. Bewertungsstufen `REVIEW_ARRIVAL_TIERS`: ≥ 4,6 → 100 %, ≥ 4,3 → 80 %, ≥ 3,5 → 65 %, darunter 40 %.
+- [x] Zulauf (ersetzt durch 4.18): 10/min mit der ersten Abteilung, +16/min je weiterer, die achte füllt auf 180/min auf. Bewertungsstufen `REVIEW_ARRIVAL_TIERS`: ≥ 4,6 → 100 %, ≥ 4,3 → 80 %, ≥ 3,5 → 65 %, darunter 40 %.
 - [x] Automaten: 0,32 → 1 Bürger/s in 100 Stufen je Automat (Start 19,2/min, also knapp unter den 22,5/min der ersten Abteilung; ab Stufe 9 reicht er), höchstens 3 Automaten (3 × 60/min = 180/min), nächster erst nach Vollausbau (`requires`). 12 Plätze je Automat; volle Schlangen → wütend weg.
 - [x] Timer: Schlange 30 s, Sitzplatz 60 s, Stehplatz 20 s, am Schalter 20 s. Wer geht, beschwert sich immer (Briefkasten voll → schlechte Bewertung).
 - [x] Halle: zwei Warteräume (Annahme, Abholung) mit je 40 Plätzen, Start je 15 Sitz- und 25 Stehplätze, je 25 Stufen *Sitzplatz statt Stehplatz* (500 · ×1,1). Der Empfang ruft nur auf, solange die Abholung Platz hat.
@@ -300,19 +300,26 @@ Vorgabe: höchstens 180 Bürger/min, nur abhängig von der Zahl eröffneter Abte
 
 ### 4.17 [H] Frühspiel ohne Personal, Stau-Pausen und harte Bewertungen (Kunden-Feedback)
 - [x] Neues Spiel ohne Personal im Bürgerservice; Passfoto braucht Fotografen (kein Automat), die Bürger zum Foto aufrufen.
-- [x] Volle Ausgangsablage oder voller Ablehnungs-Ausgang an einer Sachbearbeitung schickt das ganze Team in Mittag/Kaffeeklatsch, Arbeit dort blockiert bis beide Ablagen Platz haben. Ablehnungsstapel ausbaubar (+2 je Stufe, 50 Stufen, 0,5 × Tischpreis · ×1,22).
+- [x] Volle Ausgangsablage oder voller Ablehnungs-Ausgang an einer Sachbearbeitung schickt das ganze Team in Mittag/Kaffeeklatsch, Arbeit dort blockiert bis beide Ablagen Platz haben. Ablehnungsstapel ausbaubar (+2 je Stufe, 10 Stufen, Start 12, Maximum 32, 0,5 × Tischpreis · ×1,22).
 - [x] Jeder nicht abgewimmelte Beschwerdeführer vor vollem Briefkasten → 1–2 Sterne, keine Obergrenze, keine Abschreckung nach Klagen mehr. Lob 3–5 Sterne zufällig alle 45–120 s, unabhängig vom Spiel.
 - [x] Spieler am Beschwerdetresen: alle Besucher gehen ohne Beschwerde.
 - [ ] Mit Balance-Bot prüfen: Durch die harte Bewertungsregel kann der Durchschnitt schnell unter 4,3/3,5 fallen und den Zulauf auf 65 %/40 % drücken; Lob (Ø ≈ 4,5 Sterne, ≈ 0,7/min) gleicht nur teilweise aus. Ggf. Lob-Intervall oder Briefkasten-Startgröße anpassen.
 - [ ] Mit Balance-Bot prüfen, wie oft Stau-Pausen im Frühspiel auftreten (Ausgang 8 Plätze bei einem Tisch) und ob Ablagen/Ablehnungsstapel früh genug bezahlbar sind.
 
-### 4.17 [H] Gebäudeausbau entfällt, Ansehen als Langzeit-Bremse (Spieler-Feedback)
+### 4.17b [H] Gebäudeausbau entfällt, Ansehen als Langzeit-Bremse (Spieler-Feedback)
 Vorgabe: Abteilungen direkt kaufen, das Gebäude wächst implizit mit; Ansehen soll weitere Stufen stark begrenzen und das Spiel strecken.
 - [x] Gebäudestufe nicht mehr kaufbar: `GameState.sync_building_stage` hebt sie bei jeder Eröffnung auf `GameConfig.stage_for_departments` (1 / 2–3 / 4–5 / 6–7 / 8 Abteilungen), Poststelle ab der zweiten Abteilung. Platz-Sperre („space“), Katalogart `stage`, `expand_building` und die Stufen-Feier entfallen.
 - [x] Ansehensschwellen der Eröffnungen angehoben: 15/60/150/300/500/800/1 300 → 20/120/350/700/1 200/2 000/3 500 (mindestens ×1,5 je Abteilung, Test `test_reputation_strongly_limits_department_openings`). Die Amtsstufen-Blöcke erben sie über die Eröffnungsleiter, ab dem Zoll 3 500.
 - [x] Ziele „Gebäude erweitern“ durch Ansehens-Ziele ersetzt (10, 60, 250, 1 000, 3 000; Indizes unverändert, alte Spielstände behalten ihren Zielstand).
 - Bot-Messung (`--hours=8 --active=480`): Finanzamt nach 22 min, Ansehen 60 nach 44 min, danach pendelt das Ansehen des Bots bei ≈ 126 (hohe Bürgerverluste, Einkommen ≈ 48/s); die Kfz-Zulassung (350) erreicht er in 8 h nicht. Der Bot spielt deutlich schlechter als ein Mensch, die Bremse greift aber spürbar.
 - [ ] Mit dem Balance-Bot über längere Zeit messen, ob die Ansehensschwellen ab Kfz-Zulassung (350) nicht zu einer reinen Wartezeit ohne sinnvolle Käufe werden; ggf. Ansehensquellen (Einarbeitung, Kränzchen, Bewertungen) als aktive Beschleuniger stärken.
+
+### 4.18 [H] Schnellerer Einstieg, weniger Unterbrechungen (Spieler-Feedback)
+- [x] Zulauf `Formulas.base_arrivals_per_minute`: 10/min (`START_ARRIVALS_PER_MINUTE`) mit der ersten Abteilung, +16/min (`ARRIVALS_PER_DEPARTMENT`) je weiterer, mit allen 8 Abteilungen 180/min (10, 26, 42, 58, 74, 90, 106, 180).
+- [x] Wartemarken-Automat startet mit 0,15/s (9/min), knapp unter den 10/min der ersten Abteilung; ab Stufe 2 reicht er.
+- [x] Einstiegsrabatt `Formulas.early_discount`: Stufe 1 jeder Spur und jedes Kaufs (Tische ab dem zweiten, Einstellen, Personal, Stapel, Röhren, Briefregal, Botenstufen) kostet 25 %, linear bis 100 % ab Stufe 11 (`EARLY_DISCOUNT_LEVELS`, `EARLY_DISCOUNT_START`). Mehrfachkäufe summieren über `ramped_sum`; Folge-Automaten setzen die Preisstufe über `price_offset` fort.
+- [x] Weniger Unterbrechungen: Wachzeit 100 → 180 s; Kränzchen erst nach 110 s, dann 220–400 s; Mittag erst nach 300 s, dann 280–480 s; Krankmeldung erst nach 360 s, dann 40–80 min je Beamtem; Streit erst nach 220 s, dann 200–400 s; Ereignisse erst nach 6 min, dann 5–10 min.
+- [ ] Mit dem Balance-Bot messen, ob das Frühspiel mit 10/min nicht zu leer wirkt und ob der Rabatt die erste Abteilung zu schnell auslastet.
 
 ## 5. Niedrige Priorität / Feinschliff
 
@@ -335,3 +342,8 @@ Vorgabe: Abteilungen direkt kaufen, das Gebäude wächst implizit mit; Ansehen s
    - 8 h aktiv: mindestens Kreisverwaltung + 4 Abteilungen, Ansehen > 150, alle 3–6 min ein Kauf (Bot-Protokoll um Kaufzähler erweitern).
 3. Diagnose-Bot (Snapshot alle 5 min, Varianten `--nosick`, `--norep`) nach `tests/tools/diag_bot.gd` übernehmen, damit Verfügbarkeit und Verluste je Station sichtbar bleiben.
 4. Nach Abschluss: FEATURES.md (Wirtschaft, Personal, Ziele), context.md und Tests aktualisieren; Konstanten in `game_config.gd` bleiben die einzige Quelle.
+
+- [x] Bewertungen löschen/anzeigen an die Gebäudestufe gebunden (statt Einkommen): Löschen 1 Stern / Klage Stufe 0 75 / 100, Stufe 1 (ab Finanzamt) 150 / 250, Stufe 2 500 / 800, Stufe 3 2.000 / 3.500, Stufe 4 10.000 / 18.000; je Bewertung feste Abweichung −30 % bis +30 %. Sternfaktoren beim Löschen normiert auf 1 / 0,5 / 0,2 / 0,067 / 0. Löschen bleibt immer günstiger als Klagen (Test `test_deleting_is_always_cheaper_than_suing`).
+
+
+**Hinweis (Ablehnungs-Umbau):** Ablehnungs-Boten sind eine vierte Aufgabe der normalen Boten (Obergrenze 30 gemeinsam); Sammelwagen, Flinke Ablehnungs-Boten und Abteilungsschredder entfallen. Werte noch nicht neu vermessen (Balance-Bot offen).
