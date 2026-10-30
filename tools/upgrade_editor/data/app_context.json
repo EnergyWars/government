@@ -1,0 +1,8284 @@
+{
+	"schema": 1,
+	"meta": {
+		"exported_at": "2026-10-30T10:19:43",
+		"entries": 265
+	},
+	"rooms": [
+		{
+			"id": "player",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "hall",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "staff_room",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "complaint_office",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "shredder_room",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "tech_room",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "kitchen",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "toilets",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "phone",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "mail",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "player_office",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "inspection",
+			"department": false,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "general_services",
+			"department": true,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"unlock_cost": 0.0
+		},
+		{
+			"id": "tax_services",
+			"department": true,
+			"cost_multiplier": 3.0,
+			"staff_multiplier": 4.0,
+			"unlock_cost": 800.0
+		},
+		{
+			"id": "business_licences",
+			"department": true,
+			"cost_multiplier": 9.0,
+			"staff_multiplier": 30.0,
+			"unlock_cost": 8000.0
+		},
+		{
+			"id": "vehicle_registration",
+			"department": true,
+			"cost_multiplier": 27.0,
+			"staff_multiplier": 200.0,
+			"unlock_cost": 60000.0
+		},
+		{
+			"id": "building_permits",
+			"department": true,
+			"cost_multiplier": 80.0,
+			"staff_multiplier": 1200.0,
+			"unlock_cost": 400000.0
+		},
+		{
+			"id": "housing",
+			"department": true,
+			"cost_multiplier": 220.0,
+			"staff_multiplier": 6000.0,
+			"unlock_cost": 2000000.0
+		},
+		{
+			"id": "social_benefits",
+			"department": true,
+			"cost_multiplier": 650.0,
+			"staff_multiplier": 35000.0,
+			"unlock_cost": 12000000.0
+		},
+		{
+			"id": "customs",
+			"department": true,
+			"cost_multiplier": 1900.0,
+			"staff_multiplier": 230000.0,
+			"unlock_cost": 80000000.0
+		}
+	],
+	"system_entries": {
+		"rank:general_services": {
+			"kind": "rank",
+			"target": "general_services",
+			"spot": "dept:general_services",
+			"room": "general_services",
+			"topic": "building"
+		},
+		"rank:tax_services": {
+			"kind": "rank",
+			"target": "tax_services",
+			"spot": "dept:tax_services",
+			"room": "tax_services",
+			"topic": "building"
+		},
+		"rank:business_licences": {
+			"kind": "rank",
+			"target": "business_licences",
+			"spot": "dept:business_licences",
+			"room": "business_licences",
+			"topic": "building"
+		},
+		"rank:vehicle_registration": {
+			"kind": "rank",
+			"target": "vehicle_registration",
+			"spot": "dept:vehicle_registration",
+			"room": "vehicle_registration",
+			"topic": "building"
+		},
+		"rank:building_permits": {
+			"kind": "rank",
+			"target": "building_permits",
+			"spot": "dept:building_permits",
+			"room": "building_permits",
+			"topic": "building"
+		},
+		"rank:housing": {
+			"kind": "rank",
+			"target": "housing",
+			"spot": "dept:housing",
+			"room": "housing",
+			"topic": "building"
+		},
+		"rank:social_benefits": {
+			"kind": "rank",
+			"target": "social_benefits",
+			"spot": "dept:social_benefits",
+			"room": "social_benefits",
+			"topic": "building"
+		},
+		"rank:customs": {
+			"kind": "rank",
+			"target": "customs",
+			"spot": "dept:customs",
+			"room": "customs",
+			"topic": "building"
+		},
+		"desk:shared/mailroom": {
+			"kind": "desk",
+			"target": "shared/mailroom",
+			"spot": "station:shared/mailroom",
+			"room": "mail",
+			"topic": "building"
+		},
+		"hire:shared/mailroom": {
+			"kind": "hire",
+			"target": "shared/mailroom",
+			"spot": "station:shared/mailroom",
+			"room": "mail",
+			"topic": "staff"
+		},
+		"desk:shared/reception": {
+			"kind": "desk",
+			"target": "shared/reception",
+			"spot": "station:shared/reception",
+			"room": "hall",
+			"topic": "building"
+		},
+		"hire:shared/reception": {
+			"kind": "hire",
+			"target": "shared/reception",
+			"spot": "station:shared/reception",
+			"room": "hall",
+			"topic": "staff"
+		},
+		"reject_pile:shared/reception": {
+			"kind": "reject_pile",
+			"target": "shared/reception",
+			"spot": "trays:shared/reception",
+			"room": "hall",
+			"topic": "building"
+		},
+		"desk:general_services/review": {
+			"kind": "desk",
+			"target": "general_services/review",
+			"spot": "station:general_services/review",
+			"room": "general_services",
+			"topic": "building"
+		},
+		"hire:general_services/review": {
+			"kind": "hire",
+			"target": "general_services/review",
+			"spot": "station:general_services/review",
+			"room": "general_services",
+			"topic": "staff"
+		},
+		"reject_pile:general_services/review": {
+			"kind": "reject_pile",
+			"target": "general_services/review",
+			"spot": "trays:general_services/review",
+			"room": "general_services",
+			"topic": "building"
+		},
+		"desk:general_services/signature": {
+			"kind": "desk",
+			"target": "general_services/signature",
+			"spot": "station:general_services/signature",
+			"room": "general_services",
+			"topic": "building"
+		},
+		"hire:general_services/signature": {
+			"kind": "hire",
+			"target": "general_services/signature",
+			"spot": "station:general_services/signature",
+			"room": "general_services",
+			"topic": "staff"
+		},
+		"desk:shared/counter": {
+			"kind": "desk",
+			"target": "shared/counter",
+			"spot": "station:shared/counter",
+			"room": "hall",
+			"topic": "building"
+		},
+		"hire:shared/counter": {
+			"kind": "hire",
+			"target": "shared/counter",
+			"spot": "station:shared/counter",
+			"room": "hall",
+			"topic": "staff"
+		},
+		"reject_pile:shared/counter": {
+			"kind": "reject_pile",
+			"target": "shared/counter",
+			"spot": "trays:shared/counter",
+			"room": "hall",
+			"topic": "building"
+		},
+		"desk:tax_services/review": {
+			"kind": "desk",
+			"target": "tax_services/review",
+			"spot": "station:tax_services/review",
+			"room": "tax_services",
+			"topic": "building"
+		},
+		"hire:tax_services/review": {
+			"kind": "hire",
+			"target": "tax_services/review",
+			"spot": "station:tax_services/review",
+			"room": "tax_services",
+			"topic": "staff"
+		},
+		"reject_pile:tax_services/review": {
+			"kind": "reject_pile",
+			"target": "tax_services/review",
+			"spot": "trays:tax_services/review",
+			"room": "tax_services",
+			"topic": "building"
+		},
+		"desk:tax_services/signature": {
+			"kind": "desk",
+			"target": "tax_services/signature",
+			"spot": "station:tax_services/signature",
+			"room": "tax_services",
+			"topic": "building"
+		},
+		"desk:business_licences/review": {
+			"kind": "desk",
+			"target": "business_licences/review",
+			"spot": "station:business_licences/review",
+			"room": "business_licences",
+			"topic": "building"
+		},
+		"hire:business_licences/review": {
+			"kind": "hire",
+			"target": "business_licences/review",
+			"spot": "station:business_licences/review",
+			"room": "business_licences",
+			"topic": "staff"
+		},
+		"reject_pile:business_licences/review": {
+			"kind": "reject_pile",
+			"target": "business_licences/review",
+			"spot": "trays:business_licences/review",
+			"room": "business_licences",
+			"topic": "building"
+		},
+		"desk:shared/inspection": {
+			"kind": "desk",
+			"target": "shared/inspection",
+			"spot": "station:shared/inspection",
+			"room": "inspection",
+			"topic": "building"
+		},
+		"hire:shared/inspection": {
+			"kind": "hire",
+			"target": "shared/inspection",
+			"spot": "station:shared/inspection",
+			"room": "inspection",
+			"topic": "staff"
+		},
+		"desk:business_licences/signature": {
+			"kind": "desk",
+			"target": "business_licences/signature",
+			"spot": "station:business_licences/signature",
+			"room": "business_licences",
+			"topic": "building"
+		},
+		"desk:vehicle_registration/review": {
+			"kind": "desk",
+			"target": "vehicle_registration/review",
+			"spot": "station:vehicle_registration/review",
+			"room": "vehicle_registration",
+			"topic": "building"
+		},
+		"hire:vehicle_registration/review": {
+			"kind": "hire",
+			"target": "vehicle_registration/review",
+			"spot": "station:vehicle_registration/review",
+			"room": "vehicle_registration",
+			"topic": "staff"
+		},
+		"reject_pile:vehicle_registration/review": {
+			"kind": "reject_pile",
+			"target": "vehicle_registration/review",
+			"spot": "trays:vehicle_registration/review",
+			"room": "vehicle_registration",
+			"topic": "building"
+		},
+		"desk:vehicle_registration/signature": {
+			"kind": "desk",
+			"target": "vehicle_registration/signature",
+			"spot": "station:vehicle_registration/signature",
+			"room": "vehicle_registration",
+			"topic": "building"
+		},
+		"desk:building_permits/review": {
+			"kind": "desk",
+			"target": "building_permits/review",
+			"spot": "station:building_permits/review",
+			"room": "building_permits",
+			"topic": "building"
+		},
+		"hire:building_permits/review": {
+			"kind": "hire",
+			"target": "building_permits/review",
+			"spot": "station:building_permits/review",
+			"room": "building_permits",
+			"topic": "staff"
+		},
+		"reject_pile:building_permits/review": {
+			"kind": "reject_pile",
+			"target": "building_permits/review",
+			"spot": "trays:building_permits/review",
+			"room": "building_permits",
+			"topic": "building"
+		},
+		"desk:building_permits/signature": {
+			"kind": "desk",
+			"target": "building_permits/signature",
+			"spot": "station:building_permits/signature",
+			"room": "building_permits",
+			"topic": "building"
+		},
+		"hire:building_permits/signature": {
+			"kind": "hire",
+			"target": "building_permits/signature",
+			"spot": "station:building_permits/signature",
+			"room": "building_permits",
+			"topic": "staff"
+		},
+		"desk:housing/review": {
+			"kind": "desk",
+			"target": "housing/review",
+			"spot": "station:housing/review",
+			"room": "housing",
+			"topic": "building"
+		},
+		"hire:housing/review": {
+			"kind": "hire",
+			"target": "housing/review",
+			"spot": "station:housing/review",
+			"room": "housing",
+			"topic": "staff"
+		},
+		"reject_pile:housing/review": {
+			"kind": "reject_pile",
+			"target": "housing/review",
+			"spot": "trays:housing/review",
+			"room": "housing",
+			"topic": "building"
+		},
+		"desk:housing/signature": {
+			"kind": "desk",
+			"target": "housing/signature",
+			"spot": "station:housing/signature",
+			"room": "housing",
+			"topic": "building"
+		},
+		"desk:social_benefits/review": {
+			"kind": "desk",
+			"target": "social_benefits/review",
+			"spot": "station:social_benefits/review",
+			"room": "social_benefits",
+			"topic": "building"
+		},
+		"hire:social_benefits/review": {
+			"kind": "hire",
+			"target": "social_benefits/review",
+			"spot": "station:social_benefits/review",
+			"room": "social_benefits",
+			"topic": "staff"
+		},
+		"reject_pile:social_benefits/review": {
+			"kind": "reject_pile",
+			"target": "social_benefits/review",
+			"spot": "trays:social_benefits/review",
+			"room": "social_benefits",
+			"topic": "building"
+		},
+		"desk:social_benefits/signature": {
+			"kind": "desk",
+			"target": "social_benefits/signature",
+			"spot": "station:social_benefits/signature",
+			"room": "social_benefits",
+			"topic": "building"
+		},
+		"hire:social_benefits/signature": {
+			"kind": "hire",
+			"target": "social_benefits/signature",
+			"spot": "station:social_benefits/signature",
+			"room": "social_benefits",
+			"topic": "staff"
+		},
+		"desk:customs/dock": {
+			"kind": "desk",
+			"target": "customs/dock",
+			"spot": "station:customs/dock",
+			"room": "customs",
+			"topic": "building"
+		},
+		"hire:customs/dock": {
+			"kind": "hire",
+			"target": "customs/dock",
+			"spot": "station:customs/dock",
+			"room": "customs",
+			"topic": "staff"
+		},
+		"desk:customs/review": {
+			"kind": "desk",
+			"target": "customs/review",
+			"spot": "station:customs/review",
+			"room": "customs",
+			"topic": "building"
+		},
+		"hire:customs/review": {
+			"kind": "hire",
+			"target": "customs/review",
+			"spot": "station:customs/review",
+			"room": "customs",
+			"topic": "staff"
+		},
+		"desk:customs/signature": {
+			"kind": "desk",
+			"target": "customs/signature",
+			"spot": "station:customs/signature",
+			"room": "customs",
+			"topic": "building"
+		},
+		"desk:customs/clearance": {
+			"kind": "desk",
+			"target": "customs/clearance",
+			"spot": "station:customs/clearance",
+			"room": "customs",
+			"topic": "building"
+		},
+		"hire:customs/clearance": {
+			"kind": "hire",
+			"target": "customs/clearance",
+			"spot": "station:customs/clearance",
+			"room": "customs",
+			"topic": "staff"
+		},
+		"staff:runners": {
+			"kind": "staff",
+			"target": "runners",
+			"spot": "runners",
+			"room": "hall",
+			"topic": "staff"
+		},
+		"staff:coffee_interns": {
+			"kind": "staff",
+			"target": "coffee_interns",
+			"spot": "coffee_interns",
+			"room": "staff_room",
+			"topic": "staff"
+		},
+		"staff:hr": {
+			"kind": "staff",
+			"target": "hr",
+			"spot": "phone_clerks",
+			"room": "staff_room",
+			"topic": "staff"
+		},
+		"segment:shared/reception>general_services/review": {
+			"kind": "segment",
+			"target": "shared/reception>general_services/review",
+			"spot": "tube:general_services",
+			"room": "general_services",
+			"topic": "transport"
+		},
+		"segment:general_services/review>general_services/signature": {
+			"kind": "segment",
+			"target": "general_services/review>general_services/signature",
+			"spot": "tube:general_services",
+			"room": "general_services",
+			"topic": "transport"
+		},
+		"segment:general_services/signature>shared/counter": {
+			"kind": "segment",
+			"target": "general_services/signature>shared/counter",
+			"spot": "tube:general_services",
+			"room": "general_services",
+			"topic": "transport"
+		},
+		"segment:general_services/review>shared/counter": {
+			"kind": "segment",
+			"target": "general_services/review>shared/counter",
+			"spot": "tube:general_services",
+			"room": "general_services",
+			"topic": "transport"
+		},
+		"segment:shared/mailroom>general_services/review": {
+			"kind": "segment",
+			"target": "shared/mailroom>general_services/review",
+			"spot": "tube:general_services",
+			"room": "general_services",
+			"topic": "transport"
+		},
+		"segment:shared/reception>tax_services/review": {
+			"kind": "segment",
+			"target": "shared/reception>tax_services/review",
+			"spot": "tube:tax_services",
+			"room": "tax_services",
+			"topic": "transport"
+		},
+		"segment:tax_services/review>tax_services/signature": {
+			"kind": "segment",
+			"target": "tax_services/review>tax_services/signature",
+			"spot": "tube:tax_services",
+			"room": "tax_services",
+			"topic": "transport"
+		},
+		"segment:tax_services/signature>shared/counter": {
+			"kind": "segment",
+			"target": "tax_services/signature>shared/counter",
+			"spot": "tube:tax_services",
+			"room": "tax_services",
+			"topic": "transport"
+		},
+		"segment:tax_services/review>shared/counter": {
+			"kind": "segment",
+			"target": "tax_services/review>shared/counter",
+			"spot": "tube:tax_services",
+			"room": "tax_services",
+			"topic": "transport"
+		},
+		"segment:shared/mailroom>tax_services/review": {
+			"kind": "segment",
+			"target": "shared/mailroom>tax_services/review",
+			"spot": "tube:tax_services",
+			"room": "tax_services",
+			"topic": "transport"
+		},
+		"segment:shared/reception>business_licences/review": {
+			"kind": "segment",
+			"target": "shared/reception>business_licences/review",
+			"spot": "tube:business_licences",
+			"room": "business_licences",
+			"topic": "transport"
+		},
+		"segment:business_licences/review>shared/inspection": {
+			"kind": "segment",
+			"target": "business_licences/review>shared/inspection",
+			"spot": "tube:business_licences",
+			"room": "business_licences",
+			"topic": "transport"
+		},
+		"segment:shared/inspection>business_licences/signature": {
+			"kind": "segment",
+			"target": "shared/inspection>business_licences/signature",
+			"spot": "tube:business_licences",
+			"room": "business_licences",
+			"topic": "transport"
+		},
+		"segment:business_licences/signature>shared/counter": {
+			"kind": "segment",
+			"target": "business_licences/signature>shared/counter",
+			"spot": "tube:business_licences",
+			"room": "business_licences",
+			"topic": "transport"
+		},
+		"segment:business_licences/review>shared/counter": {
+			"kind": "segment",
+			"target": "business_licences/review>shared/counter",
+			"spot": "tube:business_licences",
+			"room": "business_licences",
+			"topic": "transport"
+		},
+		"segment:shared/mailroom>business_licences/review": {
+			"kind": "segment",
+			"target": "shared/mailroom>business_licences/review",
+			"spot": "tube:business_licences",
+			"room": "business_licences",
+			"topic": "transport"
+		},
+		"segment:shared/reception>vehicle_registration/review": {
+			"kind": "segment",
+			"target": "shared/reception>vehicle_registration/review",
+			"spot": "tube:vehicle_registration",
+			"room": "vehicle_registration",
+			"topic": "transport"
+		},
+		"segment:vehicle_registration/review>vehicle_registration/signature": {
+			"kind": "segment",
+			"target": "vehicle_registration/review>vehicle_registration/signature",
+			"spot": "tube:vehicle_registration",
+			"room": "vehicle_registration",
+			"topic": "transport"
+		},
+		"segment:vehicle_registration/signature>shared/counter": {
+			"kind": "segment",
+			"target": "vehicle_registration/signature>shared/counter",
+			"spot": "tube:vehicle_registration",
+			"room": "vehicle_registration",
+			"topic": "transport"
+		},
+		"segment:vehicle_registration/review>shared/counter": {
+			"kind": "segment",
+			"target": "vehicle_registration/review>shared/counter",
+			"spot": "tube:vehicle_registration",
+			"room": "vehicle_registration",
+			"topic": "transport"
+		},
+		"segment:shared/mailroom>vehicle_registration/review": {
+			"kind": "segment",
+			"target": "shared/mailroom>vehicle_registration/review",
+			"spot": "tube:vehicle_registration",
+			"room": "vehicle_registration",
+			"topic": "transport"
+		},
+		"segment:shared/reception>building_permits/review": {
+			"kind": "segment",
+			"target": "shared/reception>building_permits/review",
+			"spot": "tube:building_permits",
+			"room": "building_permits",
+			"topic": "transport"
+		},
+		"segment:building_permits/review>shared/inspection": {
+			"kind": "segment",
+			"target": "building_permits/review>shared/inspection",
+			"spot": "tube:building_permits",
+			"room": "building_permits",
+			"topic": "transport"
+		},
+		"segment:shared/inspection>building_permits/signature": {
+			"kind": "segment",
+			"target": "shared/inspection>building_permits/signature",
+			"spot": "tube:building_permits",
+			"room": "building_permits",
+			"topic": "transport"
+		},
+		"segment:building_permits/signature>shared/counter": {
+			"kind": "segment",
+			"target": "building_permits/signature>shared/counter",
+			"spot": "tube:building_permits",
+			"room": "building_permits",
+			"topic": "transport"
+		},
+		"segment:building_permits/review>shared/counter": {
+			"kind": "segment",
+			"target": "building_permits/review>shared/counter",
+			"spot": "tube:building_permits",
+			"room": "building_permits",
+			"topic": "transport"
+		},
+		"segment:shared/mailroom>building_permits/review": {
+			"kind": "segment",
+			"target": "shared/mailroom>building_permits/review",
+			"spot": "tube:building_permits",
+			"room": "building_permits",
+			"topic": "transport"
+		},
+		"segment:shared/reception>housing/review": {
+			"kind": "segment",
+			"target": "shared/reception>housing/review",
+			"spot": "tube:housing",
+			"room": "housing",
+			"topic": "transport"
+		},
+		"segment:housing/review>general_services/review": {
+			"kind": "segment",
+			"target": "housing/review>general_services/review",
+			"spot": "tube:housing",
+			"room": "housing",
+			"topic": "transport"
+		},
+		"segment:housing/signature>shared/counter": {
+			"kind": "segment",
+			"target": "housing/signature>shared/counter",
+			"spot": "tube:housing",
+			"room": "housing",
+			"topic": "transport"
+		},
+		"segment:housing/review>shared/counter": {
+			"kind": "segment",
+			"target": "housing/review>shared/counter",
+			"spot": "tube:housing",
+			"room": "housing",
+			"topic": "transport"
+		},
+		"segment:shared/mailroom>housing/review": {
+			"kind": "segment",
+			"target": "shared/mailroom>housing/review",
+			"spot": "tube:housing",
+			"room": "housing",
+			"topic": "transport"
+		},
+		"segment:shared/reception>social_benefits/review": {
+			"kind": "segment",
+			"target": "shared/reception>social_benefits/review",
+			"spot": "tube:social_benefits",
+			"room": "social_benefits",
+			"topic": "transport"
+		},
+		"segment:social_benefits/review>social_benefits/signature": {
+			"kind": "segment",
+			"target": "social_benefits/review>social_benefits/signature",
+			"spot": "tube:social_benefits",
+			"room": "social_benefits",
+			"topic": "transport"
+		},
+		"segment:social_benefits/signature>shared/counter": {
+			"kind": "segment",
+			"target": "social_benefits/signature>shared/counter",
+			"spot": "tube:social_benefits",
+			"room": "social_benefits",
+			"topic": "transport"
+		},
+		"segment:social_benefits/review>shared/counter": {
+			"kind": "segment",
+			"target": "social_benefits/review>shared/counter",
+			"spot": "tube:social_benefits",
+			"room": "social_benefits",
+			"topic": "transport"
+		},
+		"segment:shared/mailroom>social_benefits/review": {
+			"kind": "segment",
+			"target": "shared/mailroom>social_benefits/review",
+			"spot": "tube:social_benefits",
+			"room": "social_benefits",
+			"topic": "transport"
+		},
+		"segment:customs/dock>customs/review": {
+			"kind": "segment",
+			"target": "customs/dock>customs/review",
+			"spot": "tube:customs",
+			"room": "customs",
+			"topic": "transport"
+		},
+		"segment:customs/review>customs/signature": {
+			"kind": "segment",
+			"target": "customs/review>customs/signature",
+			"spot": "tube:customs",
+			"room": "customs",
+			"topic": "transport"
+		},
+		"segment:customs/signature>customs/clearance": {
+			"kind": "segment",
+			"target": "customs/signature>customs/clearance",
+			"spot": "tube:customs",
+			"room": "customs",
+			"topic": "transport"
+		},
+		"storage:shared/mailroom": {
+			"kind": "storage",
+			"target": "shared/mailroom",
+			"spot": "mail_shelf",
+			"room": "mail",
+			"topic": "mail"
+		}
+	},
+	"spots": {
+		"player": {
+			"room": "player",
+			"rects": [],
+			"visible": [
+				"track:briefcase",
+				"track:work_ethic",
+				"track:sneakers"
+			]
+		},
+		"entrance": {
+			"room": "hall",
+			"rects": [
+				[
+					610.0,
+					3222.0,
+					180.0,
+					76.0
+				]
+			],
+			"visible": []
+		},
+		"seating": {
+			"room": "hall",
+			"rects": [
+				[
+					320.0,
+					2772.0,
+					336.0,
+					216.0
+				],
+				[
+					324.0,
+					2996.0,
+					200.0,
+					24.0
+				],
+				[
+					324.0,
+					3026.0,
+					200.0,
+					24.0
+				]
+			],
+			"visible": [
+				"track:seating"
+			]
+		},
+		"pickup_seating": {
+			"room": "hall",
+			"rects": [
+				[
+					744.0,
+					2772.0,
+					336.0,
+					216.0
+				],
+				[
+					748.0,
+					2996.0,
+					200.0,
+					24.0
+				],
+				[
+					748.0,
+					3026.0,
+					200.0,
+					24.0
+				]
+			],
+			"visible": [
+				"track:pickup_seating"
+			]
+		},
+		"tickets": {
+			"room": "hall",
+			"rects": [
+				[
+					130.0,
+					3066.0,
+					520.0,
+					190.0
+				]
+			],
+			"visible": [
+				"track:ticket_speed",
+				"track:ticket_machine_2",
+				"track:ticket_speed_2",
+				"track:ticket_machine_3",
+				"track:ticket_speed_3"
+			]
+		},
+		"complaint_desk": {
+			"room": "complaint_office",
+			"rects": [
+				[
+					1508.0,
+					3094.0,
+					284.0,
+					64.0
+				]
+			],
+			"visible": [
+				"track:complaint_interns",
+				"track:intern_steadfast",
+				"track:intern_speed"
+			]
+		},
+		"complaint_box": {
+			"room": "complaint_office",
+			"rects": [
+				[
+					1806.0,
+					3078.0,
+					110.0,
+					96.0
+				]
+			],
+			"visible": [
+				"track:complaint_box",
+				"track:intern_box_runs"
+			]
+		},
+		"security": {
+			"room": "complaint_office",
+			"rects": [
+				[
+					1412.0,
+					3014.0,
+					68.0,
+					90.0
+				]
+			],
+			"visible": [
+				"track:complaint_security",
+				"track:security_training"
+			]
+		},
+		"archive": {
+			"room": "hall",
+			"rects": [
+				[
+					84.0,
+					2796.0,
+					72.0,
+					116.0
+				]
+			],
+			"visible": []
+		},
+		"runners": {
+			"room": "hall",
+			"rects": [
+				[
+					1170.0,
+					3092.0,
+					176.0,
+					140.0
+				]
+			],
+			"visible": [
+				"track:runner_trolleys",
+				"track:runner_training",
+				"track:runner_speed",
+				"staff:runners"
+			]
+		},
+		"coffee_interns": {
+			"room": "staff_room",
+			"rects": [
+				[
+					1416.0,
+					2334.0,
+					148.0,
+					204.0
+				]
+			],
+			"visible": [
+				"track:coffee_intern_speed",
+				"staff:coffee_interns"
+			]
+		},
+		"phone_clerks": {
+			"room": "staff_room",
+			"rects": [
+				[
+					1576.0,
+					2334.0,
+					148.0,
+					204.0
+				]
+			],
+			"visible": [
+				"staff:hr"
+			]
+		},
+		"training": {
+			"room": "staff_room",
+			"rects": [
+				[
+					1736.0,
+					2334.0,
+					148.0,
+					204.0
+				]
+			],
+			"visible": [
+				"track:quality_training"
+			]
+		},
+		"works_council": {
+			"room": "staff_room",
+			"rects": [
+				[
+					1896.0,
+					2334.0,
+					148.0,
+					204.0
+				]
+			],
+			"visible": [
+				"track:mediation"
+			]
+		},
+		"shredder": {
+			"room": "shredder_room",
+			"rects": [
+				[
+					1500.0,
+					2670.0,
+					140.0,
+					150.0
+				]
+			],
+			"visible": [
+				"track:shredder_blades"
+			]
+		},
+		"tube_hub": {
+			"room": "tech_room",
+			"rects": [
+				[
+					1440.0,
+					210.0,
+					140.0,
+					140.0
+				]
+			],
+			"visible": [
+				"track:tube_station@hall",
+				"track:pneumatic_tubes",
+				"track:tube_capacity",
+				"track:tube_speed",
+				"track:large_capsules",
+				"track:tube_station@mail",
+				"track:tube_station@inspection",
+				"track:tube_station@general_services",
+				"segment:shared/reception>general_services/review",
+				"segment:general_services/review>general_services/signature",
+				"segment:general_services/signature>shared/counter",
+				"segment:general_services/review>shared/counter",
+				"segment:shared/mailroom>general_services/review",
+				"track:tube_station@tax_services",
+				"segment:shared/reception>tax_services/review",
+				"segment:tax_services/review>tax_services/signature",
+				"segment:tax_services/signature>shared/counter",
+				"segment:tax_services/review>shared/counter",
+				"segment:shared/mailroom>tax_services/review",
+				"track:tube_station@business_licences",
+				"segment:shared/reception>business_licences/review",
+				"segment:business_licences/review>shared/inspection",
+				"segment:shared/inspection>business_licences/signature",
+				"segment:business_licences/signature>shared/counter",
+				"segment:business_licences/review>shared/counter",
+				"segment:shared/mailroom>business_licences/review",
+				"track:tube_station@vehicle_registration",
+				"segment:shared/reception>vehicle_registration/review",
+				"segment:vehicle_registration/review>vehicle_registration/signature",
+				"segment:vehicle_registration/signature>shared/counter",
+				"segment:vehicle_registration/review>shared/counter",
+				"segment:shared/mailroom>vehicle_registration/review",
+				"track:tube_station@building_permits",
+				"segment:shared/reception>building_permits/review",
+				"segment:building_permits/review>shared/inspection",
+				"segment:shared/inspection>building_permits/signature",
+				"segment:building_permits/signature>shared/counter",
+				"segment:building_permits/review>shared/counter",
+				"segment:shared/mailroom>building_permits/review",
+				"track:tube_station@housing",
+				"segment:shared/reception>housing/review",
+				"segment:housing/review>general_services/review",
+				"segment:housing/signature>shared/counter",
+				"segment:housing/review>shared/counter",
+				"segment:shared/mailroom>housing/review",
+				"track:tube_station@social_benefits",
+				"segment:shared/reception>social_benefits/review",
+				"segment:social_benefits/review>social_benefits/signature",
+				"segment:social_benefits/signature>shared/counter",
+				"segment:social_benefits/review>shared/counter",
+				"segment:shared/mailroom>social_benefits/review",
+				"track:tube_station@customs",
+				"segment:customs/dock>customs/review",
+				"segment:customs/review>customs/signature",
+				"segment:customs/signature>customs/clearance"
+			]
+		},
+		"server": {
+			"room": "tech_room",
+			"rects": [
+				[
+					1650.0,
+					106.0,
+					94.0,
+					150.0
+				]
+			],
+			"visible": [
+				"track:it_support",
+				"track:ai_classification"
+			]
+		},
+		"climate": {
+			"room": "tech_room",
+			"rects": [
+				[
+					1636.0,
+					276.0,
+					108.0,
+					64.0
+				]
+			],
+			"visible": [
+				"track:climate_control"
+			]
+		},
+		"coffee_machine": {
+			"room": "kitchen",
+			"rects": [
+				[
+					1860.0,
+					864.0,
+					140.0,
+					130.0
+				]
+			],
+			"visible": [
+				"track:coffee",
+				"track:coffee_machine",
+				"track:espresso"
+			]
+		},
+		"kitchen": {
+			"room": "kitchen",
+			"rects": [
+				[
+					1810.0,
+					1025.0,
+					220.0,
+					190.0
+				]
+			],
+			"visible": [
+				"track:kitchen"
+			]
+		},
+		"canteen": {
+			"room": "kitchen",
+			"rects": [
+				[
+					1412.0,
+					908.0,
+					354.0,
+					68.0
+				],
+				[
+					1450.0,
+					1050.0,
+					280.0,
+					120.0
+				]
+			],
+			"visible": [
+				"track:canteen_menu",
+				"track:canteen_speed"
+			]
+		},
+		"toilets": {
+			"room": "toilets",
+			"rects": [
+				[
+					1410.0,
+					546.0,
+					640.0,
+					234.0
+				]
+			],
+			"visible": [
+				"track:toilet_stalls",
+				"track:toilet_speed",
+				"track:toilet_hygiene",
+				"track:wake_service"
+			]
+		},
+		"phone": {
+			"room": "phone",
+			"rects": [
+				[
+					1430.0,
+					1356.0,
+					170.0,
+					144.0
+				]
+			],
+			"visible": [
+				"track:phone_training"
+			]
+		},
+		"mail_shelf": {
+			"room": "mail",
+			"rects": [
+				[
+					1420.0,
+					1606.0,
+					160.0,
+					232.0
+				]
+			],
+			"visible": [
+				"storage:shared/mailroom"
+			]
+		},
+		"mailbox": {
+			"room": "mail",
+			"rects": [
+				[
+					1968.0,
+					1670.0,
+					86.0,
+					104.0
+				]
+			],
+			"visible": [
+				"track:mail_subscription",
+				"track:mail_frequency"
+			]
+		},
+		"room:player": {
+			"room": "player",
+			"rects": [],
+			"visible": [
+				"track:briefcase",
+				"track:work_ethic",
+				"track:sneakers"
+			]
+		},
+		"room:hall": {
+			"room": "hall",
+			"rects": [
+				[
+					530.0,
+					2453.0,
+					340.0,
+					30.0
+				]
+			],
+			"visible": [
+				"track:seating",
+				"track:pickup_seating",
+				"track:ticket_speed",
+				"track:ticket_machine_2",
+				"track:ticket_speed_2",
+				"track:ticket_machine_3",
+				"track:ticket_speed_3",
+				"track:runner_trolleys",
+				"track:runner_training",
+				"track:runner_speed",
+				"staff:runners",
+				"track:room_speed@hall",
+				"track:room_trays@hall",
+				"track:team_lead@intake",
+				"track:lead_breaks@intake",
+				"track:lead_health@intake",
+				"track:lead_focus@intake",
+				"track:lead_patrol@intake",
+				"track:lead_cooldown@intake",
+				"track:team_lead@pickup",
+				"track:lead_breaks@pickup",
+				"track:lead_health@pickup",
+				"track:lead_focus@pickup",
+				"track:lead_patrol@pickup",
+				"track:lead_cooldown@pickup",
+				"track:tube_station@hall",
+				"desk:shared/reception",
+				"hire:shared/reception",
+				"reject_pile:shared/reception",
+				"desk:shared/counter",
+				"hire:shared/counter",
+				"reject_pile:shared/counter"
+			]
+		},
+		"room:staff_room": {
+			"room": "staff_room",
+			"rects": [
+				[
+					1400.0,
+					2270.0,
+					660.0,
+					56.0
+				]
+			],
+			"visible": [
+				"track:coffee_intern_speed",
+				"staff:coffee_interns",
+				"staff:hr",
+				"track:quality_training",
+				"track:mediation"
+			]
+		},
+		"room:complaint_office": {
+			"room": "complaint_office",
+			"rects": [
+				[
+					1400.0,
+					2890.0,
+					660.0,
+					56.0
+				]
+			],
+			"visible": [
+				"track:complaint_interns",
+				"track:intern_steadfast",
+				"track:intern_speed",
+				"track:complaint_box",
+				"track:intern_box_runs",
+				"track:complaint_security",
+				"track:security_training"
+			]
+		},
+		"room:shredder_room": {
+			"room": "shredder_room",
+			"rects": [
+				[
+					1400.0,
+					2570.0,
+					660.0,
+					56.0
+				]
+			],
+			"visible": [
+				"track:shredder_blades"
+			]
+		},
+		"room:tech_room": {
+			"room": "tech_room",
+			"rects": [
+				[
+					1400.0,
+					40.0,
+					660.0,
+					56.0
+				]
+			],
+			"visible": [
+				"track:pneumatic_tubes",
+				"track:tube_capacity",
+				"track:tube_speed",
+				"track:large_capsules",
+				"track:it_support",
+				"track:ai_classification",
+				"track:climate_control"
+			]
+		},
+		"room:kitchen": {
+			"room": "kitchen",
+			"rects": [
+				[
+					1400.0,
+					810.0,
+					660.0,
+					56.0
+				]
+			],
+			"visible": [
+				"track:coffee",
+				"track:coffee_machine",
+				"track:espresso",
+				"track:kitchen",
+				"track:canteen_menu",
+				"track:canteen_speed"
+			]
+		},
+		"room:toilets": {
+			"room": "toilets",
+			"rects": [
+				[
+					1400.0,
+					490.0,
+					660.0,
+					56.0
+				]
+			],
+			"visible": [
+				"track:toilet_stalls",
+				"track:toilet_speed",
+				"track:toilet_hygiene",
+				"track:wake_service"
+			]
+		},
+		"room:phone": {
+			"room": "phone",
+			"rects": [
+				[
+					1400.0,
+					1290.0,
+					660.0,
+					56.0
+				]
+			],
+			"visible": [
+				"track:phone_training"
+			]
+		},
+		"room:mail": {
+			"room": "mail",
+			"rects": [
+				[
+					1400.0,
+					1530.0,
+					660.0,
+					56.0
+				]
+			],
+			"visible": [
+				"storage:shared/mailroom",
+				"track:mail_subscription",
+				"track:mail_frequency",
+				"track:room_speed@mail",
+				"track:room_trays@mail",
+				"track:team_lead@mail",
+				"track:lead_breaks@mail",
+				"track:lead_health@mail",
+				"track:lead_focus@mail",
+				"track:lead_patrol@mail",
+				"track:lead_cooldown@mail",
+				"track:tube_station@mail",
+				"track:registered_mail",
+				"desk:shared/mailroom",
+				"hire:shared/mailroom"
+			]
+		},
+		"room:player_office": {
+			"room": "player_office",
+			"rects": [
+				[
+					1400.0,
+					1910.0,
+					660.0,
+					56.0
+				]
+			],
+			"visible": []
+		},
+		"room:inspection": {
+			"room": "inspection",
+			"rects": [
+				[
+					710.0,
+					1480.0,
+					650.0,
+					56.0
+				]
+			],
+			"visible": [
+				"track:room_speed@inspection",
+				"track:room_trays@inspection",
+				"track:team_lead@inspection",
+				"track:lead_breaks@inspection",
+				"track:lead_health@inspection",
+				"track:lead_focus@inspection",
+				"track:lead_patrol@inspection",
+				"track:lead_cooldown@inspection",
+				"track:tube_station@inspection",
+				"desk:shared/inspection",
+				"hire:shared/inspection"
+			]
+		},
+		"station:shared/reception": {
+			"room": "hall",
+			"rects": [
+				[
+					72.0,
+					2540.0,
+					584.0,
+					220.0
+				]
+			],
+			"visible": [
+				"track:room_speed@hall",
+				"desk:shared/reception",
+				"hire:shared/reception"
+			]
+		},
+		"trays:shared/reception": {
+			"room": "hall",
+			"rects": [
+				[
+					78.0,
+					2700.0,
+					100.0,
+					70.0
+				],
+				[
+					188.0,
+					2700.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@hall",
+				"reject_pile:shared/reception"
+			]
+		},
+		"station:shared/counter": {
+			"room": "hall",
+			"rects": [
+				[
+					744.0,
+					2540.0,
+					584.0,
+					220.0
+				]
+			],
+			"visible": [
+				"track:room_speed@hall",
+				"desk:shared/counter",
+				"hire:shared/counter"
+			]
+		},
+		"trays:shared/counter": {
+			"room": "hall",
+			"rects": [
+				[
+					1144.0,
+					2700.0,
+					100.0,
+					70.0
+				],
+				[
+					1254.0,
+					2700.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@hall",
+				"reject_pile:shared/counter"
+			]
+		},
+		"station:shared/inspection": {
+			"room": "inspection",
+			"rects": [
+				[
+					734.0,
+					1536.0,
+					602.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@inspection",
+				"desk:shared/inspection",
+				"hire:shared/inspection"
+			]
+		},
+		"trays:shared/inspection": {
+			"room": "inspection",
+			"rects": [
+				[
+					740.0,
+					1780.0,
+					100.0,
+					70.0
+				],
+				[
+					1262.0,
+					1780.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@inspection"
+			]
+		},
+		"station:shared/mailroom": {
+			"room": "mail",
+			"rects": [
+				[
+					1600.0,
+					1586.0,
+					260.0,
+					280.0
+				]
+			],
+			"visible": [
+				"track:room_speed@mail",
+				"track:registered_mail",
+				"desk:shared/mailroom",
+				"hire:shared/mailroom"
+			]
+		},
+		"trays:shared/mailroom": {
+			"room": "mail",
+			"rects": [
+				[
+					1786.0,
+					1790.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@mail"
+			]
+		},
+		"station:general_services/review": {
+			"room": "general_services",
+			"rects": [
+				[
+					64.0,
+					2016.0,
+					340.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@general_services",
+				"desk:general_services/review",
+				"hire:general_services/review"
+			]
+		},
+		"trays:general_services/review": {
+			"room": "general_services",
+			"rects": [
+				[
+					70.0,
+					2260.0,
+					100.0,
+					70.0
+				],
+				[
+					330.0,
+					2260.0,
+					100.0,
+					70.0
+				],
+				[
+					266.0,
+					2260.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@general_services",
+				"reject_pile:general_services/review"
+			]
+		},
+		"station:general_services/signature": {
+			"room": "general_services",
+			"rects": [
+				[
+					428.0,
+					2016.0,
+					238.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@general_services",
+				"desk:general_services/signature",
+				"hire:general_services/signature"
+			]
+		},
+		"trays:general_services/signature": {
+			"room": "general_services",
+			"rects": [
+				[
+					434.0,
+					2260.0,
+					100.0,
+					70.0
+				],
+				[
+					592.0,
+					2260.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@general_services"
+			]
+		},
+		"station:tax_services/review": {
+			"room": "tax_services",
+			"rects": [
+				[
+					734.0,
+					2016.0,
+					340.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@tax_services",
+				"desk:tax_services/review",
+				"hire:tax_services/review"
+			]
+		},
+		"trays:tax_services/review": {
+			"room": "tax_services",
+			"rects": [
+				[
+					740.0,
+					2260.0,
+					100.0,
+					70.0
+				],
+				[
+					1000.0,
+					2260.0,
+					100.0,
+					70.0
+				],
+				[
+					936.0,
+					2260.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@tax_services",
+				"reject_pile:tax_services/review"
+			]
+		},
+		"station:tax_services/signature": {
+			"room": "tax_services",
+			"rects": [
+				[
+					1098.0,
+					2016.0,
+					238.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@tax_services",
+				"desk:tax_services/signature"
+			]
+		},
+		"trays:tax_services/signature": {
+			"room": "tax_services",
+			"rects": [
+				[
+					1104.0,
+					2260.0,
+					100.0,
+					70.0
+				],
+				[
+					1262.0,
+					2260.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@tax_services"
+			]
+		},
+		"station:business_licences/review": {
+			"room": "business_licences",
+			"rects": [
+				[
+					64.0,
+					1536.0,
+					340.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@business_licences",
+				"desk:business_licences/review",
+				"hire:business_licences/review"
+			]
+		},
+		"trays:business_licences/review": {
+			"room": "business_licences",
+			"rects": [
+				[
+					70.0,
+					1780.0,
+					100.0,
+					70.0
+				],
+				[
+					330.0,
+					1780.0,
+					100.0,
+					70.0
+				],
+				[
+					266.0,
+					1780.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@business_licences",
+				"reject_pile:business_licences/review"
+			]
+		},
+		"station:business_licences/signature": {
+			"room": "business_licences",
+			"rects": [
+				[
+					428.0,
+					1536.0,
+					238.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@business_licences",
+				"desk:business_licences/signature"
+			]
+		},
+		"trays:business_licences/signature": {
+			"room": "business_licences",
+			"rects": [
+				[
+					434.0,
+					1780.0,
+					100.0,
+					70.0
+				],
+				[
+					592.0,
+					1780.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@business_licences"
+			]
+		},
+		"station:vehicle_registration/review": {
+			"room": "vehicle_registration",
+			"rects": [
+				[
+					64.0,
+					1056.0,
+					340.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@vehicle_registration",
+				"desk:vehicle_registration/review",
+				"hire:vehicle_registration/review"
+			]
+		},
+		"trays:vehicle_registration/review": {
+			"room": "vehicle_registration",
+			"rects": [
+				[
+					70.0,
+					1300.0,
+					100.0,
+					70.0
+				],
+				[
+					330.0,
+					1300.0,
+					100.0,
+					70.0
+				],
+				[
+					266.0,
+					1300.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@vehicle_registration",
+				"reject_pile:vehicle_registration/review"
+			]
+		},
+		"station:vehicle_registration/signature": {
+			"room": "vehicle_registration",
+			"rects": [
+				[
+					428.0,
+					1056.0,
+					238.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@vehicle_registration",
+				"desk:vehicle_registration/signature"
+			]
+		},
+		"trays:vehicle_registration/signature": {
+			"room": "vehicle_registration",
+			"rects": [
+				[
+					434.0,
+					1300.0,
+					100.0,
+					70.0
+				],
+				[
+					592.0,
+					1300.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@vehicle_registration"
+			]
+		},
+		"station:building_permits/review": {
+			"room": "building_permits",
+			"rects": [
+				[
+					734.0,
+					1056.0,
+					340.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@building_permits",
+				"desk:building_permits/review",
+				"hire:building_permits/review"
+			]
+		},
+		"trays:building_permits/review": {
+			"room": "building_permits",
+			"rects": [
+				[
+					740.0,
+					1300.0,
+					100.0,
+					70.0
+				],
+				[
+					1000.0,
+					1300.0,
+					100.0,
+					70.0
+				],
+				[
+					936.0,
+					1300.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@building_permits",
+				"reject_pile:building_permits/review"
+			]
+		},
+		"station:building_permits/signature": {
+			"room": "building_permits",
+			"rects": [
+				[
+					1098.0,
+					1056.0,
+					238.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@building_permits",
+				"desk:building_permits/signature",
+				"hire:building_permits/signature"
+			]
+		},
+		"trays:building_permits/signature": {
+			"room": "building_permits",
+			"rects": [
+				[
+					1104.0,
+					1300.0,
+					100.0,
+					70.0
+				],
+				[
+					1262.0,
+					1300.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@building_permits"
+			]
+		},
+		"station:housing/review": {
+			"room": "housing",
+			"rects": [
+				[
+					64.0,
+					576.0,
+					340.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@housing",
+				"desk:housing/review",
+				"hire:housing/review"
+			]
+		},
+		"trays:housing/review": {
+			"room": "housing",
+			"rects": [
+				[
+					70.0,
+					820.0,
+					100.0,
+					70.0
+				],
+				[
+					330.0,
+					820.0,
+					100.0,
+					70.0
+				],
+				[
+					266.0,
+					820.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@housing",
+				"reject_pile:housing/review"
+			]
+		},
+		"station:housing/signature": {
+			"room": "housing",
+			"rects": [
+				[
+					428.0,
+					576.0,
+					238.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@housing",
+				"desk:housing/signature"
+			]
+		},
+		"trays:housing/signature": {
+			"room": "housing",
+			"rects": [
+				[
+					434.0,
+					820.0,
+					100.0,
+					70.0
+				],
+				[
+					592.0,
+					820.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@housing"
+			]
+		},
+		"station:social_benefits/review": {
+			"room": "social_benefits",
+			"rects": [
+				[
+					734.0,
+					576.0,
+					340.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@social_benefits",
+				"desk:social_benefits/review",
+				"hire:social_benefits/review"
+			]
+		},
+		"trays:social_benefits/review": {
+			"room": "social_benefits",
+			"rects": [
+				[
+					740.0,
+					820.0,
+					100.0,
+					70.0
+				],
+				[
+					1000.0,
+					820.0,
+					100.0,
+					70.0
+				],
+				[
+					936.0,
+					820.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@social_benefits",
+				"reject_pile:social_benefits/review"
+			]
+		},
+		"station:social_benefits/signature": {
+			"room": "social_benefits",
+			"rects": [
+				[
+					1098.0,
+					576.0,
+					238.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@social_benefits",
+				"desk:social_benefits/signature",
+				"hire:social_benefits/signature"
+			]
+		},
+		"trays:social_benefits/signature": {
+			"room": "social_benefits",
+			"rects": [
+				[
+					1104.0,
+					820.0,
+					100.0,
+					70.0
+				],
+				[
+					1262.0,
+					820.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@social_benefits"
+			]
+		},
+		"station:customs/dock": {
+			"room": "customs",
+			"rects": [
+				[
+					64.0,
+					96.0,
+					303.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@customs",
+				"desk:customs/dock",
+				"hire:customs/dock"
+			]
+		},
+		"trays:customs/dock": {
+			"room": "customs",
+			"rects": [
+				[
+					293.0,
+					340.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@customs"
+			]
+		},
+		"station:customs/review": {
+			"room": "customs",
+			"rects": [
+				[
+					387.0,
+					96.0,
+					303.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@customs",
+				"desk:customs/review",
+				"hire:customs/review"
+			]
+		},
+		"trays:customs/review": {
+			"room": "customs",
+			"rects": [
+				[
+					393.0,
+					340.0,
+					100.0,
+					70.0
+				],
+				[
+					616.0,
+					340.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@customs"
+			]
+		},
+		"station:customs/signature": {
+			"room": "customs",
+			"rects": [
+				[
+					710.0,
+					96.0,
+					303.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@customs",
+				"desk:customs/signature"
+			]
+		},
+		"trays:customs/signature": {
+			"room": "customs",
+			"rects": [
+				[
+					716.0,
+					340.0,
+					100.0,
+					70.0
+				],
+				[
+					939.0,
+					340.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@customs"
+			]
+		},
+		"station:customs/clearance": {
+			"room": "customs",
+			"rects": [
+				[
+					1033.0,
+					96.0,
+					303.0,
+					320.0
+				]
+			],
+			"visible": [
+				"track:room_speed@customs",
+				"desk:customs/clearance",
+				"hire:customs/clearance"
+			]
+		},
+		"trays:customs/clearance": {
+			"room": "customs",
+			"rects": [
+				[
+					1039.0,
+					340.0,
+					100.0,
+					70.0
+				]
+			],
+			"visible": [
+				"track:room_trays@customs"
+			]
+		},
+		"dept:general_services": {
+			"room": "general_services",
+			"rects": [
+				[
+					40.0,
+					1960.0,
+					650.0,
+					56.0
+				]
+			],
+			"visible": [
+				"rank:general_services",
+				"track:room_speed@general_services",
+				"track:room_trays@general_services",
+				"track:team_lead@general_services",
+				"track:lead_breaks@general_services",
+				"track:lead_health@general_services",
+				"track:lead_focus@general_services",
+				"track:lead_calm@general_services",
+				"track:lead_patrol@general_services",
+				"track:lead_cooldown@general_services",
+				"track:shredder@general_services",
+				"track:tube_station@general_services",
+				"segment:shared/reception>general_services/review",
+				"segment:general_services/review>general_services/signature",
+				"segment:general_services/signature>shared/counter",
+				"segment:general_services/review>shared/counter",
+				"segment:shared/mailroom>general_services/review",
+				"desk:general_services/review",
+				"hire:general_services/review",
+				"reject_pile:general_services/review",
+				"desk:general_services/signature",
+				"hire:general_services/signature"
+			]
+		},
+		"dept:tax_services": {
+			"room": "tax_services",
+			"rects": [
+				[
+					710.0,
+					1960.0,
+					650.0,
+					56.0
+				]
+			],
+			"visible": [
+				"rank:tax_services",
+				"track:room_speed@tax_services",
+				"track:room_trays@tax_services",
+				"track:team_lead@tax_services",
+				"track:lead_breaks@tax_services",
+				"track:lead_health@tax_services",
+				"track:lead_focus@tax_services",
+				"track:lead_calm@tax_services",
+				"track:lead_patrol@tax_services",
+				"track:lead_cooldown@tax_services",
+				"track:shredder@tax_services",
+				"track:tube_station@tax_services",
+				"segment:shared/reception>tax_services/review",
+				"segment:tax_services/review>tax_services/signature",
+				"segment:tax_services/signature>shared/counter",
+				"segment:tax_services/review>shared/counter",
+				"segment:shared/mailroom>tax_services/review",
+				"desk:tax_services/review",
+				"hire:tax_services/review",
+				"reject_pile:tax_services/review",
+				"desk:tax_services/signature"
+			]
+		},
+		"dept:business_licences": {
+			"room": "business_licences",
+			"rects": [
+				[
+					40.0,
+					1480.0,
+					650.0,
+					56.0
+				]
+			],
+			"visible": [
+				"rank:business_licences",
+				"track:room_speed@business_licences",
+				"track:room_trays@business_licences",
+				"track:team_lead@business_licences",
+				"track:lead_breaks@business_licences",
+				"track:lead_health@business_licences",
+				"track:lead_focus@business_licences",
+				"track:lead_calm@business_licences",
+				"track:lead_patrol@business_licences",
+				"track:lead_cooldown@business_licences",
+				"track:shredder@business_licences",
+				"track:tube_station@business_licences",
+				"segment:shared/reception>business_licences/review",
+				"segment:business_licences/review>shared/inspection",
+				"segment:shared/inspection>business_licences/signature",
+				"segment:business_licences/signature>shared/counter",
+				"segment:business_licences/review>shared/counter",
+				"segment:shared/mailroom>business_licences/review",
+				"desk:business_licences/review",
+				"hire:business_licences/review",
+				"reject_pile:business_licences/review",
+				"desk:business_licences/signature"
+			]
+		},
+		"dept:vehicle_registration": {
+			"room": "vehicle_registration",
+			"rects": [
+				[
+					40.0,
+					1000.0,
+					650.0,
+					56.0
+				]
+			],
+			"visible": [
+				"rank:vehicle_registration",
+				"track:room_speed@vehicle_registration",
+				"track:room_trays@vehicle_registration",
+				"track:team_lead@vehicle_registration",
+				"track:lead_breaks@vehicle_registration",
+				"track:lead_health@vehicle_registration",
+				"track:lead_focus@vehicle_registration",
+				"track:lead_calm@vehicle_registration",
+				"track:lead_patrol@vehicle_registration",
+				"track:lead_cooldown@vehicle_registration",
+				"track:shredder@vehicle_registration",
+				"track:tube_station@vehicle_registration",
+				"segment:shared/reception>vehicle_registration/review",
+				"segment:vehicle_registration/review>vehicle_registration/signature",
+				"segment:vehicle_registration/signature>shared/counter",
+				"segment:vehicle_registration/review>shared/counter",
+				"segment:shared/mailroom>vehicle_registration/review",
+				"desk:vehicle_registration/review",
+				"hire:vehicle_registration/review",
+				"reject_pile:vehicle_registration/review",
+				"desk:vehicle_registration/signature"
+			]
+		},
+		"dept:building_permits": {
+			"room": "building_permits",
+			"rects": [
+				[
+					710.0,
+					1000.0,
+					650.0,
+					56.0
+				]
+			],
+			"visible": [
+				"rank:building_permits",
+				"track:room_speed@building_permits",
+				"track:room_trays@building_permits",
+				"track:team_lead@building_permits",
+				"track:lead_breaks@building_permits",
+				"track:lead_health@building_permits",
+				"track:lead_focus@building_permits",
+				"track:lead_calm@building_permits",
+				"track:lead_patrol@building_permits",
+				"track:lead_cooldown@building_permits",
+				"track:shredder@building_permits",
+				"track:tube_station@building_permits",
+				"segment:shared/reception>building_permits/review",
+				"segment:building_permits/review>shared/inspection",
+				"segment:shared/inspection>building_permits/signature",
+				"segment:building_permits/signature>shared/counter",
+				"segment:building_permits/review>shared/counter",
+				"segment:shared/mailroom>building_permits/review",
+				"desk:building_permits/review",
+				"hire:building_permits/review",
+				"reject_pile:building_permits/review",
+				"desk:building_permits/signature",
+				"hire:building_permits/signature"
+			]
+		},
+		"dept:housing": {
+			"room": "housing",
+			"rects": [
+				[
+					40.0,
+					520.0,
+					650.0,
+					56.0
+				]
+			],
+			"visible": [
+				"rank:housing",
+				"track:room_speed@housing",
+				"track:room_trays@housing",
+				"track:team_lead@housing",
+				"track:lead_breaks@housing",
+				"track:lead_health@housing",
+				"track:lead_focus@housing",
+				"track:lead_calm@housing",
+				"track:lead_patrol@housing",
+				"track:lead_cooldown@housing",
+				"track:shredder@housing",
+				"track:tube_station@housing",
+				"segment:shared/reception>housing/review",
+				"segment:housing/review>general_services/review",
+				"segment:housing/signature>shared/counter",
+				"segment:housing/review>shared/counter",
+				"segment:shared/mailroom>housing/review",
+				"desk:housing/review",
+				"hire:housing/review",
+				"reject_pile:housing/review",
+				"desk:housing/signature"
+			]
+		},
+		"dept:social_benefits": {
+			"room": "social_benefits",
+			"rects": [
+				[
+					710.0,
+					520.0,
+					650.0,
+					56.0
+				]
+			],
+			"visible": [
+				"rank:social_benefits",
+				"track:room_speed@social_benefits",
+				"track:room_trays@social_benefits",
+				"track:team_lead@social_benefits",
+				"track:lead_breaks@social_benefits",
+				"track:lead_health@social_benefits",
+				"track:lead_focus@social_benefits",
+				"track:lead_calm@social_benefits",
+				"track:lead_patrol@social_benefits",
+				"track:lead_cooldown@social_benefits",
+				"track:shredder@social_benefits",
+				"track:tube_station@social_benefits",
+				"segment:shared/reception>social_benefits/review",
+				"segment:social_benefits/review>social_benefits/signature",
+				"segment:social_benefits/signature>shared/counter",
+				"segment:social_benefits/review>shared/counter",
+				"segment:shared/mailroom>social_benefits/review",
+				"desk:social_benefits/review",
+				"hire:social_benefits/review",
+				"reject_pile:social_benefits/review",
+				"desk:social_benefits/signature",
+				"hire:social_benefits/signature"
+			]
+		},
+		"dept:customs": {
+			"room": "customs",
+			"rects": [
+				[
+					40.0,
+					40.0,
+					1320.0,
+					56.0
+				]
+			],
+			"visible": [
+				"rank:customs",
+				"track:room_speed@customs",
+				"track:room_trays@customs",
+				"track:team_lead@customs",
+				"track:lead_breaks@customs",
+				"track:lead_health@customs",
+				"track:lead_focus@customs",
+				"track:lead_calm@customs",
+				"track:lead_patrol@customs",
+				"track:lead_cooldown@customs",
+				"track:tube_station@customs",
+				"segment:customs/dock>customs/review",
+				"segment:customs/review>customs/signature",
+				"segment:customs/signature>customs/clearance",
+				"desk:customs/dock",
+				"hire:customs/dock",
+				"desk:customs/review",
+				"hire:customs/review",
+				"desk:customs/signature",
+				"desk:customs/clearance",
+				"hire:customs/clearance"
+			]
+		},
+		"shredder:general_services": {
+			"room": "general_services",
+			"rects": [
+				[
+					256.0,
+					2348.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:shredder@general_services"
+			]
+		},
+		"shredder:tax_services": {
+			"room": "tax_services",
+			"rects": [
+				[
+					926.0,
+					2348.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:shredder@tax_services"
+			]
+		},
+		"shredder:business_licences": {
+			"room": "business_licences",
+			"rects": [
+				[
+					256.0,
+					1868.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:shredder@business_licences"
+			]
+		},
+		"shredder:vehicle_registration": {
+			"room": "vehicle_registration",
+			"rects": [
+				[
+					256.0,
+					1388.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:shredder@vehicle_registration"
+			]
+		},
+		"shredder:building_permits": {
+			"room": "building_permits",
+			"rects": [
+				[
+					926.0,
+					1388.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:shredder@building_permits"
+			]
+		},
+		"shredder:housing": {
+			"room": "housing",
+			"rects": [
+				[
+					256.0,
+					908.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:shredder@housing"
+			]
+		},
+		"shredder:social_benefits": {
+			"room": "social_benefits",
+			"rects": [
+				[
+					926.0,
+					908.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:shredder@social_benefits"
+			]
+		},
+		"tube:hall": {
+			"room": "hall",
+			"rects": [
+				[
+					1212.0,
+					2990.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@hall"
+			]
+		},
+		"tube:mail": {
+			"room": "mail",
+			"rects": [
+				[
+					1916.0,
+					1820.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@mail"
+			]
+		},
+		"tube:inspection": {
+			"room": "inspection",
+			"rects": [
+				[
+					1206.0,
+					1868.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@inspection"
+			]
+		},
+		"tube:general_services": {
+			"room": "general_services",
+			"rects": [
+				[
+					536.0,
+					2348.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@general_services",
+				"segment:shared/reception>general_services/review",
+				"segment:general_services/review>general_services/signature",
+				"segment:general_services/signature>shared/counter",
+				"segment:general_services/review>shared/counter",
+				"segment:shared/mailroom>general_services/review"
+			]
+		},
+		"tube:tax_services": {
+			"room": "tax_services",
+			"rects": [
+				[
+					1206.0,
+					2348.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@tax_services",
+				"segment:shared/reception>tax_services/review",
+				"segment:tax_services/review>tax_services/signature",
+				"segment:tax_services/signature>shared/counter",
+				"segment:tax_services/review>shared/counter",
+				"segment:shared/mailroom>tax_services/review"
+			]
+		},
+		"tube:business_licences": {
+			"room": "business_licences",
+			"rects": [
+				[
+					536.0,
+					1868.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@business_licences",
+				"segment:shared/reception>business_licences/review",
+				"segment:business_licences/review>shared/inspection",
+				"segment:shared/inspection>business_licences/signature",
+				"segment:business_licences/signature>shared/counter",
+				"segment:business_licences/review>shared/counter",
+				"segment:shared/mailroom>business_licences/review"
+			]
+		},
+		"tube:vehicle_registration": {
+			"room": "vehicle_registration",
+			"rects": [
+				[
+					536.0,
+					1388.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@vehicle_registration",
+				"segment:shared/reception>vehicle_registration/review",
+				"segment:vehicle_registration/review>vehicle_registration/signature",
+				"segment:vehicle_registration/signature>shared/counter",
+				"segment:vehicle_registration/review>shared/counter",
+				"segment:shared/mailroom>vehicle_registration/review"
+			]
+		},
+		"tube:building_permits": {
+			"room": "building_permits",
+			"rects": [
+				[
+					1206.0,
+					1388.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@building_permits",
+				"segment:shared/reception>building_permits/review",
+				"segment:building_permits/review>shared/inspection",
+				"segment:shared/inspection>building_permits/signature",
+				"segment:building_permits/signature>shared/counter",
+				"segment:building_permits/review>shared/counter",
+				"segment:shared/mailroom>building_permits/review"
+			]
+		},
+		"tube:housing": {
+			"room": "housing",
+			"rects": [
+				[
+					536.0,
+					908.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@housing",
+				"segment:shared/reception>housing/review",
+				"segment:housing/review>general_services/review",
+				"segment:housing/signature>shared/counter",
+				"segment:housing/review>shared/counter",
+				"segment:shared/mailroom>housing/review"
+			]
+		},
+		"tube:social_benefits": {
+			"room": "social_benefits",
+			"rects": [
+				[
+					1206.0,
+					908.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@social_benefits",
+				"segment:shared/reception>social_benefits/review",
+				"segment:social_benefits/review>social_benefits/signature",
+				"segment:social_benefits/signature>shared/counter",
+				"segment:social_benefits/review>shared/counter",
+				"segment:shared/mailroom>social_benefits/review"
+			]
+		},
+		"tube:customs": {
+			"room": "customs",
+			"rects": [
+				[
+					1206.0,
+					428.0,
+					88.0,
+					52.0
+				]
+			],
+			"visible": [
+				"track:tube_station@customs",
+				"segment:customs/dock>customs/review",
+				"segment:customs/review>customs/signature",
+				"segment:customs/signature>customs/clearance"
+			]
+		},
+		"lead:intake": {
+			"room": "hall",
+			"rects": [
+				[
+					164.0,
+					2778.0,
+					150.0,
+					104.0
+				]
+			],
+			"visible": [
+				"track:team_lead@intake",
+				"track:lead_breaks@intake",
+				"track:lead_health@intake",
+				"track:lead_focus@intake",
+				"track:lead_patrol@intake",
+				"track:lead_cooldown@intake"
+			]
+		},
+		"lead:pickup": {
+			"room": "hall",
+			"rects": [
+				[
+					1086.0,
+					2778.0,
+					150.0,
+					104.0
+				]
+			],
+			"visible": [
+				"track:team_lead@pickup",
+				"track:lead_breaks@pickup",
+				"track:lead_health@pickup",
+				"track:lead_focus@pickup",
+				"track:lead_patrol@pickup",
+				"track:lead_cooldown@pickup"
+			]
+		},
+		"lead:mail": {
+			"room": "mail",
+			"rects": [
+				[
+					1870.0,
+					1680.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@mail",
+				"track:lead_breaks@mail",
+				"track:lead_health@mail",
+				"track:lead_focus@mail",
+				"track:lead_patrol@mail",
+				"track:lead_cooldown@mail"
+			]
+		},
+		"lead:inspection": {
+			"room": "inspection",
+			"rects": [
+				[
+					1022.0,
+					1862.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@inspection",
+				"track:lead_breaks@inspection",
+				"track:lead_health@inspection",
+				"track:lead_focus@inspection",
+				"track:lead_patrol@inspection",
+				"track:lead_cooldown@inspection"
+			]
+		},
+		"lead:general_services": {
+			"room": "general_services",
+			"rects": [
+				[
+					352.0,
+					2342.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@general_services",
+				"track:lead_breaks@general_services",
+				"track:lead_health@general_services",
+				"track:lead_focus@general_services",
+				"track:lead_calm@general_services",
+				"track:lead_patrol@general_services",
+				"track:lead_cooldown@general_services"
+			]
+		},
+		"lead:tax_services": {
+			"room": "tax_services",
+			"rects": [
+				[
+					1022.0,
+					2342.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@tax_services",
+				"track:lead_breaks@tax_services",
+				"track:lead_health@tax_services",
+				"track:lead_focus@tax_services",
+				"track:lead_calm@tax_services",
+				"track:lead_patrol@tax_services",
+				"track:lead_cooldown@tax_services"
+			]
+		},
+		"lead:business_licences": {
+			"room": "business_licences",
+			"rects": [
+				[
+					352.0,
+					1862.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@business_licences",
+				"track:lead_breaks@business_licences",
+				"track:lead_health@business_licences",
+				"track:lead_focus@business_licences",
+				"track:lead_calm@business_licences",
+				"track:lead_patrol@business_licences",
+				"track:lead_cooldown@business_licences"
+			]
+		},
+		"lead:vehicle_registration": {
+			"room": "vehicle_registration",
+			"rects": [
+				[
+					352.0,
+					1382.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@vehicle_registration",
+				"track:lead_breaks@vehicle_registration",
+				"track:lead_health@vehicle_registration",
+				"track:lead_focus@vehicle_registration",
+				"track:lead_calm@vehicle_registration",
+				"track:lead_patrol@vehicle_registration",
+				"track:lead_cooldown@vehicle_registration"
+			]
+		},
+		"lead:building_permits": {
+			"room": "building_permits",
+			"rects": [
+				[
+					1022.0,
+					1382.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@building_permits",
+				"track:lead_breaks@building_permits",
+				"track:lead_health@building_permits",
+				"track:lead_focus@building_permits",
+				"track:lead_calm@building_permits",
+				"track:lead_patrol@building_permits",
+				"track:lead_cooldown@building_permits"
+			]
+		},
+		"lead:housing": {
+			"room": "housing",
+			"rects": [
+				[
+					352.0,
+					902.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@housing",
+				"track:lead_breaks@housing",
+				"track:lead_health@housing",
+				"track:lead_focus@housing",
+				"track:lead_calm@housing",
+				"track:lead_patrol@housing",
+				"track:lead_cooldown@housing"
+			]
+		},
+		"lead:social_benefits": {
+			"room": "social_benefits",
+			"rects": [
+				[
+					1022.0,
+					902.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@social_benefits",
+				"track:lead_breaks@social_benefits",
+				"track:lead_health@social_benefits",
+				"track:lead_focus@social_benefits",
+				"track:lead_calm@social_benefits",
+				"track:lead_patrol@social_benefits",
+				"track:lead_cooldown@social_benefits"
+			]
+		},
+		"lead:customs": {
+			"room": "customs",
+			"rects": [
+				[
+					352.0,
+					422.0,
+					180.0,
+					72.0
+				]
+			],
+			"visible": [
+				"track:team_lead@customs",
+				"track:lead_breaks@customs",
+				"track:lead_health@customs",
+				"track:lead_focus@customs",
+				"track:lead_calm@customs",
+				"track:lead_patrol@customs",
+				"track:lead_cooldown@customs"
+			]
+		}
+	},
+	"map": {
+		"size": [
+			2100.0,
+			3330.0
+		],
+		"rects": [
+			{
+				"id": "general_services",
+				"kind": "department",
+				"rect": [
+					40.0,
+					1960.0,
+					650.0,
+					460.0
+				]
+			},
+			{
+				"id": "tax_services",
+				"kind": "department",
+				"rect": [
+					710.0,
+					1960.0,
+					650.0,
+					460.0
+				]
+			},
+			{
+				"id": "business_licences",
+				"kind": "department",
+				"rect": [
+					40.0,
+					1480.0,
+					650.0,
+					460.0
+				]
+			},
+			{
+				"id": "vehicle_registration",
+				"kind": "department",
+				"rect": [
+					40.0,
+					1000.0,
+					650.0,
+					460.0
+				]
+			},
+			{
+				"id": "building_permits",
+				"kind": "department",
+				"rect": [
+					710.0,
+					1000.0,
+					650.0,
+					460.0
+				]
+			},
+			{
+				"id": "housing",
+				"kind": "department",
+				"rect": [
+					40.0,
+					520.0,
+					650.0,
+					460.0
+				]
+			},
+			{
+				"id": "social_benefits",
+				"kind": "department",
+				"rect": [
+					710.0,
+					520.0,
+					650.0,
+					460.0
+				]
+			},
+			{
+				"id": "customs",
+				"kind": "department",
+				"rect": [
+					40.0,
+					40.0,
+					1320.0,
+					460.0
+				]
+			},
+			{
+				"id": "shared/inspection",
+				"kind": "room",
+				"room": "inspection",
+				"rect": [
+					710.0,
+					1480.0,
+					650.0,
+					460.0
+				]
+			},
+			{
+				"id": "hall",
+				"kind": "room",
+				"room": "hall",
+				"rect": [
+					40.0,
+					2440.0,
+					1320.0,
+					850.0
+				]
+			},
+			{
+				"id": "staff_room",
+				"kind": "room",
+				"room": "staff_room",
+				"rect": [
+					1400.0,
+					2270.0,
+					660.0,
+					280.0
+				]
+			},
+			{
+				"id": "complaint_office",
+				"kind": "room",
+				"room": "complaint_office",
+				"rect": [
+					1400.0,
+					2890.0,
+					660.0,
+					400.0
+				]
+			},
+			{
+				"id": "shredder_room",
+				"kind": "room",
+				"room": "shredder_room",
+				"rect": [
+					1400.0,
+					2570.0,
+					660.0,
+					300.0
+				]
+			},
+			{
+				"id": "tech_room",
+				"kind": "room",
+				"room": "tech_room",
+				"rect": [
+					1400.0,
+					40.0,
+					660.0,
+					430.0
+				]
+			},
+			{
+				"id": "kitchen",
+				"kind": "room",
+				"room": "kitchen",
+				"rect": [
+					1400.0,
+					810.0,
+					660.0,
+					460.0
+				]
+			},
+			{
+				"id": "toilets",
+				"kind": "room",
+				"room": "toilets",
+				"rect": [
+					1400.0,
+					490.0,
+					660.0,
+					300.0
+				]
+			},
+			{
+				"id": "phone",
+				"kind": "room",
+				"room": "phone",
+				"rect": [
+					1400.0,
+					1290.0,
+					660.0,
+					220.0
+				]
+			},
+			{
+				"id": "mail",
+				"kind": "room",
+				"room": "mail",
+				"rect": [
+					1400.0,
+					1530.0,
+					660.0,
+					360.0
+				]
+			},
+			{
+				"id": "player_office",
+				"kind": "room",
+				"room": "player_office",
+				"rect": [
+					1400.0,
+					1910.0,
+					660.0,
+					340.0
+				]
+			},
+			{
+				"id": "intake",
+				"kind": "waiting",
+				"room": "intake",
+				"rect": [
+					64.0,
+					2496.0,
+					600.0,
+					570.0
+				]
+			},
+			{
+				"id": "pickup",
+				"kind": "waiting",
+				"room": "pickup",
+				"rect": [
+					736.0,
+					2496.0,
+					600.0,
+					570.0
+				]
+			},
+			{
+				"id": "shared/reception",
+				"kind": "area",
+				"rect": [
+					72.0,
+					2540.0,
+					584.0,
+					220.0
+				]
+			},
+			{
+				"id": "shared/counter",
+				"kind": "area",
+				"rect": [
+					744.0,
+					2540.0,
+					584.0,
+					220.0
+				]
+			},
+			{
+				"id": "shared/inspection",
+				"kind": "area",
+				"rect": [
+					734.0,
+					1536.0,
+					602.0,
+					320.0
+				]
+			},
+			{
+				"id": "shared/mailroom",
+				"kind": "area",
+				"rect": [
+					1600.0,
+					1586.0,
+					260.0,
+					280.0
+				]
+			},
+			{
+				"id": "general_services/review",
+				"kind": "area",
+				"rect": [
+					64.0,
+					2016.0,
+					340.0,
+					320.0
+				]
+			},
+			{
+				"id": "general_services/signature",
+				"kind": "area",
+				"rect": [
+					428.0,
+					2016.0,
+					238.0,
+					320.0
+				]
+			},
+			{
+				"id": "tax_services/review",
+				"kind": "area",
+				"rect": [
+					734.0,
+					2016.0,
+					340.0,
+					320.0
+				]
+			},
+			{
+				"id": "tax_services/signature",
+				"kind": "area",
+				"rect": [
+					1098.0,
+					2016.0,
+					238.0,
+					320.0
+				]
+			},
+			{
+				"id": "business_licences/review",
+				"kind": "area",
+				"rect": [
+					64.0,
+					1536.0,
+					340.0,
+					320.0
+				]
+			},
+			{
+				"id": "business_licences/signature",
+				"kind": "area",
+				"rect": [
+					428.0,
+					1536.0,
+					238.0,
+					320.0
+				]
+			},
+			{
+				"id": "vehicle_registration/review",
+				"kind": "area",
+				"rect": [
+					64.0,
+					1056.0,
+					340.0,
+					320.0
+				]
+			},
+			{
+				"id": "vehicle_registration/signature",
+				"kind": "area",
+				"rect": [
+					428.0,
+					1056.0,
+					238.0,
+					320.0
+				]
+			},
+			{
+				"id": "building_permits/review",
+				"kind": "area",
+				"rect": [
+					734.0,
+					1056.0,
+					340.0,
+					320.0
+				]
+			},
+			{
+				"id": "building_permits/signature",
+				"kind": "area",
+				"rect": [
+					1098.0,
+					1056.0,
+					238.0,
+					320.0
+				]
+			},
+			{
+				"id": "housing/review",
+				"kind": "area",
+				"rect": [
+					64.0,
+					576.0,
+					340.0,
+					320.0
+				]
+			},
+			{
+				"id": "housing/signature",
+				"kind": "area",
+				"rect": [
+					428.0,
+					576.0,
+					238.0,
+					320.0
+				]
+			},
+			{
+				"id": "social_benefits/review",
+				"kind": "area",
+				"rect": [
+					734.0,
+					576.0,
+					340.0,
+					320.0
+				]
+			},
+			{
+				"id": "social_benefits/signature",
+				"kind": "area",
+				"rect": [
+					1098.0,
+					576.0,
+					238.0,
+					320.0
+				]
+			},
+			{
+				"id": "customs/dock",
+				"kind": "area",
+				"rect": [
+					64.0,
+					96.0,
+					303.0,
+					320.0
+				]
+			},
+			{
+				"id": "customs/review",
+				"kind": "area",
+				"rect": [
+					387.0,
+					96.0,
+					303.0,
+					320.0
+				]
+			},
+			{
+				"id": "customs/signature",
+				"kind": "area",
+				"rect": [
+					710.0,
+					96.0,
+					303.0,
+					320.0
+				]
+			},
+			{
+				"id": "customs/clearance",
+				"kind": "area",
+				"rect": [
+					1033.0,
+					96.0,
+					303.0,
+					320.0
+				]
+			}
+		]
+	},
+	"stations": {
+		"shared/mailroom": {
+			"kind": "mailroom",
+			"department": "",
+			"shared": true,
+			"machine": false,
+			"reject_pile": false
+		},
+		"shared/reception": {
+			"kind": "reception",
+			"department": "",
+			"shared": true,
+			"machine": false,
+			"reject_pile": true
+		},
+		"general_services/review": {
+			"kind": "review",
+			"department": "general_services",
+			"shared": false,
+			"machine": false,
+			"reject_pile": true
+		},
+		"general_services/signature": {
+			"kind": "signature",
+			"department": "general_services",
+			"shared": false,
+			"machine": false,
+			"reject_pile": false
+		},
+		"shared/counter": {
+			"kind": "counter",
+			"department": "",
+			"shared": true,
+			"machine": false,
+			"reject_pile": true
+		},
+		"tax_services/review": {
+			"kind": "review",
+			"department": "tax_services",
+			"shared": false,
+			"machine": false,
+			"reject_pile": true
+		},
+		"tax_services/signature": {
+			"kind": "signature",
+			"department": "tax_services",
+			"shared": false,
+			"machine": true,
+			"reject_pile": false
+		},
+		"business_licences/review": {
+			"kind": "review",
+			"department": "business_licences",
+			"shared": false,
+			"machine": false,
+			"reject_pile": true
+		},
+		"shared/inspection": {
+			"kind": "inspection",
+			"department": "",
+			"shared": true,
+			"machine": false,
+			"reject_pile": false
+		},
+		"business_licences/signature": {
+			"kind": "signature",
+			"department": "business_licences",
+			"shared": false,
+			"machine": true,
+			"reject_pile": false
+		},
+		"vehicle_registration/review": {
+			"kind": "review",
+			"department": "vehicle_registration",
+			"shared": false,
+			"machine": false,
+			"reject_pile": true
+		},
+		"vehicle_registration/signature": {
+			"kind": "signature",
+			"department": "vehicle_registration",
+			"shared": false,
+			"machine": true,
+			"reject_pile": false
+		},
+		"building_permits/review": {
+			"kind": "review",
+			"department": "building_permits",
+			"shared": false,
+			"machine": false,
+			"reject_pile": true
+		},
+		"building_permits/signature": {
+			"kind": "signature",
+			"department": "building_permits",
+			"shared": false,
+			"machine": false,
+			"reject_pile": false
+		},
+		"housing/review": {
+			"kind": "review",
+			"department": "housing",
+			"shared": false,
+			"machine": false,
+			"reject_pile": true
+		},
+		"housing/signature": {
+			"kind": "signature",
+			"department": "housing",
+			"shared": false,
+			"machine": true,
+			"reject_pile": false
+		},
+		"social_benefits/review": {
+			"kind": "review",
+			"department": "social_benefits",
+			"shared": false,
+			"machine": false,
+			"reject_pile": true
+		},
+		"social_benefits/signature": {
+			"kind": "signature",
+			"department": "social_benefits",
+			"shared": false,
+			"machine": false,
+			"reject_pile": false
+		},
+		"customs/dock": {
+			"kind": "dock",
+			"department": "customs",
+			"shared": false,
+			"machine": false,
+			"reject_pile": false
+		},
+		"customs/review": {
+			"kind": "review",
+			"department": "customs",
+			"shared": false,
+			"machine": false,
+			"reject_pile": false
+		},
+		"customs/signature": {
+			"kind": "signature",
+			"department": "customs",
+			"shared": false,
+			"machine": true,
+			"reject_pile": false
+		},
+		"customs/clearance": {
+			"kind": "clearance",
+			"department": "customs",
+			"shared": false,
+			"machine": false,
+			"reject_pile": false
+		}
+	},
+	"shared_stations": {
+		"shared/reception": {
+			"kind": "reception",
+			"cost_multiplier": 1.0
+		},
+		"shared/counter": {
+			"kind": "counter",
+			"cost_multiplier": 1.0
+		},
+		"shared/inspection": {
+			"kind": "inspection",
+			"cost_multiplier": 10.0
+		},
+		"shared/mailroom": {
+			"kind": "mailroom",
+			"cost_multiplier": 1.0
+		}
+	},
+	"allowed_rooms": {
+		"room_speed": [
+			"hall",
+			"mail",
+			"inspection",
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		],
+		"room_trays": [
+			"hall",
+			"mail",
+			"inspection",
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		],
+		"team_lead": [
+			"intake",
+			"pickup",
+			"mail",
+			"inspection",
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		],
+		"lead_breaks": [
+			"intake",
+			"pickup",
+			"mail",
+			"inspection",
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		],
+		"lead_health": [
+			"intake",
+			"pickup",
+			"mail",
+			"inspection",
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		],
+		"lead_focus": [
+			"intake",
+			"pickup",
+			"mail",
+			"inspection",
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		],
+		"lead_calm": [
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		],
+		"lead_patrol": [
+			"intake",
+			"pickup",
+			"mail",
+			"inspection",
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		],
+		"lead_cooldown": [
+			"intake",
+			"pickup",
+			"mail",
+			"inspection",
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		],
+		"shredder": [
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits"
+		],
+		"tube_station": [
+			"hall",
+			"mail",
+			"inspection",
+			"general_services",
+			"tax_services",
+			"business_licences",
+			"vehicle_registration",
+			"building_permits",
+			"housing",
+			"social_benefits",
+			"customs"
+		]
+	},
+	"departments": [
+		{
+			"id": "general_services",
+			"kinds": [
+				"review",
+				"signature"
+			],
+			"review_time": 5.0,
+			"signature_time": 4.0,
+			"signature_machine": false,
+			"reward": 20.0,
+			"complex_chance": 0.1,
+			"urgent_chance": 0.04,
+			"suspicious_chance": 0.0,
+			"unlock_cost": 0.0,
+			"unlock_reputation": 0.0,
+			"cost_multiplier": 1.0,
+			"staff_multiplier": 1.0,
+			"inspection": false,
+			"referral": "",
+			"follow_up": false
+		},
+		{
+			"id": "tax_services",
+			"kinds": [
+				"review",
+				"signature"
+			],
+			"review_time": 6.0,
+			"signature_time": 4.0,
+			"signature_machine": true,
+			"reward": 50.0,
+			"complex_chance": 0.2,
+			"urgent_chance": 0.04,
+			"suspicious_chance": 0.0,
+			"unlock_cost": 800.0,
+			"unlock_reputation": 20.0,
+			"cost_multiplier": 3.0,
+			"staff_multiplier": 4.0,
+			"inspection": false,
+			"referral": "",
+			"follow_up": false
+		},
+		{
+			"id": "business_licences",
+			"kinds": [
+				"review",
+				"signature"
+			],
+			"review_time": 6.0,
+			"signature_time": 3.5,
+			"signature_machine": true,
+			"reward": 130.0,
+			"complex_chance": 0.2,
+			"urgent_chance": 0.04,
+			"suspicious_chance": 0.0,
+			"unlock_cost": 8000.0,
+			"unlock_reputation": 120.0,
+			"cost_multiplier": 9.0,
+			"staff_multiplier": 30.0,
+			"inspection": true,
+			"referral": "",
+			"follow_up": false
+		},
+		{
+			"id": "vehicle_registration",
+			"kinds": [
+				"review",
+				"signature"
+			],
+			"review_time": 6.5,
+			"signature_time": 5.0,
+			"signature_machine": true,
+			"reward": 350.0,
+			"complex_chance": 0.15,
+			"urgent_chance": 0.04,
+			"suspicious_chance": 0.0,
+			"unlock_cost": 60000.0,
+			"unlock_reputation": 350.0,
+			"cost_multiplier": 27.0,
+			"staff_multiplier": 200.0,
+			"inspection": false,
+			"referral": "",
+			"follow_up": false
+		},
+		{
+			"id": "building_permits",
+			"kinds": [
+				"review",
+				"signature"
+			],
+			"review_time": 8.0,
+			"signature_time": 6.0,
+			"signature_machine": false,
+			"reward": 900.0,
+			"complex_chance": 0.35,
+			"urgent_chance": 0.04,
+			"suspicious_chance": 0.0,
+			"unlock_cost": 400000.0,
+			"unlock_reputation": 700.0,
+			"cost_multiplier": 80.0,
+			"staff_multiplier": 1200.0,
+			"inspection": true,
+			"referral": "",
+			"follow_up": false
+		},
+		{
+			"id": "housing",
+			"kinds": [
+				"review",
+				"signature"
+			],
+			"review_time": 7.0,
+			"signature_time": 4.0,
+			"signature_machine": true,
+			"reward": 2000.0,
+			"complex_chance": 0.3,
+			"urgent_chance": 0.15,
+			"suspicious_chance": 0.0,
+			"unlock_cost": 2000000.0,
+			"unlock_reputation": 1200.0,
+			"cost_multiplier": 220.0,
+			"staff_multiplier": 6000.0,
+			"inspection": false,
+			"referral": "general_services/review",
+			"follow_up": false
+		},
+		{
+			"id": "social_benefits",
+			"kinds": [
+				"review",
+				"signature"
+			],
+			"review_time": 7.0,
+			"signature_time": 5.0,
+			"signature_machine": false,
+			"reward": 5000.0,
+			"complex_chance": 0.2,
+			"urgent_chance": 0.35,
+			"suspicious_chance": 0.0,
+			"unlock_cost": 12000000.0,
+			"unlock_reputation": 2000.0,
+			"cost_multiplier": 650.0,
+			"staff_multiplier": 35000.0,
+			"inspection": false,
+			"referral": "",
+			"follow_up": true
+		},
+		{
+			"id": "customs",
+			"kinds": [
+				"dock",
+				"review",
+				"signature",
+				"clearance"
+			],
+			"review_time": 6.0,
+			"signature_time": 5.0,
+			"signature_machine": true,
+			"reward": 14000.0,
+			"complex_chance": 0.2,
+			"urgent_chance": 0.1,
+			"suspicious_chance": 0.25,
+			"unlock_cost": 80000000.0,
+			"unlock_reputation": 3500.0,
+			"cost_multiplier": 1900.0,
+			"staff_multiplier": 230000.0,
+			"inspection": false,
+			"referral": "",
+			"follow_up": false
+		}
+	],
+	"building_stages": [
+		{
+			"id": "service_counter",
+			"max_departments": 1,
+			"max_desks": 2,
+			"lobby": 16,
+			"review_delete": 75.0,
+			"review_lawsuit": 100.0
+		},
+		{
+			"id": "multi_service_office",
+			"max_departments": 3,
+			"max_desks": 3,
+			"lobby": 22,
+			"review_delete": 150.0,
+			"review_lawsuit": 250.0
+		},
+		{
+			"id": "regional_administration",
+			"max_departments": 5,
+			"max_desks": 4,
+			"lobby": 28,
+			"review_delete": 500.0,
+			"review_lawsuit": 800.0
+		},
+		{
+			"id": "public_services_centre",
+			"max_departments": 7,
+			"max_desks": 5,
+			"lobby": 34,
+			"review_delete": 2000.0,
+			"review_lawsuit": 3500.0
+		},
+		{
+			"id": "citywide_administration",
+			"max_departments": 8,
+			"max_desks": 6,
+			"lobby": 40,
+			"review_delete": 10000.0,
+			"review_lawsuit": 18000.0
+		}
+	],
+	"constants": {
+		"TICK": 0.0333333333333333,
+		"MAX_STEPS_PER_FRAME": 8,
+		"START_MONEY": 120.0,
+		"ROOM_SPEED_LEVELS": 100,
+		"UPGRADE_RUSH_SECONDS": 45.0,
+		"UPGRADE_RUSH_SPEED": 1.5,
+		"SWAMPED_SHARE": 0.75,
+		"SWAMPED_DROWSY_FACTOR": 1.5,
+		"SWAMPED_SICK_SHARE": 0.6,
+		"HANDS_ON_CASES": 5,
+		"HANDS_ON_REWARD_FACTOR": 10.0,
+		"HANDS_ON_REPUTATION": 1.0,
+		"RANK_MILESTONE_FACTORS": [
+			1.5,
+			1.5,
+			2.0,
+			2.0,
+			2.0,
+			2.5,
+			2.5,
+			2.5,
+			3.0,
+			3.0
+		],
+		"RANK_LEVEL_TIME_FACTOR": 1.01,
+		"RANK_TITLES": 11,
+		"MULTI_BASE_CHANCE": 0.12,
+		"MULTI_PER_DEPT": 0.06,
+		"MULTI_MAX_CHANCE": 0.45,
+		"MULTI_SECOND_FACTOR": 0.35,
+		"MULTI_MAX_EXTRAS": 2,
+		"MULTI_TIME_PER_EXTRA": 0.5,
+		"UNATTENDED_REST_ESTIMATE": 45.0,
+		"COMPLEX_TIME_PENALTY": 1.0,
+		"COMPLEX_REWARD_FACTOR": 2.0,
+		"URGENT_REWARD_FACTOR": 1.5,
+		"URGENT_DEADLINE": 120.0,
+		"FOLLOW_UP_REWARD_FACTOR": 0.6,
+		"FOLLOW_UP_DELAY_MIN": 150.0,
+		"FOLLOW_UP_DELAY_MAX": 300.0,
+		"CONTRABAND_CHANCE": 0.5,
+		"FLAG_BASE_CHANCE": 0.6,
+		"CONTRABAND_REWARD_FACTOR": 3.0,
+		"FLAWED_REWARD_FACTOR": 0.4,
+		"REPUTATION_REWARD_DIVISOR": 20.0,
+		"BASE_PATIENCE": 90.0,
+		"MAX_ARRIVALS_PER_MINUTE": 180.0,
+		"START_ARRIVALS_PER_MINUTE": 10.0,
+		"ARRIVALS_PER_DEPARTMENT": 16.0,
+		"LINE_PATIENCE": 30.0,
+		"SEAT_PATIENCE": 300.0,
+		"SEAT_LEAVE_WARNING_SECONDS": 60.0,
+		"STAND_LEAVE_WARNING_SECONDS": 30.0,
+		"STAND_PATIENCE": 90.0,
+		"DESK_PATIENCE": 20.0,
+		"SEAT_LEAVE_INTERVAL": 20.0,
+		"TRAY_BASE": 6,
+		"TRAY_MAX": 25,
+		"TUBE_OVERFLOW_SHARE": 0.5,
+		"HAND_REWARD_BONUS": 1.5,
+		"HELP_BACKLOG": 3,
+		"BASE_ALERT_SECONDS": 180.0,
+		"MAX_ALERT_SECONDS": 2000.0,
+		"ALERT_VARIANCE": 0.3,
+		"LOO_SLOTS": 4,
+		"MAX_LOO_SLOTS": 12,
+		"LOO_SECONDS": 150.0,
+		"ENCOURAGE_TIME": 2.0,
+		"SLOW_SECONDS": 70.0,
+		"DRIVE_FACTOR": 9.0,
+		"KRANZ_FIRST_SECONDS": 110.0,
+		"KRANZ_MIN_INTERVAL": 220.0,
+		"KRANZ_MAX_INTERVAL": 400.0,
+		"KRANZ_COFFEE_RELIEF": 0.3,
+		"KRANZ_RETRY_SECONDS": 20.0,
+		"KRANZ_SIZE": 4,
+		"KRANZ_MIN_PARTICIPANTS": 2,
+		"KRANZ_END_TIME": 1.2,
+		"KRANZ_MAX_SECONDS": 75.0,
+		"KRANZ_END_REPUTATION": 0.2,
+		"KITCHEN_SLOTS": 18,
+		"KITCHEN_TABLE_SLOT": 6,
+		"LUNCH_SLOT": 12,
+		"LUNCH_SIZE": 6,
+		"LUNCH_KEEP_WORKING": 1,
+		"LUNCH_FIRST_SECONDS": 300.0,
+		"LUNCH_MIN_INTERVAL": 280.0,
+		"LUNCH_MAX_INTERVAL": 480.0,
+		"LUNCH_RETRY_SECONDS": 30.0,
+		"LUNCH_SECONDS": 25.0,
+		"LUNCH_MIN_STAFF": 3,
+		"GIFT_FIRST_SECONDS": 120.0,
+		"GIFT_MIN_INTERVAL": 180.0,
+		"GIFT_MAX_INTERVAL": 420.0,
+		"GIFT_KINDS": 6,
+		"GIFT_INCOME_SECONDS": 20.0,
+		"GIFT_MIN_MONEY": 25.0,
+		"SICK_FIRST_SECONDS": 360.0,
+		"SICK_MIN_PER_OFFICIAL": 2400.0,
+		"SICK_MAX_PER_OFFICIAL": 4800.0,
+		"SICK_MIN_STAFF": 3,
+		"SICK_SECONDS": 150.0,
+		"SICK_HR_RELIEF": 0.5,
+		"SICK_BONUS_MINUTES": 0.6,
+		"SICK_BONUS_MIN_INCOME": 50.0,
+		"CALL_TIME": 1.5,
+		"HR_CALL_SECONDS": 12.0,
+		"HR_ANSWER_SECONDS": 4.0,
+		"SICK_RING_SECONDS": 30.0,
+		"SICK_TALK_CHANCE": 0.3,
+		"COMPLAINT_INTERVAL": 150.0,
+		"COMPLAINT_MIN_CASES": 10,
+		"COMPLAINT_LETTER_MIN_INTERVAL": 240.0,
+		"COMPLAINT_LETTER_MAX_INTERVAL": 540.0,
+		"LEAVE_COMPLAINT_CHANCE": 0.3,
+		"LEAVE_COMPLAINT_COOLDOWN": 45.0,
+		"COMPLAINT_BOX_CAPACITY": 6,
+		"COMPLAINT_BOX_STEP": 4,
+		"COMPLAINT_BOX_LEVELS": 6,
+		"COMPLAINT_PILE_DRAWN": 20,
+		"REVIEW_LIFETIME": 7200.0,
+		"MAX_NEGATIVE_REVIEWS": 5,
+		"MAX_STORED_REVIEWS": 80,
+		"REVIEW_NEGATIVE_MAX_STARS": 2,
+		"REVIEW_ONE_STAR_SHARE": 0.7,
+		"REVIEW_PRAISE_MIN_INTERVAL": 45.0,
+		"REVIEW_PRAISE_MAX_INTERVAL": 120.0,
+		"REVIEW_PRAISE_MIN_STARS": 3,
+		"REVIEW_PRAISE_WEIGHTS": [
+			0.1,
+			0.3,
+			0.6
+		],
+		"REVIEW_DELETE_REPUTATION": 0.15,
+		"REVIEW_AUTHORS": 12,
+		"REVIEW_FORCED_TEXTS": 6,
+		"REVIEW_DRAIN": 0.0006,
+		"REVIEW_DELETE_STAR_FACTORS": [
+			1.0,
+			0.5,
+			0.2,
+			0.0667,
+			0.0
+		],
+		"REVIEW_LAWSUIT_STAR_FACTORS": [
+			1.0,
+			1.25,
+			1.5,
+			1.75,
+			2.0
+		],
+		"REVIEW_PRICE_VARIATION": 0.3,
+		"REVIEW_DELETE_LAWSUIT_GROWTH": 1.5,
+		"REVIEW_LAWSUIT_GROWTH": 1.6,
+		"REVIEW_LAWSUIT_CHANCE": 0.5,
+		"REVIEW_LAWSUIT_CHANCE_STEP": 0.08,
+		"REVIEW_LAWSUIT_MAX_CHANCE": 0.7,
+		"MAX_REVIEW_LAWSUITS": 3,
+		"REVIEW_LAWSUIT_REFUND_FACTOR": 1.0,
+		"REVIEW_LAWSUIT_REPUTATION": 0.5,
+		"REVIEW_LAWSUIT_LOSS": 0.2,
+		"REVIEW_TEXTS": [
+			40,
+			35,
+			30,
+			25,
+			30
+		],
+		"REVIEW_PAGE_SIZE": 20,
+		"COMPLAINT_TEXTS": 50,
+		"COMPLAINT_TEXT_STEP": 17,
+		"COMPLAINT_READ_MAX": 6,
+		"COMPLAINT_REWARD": 4.0,
+		"COMPLAINT_REPUTATION": 0.05,
+		"COMPLAINT_TRANSFER_INTERVAL": 0.25,
+		"FETCH_SECONDS": 14.0,
+		"FETCH_ALERT_FACTOR": 1.5,
+		"COFFEE_BREAK_SECONDS": 60.0,
+		"WAKE_TIME": 0.7,
+		"WAKE_CHECK_INTERVAL": 0.1,
+		"RECALL_TIME": 1.5,
+		"STAFF_WALK_SPEED": 200.0,
+		"STAFF_WALK_MIN_SECONDS": 0.4,
+		"STAFF_WALK_MAX_SECONDS": 8.0,
+		"LEAD_PATROL_SECONDS": 90.0,
+		"LEAD_PATROL_LAPS": 5,
+		"LEAD_DISPUTE_RELIEF": 0.3,
+		"LEAD_TRACK_LEVELS": 150,
+		"LEAD_TRACK_GROWTH": 1.04,
+		"OFFLINE_CAP_SECONDS": 14400.0,
+		"OFFLINE_EFFICIENCY": 0.7,
+		"OFFLINE_MIN_SECONDS": 60.0,
+		"PLAYER_SPEED": 420.0,
+		"CITIZEN_SPEED": 200.0,
+		"PLAYER_BASE_CAPACITY": 6,
+		"PLAYER_WORK_POWER": 2.5,
+		"SHOULDER_SPEED": 1.5,
+		"WORK_BLOCK_NOTICE_SECONDS": 3.0,
+		"TRANSFER_INTERVAL": 0.08,
+		"INTERACT_RADIUS": 64.0,
+		"PAD_TIME": 1.2,
+		"RUNNER_SPEED": 190.0,
+		"RUNNER_BASE_CAPACITY": 2,
+		"RUNNER_TRIP_ESTIMATE": 7.0,
+		"RUNNER_PACE_SECONDS": 1.6,
+		"RUNNER_PACE_DISTANCE": 34.0,
+		"REP_CORRECT": 0.1,
+		"REP_FLAWED": -0.5,
+		"REP_URGENT_ON_TIME": 0.3,
+		"REP_URGENT_LATE": -0.3,
+		"REP_CONTRABAND": 0.3,
+		"REP_SMUGGLED": -1.0,
+		"REP_CITIZEN_LEFT": -0.3,
+		"REP_LOSS_FACTOR": 0.05,
+		"REP_MAX_LOSS_PER_MINUTE": 0.05,
+		"EVENT_FIRST_COOLDOWN": 360.0,
+		"EVENT_MIN_COOLDOWN": 300.0,
+		"EVENT_MAX_COOLDOWN": 600.0,
+		"EVENT_DURATION": 45.0,
+		"EVENT_MIN_DURATION_FACTOR": 0.4,
+		"EVENT_CHOICE_SECONDS": 30.0,
+		"EVENT_PREPARE_SECONDS": 30.0,
+		"EVENT_PREPARE_REPUTATION": 3.0,
+		"EVENT_CANCEL_PENALTY": 1.5,
+		"BACKLOG_CASES": 6,
+		"BIG_CASE_REWARD_FACTOR": 5.0,
+		"BIG_CASE_TIME_FACTOR": 3.0,
+		"REJECT_CHANCE": 0.1,
+		"REJECT_MIN_CASES": 10,
+		"DEPOT_CAPACITY": 24,
+		"REJECT_CAPACITY": 12,
+		"REJECT_CAPACITY_PER_LEVEL": 2,
+		"JAM_LUNCH_CHANCE": 0.5,
+		"REJECT_FEE_FACTOR": 0.15,
+		"REJECT_SHRED_REWARD": 2.0,
+		"SHREDDER_BATCH": 1,
+		"TUBE_SPEED": 520.0,
+		"TUBE_BASE_CAPACITY": 2,
+		"MAX_TUBE_PARCELS": 400,
+		"TUBE_SEGMENT_CAPACITY_PER_LEVEL": 1,
+		"TUBE_SEGMENT_SPEED_PER_LEVEL": 0.02,
+		"REJECT_RUNNER_TRIP_ESTIMATE": 12.0,
+		"REJECT_URGENT_MARGIN": 1,
+		"REJECT_MAX_DETOUR": 420.0,
+		"REJECT_DISTANCE_BIAS": 100.0,
+		"SHRED_CASE_PENALTY": 1.0,
+		"WAITING_PLACES": 70,
+		"BASE_SEATS": 15,
+		"HALL_INTAKE": "intake",
+		"HALL_PICKUP": "pickup",
+		"WAITING_ROOMS": [
+			"intake",
+			"pickup"
+		],
+		"TICKET_BASE_RATE": 0.15,
+		"TICKET_MAX_RATE": 1.0,
+		"TICKET_MACHINE_LEVELS": 100,
+		"TICKET_UNLOCK_LEVEL": 50,
+		"TICKET_SECOND_COST": 5526.0,
+		"TICKET_THIRD_COST": 101791.0,
+		"TICKET_HAND_FACTOR": 2.5,
+		"TICKET_RUSH": 4,
+		"TICKET_LINE_SLOTS": 12,
+		"MAX_TICKET_MACHINES": 3,
+		"TICKET_SPEED_TRACKS": [
+			"ticket_speed",
+			"ticket_speed_2",
+			"ticket_speed_3"
+		],
+		"TICKET_MACHINE_TRACKS": [
+			"",
+			"ticket_machine_2",
+			"ticket_machine_3"
+		],
+		"REP_WALKED_OUT": -0.3,
+		"VISITOR_SPEED": 120.0,
+		"VISITOR_SLOTS": 3,
+		"RAGE_SECONDS": 2.5,
+		"RAGE_LINES": 10,
+		"VISITOR_TALK_SECONDS": 7.5,
+		"VISITOR_ANGRY_TALK_SECONDS": 6.0,
+		"VISITOR_DIALOGS": 30,
+		"YELL_DIALOGS": 10,
+		"VISITOR_LINES": 3,
+		"YELL_COMPLAINTS": 8,
+		"YELL_INTERVAL": 14.0,
+		"SECURITY_BASE_CHANCE": 0.1,
+		"SECURITY_MAX_CHANCE": 0.8,
+		"SECURITY_LEVELS": 100,
+		"SECURITY_STOP_SECONDS": 4.0,
+		"GUARD_DIALOGS": 5,
+		"GUARD_LINES": 2,
+		"MAX_DESK_INTERNS": 3,
+		"INTERN_BASE_STEADFAST": 2,
+		"INTERN_MAX_STEADFAST": 8,
+		"MAX_INTERN_RUN": 6,
+		"INTERN_SPEED": 90.0,
+		"INTERN_SPEED_LEVELS": 100,
+		"INTERN_SPEED_STEP": 0.02,
+		"INTERN_COMFORT_TIME": 2.0,
+		"COFFEE_INTERN_SPEED": 180.0,
+		"COFFEE_BREW_SECONDS": 1.5,
+		"COFFEE_SERVE_THRESHOLD": 0.6,
+		"COFFEE_SERVE_BONUS": 1.25,
+		"MAX_DISPUTES": 2,
+		"DISPUTE_MIN_CASES": 15,
+		"DISPUTE_MIN_STAFF": 2,
+		"DISPUTE_CREW": 2,
+		"DISPUTE_CREW_OFFSET": 26.0,
+		"DISPUTE_FIRST_SECONDS": 220.0,
+		"DISPUTE_MIN_INTERVAL": 200.0,
+		"DISPUTE_MAX_INTERVAL": 400.0,
+		"DISPUTE_MAX_SECONDS": 240.0,
+		"DISPUTE_RETRY_SECONDS": 30.0,
+		"MEDIATE_TIME": 2.5,
+		"RUCKUS_MIN_CASES": 25,
+		"RUCKUS_FIRST_SECONDS": 120.0,
+		"RUCKUS_MIN_INTERVAL": 120.0,
+		"RUCKUS_MAX_INTERVAL": 260.0,
+		"RUCKUS_RETRY_SECONDS": 5.0,
+		"RUCKUS_SECURITY_RELIEF": 0.3,
+		"RUCKUS_CALM_TIME": 2.5,
+		"MEDIATE_REPUTATION": 0.2,
+		"POPULATION_BASE": 1000,
+		"POPULATION_PER_CASE": 12,
+		"POPULATION_PER_LOST": 20,
+		"RECEPTION": "shared/reception",
+		"COUNTER": "shared/counter",
+		"INSPECTION": "shared/inspection",
+		"MAILROOM": "shared/mailroom",
+		"PHOTO_STATION": "general_services/signature",
+		"CALL_STATIONS": [
+			"shared/reception",
+			"shared/counter",
+			"general_services/signature"
+		],
+		"ENTRY_KINDS": [
+			"reception",
+			"dock",
+			"mailroom"
+		],
+		"FINAL_KINDS": [
+			"counter",
+			"clearance"
+		],
+		"MAIL_UNLOCK_STAGE": 1,
+		"MAIL_FIRST_SECONDS": 30.0,
+		"MAIL_INTERVAL": 45.0,
+		"MAIL_BATCH_BASE": 3,
+		"MAIL_BATCH_PER_DEPT": 1,
+		"MAIL_REWARD_FACTOR": 0.5,
+		"MAIL_STORAGE_BASE": 12,
+		"MAIL_STORAGE_PER_LEVEL": 1,
+		"MAIL_CITIZEN_PRIORITY": 4,
+		"MAIL_TARGET_SHARE": 0.5,
+		"MAIL_FLOOR_MAX": 60,
+		"MISSING_FORM_CHANCE": 0.05,
+		"MISSING_FORM_MIN_CASES": 20,
+		"START_SEALS": 5,
+		"GOAL_SEALS": 1,
+		"SEAL_PACKS": [
+			10,
+			30,
+			80
+		],
+		"AD_SECONDS": 3.0,
+		"AD_REWARD_FACTOR": 2.0,
+		"AD_SICK_COOLDOWN": 120.0,
+		"BOOST_OVERTIME_SPEED": 2.0,
+		"BOOST_STAMP_SPEED": 3.0,
+		"BOOST_POST_SPEED": 4.0,
+		"BOOST_FEE_FACTOR": 2.0,
+		"BOOST_RUNNER_SPEED": 2.0,
+		"BOOST_PLAYER_SPEED": 1.5,
+		"BOOST_BUDGET_MINUTES": 5.0,
+		"BOOST_MIN_INCOME": 60.0,
+		"BOOST_ORDER": [
+			"overtime",
+			"temp_workers",
+			"stamp_turbo",
+			"express_post",
+			"coffee_round",
+			"doctor_visit",
+			"works_outing",
+			"mayor_speech",
+			"roller_skates",
+			"complaint_amnesty",
+			"weekend_shift",
+			"fee_increase",
+			"budget_injection"
+		],
+		"UNLOCK_REPUTATION_MIN_GROWTH": 1.5,
+		"CUSTOMS_VARIANTS": [
+			"general_cargo",
+			"electronics",
+			"vehicles"
+		],
+		"ROOM_PLAYER": "player",
+		"ROOM_HALL": "hall",
+		"ROOM_COMPLAINTS": "complaint_office",
+		"ROOM_SHREDDER": "shredder_room",
+		"ROOM_TECH": "tech_room",
+		"ROOM_KITCHEN": "kitchen",
+		"ROOM_TOILETS": "toilets",
+		"ROOM_PHONE": "phone",
+		"ROOM_MAIL": "mail",
+		"ROOM_INSPECTION": "inspection",
+		"ROOM_OFFICE": "player_office",
+		"ROOM_STAFF": "staff_room",
+		"SERVICE_ROOMS": [
+			"player",
+			"hall",
+			"staff_room",
+			"complaint_office",
+			"shredder_room",
+			"tech_room",
+			"kitchen",
+			"toilets",
+			"phone",
+			"mail",
+			"player_office",
+			"inspection"
+		],
+		"TUBE_ROOMS": [
+			"hall",
+			"mail",
+			"inspection"
+		],
+		"TOPICS": [
+			"player",
+			"citizens",
+			"speed",
+			"staff",
+			"transport",
+			"comfort",
+			"complaints",
+			"mail",
+			"quality",
+			"building"
+		],
+		"BOARD_SPOTS": [
+			"runners",
+			"coffee_interns",
+			"phone_clerks"
+		],
+		"STAFF_ROOM_BOARDS": [
+			"coffee_interns",
+			"phone_clerks",
+			"training",
+			"works_council"
+		],
+		"ROOMS_ALL_DEPARTMENTS": "departments",
+		"ROOMS_SHREDDERS": "shredders",
+		"ROOMS_TUBES": "tubes",
+		"ROOMS_OFFICES": "offices",
+		"ROOMS_LEADS": "leads",
+		"ROOM_SPOT": "@room",
+		"LEAD_SPOT": "lead:%s",
+		"LEAD_TRACKS": [
+			"team_lead",
+			"lead_breaks",
+			"lead_health",
+			"lead_focus",
+			"lead_calm",
+			"lead_patrol",
+			"lead_cooldown"
+		],
+		"AUDIT_FACTOR": 2.0,
+		"DESK_GROWTH": 2.2,
+		"HIRE_GROWTH": 2.0,
+		"UPGRADE_GROWTH": 1.35,
+		"REJECT_PILE_COST_FACTOR": 0.5,
+		"REJECT_PILE_GROWTH": 1.22,
+		"MAX_REJECT_LEVEL": 10,
+		"RUNNER_COST": 400.0,
+		"RUNNER_GROWTH": 1.5,
+		"MAX_RUNNERS": 30,
+		"COFFEE_INTERN_COST": 700.0,
+		"COFFEE_INTERN_GROWTH": 1.9,
+		"MAX_COFFEE_INTERNS": 8,
+		"HR_COST": 900.0,
+		"HR_GROWTH": 2.2,
+		"MAX_HR": 1,
+		"TUBE_SEGMENT_COST": 30000.0,
+		"TUBE_SEGMENT_GROWTH": 1.08,
+		"TUBE_SEGMENT_MAX_LEVEL": 100,
+		"TUBE_STATION_MIN_COST": 20000.0,
+		"TUBE_STATION_FACTOR": 0.5,
+		"TUBE_STATION_INSPECTION_FACTOR": 3.0,
+		"MAIL_STORAGE_COST": 600.0,
+		"MAIL_STORAGE_GROWTH": 1.04,
+		"MAIL_STORAGE_MAX_LEVEL": 300,
+		"EARLY_DISCOUNT_LEVELS": 10,
+		"EARLY_DISCOUNT_START": 0.25,
+		"RANK_LEVEL_COST_GROWTH": 1.07,
+		"RANK_LADDER_GROWTH": 5.0,
+		"MAX_DEPARTMENT_RANK": 250,
+		"RANK_LEVEL_FEE_FACTOR": 1.02,
+		"RANK_MILESTONE_STEP": 25,
+		"LEVEL_SPEED_BONUS": 0.06,
+		"LEVEL_MILESTONE_STEP": 10,
+		"LEVEL_MILESTONE_BONUS": 1.25
+	},
+	"check": {
+		"entry_costs": {
+			"rank:general_services": 13.7512165875524,
+			"rank:tax_services": 137.512165875524,
+			"rank:business_licences": 1031.34124406643,
+			"rank:vehicle_registration": 6875.60829377618,
+			"rank:building_permits": 34378.0414688809,
+			"rank:housing": 206268.248813285,
+			"rank:social_benefits": 1375121.65875524,
+			"rank:customs": 6875608.29377618,
+			"track:briefcase": 37.5,
+			"track:work_ethic": 50.0,
+			"track:sneakers": 75.0,
+			"track:room_speed@hall": 37.5,
+			"track:room_speed@mail": 37.5,
+			"track:room_speed@inspection": 375.0,
+			"track:room_speed@general_services": 37.5,
+			"track:room_speed@tax_services": 112.5,
+			"track:room_speed@business_licences": 337.5,
+			"track:room_speed@vehicle_registration": 1012.5,
+			"track:room_speed@building_permits": 3000.0,
+			"track:room_speed@housing": 8250.0,
+			"track:room_speed@social_benefits": 24375.0,
+			"track:room_speed@customs": 71250.0,
+			"track:room_trays@hall": 15.0,
+			"track:room_trays@mail": 15.0,
+			"track:room_trays@inspection": 150.0,
+			"track:room_trays@general_services": 15.0,
+			"track:room_trays@tax_services": 45.0,
+			"track:room_trays@business_licences": 135.0,
+			"track:room_trays@vehicle_registration": 405.0,
+			"track:room_trays@building_permits": 1200.0,
+			"track:room_trays@housing": 3300.0,
+			"track:room_trays@social_benefits": 9750.0,
+			"track:room_trays@customs": 28500.0,
+			"track:team_lead@intake": 100.0,
+			"track:team_lead@pickup": 100.0,
+			"track:team_lead@mail": 100.0,
+			"track:team_lead@inspection": 1000.0,
+			"track:team_lead@general_services": 100.0,
+			"track:team_lead@tax_services": 400.0,
+			"track:team_lead@business_licences": 3000.0,
+			"track:team_lead@vehicle_registration": 20000.0,
+			"track:team_lead@building_permits": 120000.0,
+			"track:team_lead@housing": 600000.0,
+			"track:team_lead@social_benefits": 3500000.0,
+			"track:team_lead@customs": 23000000.0,
+			"track:lead_breaks@intake": 15.0,
+			"track:lead_breaks@pickup": 15.0,
+			"track:lead_breaks@mail": 15.0,
+			"track:lead_breaks@inspection": 150.0,
+			"track:lead_breaks@general_services": 15.0,
+			"track:lead_breaks@tax_services": 60.0,
+			"track:lead_breaks@business_licences": 450.0,
+			"track:lead_breaks@vehicle_registration": 3000.0,
+			"track:lead_breaks@building_permits": 18000.0,
+			"track:lead_breaks@housing": 90000.0,
+			"track:lead_breaks@social_benefits": 525000.0,
+			"track:lead_breaks@customs": 3450000.0,
+			"track:lead_health@intake": 15.0,
+			"track:lead_health@pickup": 15.0,
+			"track:lead_health@mail": 15.0,
+			"track:lead_health@inspection": 150.0,
+			"track:lead_health@general_services": 15.0,
+			"track:lead_health@tax_services": 60.0,
+			"track:lead_health@business_licences": 450.0,
+			"track:lead_health@vehicle_registration": 3000.0,
+			"track:lead_health@building_permits": 18000.0,
+			"track:lead_health@housing": 90000.0,
+			"track:lead_health@social_benefits": 525000.0,
+			"track:lead_health@customs": 3450000.0,
+			"track:lead_focus@intake": 20.0,
+			"track:lead_focus@pickup": 20.0,
+			"track:lead_focus@mail": 20.0,
+			"track:lead_focus@inspection": 200.0,
+			"track:lead_focus@general_services": 20.0,
+			"track:lead_focus@tax_services": 80.0,
+			"track:lead_focus@business_licences": 600.0,
+			"track:lead_focus@vehicle_registration": 4000.0,
+			"track:lead_focus@building_permits": 24000.0,
+			"track:lead_focus@housing": 120000.0,
+			"track:lead_focus@social_benefits": 700000.0,
+			"track:lead_focus@customs": 4600000.0,
+			"track:lead_calm@general_services": 12.5,
+			"track:lead_calm@tax_services": 50.0,
+			"track:lead_calm@business_licences": 375.0,
+			"track:lead_calm@vehicle_registration": 2500.0,
+			"track:lead_calm@building_permits": 15000.0,
+			"track:lead_calm@housing": 75000.0,
+			"track:lead_calm@social_benefits": 437500.0,
+			"track:lead_calm@customs": 2875000.0,
+			"track:lead_patrol@intake": 20.0,
+			"track:lead_patrol@pickup": 20.0,
+			"track:lead_patrol@mail": 20.0,
+			"track:lead_patrol@inspection": 200.0,
+			"track:lead_patrol@general_services": 20.0,
+			"track:lead_patrol@tax_services": 80.0,
+			"track:lead_patrol@business_licences": 600.0,
+			"track:lead_patrol@vehicle_registration": 4000.0,
+			"track:lead_patrol@building_permits": 24000.0,
+			"track:lead_patrol@housing": 120000.0,
+			"track:lead_patrol@social_benefits": 700000.0,
+			"track:lead_patrol@customs": 4600000.0,
+			"track:lead_cooldown@intake": 15.0,
+			"track:lead_cooldown@pickup": 15.0,
+			"track:lead_cooldown@mail": 15.0,
+			"track:lead_cooldown@inspection": 150.0,
+			"track:lead_cooldown@general_services": 15.0,
+			"track:lead_cooldown@tax_services": 60.0,
+			"track:lead_cooldown@business_licences": 450.0,
+			"track:lead_cooldown@vehicle_registration": 3000.0,
+			"track:lead_cooldown@building_permits": 18000.0,
+			"track:lead_cooldown@housing": 90000.0,
+			"track:lead_cooldown@social_benefits": 525000.0,
+			"track:lead_cooldown@customs": 3450000.0,
+			"track:seating": 125.0,
+			"track:pickup_seating": 125.0,
+			"track:ticket_speed": 75.0,
+			"track:ticket_machine_2": 5526.0,
+			"track:ticket_speed_2": 5526.0,
+			"track:ticket_machine_3": 101791.0,
+			"track:ticket_speed_3": 101791.0,
+			"track:complaint_interns": 150.0,
+			"track:intern_steadfast": 375.0,
+			"track:intern_speed": 100.0,
+			"track:complaint_box": 225.0,
+			"track:intern_box_runs": 625.0,
+			"track:complaint_security": 750.0,
+			"track:security_training": 200.0,
+			"track:shredder_blades": 250.0,
+			"track:shredder@general_services": 100.0,
+			"track:shredder@tax_services": 300.0,
+			"track:shredder@business_licences": 900.0,
+			"track:shredder@vehicle_registration": 2700.0,
+			"track:shredder@building_permits": 8000.0,
+			"track:shredder@housing": 22000.0,
+			"track:shredder@social_benefits": 65000.0,
+			"track:runner_trolleys": 300.0,
+			"track:runner_training": 225.0,
+			"track:runner_speed": 225.0,
+			"track:pneumatic_tubes": 81250.0,
+			"track:tube_capacity": 30000.0,
+			"track:tube_speed": 20000.0,
+			"track:large_capsules": 150000.0,
+			"track:tube_station@hall": 6500.0,
+			"track:tube_station@mail": 6500.0,
+			"track:tube_station@inspection": 19500.0,
+			"track:tube_station@general_services": 6500.0,
+			"track:tube_station@tax_services": 6500.0,
+			"track:tube_station@business_licences": 6500.0,
+			"track:tube_station@vehicle_registration": 9750.0,
+			"track:tube_station@building_permits": 65000.0,
+			"track:tube_station@housing": 325000.0,
+			"track:tube_station@social_benefits": 1950000.0,
+			"track:tube_station@customs": 13000000.0,
+			"track:it_support": 500.0,
+			"track:ai_classification": 5000000.0,
+			"track:quality_training": 750.0,
+			"track:climate_control": 225.0,
+			"track:mediation": 375.0,
+			"track:coffee": 125.0,
+			"track:coffee_machine": 175.0,
+			"track:espresso": 225.0,
+			"track:kitchen": 300.0,
+			"track:canteen_menu": 350.0,
+			"track:canteen_speed": 275.0,
+			"track:coffee_intern_speed": 175.0,
+			"track:toilet_stalls": 375.0,
+			"track:toilet_speed": 250.0,
+			"track:toilet_hygiene": 500.0,
+			"track:wake_service": 375.0,
+			"track:phone_training": 375.0,
+			"track:mail_subscription": 375.0,
+			"track:mail_frequency": 300.0,
+			"track:registered_mail": 625.0,
+			"desk:shared/mailroom": 22.5,
+			"hire:shared/mailroom": 40.0,
+			"desk:shared/reception": 17.5,
+			"hire:shared/reception": 37.5,
+			"reject_pile:shared/reception": 8.75,
+			"desk:general_services/review": 30.0,
+			"hire:general_services/review": 60.0,
+			"reject_pile:general_services/review": 15.0,
+			"desk:general_services/signature": 35.0,
+			"hire:general_services/signature": 67.5,
+			"desk:shared/counter": 20.0,
+			"hire:shared/counter": 45.0,
+			"reject_pile:shared/counter": 10.0,
+			"desk:tax_services/review": 90.0,
+			"hire:tax_services/review": 240.0,
+			"reject_pile:tax_services/review": 45.0,
+			"desk:tax_services/signature": 105.0,
+			"desk:business_licences/review": 270.0,
+			"hire:business_licences/review": 1800.0,
+			"reject_pile:business_licences/review": 135.0,
+			"desk:shared/inspection": 400.0,
+			"hire:shared/inspection": 825.0,
+			"desk:business_licences/signature": 315.0,
+			"desk:vehicle_registration/review": 810.0,
+			"hire:vehicle_registration/review": 12000.0,
+			"reject_pile:vehicle_registration/review": 405.0,
+			"desk:vehicle_registration/signature": 945.0,
+			"desk:building_permits/review": 2400.0,
+			"hire:building_permits/review": 72000.0,
+			"reject_pile:building_permits/review": 1200.0,
+			"desk:building_permits/signature": 2800.0,
+			"hire:building_permits/signature": 81000.0,
+			"desk:housing/review": 6600.0,
+			"hire:housing/review": 360000.0,
+			"reject_pile:housing/review": 3300.0,
+			"desk:housing/signature": 7700.0,
+			"desk:social_benefits/review": 19500.0,
+			"hire:social_benefits/review": 2100000.0,
+			"reject_pile:social_benefits/review": 9750.0,
+			"desk:social_benefits/signature": 22750.0,
+			"hire:social_benefits/signature": 2362500.0,
+			"desk:customs/dock": 71250.0,
+			"hire:customs/dock": 17250000.0,
+			"desk:customs/review": 57000.0,
+			"hire:customs/review": 13800000.0,
+			"desk:customs/signature": 66500.0,
+			"desk:customs/clearance": 71250.0,
+			"hire:customs/clearance": 17250000.0,
+			"staff:runners": 100.0,
+			"staff:coffee_interns": 175.0,
+			"staff:hr": 225.0,
+			"segment:shared/reception>general_services/review": 7500.0,
+			"segment:general_services/review>general_services/signature": 7500.0,
+			"segment:general_services/signature>shared/counter": 7500.0,
+			"segment:general_services/review>shared/counter": 7500.0,
+			"segment:shared/mailroom>general_services/review": 7500.0,
+			"segment:shared/reception>tax_services/review": 7500.0,
+			"segment:tax_services/review>tax_services/signature": 7500.0,
+			"segment:tax_services/signature>shared/counter": 7500.0,
+			"segment:tax_services/review>shared/counter": 7500.0,
+			"segment:shared/mailroom>tax_services/review": 7500.0,
+			"segment:shared/reception>business_licences/review": 7500.0,
+			"segment:business_licences/review>shared/inspection": 7500.0,
+			"segment:shared/inspection>business_licences/signature": 7500.0,
+			"segment:business_licences/signature>shared/counter": 7500.0,
+			"segment:business_licences/review>shared/counter": 7500.0,
+			"segment:shared/mailroom>business_licences/review": 7500.0,
+			"segment:shared/reception>vehicle_registration/review": 7500.0,
+			"segment:vehicle_registration/review>vehicle_registration/signature": 7500.0,
+			"segment:vehicle_registration/signature>shared/counter": 7500.0,
+			"segment:vehicle_registration/review>shared/counter": 7500.0,
+			"segment:shared/mailroom>vehicle_registration/review": 7500.0,
+			"segment:shared/reception>building_permits/review": 7500.0,
+			"segment:building_permits/review>shared/inspection": 7500.0,
+			"segment:shared/inspection>building_permits/signature": 7500.0,
+			"segment:building_permits/signature>shared/counter": 7500.0,
+			"segment:building_permits/review>shared/counter": 7500.0,
+			"segment:shared/mailroom>building_permits/review": 7500.0,
+			"segment:shared/reception>housing/review": 7500.0,
+			"segment:housing/review>general_services/review": 7500.0,
+			"segment:housing/signature>shared/counter": 7500.0,
+			"segment:housing/review>shared/counter": 7500.0,
+			"segment:shared/mailroom>housing/review": 7500.0,
+			"segment:shared/reception>social_benefits/review": 7500.0,
+			"segment:social_benefits/review>social_benefits/signature": 7500.0,
+			"segment:social_benefits/signature>shared/counter": 7500.0,
+			"segment:social_benefits/review>shared/counter": 7500.0,
+			"segment:shared/mailroom>social_benefits/review": 7500.0,
+			"segment:customs/dock>customs/review": 7500.0,
+			"segment:customs/review>customs/signature": 7500.0,
+			"segment:customs/signature>customs/clearance": 7500.0,
+			"storage:shared/mailroom": 150.0
+		},
+		"track_costs": {
+			"briefcase": [
+				[
+					0,
+					37.5,
+					6.0
+				],
+				[
+					4,
+					144.293015625,
+					10.0
+				],
+				[
+					9,
+					488.105335503889,
+					15.0
+				],
+				[
+					99,
+					153171319.656558,
+					105.0
+				]
+			],
+			"work_ethic": [
+				[
+					0,
+					50.0,
+					1.0
+				],
+				[
+					4,
+					149.6537856,
+					1.1
+				],
+				[
+					9,
+					369.81585601432,
+					1.225
+				],
+				[
+					199,
+					896101774.981528,
+					5.975
+				]
+			],
+			"sneakers": [
+				[
+					0,
+					75.0,
+					1.0
+				],
+				[
+					4,
+					259.6306944,
+					1.02
+				],
+				[
+					9,
+					769.529355192427,
+					1.045
+				],
+				[
+					99,
+					22372035.4624649,
+					1.495
+				]
+			],
+			"room_speed@hall": [
+				[
+					0,
+					37.5,
+					1.0
+				],
+				[
+					4,
+					274.024265625,
+					1.24
+				],
+				[
+					9,
+					2066.5071309413,
+					1.925
+				],
+				[
+					99,
+					1199870400968910.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@mail": [
+				[
+					0,
+					37.5,
+					1.0
+				],
+				[
+					4,
+					274.024265625,
+					1.24
+				],
+				[
+					9,
+					2066.5071309413,
+					1.925
+				],
+				[
+					99,
+					1199870400968910.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@inspection": [
+				[
+					0,
+					375.0,
+					1.0
+				],
+				[
+					4,
+					2740.24265625,
+					1.24
+				],
+				[
+					9,
+					20665.071309413,
+					1.925
+				],
+				[
+					99,
+					11998704009689100.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@general_services": [
+				[
+					0,
+					37.5,
+					1.0
+				],
+				[
+					4,
+					274.024265625,
+					1.24
+				],
+				[
+					9,
+					2066.5071309413,
+					1.925
+				],
+				[
+					99,
+					1199870400968910.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@tax_services": [
+				[
+					0,
+					112.5,
+					1.0
+				],
+				[
+					4,
+					822.072796875,
+					1.24
+				],
+				[
+					9,
+					6199.52139282391,
+					1.925
+				],
+				[
+					99,
+					3599611202906730.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@business_licences": [
+				[
+					0,
+					337.5,
+					1.0
+				],
+				[
+					4,
+					2466.218390625,
+					1.24
+				],
+				[
+					9,
+					18598.5641784717,
+					1.925
+				],
+				[
+					99,
+					10798833608720190.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@vehicle_registration": [
+				[
+					0,
+					1012.5,
+					1.0
+				],
+				[
+					4,
+					7398.655171875,
+					1.24
+				],
+				[
+					9,
+					55795.6925354152,
+					1.925
+				],
+				[
+					99,
+					32396500826160572.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@building_permits": [
+				[
+					0,
+					3000.0,
+					1.0
+				],
+				[
+					4,
+					21921.94125,
+					1.24
+				],
+				[
+					9,
+					165320.570475304,
+					1.925
+				],
+				[
+					99,
+					95989632077512800.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@housing": [
+				[
+					0,
+					8250.0,
+					1.0
+				],
+				[
+					4,
+					60285.3384375,
+					1.24
+				],
+				[
+					9,
+					454631.568807087,
+					1.925
+				],
+				[
+					99,
+					263971488213160224.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@social_benefits": [
+				[
+					0,
+					24375.0,
+					1.0
+				],
+				[
+					4,
+					178115.77265625,
+					1.24
+				],
+				[
+					9,
+					1343229.63511185,
+					1.925
+				],
+				[
+					99,
+					779915760629791488.0,
+					64.6337866783142
+				]
+			],
+			"room_speed@customs": [
+				[
+					0,
+					71250.0,
+					1.0
+				],
+				[
+					4,
+					520646.1046875,
+					1.24
+				],
+				[
+					9,
+					3926363.54878847,
+					1.925
+				],
+				[
+					99,
+					2279753761840929024.0,
+					64.6337866783142
+				]
+			],
+			"room_trays@hall": [
+				[
+					0,
+					15.0,
+					6.0
+				],
+				[
+					4,
+					94.2513,
+					10.0
+				],
+				[
+					9,
+					588.5497152015,
+					15.0
+				],
+				[
+					18,
+					6747.32441711745,
+					24.0
+				]
+			],
+			"room_trays@mail": [
+				[
+					0,
+					15.0,
+					6.0
+				],
+				[
+					4,
+					94.2513,
+					10.0
+				],
+				[
+					9,
+					588.5497152015,
+					15.0
+				],
+				[
+					18,
+					6747.32441711745,
+					24.0
+				]
+			],
+			"room_trays@inspection": [
+				[
+					0,
+					150.0,
+					6.0
+				],
+				[
+					4,
+					942.513,
+					10.0
+				],
+				[
+					9,
+					5885.497152015,
+					15.0
+				],
+				[
+					18,
+					67473.2441711745,
+					24.0
+				]
+			],
+			"room_trays@general_services": [
+				[
+					0,
+					15.0,
+					6.0
+				],
+				[
+					4,
+					94.2513,
+					10.0
+				],
+				[
+					9,
+					588.5497152015,
+					15.0
+				],
+				[
+					18,
+					6747.32441711745,
+					24.0
+				]
+			],
+			"room_trays@tax_services": [
+				[
+					0,
+					45.0,
+					6.0
+				],
+				[
+					4,
+					282.7539,
+					10.0
+				],
+				[
+					9,
+					1765.6491456045,
+					15.0
+				],
+				[
+					18,
+					20241.9732513523,
+					24.0
+				]
+			],
+			"room_trays@business_licences": [
+				[
+					0,
+					135.0,
+					6.0
+				],
+				[
+					4,
+					848.2617,
+					10.0
+				],
+				[
+					9,
+					5296.9474368135,
+					15.0
+				],
+				[
+					18,
+					60725.919754057,
+					24.0
+				]
+			],
+			"room_trays@vehicle_registration": [
+				[
+					0,
+					405.0,
+					6.0
+				],
+				[
+					4,
+					2544.7851,
+					10.0
+				],
+				[
+					9,
+					15890.8423104405,
+					15.0
+				],
+				[
+					18,
+					182177.759262171,
+					24.0
+				]
+			],
+			"room_trays@building_permits": [
+				[
+					0,
+					1200.0,
+					6.0
+				],
+				[
+					4,
+					7540.104,
+					10.0
+				],
+				[
+					9,
+					47083.97721612,
+					15.0
+				],
+				[
+					18,
+					539785.953369396,
+					24.0
+				]
+			],
+			"room_trays@housing": [
+				[
+					0,
+					3300.0,
+					6.0
+				],
+				[
+					4,
+					20735.286,
+					10.0
+				],
+				[
+					9,
+					129480.93734433,
+					15.0
+				],
+				[
+					18,
+					1484411.37176584,
+					24.0
+				]
+			],
+			"room_trays@social_benefits": [
+				[
+					0,
+					9750.0,
+					6.0
+				],
+				[
+					4,
+					61263.345,
+					10.0
+				],
+				[
+					9,
+					382557.314880975,
+					15.0
+				],
+				[
+					18,
+					4385760.87112634,
+					24.0
+				]
+			],
+			"room_trays@customs": [
+				[
+					0,
+					28500.0,
+					6.0
+				],
+				[
+					4,
+					179077.47,
+					10.0
+				],
+				[
+					9,
+					1118244.45888285,
+					15.0
+				],
+				[
+					18,
+					12819916.3925232,
+					24.0
+				]
+			],
+			"team_lead@intake": [
+				[
+					0,
+					100.0,
+					0.0
+				],
+				[
+					0,
+					100.0,
+					0.0
+				]
+			],
+			"team_lead@pickup": [
+				[
+					0,
+					100.0,
+					0.0
+				],
+				[
+					0,
+					100.0,
+					0.0
+				]
+			],
+			"team_lead@mail": [
+				[
+					0,
+					100.0,
+					0.0
+				],
+				[
+					0,
+					100.0,
+					0.0
+				]
+			],
+			"team_lead@inspection": [
+				[
+					0,
+					1000.0,
+					0.0
+				],
+				[
+					0,
+					1000.0,
+					0.0
+				]
+			],
+			"team_lead@general_services": [
+				[
+					0,
+					100.0,
+					0.0
+				],
+				[
+					0,
+					100.0,
+					0.0
+				]
+			],
+			"team_lead@tax_services": [
+				[
+					0,
+					400.0,
+					0.0
+				],
+				[
+					0,
+					400.0,
+					0.0
+				]
+			],
+			"team_lead@business_licences": [
+				[
+					0,
+					3000.0,
+					0.0
+				],
+				[
+					0,
+					3000.0,
+					0.0
+				]
+			],
+			"team_lead@vehicle_registration": [
+				[
+					0,
+					20000.0,
+					0.0
+				],
+				[
+					0,
+					20000.0,
+					0.0
+				]
+			],
+			"team_lead@building_permits": [
+				[
+					0,
+					120000.0,
+					0.0
+				],
+				[
+					0,
+					120000.0,
+					0.0
+				]
+			],
+			"team_lead@housing": [
+				[
+					0,
+					600000.0,
+					0.0
+				],
+				[
+					0,
+					600000.0,
+					0.0
+				]
+			],
+			"team_lead@social_benefits": [
+				[
+					0,
+					3500000.0,
+					0.0
+				],
+				[
+					0,
+					3500000.0,
+					0.0
+				]
+			],
+			"team_lead@customs": [
+				[
+					0,
+					23000000.0,
+					0.0
+				],
+				[
+					0,
+					23000000.0,
+					0.0
+				]
+			],
+			"lead_breaks@intake": [
+				[
+					0,
+					15.0,
+					0.75
+				],
+				[
+					4,
+					38.60533248,
+					0.73511212546875
+				],
+				[
+					9,
+					78.9938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					20707.0773557191,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@pickup": [
+				[
+					0,
+					15.0,
+					0.75
+				],
+				[
+					4,
+					38.60533248,
+					0.73511212546875
+				],
+				[
+					9,
+					78.9938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					20707.0773557191,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@mail": [
+				[
+					0,
+					15.0,
+					0.75
+				],
+				[
+					4,
+					38.60533248,
+					0.73511212546875
+				],
+				[
+					9,
+					78.9938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					20707.0773557191,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@inspection": [
+				[
+					0,
+					150.0,
+					0.75
+				],
+				[
+					4,
+					386.0533248,
+					0.73511212546875
+				],
+				[
+					9,
+					789.938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					207070.773557191,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@general_services": [
+				[
+					0,
+					15.0,
+					0.75
+				],
+				[
+					4,
+					38.60533248,
+					0.73511212546875
+				],
+				[
+					9,
+					78.9938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					20707.0773557191,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@tax_services": [
+				[
+					0,
+					60.0,
+					0.75
+				],
+				[
+					4,
+					154.42132992,
+					0.73511212546875
+				],
+				[
+					9,
+					315.97522235757,
+					0.71691718376817
+				],
+				[
+					149,
+					82828.3094228765,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@business_licences": [
+				[
+					0,
+					450.0,
+					0.75
+				],
+				[
+					4,
+					1158.1599744,
+					0.73511212546875
+				],
+				[
+					9,
+					2369.81416768177,
+					0.71691718376817
+				],
+				[
+					149,
+					621212.320671574,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@vehicle_registration": [
+				[
+					0,
+					3000.0,
+					0.75
+				],
+				[
+					4,
+					7721.066496,
+					0.73511212546875
+				],
+				[
+					9,
+					15798.7611178785,
+					0.71691718376817
+				],
+				[
+					149,
+					4141415.47114382,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@building_permits": [
+				[
+					0,
+					18000.0,
+					0.75
+				],
+				[
+					4,
+					46326.398976,
+					0.73511212546875
+				],
+				[
+					9,
+					94792.5667072709,
+					0.71691718376817
+				],
+				[
+					149,
+					24848492.8268629,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@housing": [
+				[
+					0,
+					90000.0,
+					0.75
+				],
+				[
+					4,
+					231631.99488,
+					0.73511212546875
+				],
+				[
+					9,
+					473962.833536355,
+					0.71691718376817
+				],
+				[
+					149,
+					124242464.134315,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@social_benefits": [
+				[
+					0,
+					525000.0,
+					0.75
+				],
+				[
+					4,
+					1351186.6368,
+					0.73511212546875
+				],
+				[
+					9,
+					2764783.19562873,
+					0.71691718376817
+				],
+				[
+					149,
+					724747707.450169,
+					0.35538598298117
+				]
+			],
+			"lead_breaks@customs": [
+				[
+					0,
+					3450000.0,
+					0.75
+				],
+				[
+					4,
+					8879226.4704,
+					0.73511212546875
+				],
+				[
+					9,
+					18168575.2855603,
+					0.71691718376817
+				],
+				[
+					149,
+					4762627791.8154,
+					0.35538598298117
+				]
+			],
+			"lead_health@intake": [
+				[
+					0,
+					15.0,
+					0.75
+				],
+				[
+					4,
+					38.60533248,
+					0.73511212546875
+				],
+				[
+					9,
+					78.9938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					20707.0773557191,
+					0.35538598298117
+				]
+			],
+			"lead_health@pickup": [
+				[
+					0,
+					15.0,
+					0.75
+				],
+				[
+					4,
+					38.60533248,
+					0.73511212546875
+				],
+				[
+					9,
+					78.9938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					20707.0773557191,
+					0.35538598298117
+				]
+			],
+			"lead_health@mail": [
+				[
+					0,
+					15.0,
+					0.75
+				],
+				[
+					4,
+					38.60533248,
+					0.73511212546875
+				],
+				[
+					9,
+					78.9938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					20707.0773557191,
+					0.35538598298117
+				]
+			],
+			"lead_health@inspection": [
+				[
+					0,
+					150.0,
+					0.75
+				],
+				[
+					4,
+					386.0533248,
+					0.73511212546875
+				],
+				[
+					9,
+					789.938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					207070.773557191,
+					0.35538598298117
+				]
+			],
+			"lead_health@general_services": [
+				[
+					0,
+					15.0,
+					0.75
+				],
+				[
+					4,
+					38.60533248,
+					0.73511212546875
+				],
+				[
+					9,
+					78.9938055893924,
+					0.71691718376817
+				],
+				[
+					149,
+					20707.0773557191,
+					0.35538598298117
+				]
+			],
+			"lead_health@tax_services": [
+				[
+					0,
+					60.0,
+					0.75
+				],
+				[
+					4,
+					154.42132992,
+					0.73511212546875
+				],
+				[
+					9,
+					315.97522235757,
+					0.71691718376817
+				],
+				[
+					149,
+					82828.3094228765,
+					0.35538598298117
+				]
+			],
+			"lead_health@business_licences": [
+				[
+					0,
+					450.0,
+					0.75
+				],
+				[
+					4,
+					1158.1599744,
+					0.73511212546875
+				],
+				[
+					9,
+					2369.81416768177,
+					0.71691718376817
+				],
+				[
+					149,
+					621212.320671574,
+					0.35538598298117
+				]
+			],
+			"lead_health@vehicle_registration": [
+				[
+					0,
+					3000.0,
+					0.75
+				],
+				[
+					4,
+					7721.066496,
+					0.73511212546875
+				],
+				[
+					9,
+					15798.7611178785,
+					0.71691718376817
+				],
+				[
+					149,
+					4141415.47114382,
+					0.35538598298117
+				]
+			],
+			"lead_health@building_permits": [
+				[
+					0,
+					18000.0,
+					0.75
+				],
+				[
+					4,
+					46326.398976,
+					0.73511212546875
+				],
+				[
+					9,
+					94792.5667072709,
+					0.71691718376817
+				],
+				[
+					149,
+					24848492.8268629,
+					0.35538598298117
+				]
+			],
+			"lead_health@housing": [
+				[
+					0,
+					90000.0,
+					0.75
+				],
+				[
+					4,
+					231631.99488,
+					0.73511212546875
+				],
+				[
+					9,
+					473962.833536355,
+					0.71691718376817
+				],
+				[
+					149,
+					124242464.134315,
+					0.35538598298117
+				]
+			],
+			"lead_health@social_benefits": [
+				[
+					0,
+					525000.0,
+					0.75
+				],
+				[
+					4,
+					1351186.6368,
+					0.73511212546875
+				],
+				[
+					9,
+					2764783.19562873,
+					0.71691718376817
+				],
+				[
+					149,
+					724747707.450169,
+					0.35538598298117
+				]
+			],
+			"lead_health@customs": [
+				[
+					0,
+					3450000.0,
+					0.75
+				],
+				[
+					4,
+					8879226.4704,
+					0.73511212546875
+				],
+				[
+					9,
+					18168575.2855603,
+					0.71691718376817
+				],
+				[
+					149,
+					4762627791.8154,
+					0.35538598298117
+				]
+			],
+			"lead_focus@intake": [
+				[
+					0,
+					20.0,
+					0.7
+				],
+				[
+					4,
+					51.47377664,
+					0.6861046504375
+				],
+				[
+					9,
+					105.32507411919,
+					0.669122704850292
+				],
+				[
+					149,
+					27609.4364742922,
+					0.331693584115759
+				]
+			],
+			"lead_focus@pickup": [
+				[
+					0,
+					20.0,
+					0.7
+				],
+				[
+					4,
+					51.47377664,
+					0.6861046504375
+				],
+				[
+					9,
+					105.32507411919,
+					0.669122704850292
+				],
+				[
+					149,
+					27609.4364742922,
+					0.331693584115759
+				]
+			],
+			"lead_focus@mail": [
+				[
+					0,
+					20.0,
+					0.7
+				],
+				[
+					4,
+					51.47377664,
+					0.6861046504375
+				],
+				[
+					9,
+					105.32507411919,
+					0.669122704850292
+				],
+				[
+					149,
+					27609.4364742922,
+					0.331693584115759
+				]
+			],
+			"lead_focus@inspection": [
+				[
+					0,
+					200.0,
+					0.7
+				],
+				[
+					4,
+					514.7377664,
+					0.6861046504375
+				],
+				[
+					9,
+					1053.2507411919,
+					0.669122704850292
+				],
+				[
+					149,
+					276094.364742922,
+					0.331693584115759
+				]
+			],
+			"lead_focus@general_services": [
+				[
+					0,
+					20.0,
+					0.7
+				],
+				[
+					4,
+					51.47377664,
+					0.6861046504375
+				],
+				[
+					9,
+					105.32507411919,
+					0.669122704850292
+				],
+				[
+					149,
+					27609.4364742922,
+					0.331693584115759
+				]
+			],
+			"lead_focus@tax_services": [
+				[
+					0,
+					80.0,
+					0.7
+				],
+				[
+					4,
+					205.89510656,
+					0.6861046504375
+				],
+				[
+					9,
+					421.30029647676,
+					0.669122704850292
+				],
+				[
+					149,
+					110437.745897169,
+					0.331693584115759
+				]
+			],
+			"lead_focus@business_licences": [
+				[
+					0,
+					600.0,
+					0.7
+				],
+				[
+					4,
+					1544.2132992,
+					0.6861046504375
+				],
+				[
+					9,
+					3159.7522235757,
+					0.669122704850292
+				],
+				[
+					149,
+					828283.094228765,
+					0.331693584115759
+				]
+			],
+			"lead_focus@vehicle_registration": [
+				[
+					0,
+					4000.0,
+					0.7
+				],
+				[
+					4,
+					10294.755328,
+					0.6861046504375
+				],
+				[
+					9,
+					21065.014823838,
+					0.669122704850292
+				],
+				[
+					149,
+					5521887.29485843,
+					0.331693584115759
+				]
+			],
+			"lead_focus@building_permits": [
+				[
+					0,
+					24000.0,
+					0.7
+				],
+				[
+					4,
+					61768.531968,
+					0.6861046504375
+				],
+				[
+					9,
+					126390.088943028,
+					0.669122704850292
+				],
+				[
+					149,
+					33131323.7691506,
+					0.331693584115759
+				]
+			],
+			"lead_focus@housing": [
+				[
+					0,
+					120000.0,
+					0.7
+				],
+				[
+					4,
+					308842.65984,
+					0.6861046504375
+				],
+				[
+					9,
+					631950.444715139,
+					0.669122704850292
+				],
+				[
+					149,
+					165656618.845753,
+					0.331693584115759
+				]
+			],
+			"lead_focus@social_benefits": [
+				[
+					0,
+					700000.0,
+					0.7
+				],
+				[
+					4,
+					1801582.1824,
+					0.6861046504375
+				],
+				[
+					9,
+					3686377.59417165,
+					0.669122704850292
+				],
+				[
+					149,
+					966330276.600225,
+					0.331693584115759
+				]
+			],
+			"lead_focus@customs": [
+				[
+					0,
+					4600000.0,
+					0.7
+				],
+				[
+					4,
+					11838968.6272,
+					0.6861046504375
+				],
+				[
+					9,
+					24224767.0474137,
+					0.669122704850292
+				],
+				[
+					149,
+					6350170389.0872,
+					0.331693584115759
+				]
+			],
+			"lead_calm@general_services": [
+				[
+					0,
+					12.5,
+					0.25
+				],
+				[
+					4,
+					32.1711104,
+					0.27
+				],
+				[
+					9,
+					65.8281713244937,
+					0.295
+				],
+				[
+					149,
+					17255.8977964326,
+					0.995
+				]
+			],
+			"lead_calm@tax_services": [
+				[
+					0,
+					50.0,
+					0.25
+				],
+				[
+					4,
+					128.6844416,
+					0.27
+				],
+				[
+					9,
+					263.312685297975,
+					0.295
+				],
+				[
+					149,
+					69023.5911857304,
+					0.995
+				]
+			],
+			"lead_calm@business_licences": [
+				[
+					0,
+					375.0,
+					0.25
+				],
+				[
+					4,
+					965.133312,
+					0.27
+				],
+				[
+					9,
+					1974.84513973481,
+					0.295
+				],
+				[
+					149,
+					517676.933892978,
+					0.995
+				]
+			],
+			"lead_calm@vehicle_registration": [
+				[
+					0,
+					2500.0,
+					0.25
+				],
+				[
+					4,
+					6434.22208,
+					0.27
+				],
+				[
+					9,
+					13165.6342648987,
+					0.295
+				],
+				[
+					149,
+					3451179.55928652,
+					0.995
+				]
+			],
+			"lead_calm@building_permits": [
+				[
+					0,
+					15000.0,
+					0.25
+				],
+				[
+					4,
+					38605.33248,
+					0.27
+				],
+				[
+					9,
+					78993.8055893924,
+					0.295
+				],
+				[
+					149,
+					20707077.3557191,
+					0.995
+				]
+			],
+			"lead_calm@housing": [
+				[
+					0,
+					75000.0,
+					0.25
+				],
+				[
+					4,
+					193026.6624,
+					0.27
+				],
+				[
+					9,
+					394969.027946962,
+					0.295
+				],
+				[
+					149,
+					103535386.778596,
+					0.995
+				]
+			],
+			"lead_calm@social_benefits": [
+				[
+					0,
+					437500.0,
+					0.25
+				],
+				[
+					4,
+					1125988.864,
+					0.27
+				],
+				[
+					9,
+					2303985.99635728,
+					0.295
+				],
+				[
+					149,
+					603956422.875141,
+					0.995
+				]
+			],
+			"lead_calm@customs": [
+				[
+					0,
+					2875000.0,
+					0.25
+				],
+				[
+					4,
+					7399355.392,
+					0.27
+				],
+				[
+					9,
+					15140479.4046335,
+					0.295
+				],
+				[
+					149,
+					3968856493.1795,
+					0.995
+				]
+			],
+			"lead_patrol@intake": [
+				[
+					0,
+					20.0,
+					3.0
+				],
+				[
+					4,
+					51.47377664,
+					3.04
+				],
+				[
+					9,
+					105.32507411919,
+					3.09
+				],
+				[
+					149,
+					27609.4364742922,
+					4.49
+				]
+			],
+			"lead_patrol@pickup": [
+				[
+					0,
+					20.0,
+					3.0
+				],
+				[
+					4,
+					51.47377664,
+					3.04
+				],
+				[
+					9,
+					105.32507411919,
+					3.09
+				],
+				[
+					149,
+					27609.4364742922,
+					4.49
+				]
+			],
+			"lead_patrol@mail": [
+				[
+					0,
+					20.0,
+					3.0
+				],
+				[
+					4,
+					51.47377664,
+					3.04
+				],
+				[
+					9,
+					105.32507411919,
+					3.09
+				],
+				[
+					149,
+					27609.4364742922,
+					4.49
+				]
+			],
+			"lead_patrol@inspection": [
+				[
+					0,
+					200.0,
+					3.0
+				],
+				[
+					4,
+					514.7377664,
+					3.04
+				],
+				[
+					9,
+					1053.2507411919,
+					3.09
+				],
+				[
+					149,
+					276094.364742922,
+					4.49
+				]
+			],
+			"lead_patrol@general_services": [
+				[
+					0,
+					20.0,
+					3.0
+				],
+				[
+					4,
+					51.47377664,
+					3.04
+				],
+				[
+					9,
+					105.32507411919,
+					3.09
+				],
+				[
+					149,
+					27609.4364742922,
+					4.49
+				]
+			],
+			"lead_patrol@tax_services": [
+				[
+					0,
+					80.0,
+					3.0
+				],
+				[
+					4,
+					205.89510656,
+					3.04
+				],
+				[
+					9,
+					421.30029647676,
+					3.09
+				],
+				[
+					149,
+					110437.745897169,
+					4.49
+				]
+			],
+			"lead_patrol@business_licences": [
+				[
+					0,
+					600.0,
+					3.0
+				],
+				[
+					4,
+					1544.2132992,
+					3.04
+				],
+				[
+					9,
+					3159.7522235757,
+					3.09
+				],
+				[
+					149,
+					828283.094228765,
+					4.49
+				]
+			],
+			"lead_patrol@vehicle_registration": [
+				[
+					0,
+					4000.0,
+					3.0
+				],
+				[
+					4,
+					10294.755328,
+					3.04
+				],
+				[
+					9,
+					21065.014823838,
+					3.09
+				],
+				[
+					149,
+					5521887.29485843,
+					4.49
+				]
+			],
+			"lead_patrol@building_permits": [
+				[
+					0,
+					24000.0,
+					3.0
+				],
+				[
+					4,
+					61768.531968,
+					3.04
+				],
+				[
+					9,
+					126390.088943028,
+					3.09
+				],
+				[
+					149,
+					33131323.7691506,
+					4.49
+				]
+			],
+			"lead_patrol@housing": [
+				[
+					0,
+					120000.0,
+					3.0
+				],
+				[
+					4,
+					308842.65984,
+					3.04
+				],
+				[
+					9,
+					631950.444715139,
+					3.09
+				],
+				[
+					149,
+					165656618.845753,
+					4.49
+				]
+			],
+			"lead_patrol@social_benefits": [
+				[
+					0,
+					700000.0,
+					3.0
+				],
+				[
+					4,
+					1801582.1824,
+					3.04
+				],
+				[
+					9,
+					3686377.59417165,
+					3.09
+				],
+				[
+					149,
+					966330276.600225,
+					4.49
+				]
+			],
+			"lead_patrol@customs": [
+				[
+					0,
+					4600000.0,
+					3.0
+				],
+				[
+					4,
+					11838968.6272,
+					3.04
+				],
+				[
+					9,
+					24224767.0474137,
+					3.09
+				],
+				[
+					149,
+					6350170389.0872,
+					4.49
+				]
+			],
+			"lead_cooldown@intake": [
+				[
+					0,
+					15.0,
+					180.0
+				],
+				[
+					4,
+					38.60533248,
+					176.4269101125
+				],
+				[
+					9,
+					78.9938055893924,
+					172.060124104361
+				],
+				[
+					149,
+					20707.0773557191,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@pickup": [
+				[
+					0,
+					15.0,
+					180.0
+				],
+				[
+					4,
+					38.60533248,
+					176.4269101125
+				],
+				[
+					9,
+					78.9938055893924,
+					172.060124104361
+				],
+				[
+					149,
+					20707.0773557191,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@mail": [
+				[
+					0,
+					15.0,
+					180.0
+				],
+				[
+					4,
+					38.60533248,
+					176.4269101125
+				],
+				[
+					9,
+					78.9938055893924,
+					172.060124104361
+				],
+				[
+					149,
+					20707.0773557191,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@inspection": [
+				[
+					0,
+					150.0,
+					180.0
+				],
+				[
+					4,
+					386.0533248,
+					176.4269101125
+				],
+				[
+					9,
+					789.938055893924,
+					172.060124104361
+				],
+				[
+					149,
+					207070.773557191,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@general_services": [
+				[
+					0,
+					15.0,
+					180.0
+				],
+				[
+					4,
+					38.60533248,
+					176.4269101125
+				],
+				[
+					9,
+					78.9938055893924,
+					172.060124104361
+				],
+				[
+					149,
+					20707.0773557191,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@tax_services": [
+				[
+					0,
+					60.0,
+					180.0
+				],
+				[
+					4,
+					154.42132992,
+					176.4269101125
+				],
+				[
+					9,
+					315.97522235757,
+					172.060124104361
+				],
+				[
+					149,
+					82828.3094228765,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@business_licences": [
+				[
+					0,
+					450.0,
+					180.0
+				],
+				[
+					4,
+					1158.1599744,
+					176.4269101125
+				],
+				[
+					9,
+					2369.81416768177,
+					172.060124104361
+				],
+				[
+					149,
+					621212.320671574,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@vehicle_registration": [
+				[
+					0,
+					3000.0,
+					180.0
+				],
+				[
+					4,
+					7721.066496,
+					176.4269101125
+				],
+				[
+					9,
+					15798.7611178785,
+					172.060124104361
+				],
+				[
+					149,
+					4141415.47114382,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@building_permits": [
+				[
+					0,
+					18000.0,
+					180.0
+				],
+				[
+					4,
+					46326.398976,
+					176.4269101125
+				],
+				[
+					9,
+					94792.5667072709,
+					172.060124104361
+				],
+				[
+					149,
+					24848492.8268629,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@housing": [
+				[
+					0,
+					90000.0,
+					180.0
+				],
+				[
+					4,
+					231631.99488,
+					176.4269101125
+				],
+				[
+					9,
+					473962.833536355,
+					172.060124104361
+				],
+				[
+					149,
+					124242464.134315,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@social_benefits": [
+				[
+					0,
+					525000.0,
+					180.0
+				],
+				[
+					4,
+					1351186.6368,
+					176.4269101125
+				],
+				[
+					9,
+					2764783.19562873,
+					172.060124104361
+				],
+				[
+					149,
+					724747707.450169,
+					85.2926359154808
+				]
+			],
+			"lead_cooldown@customs": [
+				[
+					0,
+					3450000.0,
+					180.0
+				],
+				[
+					4,
+					8879226.4704,
+					176.4269101125
+				],
+				[
+					9,
+					18168575.2855603,
+					172.060124104361
+				],
+				[
+					149,
+					4762627791.8154,
+					85.2926359154808
+				]
+			],
+			"seating": [
+				[
+					0,
+					125.0,
+					15.0
+				],
+				[
+					4,
+					402.6275,
+					19.0
+				],
+				[
+					9,
+					1090.5508070875,
+					24.0
+				],
+				[
+					54,
+					85935.9738505813,
+					69.0
+				]
+			],
+			"pickup_seating": [
+				[
+					0,
+					125.0,
+					15.0
+				],
+				[
+					4,
+					402.6275,
+					19.0
+				],
+				[
+					9,
+					1090.5508070875,
+					24.0
+				],
+				[
+					54,
+					85935.9738505813,
+					69.0
+				]
+			],
+			"ticket_speed": [
+				[
+					0,
+					75.0,
+					0.15
+				],
+				[
+					4,
+					208.3086984,
+					0.184
+				],
+				[
+					9,
+					468.830411123247,
+					0.2265
+				],
+				[
+					99,
+					96028.8915607039,
+					0.9915
+				]
+			],
+			"ticket_machine_2": [
+				[
+					0,
+					5526.0,
+					0.0
+				],
+				[
+					0,
+					5526.0,
+					0.0
+				]
+			],
+			"ticket_speed_2": [
+				[
+					0,
+					5526.0,
+					0.15
+				],
+				[
+					4,
+					6976.44768096,
+					0.184
+				],
+				[
+					9,
+					9336.06072744888,
+					0.2265
+				],
+				[
+					99,
+					1768852.18254817,
+					0.9915
+				]
+			],
+			"ticket_machine_3": [
+				[
+					0,
+					101791.0,
+					0.0
+				],
+				[
+					0,
+					101791.0,
+					0.0
+				]
+			],
+			"ticket_speed_3": [
+				[
+					0,
+					101791.0,
+					0.15
+				],
+				[
+					4,
+					128508.79223536,
+					0.184
+				],
+				[
+					9,
+					171973.752715843,
+					0.2265
+				],
+				[
+					99,
+					32582923.002852,
+					0.9915
+				]
+			],
+			"complaint_interns": [
+				[
+					0,
+					150.0,
+					0.0
+				],
+				[
+					2,
+					1500.0,
+					2.0
+				]
+			],
+			"intern_steadfast": [
+				[
+					0,
+					375.0,
+					2.0
+				],
+				[
+					4,
+					8660.52,
+					6.0
+				],
+				[
+					5,
+					17714.7,
+					7.0
+				]
+			],
+			"intern_speed": [
+				[
+					0,
+					100.0,
+					1.0
+				],
+				[
+					4,
+					288.3751222,
+					1.08
+				],
+				[
+					9,
+					680.229908595458,
+					1.18
+				],
+				[
+					99,
+					324379.934791184,
+					2.98
+				]
+			],
+			"complaint_box": [
+				[
+					0,
+					225.0,
+					6.0
+				],
+				[
+					4,
+					7920.0,
+					22.0
+				],
+				[
+					5,
+					18000.0,
+					26.0
+				]
+			],
+			"intern_box_runs": [
+				[
+					0,
+					625.0,
+					0.0
+				],
+				[
+					4,
+					17919.1375,
+					4.0
+				],
+				[
+					5,
+					38689.046875,
+					5.0
+				]
+			],
+			"complaint_security": [
+				[
+					0,
+					750.0,
+					0.0
+				],
+				[
+					0,
+					750.0,
+					0.0
+				]
+			],
+			"security_training": [
+				[
+					0,
+					200.0,
+					0.1
+				],
+				[
+					4,
+					555.4898624,
+					0.128
+				],
+				[
+					9,
+					1250.21442966199,
+					0.163
+				],
+				[
+					99,
+					256077.044161877,
+					0.793
+				]
+			],
+			"shredder_blades": [
+				[
+					0,
+					250.0,
+					1.0
+				],
+				[
+					4,
+					805.255,
+					0.941336550625
+				],
+				[
+					9,
+					2181.101614175,
+					0.872822784019434
+				],
+				[
+					99,
+					12527829.3998385,
+					0.223968437024759
+				]
+			],
+			"shredder@general_services": [
+				[
+					0,
+					100.0,
+					-1.0
+				],
+				[
+					4,
+					277.7449312,
+					16.61168
+				],
+				[
+					9,
+					625.107214830996,
+					12.1913787708216
+				],
+				[
+					59,
+					12448.1852276726,
+					0.552644057458392
+				]
+			],
+			"shredder@tax_services": [
+				[
+					0,
+					300.0,
+					-1.0
+				],
+				[
+					4,
+					833.2347936,
+					16.61168
+				],
+				[
+					9,
+					1875.32164449299,
+					12.1913787708216
+				],
+				[
+					59,
+					37344.5556830179,
+					0.552644057458392
+				]
+			],
+			"shredder@business_licences": [
+				[
+					0,
+					900.0,
+					-1.0
+				],
+				[
+					4,
+					2499.7043808,
+					16.61168
+				],
+				[
+					9,
+					5625.96493347897,
+					12.1913787708216
+				],
+				[
+					59,
+					112033.667049054,
+					0.552644057458392
+				]
+			],
+			"shredder@vehicle_registration": [
+				[
+					0,
+					2700.0,
+					-1.0
+				],
+				[
+					4,
+					7499.1131424,
+					16.61168
+				],
+				[
+					9,
+					16877.8948004369,
+					12.1913787708216
+				],
+				[
+					59,
+					336101.001147162,
+					0.552644057458392
+				]
+			],
+			"shredder@building_permits": [
+				[
+					0,
+					8000.0,
+					-1.0
+				],
+				[
+					4,
+					22219.594496,
+					16.61168
+				],
+				[
+					9,
+					50008.5771864797,
+					12.1913787708216
+				],
+				[
+					59,
+					995854.818213812,
+					0.552644057458392
+				]
+			],
+			"shredder@housing": [
+				[
+					0,
+					22000.0,
+					-1.0
+				],
+				[
+					4,
+					61103.884864,
+					16.61168
+				],
+				[
+					9,
+					137523.587262819,
+					12.1913787708216
+				],
+				[
+					59,
+					2738600.75008798,
+					0.552644057458392
+				]
+			],
+			"shredder@social_benefits": [
+				[
+					0,
+					65000.0,
+					-1.0
+				],
+				[
+					4,
+					180534.20528,
+					16.61168
+				],
+				[
+					9,
+					406319.689640148,
+					12.1913787708216
+				],
+				[
+					59,
+					8091320.39798722,
+					0.552644057458392
+				]
+			],
+			"runner_trolleys": [
+				[
+					0,
+					300.0,
+					2.0
+				],
+				[
+					4,
+					1279.5933216,
+					6.0
+				],
+				[
+					9,
+					4923.35378365797,
+					11.0
+				],
+				[
+					39,
+					763096.621858194,
+					41.0
+				]
+			],
+			"runner_training": [
+				[
+					0,
+					225.0,
+					0.0
+				],
+				[
+					4,
+					1208.49609375,
+					4.0
+				],
+				[
+					9,
+					6202.60834693909,
+					9.0
+				],
+				[
+					29,
+					581611.368201348,
+					29.0
+				]
+			],
+			"runner_speed": [
+				[
+					0,
+					225.0,
+					1.0
+				],
+				[
+					4,
+					648.84402495,
+					1.04
+				],
+				[
+					9,
+					1530.51729433978,
+					1.09
+				],
+				[
+					199,
+					633306971.48508,
+					2.99
+				]
+			],
+			"pneumatic_tubes": [
+				[
+					0,
+					62500.0,
+					0.0
+				],
+				[
+					0,
+					62500.0,
+					0.0
+				]
+			],
+			"tube_capacity": [
+				[
+					0,
+					30000.0,
+					2.0
+				],
+				[
+					4,
+					115434.4125,
+					6.0
+				],
+				[
+					9,
+					390484.268403111,
+					11.0
+				],
+				[
+					59,
+					457460738.677294,
+					61.0
+				]
+			],
+			"tube_speed": [
+				[
+					0,
+					20000.0,
+					1.0
+				],
+				[
+					4,
+					55548.98624,
+					1.04
+				],
+				[
+					9,
+					125021.442966199,
+					1.09
+				],
+				[
+					199,
+					8688747462.43563,
+					2.99
+				]
+			],
+			"large_capsules": [
+				[
+					0,
+					150000.0,
+					0.0
+				],
+				[
+					0,
+					150000.0,
+					0.0
+				]
+			],
+			"tube_station@hall": [
+				[
+					0,
+					5000.0,
+					0.0
+				],
+				[
+					0,
+					5000.0,
+					0.0
+				]
+			],
+			"tube_station@mail": [
+				[
+					0,
+					5000.0,
+					0.0
+				],
+				[
+					0,
+					5000.0,
+					0.0
+				]
+			],
+			"tube_station@inspection": [
+				[
+					0,
+					15000.0,
+					0.0
+				],
+				[
+					0,
+					15000.0,
+					0.0
+				]
+			],
+			"tube_station@general_services": [
+				[
+					0,
+					5000.0,
+					0.0
+				],
+				[
+					0,
+					5000.0,
+					0.0
+				]
+			],
+			"tube_station@tax_services": [
+				[
+					0,
+					5000.0,
+					0.0
+				],
+				[
+					0,
+					5000.0,
+					0.0
+				]
+			],
+			"tube_station@business_licences": [
+				[
+					0,
+					5000.0,
+					0.0
+				],
+				[
+					0,
+					5000.0,
+					0.0
+				]
+			],
+			"tube_station@vehicle_registration": [
+				[
+					0,
+					7500.0,
+					0.0
+				],
+				[
+					0,
+					7500.0,
+					0.0
+				]
+			],
+			"tube_station@building_permits": [
+				[
+					0,
+					50000.0,
+					0.0
+				],
+				[
+					0,
+					50000.0,
+					0.0
+				]
+			],
+			"tube_station@housing": [
+				[
+					0,
+					250000.0,
+					0.0
+				],
+				[
+					0,
+					250000.0,
+					0.0
+				]
+			],
+			"tube_station@social_benefits": [
+				[
+					0,
+					1500000.0,
+					0.0
+				],
+				[
+					0,
+					1500000.0,
+					0.0
+				]
+			],
+			"tube_station@customs": [
+				[
+					0,
+					10000000.0,
+					0.0
+				],
+				[
+					0,
+					10000000.0,
+					0.0
+				]
+			],
+			"it_support": [
+				[
+					0,
+					500.0,
+					1.0
+				],
+				[
+					4,
+					1610.51,
+					0.976
+				],
+				[
+					9,
+					4362.20322835,
+					0.946
+				],
+				[
+					99,
+					25055658.7996771,
+					0.406
+				]
+			],
+			"ai_classification": [
+				[
+					0,
+					5000000.0,
+					1.0
+				],
+				[
+					4,
+					16105100.0,
+					0.972292630401
+				],
+				[
+					9,
+					43622032.2835,
+					0.938735488418171
+				],
+				[
+					99,
+					250556587996.771,
+					0.498856460579912
+				]
+			],
+			"quality_training": [
+				[
+					0,
+					750.0,
+					1.0
+				],
+				[
+					4,
+					2244.806784,
+					0.96059601
+				],
+				[
+					9,
+					5547.2378402148,
+					0.913517247483641
+				],
+				[
+					149,
+					286589861.295941,
+					0.223688673978647
+				]
+			],
+			"climate_control": [
+				[
+					0,
+					225.0,
+					1.0
+				],
+				[
+					4,
+					724.7295,
+					1.04
+				],
+				[
+					9,
+					1962.9914527575,
+					1.09
+				],
+				[
+					99,
+					11275046.4598547,
+					1.99
+				]
+			],
+			"mediation": [
+				[
+					0,
+					375.0,
+					-1.0
+				],
+				[
+					4,
+					1122.403392,
+					114.680595
+				],
+				[
+					9,
+					2773.6189201074,
+					106.333740185109
+				],
+				[
+					149,
+					143294930.64797,
+					12.8157303102248
+				]
+			],
+			"coffee": [
+				[
+					0,
+					125.0,
+					1.0
+				],
+				[
+					4,
+					327.942615171875,
+					1.04
+				],
+				[
+					9,
+					687.319002441593,
+					1.09
+				],
+				[
+					299,
+					259860846.006486,
+					3.99
+				]
+			],
+			"coffee_machine": [
+				[
+					0,
+					175.0,
+					1.0
+				],
+				[
+					4,
+					523.7882496,
+					0.96059601
+				],
+				[
+					9,
+					1294.35549605012,
+					0.913517247483641
+				],
+				[
+					149,
+					66870967.6357195,
+					0.223688673978647
+				]
+			],
+			"espresso": [
+				[
+					0,
+					225.0,
+					1.5
+				],
+				[
+					4,
+					624.9260952,
+					1.52
+				],
+				[
+					9,
+					1406.49123336974,
+					1.545
+				],
+				[
+					199,
+					97748408.9524008,
+					2.495
+				]
+			],
+			"kitchen": [
+				[
+					0,
+					300.0,
+					1.0
+				],
+				[
+					4,
+					833.2347936,
+					0.982
+				],
+				[
+					9,
+					1875.32164449299,
+					0.9595
+				],
+				[
+					199,
+					130331211.936534,
+					0.1045
+				]
+			],
+			"canteen_menu": [
+				[
+					0,
+					350.0,
+					1.2
+				],
+				[
+					4,
+					972.1072592,
+					1.24
+				],
+				[
+					9,
+					2187.87525190849,
+					1.29
+				],
+				[
+					199,
+					152053080.592623,
+					3.19
+				]
+			],
+			"canteen_speed": [
+				[
+					0,
+					275.0,
+					25.0
+				],
+				[
+					4,
+					823.0958208,
+					24.01490025
+				],
+				[
+					9,
+					2033.98720807876,
+					22.837931187091
+				],
+				[
+					149,
+					105082949.141845,
+					5.59221684946619
+				]
+			],
+			"coffee_intern_speed": [
+				[
+					0,
+					175.0,
+					1.0
+				],
+				[
+					4,
+					504.65646385,
+					1.04
+				],
+				[
+					9,
+					1190.40234004205,
+					1.09
+				],
+				[
+					199,
+					492572088.93284,
+					2.99
+				]
+			],
+			"toilet_stalls": [
+				[
+					0,
+					375.0,
+					4.0
+				],
+				[
+					4,
+					19326.12,
+					8.0
+				],
+				[
+					7,
+					289969.10448,
+					11.0
+				]
+			],
+			"toilet_speed": [
+				[
+					0,
+					250.0,
+					150.0
+				],
+				[
+					4,
+					748.268928,
+					144.0894015
+				],
+				[
+					9,
+					1849.0792800716,
+					137.027587122546
+				],
+				[
+					149,
+					95529953.7653135,
+					33.5533010967971
+				]
+			],
+			"toilet_hygiene": [
+				[
+					0,
+					500.0,
+					1.0
+				],
+				[
+					4,
+					1610.51,
+					1.04
+				],
+				[
+					9,
+					4362.20322835,
+					1.09
+				],
+				[
+					99,
+					25055658.7996771,
+					1.99
+				]
+			],
+			"wake_service": [
+				[
+					0,
+					375.0,
+					-1.0
+				],
+				[
+					4,
+					1122.403392,
+					42.35364
+				],
+				[
+					9,
+					2773.6189201074,
+					38.2843360161803
+				],
+				[
+					149,
+					143294930.64797,
+					2.2629331069939
+				]
+			],
+			"phone_training": [
+				[
+					0,
+					375.0,
+					1.0
+				],
+				[
+					4,
+					1207.8825,
+					0.96059601
+				],
+				[
+					9,
+					3271.6524212625,
+					0.913517247483641
+				],
+				[
+					99,
+					18791744.0997578,
+					0.369729637649726
+				]
+			],
+			"mail_subscription": [
+				[
+					0,
+					375.0,
+					0.0
+				],
+				[
+					4,
+					1207.8825,
+					4.0
+				],
+				[
+					9,
+					3271.6524212625,
+					9.0
+				],
+				[
+					99,
+					18791744.0997578,
+					99.0
+				]
+			],
+			"mail_frequency": [
+				[
+					0,
+					300.0,
+					45.0
+				],
+				[
+					4,
+					897.9227136,
+					43.22682045
+				],
+				[
+					9,
+					2218.89513608592,
+					41.1082761367638
+				],
+				[
+					149,
+					114635944.518376,
+					10.0659903290391
+				]
+			],
+			"registered_mail": [
+				[
+					0,
+					625.0,
+					0.5
+				],
+				[
+					4,
+					1735.90582,
+					0.52
+				],
+				[
+					9,
+					3906.92009269373,
+					0.545
+				],
+				[
+					199,
+					271523358.201113,
+					1.495
+				]
+			]
+		},
+		"rank_costs": {
+			"general_services": [
+				13.7512165875524,
+				378.570029595564,
+				2.4609089916971
+			],
+			"tax_services": [
+				137.512165875524,
+				3785.70029595564,
+				2.4609089916971
+			],
+			"business_licences": [
+				1031.34124406643,
+				28392.7522196673,
+				2.4609089916971
+			],
+			"vehicle_registration": [
+				6875.60829377618,
+				189285.014797782,
+				2.4609089916971
+			],
+			"building_permits": [
+				34378.0414688809,
+				946425.073988909,
+				2.4609089916971
+			],
+			"housing": [
+				206268.248813285,
+				5678550.44393345,
+				2.4609089916971
+			],
+			"social_benefits": [
+				1375121.65875524,
+				37857002.9595564,
+				2.4609089916971
+			],
+			"customs": [
+				6875608.29377618,
+				189285014.797782,
+				2.4609089916971
+			]
+		}
+	}
+}

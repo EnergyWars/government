@@ -1,0 +1,5 @@
+{
+  "name": "upgrade-editor-web",
+  "private": true,
+  "type": "module"
+}

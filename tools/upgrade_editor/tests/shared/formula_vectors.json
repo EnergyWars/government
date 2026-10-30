@@ -1,0 +1,389 @@
+[
+ {
+  "expr": "1+2*3",
+  "vars": {},
+  "value": 7
+ },
+ {
+  "expr": "(1+2)*3",
+  "vars": {},
+  "value": 9
+ },
+ {
+  "expr": "2^3^2",
+  "vars": {},
+  "value": 512
+ },
+ {
+  "expr": "-2^2",
+  "vars": {},
+  "value": -4
+ },
+ {
+  "expr": "2*-3",
+  "vars": {},
+  "value": -6
+ },
+ {
+  "expr": "2^-1",
+  "vars": {},
+  "value": 0.5
+ },
+ {
+  "expr": "10 % 4",
+  "vars": {},
+  "value": 2
+ },
+ {
+  "expr": "-7 % 3",
+  "vars": {},
+  "value": -1
+ },
+ {
+  "expr": "7 - 2 - 1",
+  "vars": {},
+  "value": 4
+ },
+ {
+  "expr": "8 / 4 / 2",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "+3",
+  "vars": {},
+  "value": 3
+ },
+ {
+  "expr": "--3",
+  "vars": {},
+  "value": 3
+ },
+ {
+  "expr": "level*2",
+  "vars": {
+   "level": 4
+  },
+  "value": 8
+ },
+ {
+  "expr": "cost*growth^level",
+  "vars": {
+   "cost": 150,
+   "growth": 1.15,
+   "level": 3
+  },
+  "value": 228.13124999999997
+ },
+ {
+  "expr": "min(3,4)+max(3,4)",
+  "vars": {},
+  "value": 7
+ },
+ {
+  "expr": "clamp(15,0,10)",
+  "vars": {},
+  "value": 10
+ },
+ {
+  "expr": "clamp(-5,0,10)",
+  "vars": {},
+  "value": 0
+ },
+ {
+  "expr": "clamp(5,0,10)",
+  "vars": {},
+  "value": 5
+ },
+ {
+  "expr": "if(level>2,100,5)",
+  "vars": {
+   "level": 3
+  },
+  "value": 100
+ },
+ {
+  "expr": "if(level>2,100,5)",
+  "vars": {
+   "level": 1
+  },
+  "value": 5
+ },
+ {
+  "expr": "1e3",
+  "vars": {},
+  "value": 1000
+ },
+ {
+  "expr": "1.5e-2",
+  "vars": {},
+  "value": 0.015
+ },
+ {
+  "expr": ".5+.5",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "pi",
+  "vars": {},
+  "value": 3.141592653589793
+ },
+ {
+  "expr": "e",
+  "vars": {},
+  "value": 2.718281828459045
+ },
+ {
+  "expr": "round(2.5)",
+  "vars": {},
+  "value": 3
+ },
+ {
+  "expr": "round(-2.5)",
+  "vars": {},
+  "value": -2
+ },
+ {
+  "expr": "round(2.4)",
+  "vars": {},
+  "value": 2
+ },
+ {
+  "expr": "floor(-1.5)",
+  "vars": {},
+  "value": -2
+ },
+ {
+  "expr": "ceil(1.2)",
+  "vars": {},
+  "value": 2
+ },
+ {
+  "expr": "sqrt(16)",
+  "vars": {},
+  "value": 4
+ },
+ {
+  "expr": "ln(e)",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "log10(1000)",
+  "vars": {},
+  "value": 3
+ },
+ {
+  "expr": "abs(-3)",
+  "vars": {},
+  "value": 3
+ },
+ {
+  "expr": "sign(-2)",
+  "vars": {},
+  "value": -1
+ },
+ {
+  "expr": "sign(0)",
+  "vars": {},
+  "value": 0
+ },
+ {
+  "expr": "sign(9)",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "exp(0)",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "pow(2,10)",
+  "vars": {},
+  "value": 1024
+ },
+ {
+  "expr": "1 < 2",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "2 == 2",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "2 != 2",
+  "vars": {},
+  "value": 0
+ },
+ {
+  "expr": "3 >= 4",
+  "vars": {},
+  "value": 0
+ },
+ {
+  "expr": "4 <= 4",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "5 > 4",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "1+1 == 2",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "1<2<3",
+  "vars": {},
+  "value": 1
+ },
+ {
+  "expr": "  \t7 \n",
+  "vars": {},
+  "value": 7
+ },
+ {
+  "expr": "a_b2 * 2",
+  "vars": {
+   "a_b2": 3
+  },
+  "value": 6
+ },
+ {
+  "expr": "max(1, max(2, 3))",
+  "vars": {},
+  "value": 3
+ },
+ {
+  "expr": "0.1+0.2",
+  "vars": {},
+  "value": 0.30000000000000004
+ },
+ {
+  "expr": "",
+  "vars": {},
+  "error": "EMPTY"
+ },
+ {
+  "expr": "   ",
+  "vars": {},
+  "error": "EMPTY"
+ },
+ {
+  "expr": "1+",
+  "vars": {},
+  "error": "SYNTAX"
+ },
+ {
+  "expr": "1 2",
+  "vars": {},
+  "error": "SYNTAX"
+ },
+ {
+  "expr": "(1",
+  "vars": {},
+  "error": "SYNTAX"
+ },
+ {
+  "expr": "1)",
+  "vars": {},
+  "error": "SYNTAX"
+ },
+ {
+  "expr": "2 $ 3",
+  "vars": {},
+  "error": "SYNTAX"
+ },
+ {
+  "expr": "1..2",
+  "vars": {},
+  "error": "SYNTAX"
+ },
+ {
+  "expr": "2(3)",
+  "vars": {},
+  "error": "SYNTAX"
+ },
+ {
+  "expr": "min(1,)",
+  "vars": {},
+  "error": "SYNTAX"
+ },
+ {
+  "expr": "*2",
+  "vars": {},
+  "error": "SYNTAX"
+ },
+ {
+  "expr": "foo",
+  "vars": {},
+  "error": "UNKNOWN_IDENTIFIER"
+ },
+ {
+  "expr": "min",
+  "vars": {},
+  "error": "UNKNOWN_IDENTIFIER"
+ },
+ {
+  "expr": "level",
+  "vars": {},
+  "error": "UNKNOWN_IDENTIFIER"
+ },
+ {
+  "expr": "foo(1)",
+  "vars": {},
+  "error": "UNKNOWN_FUNCTION"
+ },
+ {
+  "expr": "min(1)",
+  "vars": {},
+  "error": "ARITY"
+ },
+ {
+  "expr": "clamp(1,2)",
+  "vars": {},
+  "error": "ARITY"
+ },
+ {
+  "expr": "sqrt(1,2)",
+  "vars": {},
+  "error": "ARITY"
+ },
+ {
+  "expr": "1/0",
+  "vars": {},
+  "error": "NOT_FINITE"
+ },
+ {
+  "expr": "sqrt(-1)",
+  "vars": {},
+  "error": "NOT_FINITE"
+ },
+ {
+  "expr": "ln(0)",
+  "vars": {},
+  "error": "NOT_FINITE"
+ },
+ {
+  "expr": "0/0",
+  "vars": {},
+  "error": "NOT_FINITE"
+ },
+ {
+  "expr": "10 % 0",
+  "vars": {},
+  "error": "NOT_FINITE"
+ },
+ {
+  "expr": "pow(10,400)",
+  "vars": {},
+  "error": "NOT_FINITE"
+ }
+]
