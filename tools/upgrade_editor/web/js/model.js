@@ -440,7 +440,25 @@ export function moveTopicItem(document, ref, toTopic, toIndex) {
   return { document: next };
 }
 
-export function updateUpgrade(document, upgradeId, patch) {
+const MODEL_FIELDS = ["cost_model", "value_model"];
+
+export function scopedDefinition(document, upgradeId, scope = "") {
+  const base = document.upgrades[upgradeId];
+  if (!base || !scope) return base;
+  const { room_overrides: overrides, ...rest } = base;
+  const merged = { ...rest, ...(overrides?.[scope] ?? {}) };
+  for (const field of MODEL_FIELDS) {
+    if (merged[field] && Object.keys(merged[field]).length === 0) delete merged[field];
+  }
+  return merged;
+}
+
+export function hasRoomOverride(document, upgradeId, roomId) {
+  return Object.keys(document.upgrades[upgradeId]?.room_overrides?.[roomId] ?? {}).length > 0;
+}
+
+export function updateUpgrade(document, upgradeId, patch, scope = "") {
+  if (scope) return updateOverride(document, upgradeId, patch, scope);
   const next = clone(document);
   next.upgrades[upgradeId] = { ...next.upgrades[upgradeId], ...patch };
   for (const [key, value] of Object.entries(patch)) {
@@ -448,6 +466,38 @@ export function updateUpgrade(document, upgradeId, patch) {
   }
   if (patch.max !== undefined) resizeTables(next.upgrades[upgradeId]);
   return next;
+}
+
+function updateOverride(document, upgradeId, patch, scope) {
+  const next = clone(document);
+  const base = next.upgrades[upgradeId];
+  const override = { ...(base.room_overrides?.[scope] ?? {}), ...patch };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) delete override[key];
+  }
+  if (patch.max !== undefined) {
+    const merged = { ...base, ...override };
+    resizeTables(merged);
+    for (const field of MODEL_FIELDS) {
+      if (merged[field] && Object.keys(merged[field]).length > 0) override[field] = merged[field];
+    }
+  }
+  const overrides = { ...(base.room_overrides ?? {}), [scope]: override };
+  if (Object.keys(override).length === 0) delete overrides[scope];
+  if (Object.keys(overrides).length === 0) delete base.room_overrides;
+  else base.room_overrides = overrides;
+  return next;
+}
+
+export function clearRoomOverride(document, upgradeId, roomId) {
+  if (!document.upgrades[upgradeId]) return { error: "UNKNOWN_UPGRADE" };
+  const next = clone(document);
+  const base = next.upgrades[upgradeId];
+  if (base.room_overrides) {
+    delete base.room_overrides[roomId];
+    if (Object.keys(base.room_overrides).length === 0) delete base.room_overrides;
+  }
+  return { document: next };
 }
 
 function resizeList(list, length, fill) {
@@ -489,11 +539,11 @@ export function tableFromFormula(definition, kind, formula) {
   return { values };
 }
 
-export function rememberFormula(document, upgradeId, kind, text) {
+export function rememberFormula(document, upgradeId, kind, text, scope = "") {
   const definition = document.upgrades[upgradeId];
   if (!definition) return { error: "UNKNOWN_UPGRADE" };
   const formula = String(text ?? "").trim();
-  const result = tableFromFormula(definition, kind, formula);
+  const result = tableFromFormula(scopedDefinition(document, upgradeId, scope), kind, formula);
   if (result.error) return result;
   const history = [formula, ...formulaHistory(definition, kind).filter((entry) => entry !== formula)].slice(0, FORMULA_HISTORY_LIMIT);
   return { document: updateUpgrade(document, upgradeId, { formula_history: { ...definition.formula_history, [kind]: history } }), values: result.values, formula };
@@ -518,18 +568,25 @@ export function closeTables(left, right) {
   return left.length === right.length && left.every((value, index) => Math.abs(value - right[index]) <= 1e-9 * Math.max(1, Math.abs(right[index])));
 }
 
-export function applyTables(document, upgradeId, draft, constants) {
-  const definition = document.upgrades[upgradeId];
-  if (!definition) return { error: "UNKNOWN_UPGRADE" };
-  if (draft.cost.length !== definition.max || draft.value.length !== definition.max) return { error: "TABLE_LENGTH" };
+export const MAX_TABLE_LEVELS = 100000;
+
+export function applyTables(document, upgradeId, draft, constants, scope = "") {
+  if (!document.upgrades[upgradeId]) return { error: "UNKNOWN_UPGRADE" };
+  const definition = scopedDefinition(document, upgradeId, scope);
+  const length = draft.cost.length;
+  if (length !== draft.value.length || length < 1 || length > MAX_TABLE_LEVELS) return { error: "TABLE_LENGTH" };
   if (draft.cost.some((value) => !Number.isFinite(value) || value < 0) || draft.value.some((value) => !Number.isFinite(value))) return { error: "TABLE_VALUE" };
+  const sized = length === definition.max ? document : updateUpgrade(document, upgradeId, { max: length }, scope);
+  const resized = scopedDefinition(sized, upgradeId, scope);
+  const inherited = scope ? scopedDefinition(sized, upgradeId, "") : null;
   const patch = {};
   for (const kind of Object.keys(MODEL_KINDS)) {
     const { key, table } = MODEL_KINDS[kind];
     const formula = draft.formula?.[kind];
-    patch[key] = closeTables(draft[kind], tableFromParameters(definition, kind, constants)) ? undefined : { mode: "table", [table]: [...draft[kind]], ...(formula ? { formula } : {}) };
+    if (closeTables(draft[kind], tableFromParameters(resized, kind, constants))) patch[key] = scope && inherited[key] ? {} : undefined;
+    else patch[key] = { mode: "table", [table]: [...draft[kind]], ...(formula ? { formula } : {}) };
   }
-  return { document: updateUpgrade(document, upgradeId, patch) };
+  return { document: updateUpgrade(sized, upgradeId, patch, scope) };
 }
 
 export function setSystemValue(document, section, id, field, value) {

@@ -44,6 +44,13 @@ async function start() {
   const dictionaries = await loadDictionaries();
   const i18n = createI18n(dictionaries, detectLanguage(readStored("upgrade-editor.language"), navigator.language));
   setSelectTexts((key) => i18n.t(key));
+  const THEMES = ["auto", "light", "dark"];
+  let theme = THEMES.includes(readStored("upgrade-editor.theme")) ? readStored("upgrade-editor.theme") : "dark";
+  const applyTheme = () => {
+    if (theme === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", theme);
+  };
+  applyTheme();
   document.documentElement.lang = i18n.language;
   document.title = i18n.t("app.title");
   let loaded;
@@ -70,14 +77,18 @@ async function start() {
   const header = h("header", { class: "topbar" });
   const main = h("main", { class: "content" });
   const inspector = h("aside", { class: "inspector", "aria-label": i18n.t("inspector.parameters") });
-  root.append(header, h("div", { class: "workspace" }, main, inspector));
+  const workspace = h("div", { class: "workspace" }, main, inspector);
+  root.append(header, workspace);
 
   app.setTab = (next) => {
     tab = next;
     writeStored("upgrade-editor.tab", next);
     renderAll();
   };
-  app.rerender = () => renderMain();
+  app.rerender = () => {
+    renderHeader();
+    renderMain();
+  };
   app.redrawInspector = () => renderInspectorPane();
 
   async function save() {
@@ -103,9 +114,30 @@ async function start() {
     }
   }
 
+  function canGoBack() {
+    return Boolean(store.state.selection?.ref) || (tab === "map" && Boolean(app.ui.spot));
+  }
+
+  function goBack() {
+    if (store.state.selection?.ref) {
+      store.select(null);
+      return;
+    }
+    app.ui.spot = null;
+    renderAll();
+  }
+
+  function syncDetail() {
+    const detail = Boolean(store.state.selection?.ref);
+    const was = workspace.classList.contains("detail");
+    workspace.classList.toggle("detail", detail);
+    if (detail && !was) inspector.scrollTop = 0;
+  }
+
   function renderHeader() {
     const dirty = store.isDirty();
     header.replaceChildren(
+      canGoBack() ? h("button", { type: "button", class: "back", onClick: goBack, title: "Esc" }, "← " + i18n.t("toolbar.back")) : null,
       h("h1", {}, i18n.t("app.title")),
       h("nav", { class: "tabs", role: "tablist" }, Object.keys(TABS).map((id) => h("button", { type: "button", role: "tab", class: "tab" + (id === tab ? " active" : ""), "aria-selected": id === tab, onClick: () => app.setTab(id) }, i18n.t("tab." + id)))),
       h("span", { class: "grow" }),
@@ -114,13 +146,20 @@ async function start() {
       h("button", { type: "button", disabled: !store.canRedo(), onClick: () => store.redo(), title: "Ctrl+Shift+Z" }, "↷ " + i18n.t("toolbar.redo")),
       h("button", { type: "button", class: "primary", disabled: !dirty, onClick: save, title: "Ctrl+S" }, i18n.t("toolbar.save")),
       h("button", { type: "button", onClick: reset }, i18n.t("toolbar.reset")),
+      h("select", { "aria-label": i18n.t("toolbar.theme"), onChange: (event) => { theme = event.target.value; writeStored("upgrade-editor.theme", theme); applyTheme(); } },
+        THEMES.map((code) => h("option", { value: code, selected: code === theme }, i18n.t("theme." + code)))),
       h("select", { "aria-label": i18n.t("toolbar.language"), onChange: (event) => { i18n.setLanguage(event.target.value); writeStored("upgrade-editor.language", i18n.language); document.documentElement.lang = i18n.language; document.title = i18n.t("app.title"); renderAll(); } },
         LANGUAGES.map((code) => h("option", { value: code, selected: code === i18n.language }, code.toUpperCase()))),
     );
   }
 
+  const savedScroll = new Map();
+
   function scrollPositions() {
-    return [...document.querySelectorAll("[data-scroll]")].map((node) => [node.dataset.scroll, node.scrollTop, node.scrollLeft]);
+    for (const node of document.querySelectorAll("[data-scroll]")) {
+      if (node.offsetParent !== null) savedScroll.set(node.dataset.scroll, [node.dataset.scroll, node.scrollTop, node.scrollLeft]);
+    }
+    return [...savedScroll.values()];
   }
 
   function restoreScroll(positions) {
@@ -145,12 +184,14 @@ async function start() {
   }
 
   function renderAll() {
+    syncDetail();
     renderHeader();
     renderMain();
     renderInspectorPane();
   }
 
   store.subscribe((state, meta) => {
+    syncDetail();
     renderHeader();
     if (meta.origin === "selection" && tab !== "map" && tab !== "menu" && tab !== "overview") {
       renderInspectorPane();
@@ -164,7 +205,9 @@ async function start() {
   window.addEventListener("keydown", (event) => {
     const modifier = event.ctrlKey || event.metaKey;
     const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
-    if (modifier && event.key.toLowerCase() === "s") {
+    if (event.key === "Escape" && !typing && canGoBack()) {
+      goBack();
+    } else if (modifier && event.key.toLowerCase() === "s") {
       event.preventDefault();
       if (store.isDirty()) save();
     } else if (modifier && event.key.toLowerCase() === "z" && !typing) {

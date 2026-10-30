@@ -13,12 +13,16 @@ export function xOf(index, count) {
 }
 
 export function scaleSeries(values) {
-  const logs = values.map((value) => (Number.isFinite(value) && value > 0 ? Math.log10(value) : null));
-  const finite = logs.filter((value) => value !== null);
+  const finite = values.filter((value) => Number.isFinite(value));
   if (finite.length === 0) return null;
-  const low = Math.min(...finite);
-  const spread = Math.max(...finite) - low || 1;
-  return logs.map((value, index) => (value === null ? null : { x: xOf(index, values.length), y: CHART.height - CHART.pad - ((value - low) / spread) * (CHART.height - CHART.pad * 2) }));
+  const low = Math.min(0, ...finite);
+  const spread = Math.max(...finite, low + 1e-9) - low;
+  return values.map((value, index) => (Number.isFinite(value) ? { x: xOf(index, values.length), y: CHART.height - CHART.pad - ((value - low) / spread) * (CHART.height - CHART.pad * 2) } : null));
+}
+
+export function highlightState(focusKey, key) {
+  if (!focusKey) return "";
+  return focusKey === key ? "focus" : "dim";
 }
 
 export function polylinePoints(points) {

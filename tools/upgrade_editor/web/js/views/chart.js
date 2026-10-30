@@ -1,29 +1,19 @@
 import { h, svg } from "../dom.js";
-import { CHART, nearestIndex, polylinePoints, scaleSeries, xOf } from "../chartMath.js";
+import { CHART, highlightState, nearestIndex, polylinePoints, scaleSeries, xOf } from "../chartMath.js";
 import { percent, significant } from "../format.js";
-import { incrementCell } from "../table.js";
+import { COLUMNS, metricValue } from "../table.js";
 
-const SERIES = [
-  { key: "cost", className: "line-cost", legend: "preview.legendCost", get: (row) => row.cost },
-  { key: "sum", className: "line-sum", legend: "preview.legendSum", get: (row) => row.sum },
-  { key: "value", className: "line-value", legend: "preview.legendValue", get: (row) => row.value },
-  { key: "increment", className: "line-increment", legend: "preview.legendIncrement", get: (row, mode) => incrementCell(row, mode) },
-  { key: "factor", className: "line-factor", legend: "preview.legendFactor", get: (row) => row.factor },
-  { key: "stepRatio", className: "line-step", legend: "preview.legendStepRatio", get: (row) => row.stepRatio },
-  { key: "totalRatio", className: "line-total", legend: "preview.legendTotalRatio", get: (row) => row.totalRatio },
-];
+const PERCENT = { gain: 1, stepRatio: 1, totalRatio: 1 };
+const PREFIX = { costFactor: "×", sumFactor: "×", effect: "×" };
+const CLASSES = { stepRatio: "line-step", totalRatio: "line-total" };
 
-const TOOLTIP = [
-  { label: "preview.cost", get: (row) => row.cost },
-  { label: "preview.sum", get: (row) => row.sum },
-  { label: "table.value", get: (row) => row.value },
-  { label: "table.incrementAbsolute", get: (row) => row.increment },
-  { label: "table.incrementFactor", get: (row) => row.incrementFactor },
-  { label: "preview.gain", get: (row) => row.gain, percent: 100 },
-  { label: "preview.factor", get: (row) => row.factor },
-  { label: "preview.stepRatio", get: (row) => row.stepRatio, percent: 1 },
-  { label: "preview.totalRatio", get: (row) => row.totalRatio, percent: 1 },
-];
+const SERIES = COLUMNS.filter((column) => column !== "level").map((key) => ({
+  key,
+  className: CLASSES[key] ?? `line-${key}`,
+  get: (row, mode) => metricValue(row, key, mode),
+  percent: PERCENT[key],
+  prefix: PREFIX[key] ?? "",
+}));
 
 export function setIncrementMode(app, mode) {
   app.ui.incrementMode = mode;
@@ -37,11 +27,10 @@ export function incrementModeToggle(app) {
     ["absolute", "factor"].map((id) => h("button", { type: "button", class: "segment" + (mode === id ? " active" : ""), "aria-pressed": mode === id ? "true" : "false", onClick: () => { if (mode !== id) setIncrementMode(app, id); } }, app.t("table.mode." + id))));
 }
 
-function formatted(app, entry, row) {
-  const value = entry.get(row);
+function formatValue(app, entry, value) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   const language = app.i18n.language;
-  return entry.percent ? percent(value * entry.percent, language) : significant(value, language);
+  return entry.percent ? percent(value, language) : entry.prefix + significant(value, language);
 }
 
 export function renderChart(app, rows) {
@@ -50,20 +39,28 @@ export function renderChart(app, rows) {
   const hidden = (app.ui.chartHidden ??= {});
 
   const draw = () => {
+    const label = (series) => (series.key === "increment" ? app.t(`table.increment.${app.ui.incrementMode ?? "absolute"}`) : app.t(`table.col.${series.key}`));
     const mode = app.ui.incrementMode ?? "absolute";
-    const available = SERIES.map((series) => ({ series, points: scaleSeries(rows.map((row) => series.get(row, mode))) })).filter((item) => item.points);
+    const available = SERIES.map((series) => { const values = rows.map((row) => series.get(row, mode)); return { series, values, points: scaleSeries(values) }; }).filter((item) => item.points);
     const visible = available.filter((item) => !hidden[item.series.key]);
     const guide = svg("line", { class: "chart-guide", y1: 0, y2: CHART.height, x1: 0, x2: 0, visibility: "hidden" });
-    const dots = visible.map((item) => svg("circle", { class: "chart-dot " + item.series.className, r: 3.5, cx: 0, cy: 0, visibility: "hidden" }));
+    const marks = visible.flatMap((item) => item.points.flatMap((point, index) => (point ? [svg("circle", { class: "chart-point " + item.series.className, "data-key": item.series.key, "data-index": index, cx: point.x, cy: point.y, r: 3.5 })] : [])));
     const tooltip = h("div", { class: "chart-tooltip", hidden: true });
     const overlay = svg("rect", { x: 0, y: 0, width: CHART.width, height: CHART.height, fill: "transparent" });
     const canvas = svg("svg", { viewBox: `0 0 ${CHART.width} ${CHART.height}`, role: "img", "aria-label": app.t("preview.chart") },
-      visible.map((item) => svg("polyline", { points: polylinePoints(item.points), class: item.series.className, fill: "none" })),
-      guide, dots, overlay);
+      visible.map((item) => svg("polyline", { points: polylinePoints(item.points), class: item.series.className, "data-key": item.series.key, fill: "none" })),
+      guide, marks, overlay);
+    const focus = (key) => {
+      for (const node of canvas.querySelectorAll("[data-key]")) {
+        const state = highlightState(key, node.getAttribute("data-key"));
+        node.classList.toggle("focus", state === "focus");
+        node.classList.toggle("dim", state === "dim");
+      }
+    };
     const hide = () => {
       tooltip.hidden = true;
       guide.setAttribute("visibility", "hidden");
-      dots.forEach((dot) => dot.setAttribute("visibility", "hidden"));
+      marks.forEach((mark) => mark.classList.remove("active"));
     };
     const show = (event) => {
       const box = canvas.getBoundingClientRect();
@@ -73,20 +70,13 @@ export function renderChart(app, rows) {
       guide.setAttribute("x1", column);
       guide.setAttribute("x2", column);
       guide.setAttribute("visibility", "visible");
-      visible.forEach((item, position) => {
-        const point = item.points[index];
-        dots[position].setAttribute("visibility", point ? "visible" : "hidden");
-        if (point) {
-          dots[position].setAttribute("cx", point.x);
-          dots[position].setAttribute("cy", point.y);
-        }
-      });
+      marks.forEach((mark) => mark.classList.toggle("active", Number(mark.getAttribute("data-index")) === index));
       const row = rows[index];
       tooltip.replaceChildren(
         h("strong", {}, `${app.t("preview.level")} ${row.level}`),
-        h("dl", {}, TOOLTIP.flatMap((entry) => {
-          const text = formatted(app, entry, row);
-          return text === null ? [] : [h("dt", {}, app.t(entry.label)), h("dd", {}, text)];
+        h("dl", {}, visible.flatMap((item) => {
+          const text = formatValue(app, item.series, item.series.get(row, mode));
+          return text === null ? [] : [h("dt", {}, label(item.series)), h("dd", {}, text)];
         })));
       tooltip.style.left = `${Math.max(18, Math.min(82, (column / CHART.width) * 100))}%`;
       tooltip.hidden = false;
@@ -98,8 +88,12 @@ export function renderChart(app, rows) {
       class: "legend-toggle " + item.series.className + (hidden[item.series.key] ? " off" : ""),
       "aria-pressed": hidden[item.series.key] ? "false" : "true",
       title: app.t(hidden[item.series.key] ? "chart.show" : "chart.hide"),
-      onClick: () => { hidden[item.series.key] = !hidden[item.series.key]; draw(); },
-    }, app.t(item.series.legend))));
+      onClick: () => { hidden[item.series.key] = !hidden[item.series.key]; app.redrawInspector(); },
+      onPointerenter: () => focus(item.series.key),
+      onPointerleave: () => focus(null),
+      onFocus: () => focus(item.series.key),
+      onBlur: () => focus(null),
+    }, `${label(item.series)} · ${app.t("chart.peak")} ${formatValue(app, item.series, Math.max(...item.values.filter((value) => Number.isFinite(value))))}`)));
     figure.replaceChildren(h("div", { class: "chart-frame" }, canvas, tooltip), legend, incrementModeToggle(app), h("p", { class: "hint small" }, app.t("preview.chartNote")));
   };
   draw();

@@ -24,15 +24,27 @@ def _upgrade_changes(original, edited):
         before = before_all.get(upgrade_id, {})
         after = after_all[upgrade_id]
         for field in sorted(set(before) | set(after)):
-            if field in ("spot", "topic", "rooms", "enabled"):
+            if field in ("spot", "topic", "rooms", "enabled", "room_overrides"):
                 continue
             if before.get(field) != after.get(field):
                 result.append({"kind": "param", "id": upgrade_id, "field": field, "before": before.get(field), "after": after.get(field)})
+        result += _override_changes(upgrade_id, before.get("room_overrides", {}), after.get("room_overrides", {}))
         if before.get("enabled", True) != after.get("enabled", True):
             result.append({"kind": "enabled", "id": upgrade_id, "before": before.get("enabled", True), "after": after.get("enabled", True)})
     for upgrade_id in before_all:
         if upgrade_id not in after_all:
             result.append({"kind": "removed_upgrade", "id": upgrade_id})
+    return result
+
+
+def _override_changes(upgrade_id, before, after):
+    result = []
+    for room_id in sorted(set(before) | set(after)):
+        old, new = before.get(room_id), after.get(room_id)
+        if old == new:
+            continue
+        state = "added" if old is None else "removed" if new is None else "changed"
+        result.append({"kind": "room_override", "id": upgrade_id, "room": room_id, "state": state})
     return result
 
 

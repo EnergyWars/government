@@ -13,6 +13,13 @@ MAX_BODY = 8 * 1024 * 1024
 GUARD_HEADER = "X-Upgrade-Editor"
 LOOPBACK_HOST = "127.0.0.1"
 ALL_INTERFACES = "0.0.0.0"
+REQUEST_TIMEOUT_SECONDS = 30
+SECURITY_HEADERS = {
+    "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+}
 
 
 def own_host_names():
@@ -66,6 +73,7 @@ def create_server(store, web_dir, port=0, host=LOOPBACK_HOST):
 
 class EditorHandler(BaseHTTPRequestHandler):
     server_version = "UpgradeEditor"
+    timeout = REQUEST_TIMEOUT_SECONDS
 
     def log_message(self, format, *args):
         pass
@@ -78,12 +86,17 @@ class EditorHandler(BaseHTTPRequestHandler):
         name = name.strip("[]").lower()
         return name in self.server.host_names or is_trusted_ip(name)
 
+    def _send_security_headers(self):
+        for name, value in SECURITY_HEADERS.items():
+            self.send_header(name, value)
+
     def _send_json(self, payload, status=HTTPStatus.OK):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self._send_security_headers()
         self.end_headers()
         self.wfile.write(body)
 
@@ -91,7 +104,10 @@ class EditorHandler(BaseHTTPRequestHandler):
         self._send_json({"error": code}, status)
 
     def _read_body(self):
-        length = int(self.headers.get("Content-Length", "0") or 0)
+        try:
+            length = int(self.headers.get("Content-Length", "0") or 0)
+        except ValueError:
+            return None
         if length <= 0 or length > MAX_BODY:
             return None
         try:
@@ -126,6 +142,8 @@ class EditorHandler(BaseHTTPRequestHandler):
             self._send_json({"error": "VALIDATION", "errors": failure.errors}, HTTPStatus.UNPROCESSABLE_ENTITY)
         except MissingFile:
             self._send_error_code(HTTPStatus.NOT_FOUND, "MISSING_FILE")
+        except Exception:
+            self._send_error_code(HTTPStatus.INTERNAL_SERVER_ERROR, "INTERNAL")
 
     def _route_mutation(self, store, path):
         if path == "/api/document" and self.command == "PUT":
@@ -151,7 +169,7 @@ class EditorHandler(BaseHTTPRequestHandler):
         if path == "/api/reset" and self.command == "POST":
             with self.server.write_lock:
                 archived = store.reset_edited()
-            return self._send_json({"source": store.source(), "archived": str(archived) if archived else None})
+            return self._send_json({"source": store.source(), "archived": archived.name if archived else None})
         self._send_error_code(HTTPStatus.NOT_FOUND, "ROUTE")
 
     def _get_api(self, path):
@@ -180,5 +198,6 @@ class EditorHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type + ("; charset=utf-8" if content_type.startswith("text/") or content_type.endswith("javascript") or content_type.endswith("json") else ""))
         self.send_header("Content-Length", str(len(content)))
         self.send_header("Cache-Control", "no-store")
+        self._send_security_headers()
         self.end_headers()
         self.wfile.write(content)

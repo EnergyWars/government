@@ -3,6 +3,7 @@ import { COST_VARIABLES, VALUE_VARIABLES, checkFormula } from "../formulas.js";
 import { FUNCTIONS } from "../formula.js";
 import { deleteFormulaFromHistory, fillValues, formulaHistory, rememberFormula, tableFromFormula, tableFromParameters } from "../model.js";
 import { fillDraft, getDraft } from "../draft.js";
+import { definitionOf, scopeOf } from "../scope.js";
 import { select } from "./components.js";
 
 const TABS = ["params", "formula", "tools"];
@@ -31,7 +32,7 @@ function formulaPane(app, upgradeId, kind, definition, draft) {
   input.addEventListener("input", () => { drafts[draftKey] = input.value; });
   const status = h("div", { class: "formula-status" });
   const show = () => {
-    const result = checkFormula(kind, app.store.state.document.upgrades[upgradeId], input.value);
+    const result = checkFormula(kind, definitionOf(app, upgradeId), input.value);
     status.textContent = statusText(app, result);
     status.className = "formula-status " + (result.ok ? "ok" : "bad");
     return result;
@@ -40,11 +41,11 @@ function formulaPane(app, upgradeId, kind, definition, draft) {
   show();
   const fill = (text) => {
     if (!show().ok) return;
-    const filled = tableFromFormula(app.store.state.document.upgrades[upgradeId], kind, text.trim());
+    const filled = tableFromFormula(definitionOf(app, upgradeId), kind, text.trim());
     if (filled.error) return;
     drafts[draftKey] = text.trim();
     fillDraft(draft, kind, filled.values, text.trim());
-    app.edit((document) => rememberFormula(document, upgradeId, kind, text), { origin: "inspector" });
+    app.edit((document) => rememberFormula(document, upgradeId, kind, text, scopeOf(app, upgradeId)), { origin: "inspector" });
   };
   const names = kind === "cost" ? COST_VARIABLES : VALUE_VARIABLES;
   const insert = (name) => {
@@ -109,7 +110,7 @@ function toolsPane(app, upgradeId, kind, definition, draft) {
 const PANES = { params: paramsPane, formula: formulaPane, tools: toolsPane };
 
 export function renderFillEditor(app, upgradeId, kind) {
-  const definition = app.store.state.document.upgrades[upgradeId];
+  const definition = definitionOf(app, upgradeId);
   const draft = getDraft(app, upgradeId, definition);
   const tabs = (app.ui.fillTab ??= {});
   const active = TABS.includes(tabs[kind]) ? tabs[kind] : "params";

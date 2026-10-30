@@ -76,6 +76,9 @@ def _normalise_numbers(definition):
             definition[field] = int(definition[field])
     if "requires" in definition:
         definition["requires"] = {key: int(value) for key, value in definition["requires"].items()}
+    for override in (definition.get("room_overrides") or {}).values():
+        if isinstance(override, dict):
+            _normalise_numbers(override)
     for model_key, table_key in (("cost_model", "levels"), ("value_model", "increments")):
         table = definition.get(model_key, {}).get(table_key) if isinstance(definition.get(model_key), dict) else None
         if isinstance(table, list):
@@ -94,6 +97,10 @@ def _normalise_room_upgrade(definition, upgrade_id, placed):
             kept.append(room_id)
     definition["rooms"] = kept
     definition.pop("enabled", None)
+    if isinstance(definition.get("room_overrides"), dict):
+        definition["room_overrides"] = {room: override for room, override in definition["room_overrides"].items() if room in kept}
+        if not definition["room_overrides"]:
+            del definition["room_overrides"]
 
 
 def _normalise_global_upgrade(definition, upgrade_id, placed):

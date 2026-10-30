@@ -1,6 +1,6 @@
 import { factorOf, systemStep, systemTotals, trackStep, trackTotals } from "./benefit.js";
 import { effectiveConstants, systemCost, systemModel, trackCost, trackRoomFactor } from "./formulas.js";
-import { buildEntries, parseRef } from "./model.js";
+import { buildEntries, parseRef, scopedDefinition } from "./model.js";
 import { createTexts } from "./texts.js";
 
 export function createApp({ store, i18n, notify }) {
@@ -48,7 +48,7 @@ export function createApp({ store, i18n, notify }) {
   }
 
   function trackMetrics(entry, document, context, constants) {
-    const definition = document.upgrades[entry.target];
+    const definition = scopedDefinition(document, entry.target, entry.roomId);
     if (!definition) return null;
     const factor = trackRoomFactor(entry.target, definition, entry.roomId, context, document, constants);
     return {
@@ -79,5 +79,5 @@ export function createApp({ store, i18n, notify }) {
     return parsed.kind === "track" ? parsed.upgradeId : null;
   }
 
-  return { store, i18n, t: (key, params) => i18n.t(key, params), derived, metrics, edit, notify, selectedUpgradeId, factorOf, ui: { zoom: 0.42, spot: null, menuMode: "rooms", expanded: {}, search: "", formulaDrafts: {}, tableDrafts: {}, chartHidden: {}, sections: {}, fillTab: {}, incrementMode: "absolute" } };
+  return { store, i18n, t: (key, params) => i18n.t(key, params), derived, metrics, edit, notify, selectedUpgradeId, factorOf, ui: { zoom: 0.42, spot: null, menuMode: "rooms", expanded: {}, search: "", formulaDrafts: {}, tableDrafts: {}, scopes: {}, scopeRef: null, chartHidden: {}, sections: {}, fillTab: {}, incrementMode: "absolute" } };
 }

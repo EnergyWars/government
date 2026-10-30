@@ -1,3 +1,4 @@
+import http.client
 import json
 import socket
 import tempfile
@@ -6,6 +7,7 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest import mock
 
 from upgrade_editor import store as store_module
 from upgrade_editor.server import ALL_INTERFACES, create_server, is_trusted_ip, lan_addresses
@@ -118,6 +120,14 @@ class StaticTest(ServerTestCase):
     def test_unknown_file(self):
         self.assertEqual(self.request("GET", "/nothing.html")[0], 404)
 
+    def test_security_headers_on_pages_and_api(self):
+        for path in ("/", "/api/context", "/nothing.html"):
+            _, _, headers = self.request("GET", path)
+            self.assertIn("frame-ancestors 'none'", headers["Content-Security-Policy"])
+            self.assertEqual(headers["X-Frame-Options"], "DENY")
+            self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+            self.assertEqual(headers["Referrer-Policy"], "no-referrer")
+
     def test_path_traversal_is_blocked(self):
         self.assertEqual(self.request("GET", "/../secret.txt")[0], 404)
         self.assertEqual(self.request("GET", "/%2e%2e/secret.txt")[0], 404)
@@ -221,7 +231,24 @@ class ApiWriteTest(ServerTestCase):
         status, payload = self.json("POST", "/api/reset")
         self.assertEqual((status, payload["source"]), (200, "original"))
         self.assertIsNotNone(payload["archived"])
+        self.assertNotIn("/", payload["archived"])
         self.assertEqual(self.json("POST", "/api/reset")[1]["archived"], None)
+
+    def test_invalid_content_length_is_a_bad_request(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        connection.putrequest("PUT", "/api/document")
+        connection.putheader("X-Upgrade-Editor", "1")
+        connection.putheader("Content-Length", "abc")
+        connection.endheaders()
+        response = connection.getresponse()
+        self.assertEqual(response.status, 400)
+        connection.close()
+
+    def test_unexpected_errors_do_not_leak_details(self):
+        with mock.patch.object(DocumentStore, "validate", side_effect=TypeError("secret detail")):
+            status, content, _ = self.request("POST", "/api/validate", {"document": {}})
+        self.assertEqual(status, 500)
+        self.assertEqual(json.loads(content), {"error": "INTERNAL"})
 
     def test_unknown_write_route(self):
         self.assertEqual(self.json("POST", "/api/nothing", {})[0], 404)

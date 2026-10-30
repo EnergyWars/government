@@ -432,6 +432,23 @@ test("applying the parametric table again removes a table model", () => {
   assert.ok(!("cost_model" in back));
 });
 
+test("applying a longer or shorter table changes the maximum", () => {
+  const max = real.document.upgrades.briefcase.max;
+  const longer = draftOf();
+  longer.cost.push(500);
+  longer.value.push(12345);
+  const grown = model.applyTables(fresh(), "briefcase", longer, constants).document.upgrades.briefcase;
+  assert.equal(grown.max, max + 1);
+  assert.equal(grown.cost_model.levels.at(-1), 500);
+  assert.equal(grown.value_model.increments.length, max + 1);
+  const shorter = draftOf();
+  shorter.cost.pop();
+  shorter.value.pop();
+  const cut = model.applyTables(fresh(), "briefcase", shorter, constants).document.upgrades.briefcase;
+  assert.equal(cut.max, max - 1);
+  assert.equal(model.applyTables(fresh(), "briefcase", { cost: [], value: [], formula: {} }, constants).error, "TABLE_LENGTH");
+});
+
 test("applying rejects broken tables", () => {
   const short = draftOf();
   short.cost = short.cost.slice(1);
@@ -661,4 +678,85 @@ test("moving between subgroups of the same spot is allowed", () => {
   const moved = model.moveEntry(filled, context, "track:briefcase", { room: "kitchen", spot: "kitchen", group: "", index: 0 }, { room: "kitchen", spot: "kitchen", group: "a" });
   assert.equal(moved.error, undefined);
   assert.equal(model.findLocation(moved.document, "track:briefcase").group, "");
+});
+
+test("a room scope reads the default merged with its own override", () => {
+  const document = model.updateUpgrade(fresh(), "room_speed", { cost: 999, max: 12 }, "hall");
+  const base = document.upgrades.room_speed;
+  assert.equal(base.cost, real.document.upgrades.room_speed.cost);
+  assert.deepEqual(base.room_overrides, { hall: { cost: 999, max: 12 } });
+  const hall = model.scopedDefinition(document, "room_speed", "hall");
+  assert.equal(hall.cost, 999);
+  assert.equal(hall.max, 12);
+  assert.equal(hall.growth, base.growth);
+  assert.ok(!("room_overrides" in hall));
+  assert.equal(model.scopedDefinition(document, "room_speed", "mail").cost, base.cost);
+  assert.equal(model.scopedDefinition(document, "room_speed", "").cost, base.cost);
+  assert.equal(model.scopedDefinition(document, "ghost", "hall"), undefined);
+  assert.ok(model.hasRoomOverride(document, "room_speed", "hall"));
+  assert.ok(!model.hasRoomOverride(document, "room_speed", "mail"));
+});
+
+test("rooms are configured independently of each other", () => {
+  let document = model.updateUpgrade(fresh(), "room_speed", { cost: 10 }, "hall");
+  document = model.updateUpgrade(document, "room_speed", { cost: 20, step: 0.5 }, "mail");
+  assert.equal(model.scopedDefinition(document, "room_speed", "hall").cost, 10);
+  assert.equal(model.scopedDefinition(document, "room_speed", "mail").cost, 20);
+  assert.equal(model.scopedDefinition(document, "room_speed", "hall").step, real.document.upgrades.room_speed.step);
+});
+
+test("removing the last override field removes the override", () => {
+  let document = model.updateUpgrade(fresh(), "room_speed", { cost: 10 }, "hall");
+  document = model.updateUpgrade(document, "room_speed", { cost: undefined }, "hall");
+  assert.ok(!("room_overrides" in document.upgrades.room_speed));
+  document = model.updateUpgrade(model.updateUpgrade(fresh(), "room_speed", { cost: 10 }, "hall"), "room_speed", { cost: 11 }, "mail");
+  document = model.clearRoomOverride(document, "room_speed", "hall").document;
+  assert.deepEqual(Object.keys(document.upgrades.room_speed.room_overrides), ["mail"]);
+  document = model.clearRoomOverride(document, "room_speed", "mail").document;
+  assert.ok(!("room_overrides" in document.upgrades.room_speed));
+  assert.equal(model.clearRoomOverride(fresh(), "ghost", "hall").error, "UNKNOWN_UPGRADE");
+  assert.ok(!("room_overrides" in model.clearRoomOverride(fresh(), "room_speed", "hall").document.upgrades.room_speed));
+});
+
+test("changing the maximum of a room resizes its own tables only", () => {
+  const draft = { cost: Array(100).fill(5), value: Array(100).fill(0.1), formula: {} };
+  let document = model.applyTables(fresh(), "room_speed", draft, constants, "hall").document;
+  const hall = model.scopedDefinition(document, "room_speed", "hall");
+  assert.equal(hall.cost_model.levels.length, 100);
+  document = model.updateUpgrade(document, "room_speed", { max: 40 }, "hall");
+  const shrunk = model.scopedDefinition(document, "room_speed", "hall");
+  assert.equal(shrunk.max, 40);
+  assert.equal(shrunk.cost_model.levels.length, 40);
+  assert.equal(shrunk.value_model.increments.length, 40);
+  assert.equal(document.upgrades.room_speed.max, real.document.upgrades.room_speed.max);
+  assert.ok(!("cost_model" in document.upgrades.room_speed));
+});
+
+test("applying a table for a room leaves the default and other rooms alone", () => {
+  const draft = { cost: model.tableFromParameters(real.document.upgrades.room_speed, "cost", constants), value: model.tableFromParameters(real.document.upgrades.room_speed, "value", constants), formula: {} };
+  draft.cost[0] = 1;
+  const document = model.applyTables(fresh(), "room_speed", draft, constants, "hall").document;
+  assert.equal(document.upgrades.room_speed.room_overrides.hall.cost_model.levels[0], 1);
+  assert.ok(!("cost_model" in document.upgrades.room_speed));
+  assert.ok(!("cost_model" in model.scopedDefinition(document, "room_speed", "mail")));
+  assert.equal(model.applyTables(fresh(), "ghost", draft, constants, "hall").error, "UNKNOWN_UPGRADE");
+});
+
+test("a room can switch an inherited table model back to parameters", () => {
+  const base = fresh();
+  const tableDraft = { cost: model.tableFromParameters(base.upgrades.room_speed, "cost", constants), value: model.tableFromParameters(base.upgrades.room_speed, "value", constants), formula: {} };
+  tableDraft.cost[1] = 7;
+  const withTable = model.applyTables(base, "room_speed", tableDraft, constants).document;
+  const plain = { cost: model.tableFromParameters(withTable.upgrades.room_speed, "cost", constants), value: model.tableFromParameters(withTable.upgrades.room_speed, "value", constants), formula: {} };
+  const document = model.applyTables(withTable, "room_speed", plain, constants, "hall").document;
+  assert.deepEqual(document.upgrades.room_speed.room_overrides.hall.cost_model, {});
+  assert.ok(!("cost_model" in model.scopedDefinition(document, "room_speed", "hall")));
+  assert.ok("cost_model" in model.scopedDefinition(document, "room_speed", "mail"));
+});
+
+test("remembering a formula for a room evaluates it against the room", () => {
+  const document = model.updateUpgrade(fresh(), "room_speed", { max: 3 }, "hall");
+  const result = model.rememberFormula(document, "room_speed", "cost", "10 * level", "hall");
+  assert.equal(result.values.length, 3);
+  assert.deepEqual(model.formulaHistory(result.document.upgrades.room_speed, "cost"), ["10 * level"]);
 });

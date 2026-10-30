@@ -155,3 +155,19 @@ class RealDocumentTest(unittest.TestCase):
         self.assertTrue(all(isinstance(value, float) for value in result["upgrades"]["briefcase"]["value_model"]["increments"]))
         document["upgrades"]["briefcase"]["cost_model"] = {"mode": "formula", "formula": "1"}
         self.assertEqual(model.normalise(document)["upgrades"]["briefcase"]["cost_model"], {"mode": "formula", "formula": "1"})
+
+
+class RoomOverrideNormaliseTest(unittest.TestCase):
+    def test_overrides_are_normalised_and_pruned(self):
+        document = make_document()
+        document["upgrades"]["room_speed"]["room_overrides"] = {"hall": {"max": 5.0, "cost": 3}, "gone": {"cost": 1.0}}
+        normalised = model.normalise(document)
+        overrides = normalised["upgrades"]["room_speed"]["room_overrides"]
+        self.assertEqual(overrides, {"hall": {"max": 5, "cost": 3.0}})
+        self.assertIsInstance(overrides["hall"]["max"], int)
+        self.assertIsInstance(overrides["hall"]["cost"], float)
+
+    def test_empty_overrides_disappear(self):
+        document = make_document()
+        document["upgrades"]["room_speed"]["room_overrides"] = {"gone": {"cost": 1.0}}
+        self.assertNotIn("room_overrides", model.normalise(document)["upgrades"]["room_speed"])

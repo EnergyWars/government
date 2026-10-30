@@ -19,6 +19,8 @@ export function describeChange(app, change) {
   switch (change.kind) {
     case "param":
       return app.t("change.param", { name: upgrade(change.id), field: app.t("field." + change.field), before: show(change.before), after: show(change.after) });
+    case "room_override":
+      return app.t("change.roomOverride." + change.state, { name: upgrade(change.id), room: texts.roomTitle(change.room) });
     case "enabled":
       return app.t(change.after === false ? "change.disabled" : "change.enabled", { name: upgrade(change.id) });
     case "removed_upgrade":

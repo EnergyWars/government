@@ -2,11 +2,13 @@ import { h } from "../dom.js";
 import { decimal, percent, significant } from "../format.js";
 import { factorOf, relativeGain, systemStep } from "../benefit.js";
 import { systemCost, systemModel, trackRoomFactor, trackValue } from "../formulas.js";
-import { addEntry, addRoomInstance, allowedRooms, isRoomUpgrade, menuRoomOf, moveTopicItem, occurrences, parseRef, refOf, removeAllPlacements, setText, updateUpgrade } from "../model.js";
+import { clearRoomOverride, hasRoomOverride, addEntry, addRoomInstance, allowedRooms, isRoomUpgrade, menuRoomOf, moveTopicItem, occurrences, parseRef, refOf, removeAllPlacements, setText, updateUpgrade } from "../model.js";
 import { groupChoices, parseTarget, placementList } from "./groupTools.js";
 import { renderFillEditor } from "./modelEditor.js";
 import { renderChart } from "./chart.js";
 import { renderValueTable } from "./valueTable.js";
+import { renderCompare } from "./compareView.js";
+import { definitionOf, scopeOf } from "../scope.js";
 import { buildRows, effectiveTable } from "../table.js";
 import { chip, collapsible, formatFactor, formatNumber, iconButton, select } from "./components.js";
 
@@ -52,7 +54,7 @@ function inspect(app, patchFor, input, field) {
 
 function numberField(app, upgradeId, definition, field) {
   const relevant = !FIELD_RELEVANCE[field.name] || FIELD_RELEVANCE[field.name].includes(definition.curve);
-  const input = h("input", { type: "number", step: field.step ?? (field.integer ? 1 : "any"), min: field.min, max: field.max, value: definition[field.name] ?? "", "aria-label": app.t("field." + field.name), onInput: (event) => inspect(app, (document, value) => updateUpgrade(document, upgradeId, { [field.name]: value }), event.target, field) });
+  const input = h("input", { type: "number", step: field.step ?? (field.integer ? 1 : "any"), min: field.min, max: field.max, value: definition[field.name] ?? "", "aria-label": app.t("field." + field.name), onInput: (event) => inspect(app, (document, value) => patchOf(app, document, upgradeId, { [field.name]: value }), event.target, field) });
   return h("label", { class: "field" + (relevant ? "" : " dim"), title: app.t("fieldHelp." + field.name) }, h("span", {}, app.t("field." + field.name)), input);
 }
 
@@ -117,6 +119,20 @@ function requirements(app, upgradeId, definition) {
   return h("div", { class: "requirements" }, rows.length ? rows : h("span", { class: "hint" }, app.t("inspector.noRequirements")), add);
 }
 
+function scopePicker(app, upgradeId, baseDefinition) {
+  const rooms = baseDefinition.rooms ?? [];
+  if (rooms.length === 0) return null;
+  const { texts } = app.derived();
+  const document = app.store.state.document;
+  const scope = scopeOf(app, upgradeId);
+  const options = [{ value: "", label: app.t("scope.all") }, ...rooms.map((roomId) => ({ value: roomId, label: texts.roomTitle(roomId) + (hasRoomOverride(document, upgradeId, roomId) ? " •" : "") }))];
+  return h("section", { class: "scope-picker" },
+    h("label", { class: "field" }, h("span", {}, app.t("scope.label")),
+      select(options, scope, (value) => { app.ui.scopes[upgradeId] = value; app.redrawInspector(); }, { label: app.t("scope.label") })),
+    h("p", { class: "hint small" }, app.t(scope ? "scope.roomHint" : "scope.allHint")),
+    scope && hasRoomOverride(document, upgradeId, scope) ? h("button", { type: "button", onClick: () => app.edit((doc) => clearRoomOverride(doc, upgradeId, scope), { origin: "inspector" }) }, app.t("scope.reset")) : null);
+}
+
 function previewLevels(max) {
   const levels = SAMPLE_LEVELS.filter((level) => level < max);
   levels.push(max);
@@ -162,10 +178,11 @@ function summaryItem(label, value, strong = false) {
 
 function buildTrackPreview(app, upgradeId, definition, state) {
   const { texts } = app.derived();
-  const rooms = isRoomUpgrade(definition) ? (definition.rooms.length ? definition.rooms : allowedRooms(upgradeId, definition, app.store.state.context).slice(0, 1)) : [""];
+  const scope = scopeOf(app, upgradeId);
+  const rooms = scope ? [scope] : isRoomUpgrade(definition) ? (definition.rooms.length ? definition.rooms : allowedRooms(upgradeId, definition, app.store.state.context).slice(0, 1)) : [""];
   if (!rooms.includes(state.room)) state.room = rooms[0];
   const preview = trackPreview(app, upgradeId, definition, state.room);
-  const picker = isRoomUpgrade(definition) ? h("label", { class: "field" }, h("span", {}, app.t("preview.room")),
+  const picker = !scope && isRoomUpgrade(definition) ? h("label", { class: "field" }, h("span", {}, app.t("preview.room")),
     select(rooms.map((roomId) => ({ value: roomId, label: texts.roomTitle(roomId) })), state.room, (value) => { state.room = value; state.redraw(); }, { label: app.t("preview.room") })) : null;
   return {
     chart: renderChart(app, preview.rows),
@@ -239,16 +256,23 @@ export function renderInspector(container, app) {
     return handle;
   }
   const upgradeId = parsed.upgradeId;
-  const definition = document.upgrades[upgradeId];
-  if (!definition) {
+  const baseDefinition = document.upgrades[upgradeId];
+  if (!baseDefinition) {
     container.append(h("p", { class: "hint" }, app.t("inspector.empty")));
     return handle;
   }
+  const scopes = (app.ui.scopes ??= {});
+  if (app.ui.scopeRef !== selection.ref) {
+    const clicked = byId.get(selection.ref)?.roomId ?? "";
+    scopes[upgradeId] = (baseDefinition.rooms ?? []).includes(clicked) ? clicked : "";
+    app.ui.scopeRef = selection.ref;
+  }
+  const definition = definitionOf(app, upgradeId);
   const previewHolder = h("div", {});
   const chartHolder = h("div", {});
   const tableHolder = h("div", {});
   state.redraw = () => {
-    const preview = buildTrackPreview(app, upgradeId, app.store.state.document.upgrades[upgradeId], state);
+    const preview = buildTrackPreview(app, upgradeId, definitionOf(app, upgradeId), state);
     chartHolder.replaceChildren(preview.chart);
     previewHolder.replaceChildren(preview.body);
     tableHolder.replaceChildren(preview.table);
@@ -258,21 +282,23 @@ export function renderInspector(container, app) {
   container.append(
     h("div", { class: "chart-top" }, collapsible(app, "chart", app.t("preview.chartTitle"), chartHolder)),
     h("div", { class: "inspector-head" }, h("h2", {}, texts.text(texts.upgradeTitleKey(upgradeId))), h("code", {}, upgradeId), chip(texts.topicTitle(definition.topic), "topic")),
+    scopePicker(app, upgradeId, baseDefinition),
     collapsible(app, "texts", app.t("inspector.texts"), textFields(app, upgradeId)),
     collapsible(app, "placement", app.t("inspector.placement"), [isRoomUpgrade(definition) ? placementRooms(app, upgradeId, definition) : placementGlobal(app, upgradeId),
       h("label", { class: "field" }, h("span", {}, app.t("field.topic")), select(topics, definition.topic, (value) => app.edit((doc) => moveTopicItem(doc, refOf(upgradeId, ""), value, undefined), { origin: "inspector" }), { label: app.t("field.topic") }))]),
     collapsible(app, "parameters", app.t("inspector.parameters"),
       h("div", { class: "field-grid" },
         NUMBER_FIELDS.slice(0, 4).map((field) => numberField(app, upgradeId, definition, field)),
-        h("label", { class: "field", title: app.t("fieldHelp.curve") }, h("span", {}, app.t("field.curve")), select(CURVES.map((curve) => ({ value: curve, label: app.t("curve." + curve) })), definition.curve, (value) => app.edit((doc) => ({ document: updateUpgrade(doc, upgradeId, { curve: value }) }), { origin: "inspector" }), { label: app.t("field.curve") })),
+        h("label", { class: "field", title: app.t("fieldHelp.curve") }, h("span", {}, app.t("field.curve")), select(CURVES.map((curve) => ({ value: curve, label: app.t("curve." + curve) })), definition.curve, (value) => app.edit((doc) => ({ document: patchOf(app, doc, upgradeId, { curve: value }) }), { origin: "inspector" }), { label: app.t("field.curve") })),
         NUMBER_FIELDS.slice(4).map((field) => numberField(app, upgradeId, definition, field)),
-        h("label", { class: "field", title: app.t("fieldHelp.unit") }, h("span", {}, app.t("field.unit")), h("input", { type: "text", value: definition.unit ?? "", "aria-label": app.t("field.unit"), onInput: (event) => app.edit((doc) => ({ document: updateUpgrade(doc, upgradeId, { unit: event.target.value || undefined }) }), { origin: "inspector", keepInspector: true }) })),
-        h("label", { class: "check", title: app.t("fieldHelp.staff_cost") }, h("input", { type: "checkbox", checked: Boolean(definition.staff_cost), onChange: (event) => app.edit((doc) => ({ document: updateUpgrade(doc, upgradeId, { staff_cost: event.target.checked ? true : undefined }) }), { origin: "inspector" }) }), app.t("field.staff_cost")),
+        h("label", { class: "field", title: app.t("fieldHelp.unit") }, h("span", {}, app.t("field.unit")), h("input", { type: "text", value: definition.unit ?? "", "aria-label": app.t("field.unit"), onInput: (event) => app.edit((doc) => ({ document: patchOf(app, doc, upgradeId, { unit: event.target.value || undefined }) }), { origin: "inspector", keepInspector: true }) })),
+        h("label", { class: "check", title: app.t("fieldHelp.staff_cost") }, h("input", { type: "checkbox", checked: Boolean(definition.staff_cost), onChange: (event) => app.edit((doc) => ({ document: patchOf(app, doc, upgradeId, { staff_cost: event.target.checked ? true : undefined }) }), { origin: "inspector" }) }), app.t("field.staff_cost")),
       )),
     collapsible(app, "models", app.t("inspector.models"), [renderFillEditor(app, upgradeId, "cost"), renderFillEditor(app, upgradeId, "value")]),
     collapsible(app, "requires", app.t("inspector.requires"), requirements(app, upgradeId, definition)),
     collapsible(app, "preview", app.t("preview.title"), previewHolder),
     collapsible(app, "table", app.t("table.title"), tableHolder),
+    collapsible(app, "compare", app.t("compare.title"), renderCompare(app, upgradeId)),
   );
   handle.refresh = state.redraw;
   return handle;

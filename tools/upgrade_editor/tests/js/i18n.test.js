@@ -39,7 +39,7 @@ test("dynamic key families exist", () => {
     "curve.": ["linear", "decay", "unlock", "unlock_decay", "milestone", "chance"],
     "field.": ["max", "cost", "growth", "price_offset", "base", "step", "rate", "neutral", "reputation", "unit"],
     "fieldHelp.": ["max", "cost", "growth", "price_offset", "base", "step", "rate", "neutral", "reputation"],
-    "error.": ["AREA_EXISTS", "AREA_ROOM", "AREA_UNKNOWN", "AREA_NOT_EMPTY", "AREA_LAST_RECT", "NOT_PLACED", "ROOM_NOT_AVAILABLE", "SPOT_ROOM_MISMATCH", "SYSTEM_FIXED", "UNKNOWN_UPGRADE", "ALREADY_PLACED", "GROUP_TITLE"],
+    "error.": ["AREA_EXISTS", "AREA_ROOM", "AREA_UNKNOWN", "AREA_NOT_EMPTY", "AREA_LAST_RECT", "NOT_PLACED", "ROOM_NOT_AVAILABLE", "SPOT_ROOM_MISMATCH", "SYSTEM_FIXED", "UNKNOWN_UPGRADE", "ALREADY_PLACED", "GROUP_TITLE", "ROOM_OVERRIDE"],
     "menu.mode.": ["rooms", "topics"],
     "menu.hint.": ["rooms", "topics"],
     "system.": ["hire", "staff_runners", "staff_coffee_interns", "staff_hr", "segment", "storage", "rank", "desk", "reject_pile"],
@@ -47,7 +47,10 @@ test("dynamic key families exist", () => {
     "system.field.": ["desk_cost", "hire_cost", "unlock_cost", "unlock_reputation", "cost_multiplier", "staff_multiplier"],
     "model.mode.": ["params", "formula", "table"], "model.var.": ["level", "max", "cost", "growth", "price_offset", "base", "step", "rate", "neutral"], "model.formulaNote.": ["cost", "value"], "model.params.": ["cost", "value"], "model.": ["cost.title", "value.title"], "formula.err.": ["EMPTY", "SYNTAX", "UNKNOWN_IDENTIFIER", "UNKNOWN_FUNCTION", "ARITY", "NOT_FINITE", "NEGATIVE"], "tab.": ["map", "menu", "overview", "system", "changes"],
     "toolbar.source.": ["original", "edited"],
-    "table.col.": ["level", "cost", "sum", "increment", "value", "gain", "factor", "stepRatio", "totalRatio"], "table.increment.": ["absolute", "factor"], "table.mode.": ["absolute", "factor"],
+    "table.col.": ["level", "cost", "costFactor", "sum", "sumFactor", "increment", "value", "effect", "gain", "factor", "stepRatio", "totalRatio"], "table.desc.": ["level", "cost", "costFactor", "sum", "sumFactor", "increment", "value", "effect", "gain", "factor", "stepRatio", "totalRatio"], "table.increment.": ["absolute", "factor"], "table.mode.": ["absolute", "factor"],
+    "compare.group.": ["topic", "unit", "curve", "all"], "compare.col.": ["title", "levels", "totalCost", "gain", "factor", "totalRatio", "relCost", "relGain", "relFactor", "relRatio"], "compare.desc.": ["levels", "totalCost", "gain", "factor", "totalRatio", "relCost", "relGain", "relFactor", "relRatio"],
+    "theme.": ["auto", "light", "dark"],
+    "change.roomOverride.": ["added", "changed", "removed"],
     "fill.tab.": ["params", "formula", "tools"], "fill.title.": ["cost", "value"], "fill.params.hint.": ["cost", "value"],
   };
   for (const [prefix, names] of Object.entries(families)) for (const name of names) assert.ok(prefix + name in en, prefix + name);

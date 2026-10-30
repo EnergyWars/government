@@ -1,5 +1,5 @@
 import { h, svg } from "../dom.js";
-import { iconButton } from "./components.js";
+import { iconButton, select } from "./components.js";
 import { renderSpotPanel } from "./spotPanel.js";
 import { addArea, areaSlug, normaliseRect, setText, visibleAt } from "../model.js";
 
@@ -199,7 +199,7 @@ export function renderMapTab(container, app) {
     h("button", { type: "button", class: "segment" + (app.ui.showAll ? " active" : ""), "aria-pressed": Boolean(app.ui.showAll), onClick: () => { app.ui.showAll = !app.ui.showAll; app.rerender(); } }, "◩ " + app.t("map.showAll")),
     status,
   );
-  container.append(h("div", { class: "map-layout" },
+  container.append(h("div", { class: "map-layout" + (app.ui.spot ? " detail" : "") },
     h("section", { class: "map-pane" }, toolbar, app.ui.draft ? draftForm(app, app.ui.draft) : null, app.ui.showAll ? legend(app, rooms) : null, h("div", { class: "map-scroll", dataset: { scroll: "map" } }, root), unmapped.length ? h("div", { class: "unmapped" }, h("span", {}, app.t("map.unmapped")), unmapped) : null),
     h("aside", { class: "spot-pane" }, renderSpotPanel(app, app.ui.spot)),
   ));

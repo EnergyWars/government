@@ -316,3 +316,42 @@ class MultiPlacementTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RoomOverrideTest(unittest.TestCase):
+    def document(self, override):
+        document = make_document()
+        document["upgrades"]["room_speed"]["room_overrides"] = {"hall": override}
+        return document
+
+    def test_valid_override(self):
+        self.assertNotIn("ROOM_OVERRIDE", codes(self.document({"cost": 99.0, "max": 10, "step": 0.1})))
+
+    def test_override_for_unknown_room(self):
+        document = make_document()
+        document["upgrades"]["room_speed"]["room_overrides"] = {"mail": {"cost": 1.0}}
+        self.assertIn("ROOM_OVERRIDE", codes(document))
+
+    def test_override_with_unknown_field(self):
+        self.assertIn("ROOM_OVERRIDE", codes(self.document({"spot": "x"})))
+
+    def test_override_must_be_an_object(self):
+        self.assertIn("ROOM_OVERRIDE", codes(self.document(5)))
+        document = make_document()
+        document["upgrades"]["room_speed"]["room_overrides"] = []
+        self.assertIn("ROOM_OVERRIDE", codes(document))
+
+    def test_override_values_are_validated(self):
+        self.assertIn("NUMBER", codes(self.document({"cost": "cheap"})))
+        self.assertIn("RANGE", codes(self.document({"growth": 0.5})))
+        self.assertIn("CURVE", codes(self.document({"curve": "wobbly"})))
+
+    def test_override_tables_must_match_the_override_maximum(self):
+        table = {"mode": "table", "levels": [1.0, 2.0]}
+        self.assertIn("TABLE_LENGTH", codes(self.document({"max": 3, "cost_model": table})))
+        self.assertNotIn("TABLE_LENGTH", codes(self.document({"max": 2, "cost_model": table})))
+
+    def test_empty_model_removes_the_inherited_one(self):
+        document = self.document({"cost_model": {}})
+        document["upgrades"]["room_speed"]["cost_model"] = {"mode": "formula", "formula": "level + 1"}
+        self.assertEqual([code for code in codes(document) if code in ("ROOM_OVERRIDE", "MODEL_MODE")], [])

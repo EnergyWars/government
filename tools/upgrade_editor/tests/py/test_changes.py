@@ -141,3 +141,15 @@ class MultiPlacementChangesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RoomOverrideChangesTest(unittest.TestCase):
+    def test_override_states(self):
+        original = make_document()
+        edited = make_document()
+        edited["upgrades"]["room_speed"]["room_overrides"] = {"hall": {"cost": 9.0}}
+        self.assertEqual(changes.diff(original, edited), [{"kind": "room_override", "id": "room_speed", "room": "hall", "state": "added"}])
+        changed = copy.deepcopy(edited)
+        changed["upgrades"]["room_speed"]["room_overrides"]["hall"]["cost"] = 10.0
+        self.assertEqual(changes.diff(edited, changed)[0]["state"], "changed")
+        self.assertEqual(changes.diff(edited, original)[0]["state"], "removed")

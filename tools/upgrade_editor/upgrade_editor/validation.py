@@ -89,6 +89,7 @@ def _validate_upgrades(document):
         if not number_errors:
             errors += _validate_models(definition, path)
         errors += _validate_definition_fields(definition, path, topic_ids)
+        errors += _validate_room_overrides(definition, path)
         errors += _validate_requires(definition, path, upgrades, upgrade_id)
     return errors
 
@@ -109,6 +110,41 @@ def _validate_numbers(definition, path):
             errors.append(_error("RANGE", path + ".reputation", minimum=0))
         if definition.get("curve") in ("decay", "unlock_decay") and not 0 < definition.get("rate", 1) <= 1:
             errors.append(_error("RANGE", path + ".rate", minimum=0, maximum=1))
+    return errors
+
+
+OVERRIDE_FIELDS = set(model.FLOAT_FIELDS + model.INT_FIELDS) | {"curve", "unit", "staff_cost", "cost_model", "value_model"}
+
+
+def merged_override(definition, override):
+    merged = {key: value for key, value in definition.items() if key != "room_overrides"}
+    merged.update(override)
+    for field in ("cost_model", "value_model"):
+        if merged.get(field) == {}:
+            del merged[field]
+    return merged
+
+
+def _validate_room_overrides(definition, path):
+    if "room_overrides" not in definition:
+        return []
+    overrides = definition["room_overrides"]
+    rooms = definition.get("rooms", [])
+    if not isinstance(overrides, dict) or not isinstance(rooms, list):
+        return [_error("ROOM_OVERRIDE", path + ".room_overrides")]
+    errors = []
+    for room_id, override in overrides.items():
+        target = f"{path}.room_overrides.{room_id}"
+        if room_id not in rooms or not isinstance(override, dict) or set(override) - OVERRIDE_FIELDS:
+            errors.append(_error("ROOM_OVERRIDE", target))
+            continue
+        merged = merged_override(definition, override)
+        number_errors = _validate_numbers(merged, target)
+        errors += number_errors
+        if merged.get("curve") not in model.CURVES:
+            errors.append(_error("CURVE", target + ".curve", allowed=list(model.CURVES)))
+        if not number_errors:
+            errors += _validate_models(merged, target)
     return errors
 
 
