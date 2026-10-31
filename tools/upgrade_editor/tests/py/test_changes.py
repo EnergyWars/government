@@ -99,6 +99,18 @@ class ChangesTest(unittest.TestCase):
         self.assertEqual(changes.diff(edited, moved)[0]["kind"], "area_changed")
 
 
+    def test_spot_rect_changes(self):
+        base = make_document()
+        edited = copy.deepcopy(base)
+        edited["spot_rects"] = {"seating": {"0": [1, 2, 3, 4]}}
+        self.assertEqual(changes.diff(base, edited), [{"kind": "spot_rects", "spot": "seating", "before": None, "after": {"0": [1, 2, 3, 4]}}])
+        self.assertEqual(changes.diff(edited, base), [{"kind": "spot_rects", "spot": "seating", "before": {"0": [1, 2, 3, 4]}, "after": None}])
+        moved = copy.deepcopy(edited)
+        moved["spot_rects"]["seating"]["0"] = [5, 2, 3, 4]
+        self.assertEqual(changes.diff(edited, moved)[0]["after"], {"0": [5, 2, 3, 4]})
+        self.assertEqual(changes.diff(edited, copy.deepcopy(edited)), [])
+
+
 class MultiPlacementChangesTest(unittest.TestCase):
     def test_extra_placement_is_reported(self):
         original = make_document()

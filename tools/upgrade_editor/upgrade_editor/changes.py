@@ -11,6 +11,7 @@ def diff(original, edited):
     result += _group_changes(original, edited)
     result += _topic_changes(original, edited)
     result += _area_changes(original, edited)
+    result += _spot_rect_changes(original, edited)
     result += _system_changes(original, edited)
     result += _text_changes(original, edited)
     return result
@@ -143,6 +144,16 @@ def _area_changes(original, edited):
             result.append({"kind": "area_removed", "id": area_id, "before": before[area_id]})
         elif before[area_id] != after[area_id]:
             result.append({"kind": "area_changed", "id": area_id, "before": before[area_id], "after": after[area_id]})
+    return result
+
+
+def _spot_rect_changes(original, edited):
+    result = []
+    before = original.get("spot_rects", {})
+    after = edited.get("spot_rects", {})
+    for spot in sorted(set(before) | set(after)):
+        if before.get(spot, {}) != after.get(spot, {}):
+            result.append({"kind": "spot_rects", "spot": spot, "before": before.get(spot), "after": after.get(spot)})
     return result
 
 

@@ -29,6 +29,7 @@ def validate(document):
     errors += _validate_upgrades(document)
     errors += _validate_menu(document)
     errors += _validate_areas(document)
+    errors += _validate_spot_rects(document)
     errors += _validate_system(document.get("system", {}))
     errors += _validate_texts(document.get("text_overrides", {}))
     return errors
@@ -67,6 +68,30 @@ def _validate_areas(document):
         spot = definition.get("spot") if isinstance(definition, dict) else None
         if isinstance(spot, str) and spot.startswith("area:") and spot[5:] not in areas:
             errors.append(_error("AREA_UNKNOWN", f"upgrades.{upgrade_id}.spot"))
+    return errors
+
+
+MAX_RECT_INDEX = 99
+
+
+def _validate_spot_rects(document):
+    overrides = document.get("spot_rects", {})
+    if not isinstance(overrides, dict):
+        return [_error("SPOT_RECT_SHAPE", "spot_rects")]
+    errors = []
+    for spot, replacements in overrides.items():
+        path = "spot_rects." + str(spot)
+        if not isinstance(spot, str) or not spot or spot.startswith("area:"):
+            errors.append(_error("SPOT_RECT_SPOT", path))
+            continue
+        if not isinstance(replacements, dict) or not replacements:
+            errors.append(_error("SPOT_RECT_SHAPE", path))
+            continue
+        for index, rect in replacements.items():
+            if not (isinstance(index, str) and index.isascii() and index.isdigit() and int(index) <= MAX_RECT_INDEX):
+                errors.append(_error("SPOT_RECT_INDEX", f"{path}.{index}"))
+            elif not _is_rect(rect):
+                errors.append(_error("SPOT_RECT_RECT", f"{path}.{index}"))
     return errors
 
 

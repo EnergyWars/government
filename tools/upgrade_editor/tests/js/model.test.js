@@ -351,19 +351,77 @@ test("areas are added with a group and merged into the context", () => {
   assert.equal(model.addArea(fresh(), { id: "x", room: "nowhere", rect: [0, 0, 1, 1] }).error, "AREA_ROOM");
 });
 
-test("upgrades can be moved into a new area and the area is protected while used", () => {
+test("upgrades can be moved into a new area", () => {
   const added = model.addArea(fresh(), { id: "lab", room: "kitchen", rect: [0, 0, 50, 50] }).document;
   const merged = model.withAreas(context, added);
   const moved = model.moveEntry(added, merged, "track:briefcase", { room: "kitchen", spot: "area:lab", index: 0 });
   assert.equal(moved.error, undefined);
   assert.equal(moved.document.upgrades.briefcase.spot, "area:lab");
   assert.deepEqual(model.visibleAt(model.buildEntries(moved.document, merged), "area:lab").map((entry) => entry.id), ["track:briefcase"]);
-  assert.equal(model.removeArea(moved.document, "lab").error, "AREA_NOT_EMPTY");
-  const freed = model.moveEntry(moved.document, merged, "track:briefcase", { room: "player", spot: "player", index: 0 }).document;
-  const removed = model.removeArea(freed, "lab");
+  assert.deepEqual(model.areaContents(moved.document, "lab"), ["track:briefcase"]);
+  assert.deepEqual(model.areaContents(added, "lab"), []);
+});
+
+test("removing an empty area deletes it with its group", () => {
+  const added = model.addArea(fresh(), { id: "lab", room: "kitchen", rect: [0, 0, 50, 50] }).document;
+  const removed = model.removeArea(added, "lab");
+  assert.equal(removed.released, 0);
   assert.equal(removed.document.areas.lab, undefined);
   assert.ok(!removed.document.menu.rooms.some((room) => room.groups.some((group) => group.spot === "area:lab")));
   assert.equal(model.removeArea(removed.document, "lab").error, "AREA_UNKNOWN");
+  assert.deepEqual(consistency(removed.document, context), []);
+});
+
+test("removing an area releases its upgrades into the palette", () => {
+  const added = model.addArea(fresh(), { id: "lab", room: "player", rect: [0, 0, 50, 50] }).document;
+  const merged = model.withAreas(context, added);
+  const moved = model.moveEntry(added, merged, "track:briefcase", { room: "player", spot: "area:lab", index: 0 }).document;
+  const removed = model.removeArea(moved, "lab");
+  assert.equal(removed.error, undefined);
+  assert.equal(removed.released, 1);
+  assert.equal(removed.document.areas.lab, undefined);
+  assert.equal(removed.document.upgrades.briefcase.enabled, false);
+  assert.notEqual(removed.document.upgrades.briefcase.spot, "area:lab");
+  assert.ok(model.unplacedUpgrades(removed.document).includes("briefcase"));
+  assert.deepEqual(consistency(removed.document, context), []);
+});
+
+test("removing an area keeps upgrades that are also placed elsewhere", () => {
+  const added = model.addArea(fresh(), { id: "lab", room: "player", rect: [0, 0, 50, 50] }).document;
+  const merged = model.withAreas(context, added);
+  const extra = model.addPlacement(added, merged, "track:briefcase", { room: "player", spot: "area:lab", index: 0 }).document;
+  const removed = model.removeArea(extra, "lab");
+  assert.equal(removed.document.upgrades.briefcase.enabled, undefined);
+  assert.equal(removed.document.upgrades.briefcase.spot, "player");
+  assert.deepEqual(model.occurrences(removed.document, "track:briefcase").map((occurrence) => occurrence.spot), ["player"]);
+  assert.deepEqual(consistency(removed.document, context), []);
+});
+
+test("removing an area whose upgrade was already unplaced clears the stale spot", () => {
+  const added = model.addArea(fresh(), { id: "lab", room: "player", rect: [0, 0, 50, 50] }).document;
+  const merged = model.withAreas(context, added);
+  const moved = model.moveEntry(added, merged, "track:briefcase", { room: "player", spot: "area:lab", index: 0 }).document;
+  const unplaced = model.removeEntry(moved, "track:briefcase").document;
+  assert.equal(unplaced.upgrades.briefcase.spot, "area:lab");
+  const removed = model.removeArea(unplaced, "lab");
+  assert.equal(removed.error, undefined);
+  assert.equal(removed.released, 0);
+  assert.notEqual(removed.document.upgrades.briefcase.spot, "area:lab");
+});
+
+test("removing an area also removes its subgroups and their entries", () => {
+  const added = model.addArea(fresh(), { id: "lab", room: "player", rect: [0, 0, 50, 50] }).document;
+  const merged = model.withAreas(context, added);
+  const grouped = model.addSubgroup(added, merged, "player", "area:lab", { de: "Gruppe", en: "Group" });
+  assert.equal(grouped.error, undefined);
+  const moved = model.moveEntry(grouped.document, merged, "track:briefcase", { room: "player", spot: "area:lab", index: 0, group: grouped.groupId });
+  assert.equal(moved.error, undefined);
+  assert.deepEqual(model.areaContents(moved.document, "lab"), ["track:briefcase"]);
+  const removed = model.removeArea(moved.document, "lab");
+  assert.equal(removed.released, 1);
+  assert.ok(!removed.document.menu.rooms.some((room) => room.groups.some((group) => group.spot === "area:lab")));
+  assert.equal(removed.document.upgrades.briefcase.enabled, false);
+  assert.deepEqual(consistency(removed.document, context), []);
 });
 
 test("area boxes can be edited", () => {
@@ -378,6 +436,93 @@ test("area boxes can be edited", () => {
   assert.equal(model.setAreaRect(added, "lab", 3, [0, 0, 1, 1]).error, "AREA_UNKNOWN");
   assert.equal(model.addAreaRect(added, "nope", [0, 0, 1, 1]).error, "AREA_UNKNOWN");
   assert.equal(model.removeAreaRect(added, "nope", 0).error, "AREA_UNKNOWN");
+});
+
+test("existing spots can be resized and reset through overrides", () => {
+  const rects = context.spots.seating.rects;
+  assert.ok(rects.length > 1);
+  const resized = model.resizeSpotRect(fresh(), context, "seating", 1, [1, 2, 30, 40]);
+  assert.equal(resized.error, undefined);
+  assert.deepEqual(resized.document.spot_rects, { seating: { 1: [1, 2, 30, 40] } });
+  const merged = model.withAreas(context, resized.document);
+  assert.deepEqual(merged.spots.seating.rects[1], [1, 2, 30, 40]);
+  assert.deepEqual(merged.spots.seating.rects[0], rects[0]);
+  assert.equal(merged.spots.seating.rects.length, rects.length);
+  assert.deepEqual(merged.spots.seating.edited, [1]);
+  assert.deepEqual(context.spots.seating.rects[1], rects[1]);
+  assert.equal(model.withAreas(context, resized.document), merged);
+  assert.equal(model.isSpotRectEdited(resized.document, "seating", 1), true);
+  assert.equal(model.isSpotRectEdited(resized.document, "seating", 0), false);
+  const again = model.resizeSpotRect(resized.document, context, "seating", 1, [5, 6, 30, 40]);
+  assert.deepEqual(again.document.spot_rects.seating[1], [5, 6, 30, 40]);
+  const second = model.resizeSpotRect(again.document, context, "seating", 0, [9, 9, 9, 9]);
+  assert.deepEqual(Object.keys(second.document.spot_rects.seating), ["0", "1"]);
+  assert.deepEqual(second.document.spot_rects.seating[0], [9, 9, 9, 9]);
+});
+
+test("resizing an existing spot back to the original removes the override", () => {
+  const base = context.spots.seating.rects;
+  const resized = model.resizeSpotRect(fresh(), context, "seating", 0, [1, 2, 3, 4]).document;
+  const restored = model.resizeSpotRect(resized, context, "seating", 0, [...base[0]]);
+  assert.equal(restored.document.spot_rects, undefined);
+  assert.equal(model.withAreas(context, restored.document), context);
+  const unchanged = fresh();
+  assert.equal(model.resizeSpotRect(unchanged, context, "seating", 0, [...base[0]]).document, unchanged);
+  const two = model.resizeSpotRect(model.resizeSpotRect(fresh(), context, "seating", 0, [1, 2, 3, 4]).document, context, "seating", 1, [1, 2, 3, 4]).document;
+  const partly = model.resizeSpotRect(two, context, "seating", 0, [...base[0]]).document;
+  assert.deepEqual(Object.keys(partly.spot_rects.seating), ["1"]);
+});
+
+test("resizing rejects unknown spots, indices and invalid boxes", () => {
+  assert.equal(model.resizeSpotRect(fresh(), context, "ghost", 0, [0, 0, 1, 1]).error, "SPOT_RECT_UNKNOWN");
+  assert.equal(model.resizeSpotRect(fresh(), context, "seating", 99, [0, 0, 1, 1]).error, "SPOT_RECT_UNKNOWN");
+  assert.equal(model.resizeSpotRect(fresh(), context, "player", 0, [0, 0, 1, 1]).error, "SPOT_RECT_UNKNOWN");
+  for (const rect of [[0, 0, 0, 5], [0, 0, 5, -1], [0, 0, 5], [0, 0, "5", 5], [0, 0, NaN, 5], [0, 0, Infinity, 5], null]) {
+    assert.equal(model.resizeSpotRect(fresh(), context, "seating", 0, rect).error, "RECT_INVALID", String(rect));
+  }
+  const added = model.addArea(fresh(), { id: "lab", room: "kitchen", rect: [0, 0, 50, 50] }).document;
+  assert.equal(model.setAreaRect(added, "lab", 0, [0, 0, 0, 5]).error, "RECT_INVALID");
+});
+
+test("resizing a custom area edits the area itself", () => {
+  const added = model.addArea(fresh(), { id: "lab", room: "kitchen", rect: [0, 0, 50, 50] }).document;
+  const merged = model.withAreas(context, added);
+  const resized = model.resizeSpotRect(added, merged, "area:lab", 0, [2, 3, 70, 80]);
+  assert.deepEqual(resized.document.areas.lab.rects, [[2, 3, 70, 80]]);
+  assert.equal(resized.document.spot_rects, undefined);
+  assert.equal(model.resizeSpotRect(added, merged, "area:ghost", 0, [0, 0, 1, 1]).error, "AREA_UNKNOWN");
+});
+
+test("spot overrides can be reset one by one or all at once", () => {
+  const first = model.resizeSpotRect(fresh(), context, "seating", 0, [1, 2, 3, 4]).document;
+  const both = model.resizeSpotRect(first, context, "seating", 1, [5, 6, 7, 8]).document;
+  const one = model.resetSpotRect(both, "seating", 0);
+  assert.deepEqual(Object.keys(one.document.spot_rects.seating), ["1"]);
+  assert.equal(model.resetSpotRect(one.document, "seating", 1).document.spot_rects, undefined);
+  assert.equal(model.resetSpotRect(both, "seating").document.spot_rects, undefined);
+  assert.equal(model.resetSpotRect(both, "seating", 2).error, "SPOT_RECT_UNKNOWN");
+  assert.equal(model.resetSpotRect(fresh(), "seating").error, "SPOT_RECT_UNKNOWN");
+  const other = model.resizeSpotRect(both, context, "tickets", 0, [1, 1, 1, 1]).document;
+  assert.deepEqual(Object.keys(model.resetSpotRect(other, "seating").document.spot_rects), ["tickets"]);
+});
+
+test("overrides of unknown spots or indices are ignored when merging", () => {
+  const document = fresh();
+  document.spot_rects = { ghost: { 0: [1, 1, 1, 1] }, tickets: { 5: [1, 1, 1, 1] } };
+  const merged = model.withAreas(context, document);
+  assert.equal(merged.spots.ghost, undefined);
+  assert.deepEqual(merged.spots.tickets.rects, context.spots.tickets.rects);
+  assert.deepEqual(merged.spots.tickets.edited, []);
+});
+
+test("overrides and custom areas merge together and refresh when either changes", () => {
+  const added = model.addArea(fresh(), { id: "lab", room: "kitchen", rect: [0, 0, 50, 50] }).document;
+  const resized = model.resizeSpotRect(added, context, "seating", 0, [1, 2, 3, 4]).document;
+  const merged = model.withAreas(context, resized);
+  assert.ok(merged.spots["area:lab"]);
+  assert.deepEqual(merged.spots.seating.rects[0], [1, 2, 3, 4]);
+  const changed = model.resizeSpotRect(resized, context, "seating", 0, [9, 9, 9, 9]).document;
+  assert.deepEqual(model.withAreas(context, changed).spots.seating.rects[0], [9, 9, 9, 9]);
 });
 
 test("area slugs and rectangles", () => {

@@ -201,6 +201,30 @@ class ValidationTest(unittest.TestCase):
             mutate(document)
             self.assertIn(code, codes(document), code)
 
+    def test_valid_spot_rect_overrides(self):
+        document = make_document()
+        document["spot_rects"] = {"seating": {"0": [1, 2, 3, 4], "12": [1.5, 2.5, 3.5, 4.5]}, "room:kitchen": {"0": [0, 0, 1, 1]}}
+        self.assertEqual(validation.validate(document), [])
+
+    def test_spot_rect_overrides_are_checked(self):
+        for value, code in (
+            ([], "SPOT_RECT_SHAPE"),
+            ({"seating": []}, "SPOT_RECT_SHAPE"),
+            ({"seating": {}}, "SPOT_RECT_SHAPE"),
+            ({"area:lab": {"0": [0, 0, 1, 1]}}, "SPOT_RECT_SPOT"),
+            ({"": {"0": [0, 0, 1, 1]}}, "SPOT_RECT_SPOT"),
+            ({"seating": {"x": [0, 0, 1, 1]}}, "SPOT_RECT_INDEX"),
+            ({"seating": {"-1": [0, 0, 1, 1]}}, "SPOT_RECT_INDEX"),
+            ({"seating": {"100": [0, 0, 1, 1]}}, "SPOT_RECT_INDEX"),
+            ({"seating": {"0": [0, 0, 0, 1]}}, "SPOT_RECT_RECT"),
+            ({"seating": {"0": [0, 0, 1]}}, "SPOT_RECT_RECT"),
+            ({"seating": {"0": [0, 0, "a", 1]}}, "SPOT_RECT_RECT"),
+            ({"seating": {"0": [0, 0, True, 1]}}, "SPOT_RECT_RECT"),
+        ):
+            document = make_document()
+            document["spot_rects"] = value
+            self.assertIn(code, codes(document), repr(value))
+
     def test_spot_of_unknown_area_is_rejected(self):
         document = self.area_document()
         del document["areas"]["lab"]

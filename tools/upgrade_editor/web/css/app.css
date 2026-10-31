@@ -93,6 +93,7 @@ code{font-size:12px;color:var(--muted)}
 .map-svg.drawing{cursor:crosshair}
 .all-box{stroke-width:2}.all-box.custom{stroke-dasharray:8 4;stroke-width:3}
 .draft-box{fill:#2f5fd033;stroke:var(--accent);stroke-width:3;stroke-dasharray:8 4;pointer-events:none}
+.resize-handle{fill:var(--accent);stroke:var(--surface);stroke-width:1.5;vector-effect:non-scaling-stroke;touch-action:none}.resize-handle:hover{fill:var(--text)}
 .draft-form,.area-editor{display:grid;gap:8px;padding:10px;margin-bottom:10px;border:1px solid var(--accent);border-radius:var(--radius);background:var(--surface2)}
 .rect-row input{width:76px}
 .danger-button{color:var(--danger);border-color:var(--danger)}

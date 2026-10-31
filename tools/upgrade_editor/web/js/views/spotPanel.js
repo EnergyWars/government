@@ -1,6 +1,6 @@
 import { h } from "../dom.js";
 import { dropInto, dropItem } from "../dnd.js";
-import { addAreaRect, addEntry, removeArea, removeAreaRect, setAreaRect, findLocation, groupIdOf, groupsOf, isRoomUpgrade, moveEntry, occurrences, removeEntry, roomCandidates, spotRoom, visibleAt, refOf } from "../model.js";
+import { addAreaRect, addEntry, areaContents, isSpotRectEdited, isValidRect, removeArea, removeAreaRect, resetSpotRect, resizeSpotRect, findLocation, groupIdOf, groupsOf, isRoomUpgrade, moveEntry, occurrences, removeEntry, roomCandidates, spotRoom, visibleAt, refOf } from "../model.js";
 import { entryCard, iconButton, select } from "./components.js";
 import { titleEditor } from "./titleEditor.js";
 import { groupChoices, parseTarget, subgroupForm, subgroupHeader, targetValue } from "./groupTools.js";
@@ -107,30 +107,57 @@ function addControl(app, spot) {
   return holder;
 }
 
-function areaEditor(app, spot) {
+const RECT_LABELS = ["x", "y", "width", "height"];
+
+function rectInputs(app, spot, rect, index) {
+  return RECT_LABELS.map((label, position) => h("input", { type: "number", min: position > 1 ? 1 : undefined, value: rect[position], "aria-label": app.t("area.rect." + label), title: app.t("area.rect." + label), onChange: (event) => {
+    const value = Number(event.target.value);
+    const next = [...rect];
+    next[position] = value;
+    if (event.target.value.trim() === "" || !isValidRect(next)) {
+      event.target.classList.add("invalid");
+      return;
+    }
+    app.edit((document) => resizeSpotRect(document, app.store.state.baseContext, spot, index, next), { origin: "area" });
+  } }));
+}
+
+function customAreaEditor(app, spot) {
   const id = spot.slice(5);
   const area = app.store.state.document.areas?.[id];
   if (!area) return null;
-  const labels = ["x", "y", "width", "height"];
   const rows = area.rects.map((rect, index) => h("div", { class: "row rect-row" },
-    labels.map((label, position) => h("input", { type: "number", min: position > 1 ? 1 : undefined, value: rect[position], "aria-label": app.t("area.rect." + label), title: app.t("area.rect." + label), onChange: (event) => {
-      const value = Number(event.target.value);
-      if (!Number.isFinite(value) || (position > 1 && value < 1)) {
-        event.target.classList.add("invalid");
-        return;
-      }
-      const next = [...rect];
-      next[position] = value;
-      app.edit((document) => setAreaRect(document, id, index, next), { origin: "area" });
-    } })),
+    rectInputs(app, spot, rect, index),
     iconButton(app.t("area.removeRect"), "✕", () => app.edit((document) => removeAreaRect(document, id, index), { origin: "area" }), { class: "danger" })));
   const add = h("button", { type: "button", onClick: () => app.edit((document) => addAreaRect(document, id, [...area.rects[0].slice(0, 2).map((value) => value + 20), ...area.rects[0].slice(2)]), { origin: "area" }) }, "＋ " + app.t("area.addRect"));
   const remove = h("button", { type: "button", class: "danger-button", onClick: () => {
-    if (!window.confirm(app.t("area.confirmDelete"))) return;
+    const count = areaContents(app.store.state.document, id).length;
+    if (!window.confirm(count ? app.t("area.confirmDeleteWith", { count }) : app.t("area.confirmDelete"))) return;
+    app.ui.spot = null;
     const result = app.edit((document) => removeArea(document, id), { origin: "area" });
-    if (!result.error) app.ui.spot = null;
+    if (result.error) {
+      app.ui.spot = spot;
+      app.rerender();
+    }
   } }, app.t("area.delete"));
   return h("section", { class: "area-editor" }, h("h3", {}, app.t("area.custom")), rows, h("div", { class: "row" }, add, remove));
+}
+
+function gameAreaEditor(app, spot) {
+  const { document, context } = app.store.state;
+  const rects = context.spots[spot]?.rects ?? [];
+  if (rects.length === 0) return null;
+  const rows = rects.map((rect, index) => h("div", { class: "row rect-row" },
+    rectInputs(app, spot, rect, index),
+    isSpotRectEdited(document, spot, index) ? iconButton(app.t("area.resetRect"), "↺", () => app.edit((current) => resetSpotRect(current, spot, index), { origin: "area" })) : null));
+  const reset = document.spot_rects?.[spot]
+    ? h("div", { class: "row" }, h("button", { type: "button", onClick: () => app.edit((current) => resetSpotRect(current, spot), { origin: "area" }) }, "↺ " + app.t("area.resetAll")))
+    : null;
+  return h("section", { class: "area-editor" }, h("h3", {}, app.t("area.existing")), rows, reset);
+}
+
+function areaEditor(app, spot) {
+  return spot.startsWith("area:") ? customAreaEditor(app, spot) : gameAreaEditor(app, spot);
 }
 
 function documentGroup(app, group) {
@@ -170,7 +197,7 @@ export function renderSpotPanel(app, spot) {
     h("p", {}, texts.spotDescription(spot)),
     h("div", { class: "intro-meta" }, app.t("panel.entryCount", { count: visible.length }), " · ", h("code", {}, spot)),
   ));
-  panel.append(spot.startsWith("area:") ? areaEditor(app, spot) : null);
+  panel.append(areaEditor(app, spot));
   const showHeaders = !(spot.startsWith("station:") || spot.startsWith("trays:")) && groups.length > 1;
   const visibleIds = new Set(visible.map((entry) => entry.id));
   const ordered = withEmptySubgroups(app, groups, spot);

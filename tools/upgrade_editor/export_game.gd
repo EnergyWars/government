@@ -10,7 +10,7 @@ const TRANSLATIONS_CSV := "res://i18n/translations.csv"
 func _initialize() -> void:
 	var state := _full_state()
 	var entries := UpgradeCatalog.entries(state)
-	var layout := WorldLayout.get_default()
+	var layout := WorldLayout.create_base()
 	var spots := _spots(state, entries, layout)
 	var context := {
 		"schema": SCHEMA,

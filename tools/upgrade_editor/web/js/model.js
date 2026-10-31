@@ -616,20 +616,25 @@ export function setText(document, key, language, value, baseValue) {
 
 const mergedContexts = new WeakMap();
 
+const isFilled = (value) => Boolean(value) && Object.keys(value).length > 0;
+
 export function withAreas(context, document) {
   const areas = document.areas;
-  if (!areas || Object.keys(areas).length === 0) return context;
-  let byAreas = mergedContexts.get(context);
-  if (!byAreas) {
-    byAreas = new WeakMap();
-    mergedContexts.set(context, byAreas);
+  const overrides = document.spot_rects;
+  if (!isFilled(areas) && !isFilled(overrides)) return context;
+  const cached = mergedContexts.get(context);
+  if (cached && cached.areas === areas && cached.overrides === overrides) return cached.merged;
+  const spots = { ...context.spots };
+  for (const [spot, replacements] of Object.entries(overrides ?? {})) {
+    const info = spots[spot];
+    if (!info) continue;
+    const edited = Object.keys(replacements).map(Number).filter((index) => index < info.rects.length);
+    spots[spot] = { ...info, rects: info.rects.map((rect, index) => replacements[index] ?? rect), edited };
   }
-  if (!byAreas.has(areas)) {
-    const spots = { ...context.spots };
-    for (const [id, area] of Object.entries(areas)) spots["area:" + id] = { room: area.room, rects: area.rects, visible: [], custom: true };
-    byAreas.set(areas, { ...context, spots });
-  }
-  return byAreas.get(areas);
+  for (const [id, area] of Object.entries(areas ?? {})) spots["area:" + id] = { room: area.room, rects: area.rects, visible: [], custom: true };
+  const merged = { ...context, spots };
+  mergedContexts.set(context, { areas, overrides, merged });
+  return merged;
 }
 
 export function areaSlug(title, existing) {
@@ -648,22 +653,52 @@ export function addArea(document, { id, room, rect }) {
   return { document: next, spot: "area:" + id };
 }
 
-export function removeArea(document, id) {
-  if (!document.areas?.[id]) return { error: "AREA_UNKNOWN" };
+export function areaContents(document, id) {
   const spot = "area:" + id;
-  const used = Object.values(document.upgrades).some((definition) => definition.spot === spot);
-  const filled = document.menu.rooms.some((room) => room.groups.some((group) => group.spot === spot && group.entries.length > 0));
-  if (used || filled) return { error: "AREA_NOT_EMPTY" };
-  const next = clone(document);
+  const refs = [];
+  for (const room of document.menu.rooms) {
+    for (const group of room.groups) {
+      if (group.spot !== spot) continue;
+      for (const ref of group.entries) if (!refs.includes(ref)) refs.push(ref);
+    }
+  }
+  return refs;
+}
+
+function releaseFromArea(document, ref, spot) {
+  let next = document;
+  for (const where of occurrences(next, ref).filter((occurrence) => occurrence.spot === spot)) {
+    const result = removeEntry(next, ref, where);
+    if (!result.error) next = result.document;
+  }
+  return next;
+}
+
+export function removeArea(document, id) {
+  const area = document.areas?.[id];
+  if (!area) return { error: "AREA_UNKNOWN" };
+  const spot = "area:" + id;
+  const released = areaContents(document, id);
+  let next = clone(document);
+  for (const ref of released) next = releaseFromArea(next, ref, spot);
+  const fallback = next.menu.rooms.find((room) => room.id === area.room)?.groups.find((group) => group.spot !== spot)?.spot ?? "player";
+  for (const definition of Object.values(next.upgrades)) if (definition.spot === spot) definition.spot = fallback;
   delete next.areas[id];
   for (const room of next.menu.rooms) room.groups = room.groups.filter((group) => group.spot !== spot);
   const key = "SPOT_AREA_" + id.toUpperCase();
   if (next.text_overrides?.[key]) delete next.text_overrides[key];
-  return { document: next };
+  return { document: next, released: released.length };
 }
+
+export function isValidRect(rect) {
+  return Array.isArray(rect) && rect.length === 4 && rect.every((value) => typeof value === "number" && Number.isFinite(value)) && rect[2] > 0 && rect[3] > 0;
+}
+
+const sameRect = (a, b) => a.length === b.length && a.every((value, position) => value === b[position]);
 
 export function setAreaRect(document, id, index, rect) {
   if (!document.areas?.[id]?.rects[index]) return { error: "AREA_UNKNOWN" };
+  if (!isValidRect(rect)) return { error: "RECT_INVALID" };
   const next = clone(document);
   next.areas[id].rects[index] = rect;
   return { document: next };
@@ -683,6 +718,40 @@ export function removeAreaRect(document, id, index) {
   const next = clone(document);
   next.areas[id].rects.splice(index, 1);
   return { document: next };
+}
+
+export function resizeSpotRect(document, baseContext, spot, index, rect) {
+  if (spot.startsWith("area:")) return setAreaRect(document, spot.slice(5), index, rect);
+  const base = baseContext.spots[spot]?.rects[index];
+  if (!base) return { error: "SPOT_RECT_UNKNOWN" };
+  if (!isValidRect(rect)) return { error: "RECT_INVALID" };
+  const edited = Boolean(document.spot_rects?.[spot]?.[String(index)]);
+  if (sameRect(rect, base)) return { document: edited ? dropSpotRect(clone(document), spot, index) : document };
+  const next = clone(document);
+  next.spot_rects ??= {};
+  next.spot_rects[spot] ??= {};
+  next.spot_rects[spot][String(index)] = rect;
+  return { document: next };
+}
+
+function dropSpotRect(next, spot, index) {
+  const replacements = next.spot_rects?.[spot];
+  if (!replacements) return next;
+  if (index === null) delete next.spot_rects[spot];
+  else delete replacements[String(index)];
+  if (Object.keys(next.spot_rects[spot] ?? {}).length === 0) delete next.spot_rects[spot];
+  if (Object.keys(next.spot_rects).length === 0) delete next.spot_rects;
+  return next;
+}
+
+export function resetSpotRect(document, spot, index = null) {
+  const replacements = document.spot_rects?.[spot];
+  if (!replacements || (index !== null && !replacements[String(index)])) return { error: "SPOT_RECT_UNKNOWN" };
+  return { document: dropSpotRect(clone(document), spot, index) };
+}
+
+export function isSpotRectEdited(document, spot, index) {
+  return Boolean(document.spot_rects?.[spot]?.[String(index)]);
 }
 
 export function normaliseRect(a, b) {

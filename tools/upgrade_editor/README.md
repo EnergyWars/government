@@ -23,6 +23,12 @@ Der Server läuft fest auf Port 47321 (`--port N` ändert ihn, `--port 0` wählt
 - Untergruppen mit Zwischenüberschrift legt man je Raum (Menü-Tab) oder im Bereichspanel an; Titel de/en, per Drag & Drop oder Pfeilen sortierbar; Löschen verschiebt die Upgrades in die Hauptgruppe. Das Spiel zeigt sie als Überschrift (`UpgradeCatalog.sections_for_room`).
 - Alle Auswahlfelder sind durchsuchbar (`web/js/search.js`, `select` in `views/components.js`): tippen filtert (Groß-/Kleinschreibung und Umlaute egal, mehrere Begriffe), Pfeiltasten/Enter/Esc steuern die Liste.
 
+## Bereiche größer und kleiner ziehen, löschen
+
+- Der gewählte Bereich zeigt auf der Karte Griffe an den Ecken und Kantenmitten jedes Kastens; Ziehen ändert die Größe (Mindestgröße 8, innerhalb der Karte). Das gilt für eigene und vorhandene Bereiche; bei vorhandenen wird die Änderung als `spot_rects` gespeichert, die Spielkarte selbst bleibt unverändert.
+- Im Bereichspanel lassen sich die Kästen auch per Zahlen setzen; „↺“ setzt einen Kasten, „Alle Kästen zurücksetzen“ den ganzen Bereich auf das Original zurück.
+- Eigene Bereiche lassen sich immer löschen: enthaltene Upgrades werden aus dem Bereich entfernt (sie bleiben an anderen Orten bestehen oder liegen wieder in der Palette).
+
 ## Kosten-Nutzen-Faktor
 
 Relativer Effektzuwachs einer Stufe in Prozent pro 1.000 Kosten (`web/js/benefit.js`), live aus den aktuellen Werten berechnet. Höher ist besser.
@@ -39,7 +45,7 @@ Python (`tests/py`, unittest) und JavaScript (`tests/js`, `node --test`). Die JS
 
 ## Datenformat
 
-Schema 1: `upgrades` (Definitionen), `system` (`constants`, `station_kinds`, `departments`), `menu` (`rooms` mit Gruppen und Einträgen, `topics` mit Items; eine Gruppe ist `{spot, entries}`, optional als frei benennbare Untergruppe/Zwischenüberschrift mit `id` und `title` (`{de, en}`) – mehrere Gruppen eines Spots sind erlaubt, ohne `id` ist es die Hauptgruppe; dieselbe Referenz darf in beliebig vielen Bereichen (Raum + Spot) stehen, aber höchstens einmal je Spot, der Hauptbereich ist weiterhin `upgrades.<id>.spot` bzw. die Raumvorlage), `areas` (id → `room`, `rects` als `[x, y, breite, höhe]`; Spot `area:<id>`, Titel über Textschlüssel `SPOT_AREA_<ID>`), `text_overrides` (Schlüssel → de/en). Referenzen: `track:<id>`, `track:<id>@<raum>`, `desk:<station>` und weitere Systemeinträge.
+Schema 1: `upgrades` (Definitionen), `system` (`constants`, `station_kinds`, `departments`), `menu` (`rooms` mit Gruppen und Einträgen, `topics` mit Items; eine Gruppe ist `{spot, entries}`, optional als frei benennbare Untergruppe/Zwischenüberschrift mit `id` und `title` (`{de, en}`) – mehrere Gruppen eines Spots sind erlaubt, ohne `id` ist es die Hauptgruppe; dieselbe Referenz darf in beliebig vielen Bereichen (Raum + Spot) stehen, aber höchstens einmal je Spot, der Hauptbereich ist weiterhin `upgrades.<id>.spot` bzw. die Raumvorlage), `areas` (id → `room`, `rects` als `[x, y, breite, höhe]`; Spot `area:<id>`, Titel über Textschlüssel `SPOT_AREA_<ID>`), `spot_rects` (vorhandener Spot → Kasten-Index → `[x, y, breite, höhe]`; ersetzt einzelne Tipp-Kästen des Spiels, Spots `area:<id>` stehen stattdessen in `areas`), `text_overrides` (Schlüssel → de/en). Referenzen: `track:<id>`, `track:<id>@<raum>`, `desk:<station>` und weitere Systemeinträge.
 
 ## Rechenmodelle
 

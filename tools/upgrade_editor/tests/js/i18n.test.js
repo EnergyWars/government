@@ -39,7 +39,7 @@ test("dynamic key families exist", () => {
     "curve.": ["linear", "decay", "unlock", "unlock_decay", "milestone", "chance"],
     "field.": ["max", "cost", "growth", "price_offset", "base", "step", "rate", "neutral", "reputation", "unit"],
     "fieldHelp.": ["max", "cost", "growth", "price_offset", "base", "step", "rate", "neutral", "reputation"],
-    "error.": ["AREA_EXISTS", "AREA_ROOM", "AREA_UNKNOWN", "AREA_NOT_EMPTY", "AREA_LAST_RECT", "NOT_PLACED", "ROOM_NOT_AVAILABLE", "SPOT_ROOM_MISMATCH", "SYSTEM_FIXED", "UNKNOWN_UPGRADE", "ALREADY_PLACED", "GROUP_TITLE", "ROOM_OVERRIDE"],
+    "error.": ["AREA_EXISTS", "AREA_ROOM", "AREA_UNKNOWN", "AREA_LAST_RECT", "RECT_INVALID", "SPOT_RECT_UNKNOWN", "NOT_PLACED", "ROOM_NOT_AVAILABLE", "SPOT_ROOM_MISMATCH", "SYSTEM_FIXED", "UNKNOWN_UPGRADE", "ALREADY_PLACED", "GROUP_TITLE", "ROOM_OVERRIDE"],
     "menu.mode.": ["rooms", "topics"],
     "menu.hint.": ["rooms", "topics"],
     "system.": ["hire", "staff_runners", "staff_coffee_interns", "staff_hr", "segment", "storage", "rank", "desk", "reject_pile"],
