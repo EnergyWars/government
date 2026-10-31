@@ -50,7 +50,7 @@ export function describeChange(app, change) {
     case "area_changed":
       return app.t("change.areaChanged", { name: texts.spotTitle("area:" + change.id) });
     case "spot_rects":
-      return app.t(change.after ? "change.spotRects" : "change.spotRectsReset", { name: texts.spotTitle(change.spot) });
+      return app.t(!change.after ? "change.spotRectsReset" : change.after.length === 0 ? "change.spotRemoved" : "change.spotRects", { name: texts.spotTitle(change.spot) });
     case "text":
       return app.t("change.text", { key: change.key, language: change.language.toUpperCase(), before: show(change.before), after: show(change.after) });
     default:

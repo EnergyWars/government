@@ -1,6 +1,7 @@
 import { checkFormula, costVariables, trackCost, trackValue, valueVariables } from "./formulas.js";
 import { evaluate } from "./formula.js";
 import { splitSpot, stationRoom } from "./texts.js";
+import { isSameRect } from "./resize.js";
 
 const ROOM_TRACKS = { station: ["room_speed"], trays: ["room_trays"] };
 const HALL_LEAD_ROOMS = ["intake", "pickup"];
@@ -625,11 +626,8 @@ export function withAreas(context, document) {
   const cached = mergedContexts.get(context);
   if (cached && cached.areas === areas && cached.overrides === overrides) return cached.merged;
   const spots = { ...context.spots };
-  for (const [spot, replacements] of Object.entries(overrides ?? {})) {
-    const info = spots[spot];
-    if (!info) continue;
-    const edited = Object.keys(replacements).map(Number).filter((index) => index < info.rects.length);
-    spots[spot] = { ...info, rects: info.rects.map((rect, index) => replacements[index] ?? rect), edited };
+  for (const [spot, rects] of Object.entries(overrides ?? {})) {
+    if (spots[spot]) spots[spot] = { ...spots[spot], rects, edited: true };
   }
   for (const [id, area] of Object.entries(areas ?? {})) spots["area:" + id] = { room: area.room, rects: area.rects, visible: [], custom: true };
   const merged = { ...context, spots };
@@ -694,64 +692,74 @@ export function isValidRect(rect) {
   return Array.isArray(rect) && rect.length === 4 && rect.every((value) => typeof value === "number" && Number.isFinite(value)) && rect[2] > 0 && rect[3] > 0;
 }
 
-const sameRect = (a, b) => a.length === b.length && a.every((value, position) => value === b[position]);
+const sameRects = (a, b) => a.length === b.length && a.every((rect, position) => isSameRect(rect, b[position]));
 
-export function setAreaRect(document, id, index, rect) {
-  if (!document.areas?.[id]?.rects[index]) return { error: "AREA_UNKNOWN" };
-  if (!isValidRect(rect)) return { error: "RECT_INVALID" };
-  const next = clone(document);
-  next.areas[id].rects[index] = rect;
-  return { document: next };
+function currentRects(document, baseContext, spot) {
+  return withAreas(baseContext, document).spots[spot]?.rects ?? null;
 }
 
-export function addAreaRect(document, id, rect) {
-  if (!document.areas?.[id]) return { error: "AREA_UNKNOWN" };
-  const next = clone(document);
-  next.areas[id].rects.push(rect);
-  return { document: next };
+function unknownSpot(spot) {
+  return { error: spot.startsWith("area:") ? "AREA_UNKNOWN" : "SPOT_RECT_UNKNOWN" };
 }
 
-export function removeAreaRect(document, id, index) {
-  const rects = document.areas?.[id]?.rects;
-  if (!rects?.[index]) return { error: "AREA_UNKNOWN" };
-  if (rects.length === 1) return { error: "AREA_LAST_RECT" };
-  const next = clone(document);
-  next.areas[id].rects.splice(index, 1);
-  return { document: next };
-}
-
-export function resizeSpotRect(document, baseContext, spot, index, rect) {
-  if (spot.startsWith("area:")) return setAreaRect(document, spot.slice(5), index, rect);
-  const base = baseContext.spots[spot]?.rects[index];
-  if (!base) return { error: "SPOT_RECT_UNKNOWN" };
-  if (!isValidRect(rect)) return { error: "RECT_INVALID" };
-  const edited = Boolean(document.spot_rects?.[spot]?.[String(index)]);
-  if (sameRect(rect, base)) return { document: edited ? dropSpotRect(clone(document), spot, index) : document };
-  const next = clone(document);
-  next.spot_rects ??= {};
-  next.spot_rects[spot] ??= {};
-  next.spot_rects[spot][String(index)] = rect;
-  return { document: next };
-}
-
-function dropSpotRect(next, spot, index) {
-  const replacements = next.spot_rects?.[spot];
-  if (!replacements) return next;
-  if (index === null) delete next.spot_rects[spot];
-  else delete replacements[String(index)];
-  if (Object.keys(next.spot_rects[spot] ?? {}).length === 0) delete next.spot_rects[spot];
+function dropSpotRects(next, spot) {
+  delete next.spot_rects[spot];
   if (Object.keys(next.spot_rects).length === 0) delete next.spot_rects;
   return next;
 }
 
-export function resetSpotRect(document, spot, index = null) {
-  const replacements = document.spot_rects?.[spot];
-  if (!replacements || (index !== null && !replacements[String(index)])) return { error: "SPOT_RECT_UNKNOWN" };
-  return { document: dropSpotRect(clone(document), spot, index) };
+export function setSpotRects(document, baseContext, spot, rects) {
+  if (!Array.isArray(rects) || !rects.every(isValidRect)) return { error: "RECT_INVALID" };
+  if (spot.startsWith("area:")) {
+    const id = spot.slice(5);
+    if (!document.areas?.[id]) return unknownSpot(spot);
+    if (rects.length === 0) return { error: "AREA_LAST_RECT" };
+    const next = clone(document);
+    next.areas[id].rects = rects.map((rect) => [...rect]);
+    return { document: next };
+  }
+  const base = baseContext.spots[spot];
+  if (!base) return unknownSpot(spot);
+  const edited = Boolean(document.spot_rects?.[spot]);
+  if (sameRects(rects, base.rects)) return { document: edited ? dropSpotRects(clone(document), spot) : document };
+  const next = clone(document);
+  next.spot_rects ??= {};
+  next.spot_rects[spot] = rects.map((rect) => [...rect]);
+  return { document: next };
 }
 
-export function isSpotRectEdited(document, spot, index) {
-  return Boolean(document.spot_rects?.[spot]?.[String(index)]);
+export function resizeSpotRect(document, baseContext, spot, index, rect) {
+  const rects = currentRects(document, baseContext, spot);
+  if (!rects?.[index]) return unknownSpot(spot);
+  const next = [...rects];
+  next[index] = rect;
+  return setSpotRects(document, baseContext, spot, next);
+}
+
+export function addSpotRect(document, baseContext, spot, rect) {
+  const rects = currentRects(document, baseContext, spot);
+  if (!rects) return unknownSpot(spot);
+  return setSpotRects(document, baseContext, spot, [...rects, rect]);
+}
+
+export function removeSpotRect(document, baseContext, spot, index) {
+  const rects = currentRects(document, baseContext, spot);
+  if (!rects?.[index]) return unknownSpot(spot);
+  return setSpotRects(document, baseContext, spot, rects.filter((_, position) => position !== index));
+}
+
+export function resetSpotRects(document, spot) {
+  if (!document.spot_rects?.[spot]) return { error: "SPOT_RECT_UNKNOWN" };
+  return { document: dropSpotRects(clone(document), spot) };
+}
+
+export function deleteSpot(document, baseContext, spot) {
+  if (spot.startsWith("area:")) return removeArea(document, spot.slice(5));
+  return setSpotRects(document, baseContext, spot, []);
+}
+
+export function isSpotEdited(document, spot) {
+  return Boolean(document.spot_rects?.[spot]);
 }
 
 export function normaliseRect(a, b) {

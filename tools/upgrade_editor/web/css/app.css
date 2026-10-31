@@ -94,6 +94,8 @@ code{font-size:12px;color:var(--muted)}
 .all-box{stroke-width:2}.all-box.custom{stroke-dasharray:8 4;stroke-width:3}
 .draft-box{fill:#2f5fd033;stroke:var(--accent);stroke-width:3;stroke-dasharray:8 4;pointer-events:none}
 .resize-handle{fill:var(--accent);stroke:var(--surface);stroke-width:1.5;vector-effect:non-scaling-stroke;touch-action:none}.resize-handle:hover{fill:var(--text)}
+.edit-dim{fill:#00000073;pointer-events:none}.edit-box{fill:#2f5fd040;stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke;cursor:move;touch-action:none}.edit-box.active{fill:#2f5fd066;stroke-width:3}.edit-draw{cursor:crosshair}.map-svg.editing{touch-action:none}
+.rect-row.active{background:var(--accent-bg);border-radius:8px}.rect-row{align-items:center}.adjust{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
 .draft-form,.area-editor{display:grid;gap:8px;padding:10px;margin-bottom:10px;border:1px solid var(--accent);border-radius:var(--radius);background:var(--surface2)}
 .rect-row input{width:76px}
 .danger-button{color:var(--danger);border-color:var(--danger)}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { HANDLE_CURSORS, MIN_RECT_SIZE, handleLayout, resizeRect } from "../../web/js/resize.js";
+import { HANDLE_CURSORS, MIN_RECT_SIZE, ZOOM_LIMITS, boundingBox, clampZoom, fitZoom, handleLayout, isSameRect, moveRect, resizeRect, zoomedBy } from "../../web/js/resize.js";
 
 const rect = [100, 200, 300, 400];
 const bounds = { minX: 0, minY: 0, maxX: 1000, maxY: 1000 };
@@ -73,4 +73,38 @@ test("handle size follows the zoom so it stays the same on screen", () => {
 
 test("every handle has a cursor", () => {
   assert.deepEqual(Object.keys(HANDLE_CURSORS).sort(), ["e", "n", "ne", "nw", "s", "se", "sw", "w"]);
+});
+
+test("moving keeps the size and stays inside the bounds", () => {
+  assert.deepEqual(moveRect(rect, 10.4, -20.6), [110, 179, 300, 400]);
+  assert.deepEqual(moveRect(rect, 5000, 5000, bounds), [700, 600, 300, 400]);
+  assert.deepEqual(moveRect(rect, -5000, -5000, bounds), [0, 0, 300, 400]);
+  assert.deepEqual(moveRect(rect, 0, 0, bounds), rect);
+  assert.deepEqual(moveRect(rect, 50, 60), [150, 260, 300, 400]);
+});
+
+test("the bounding box covers all boxes", () => {
+  assert.equal(boundingBox([]), null);
+  assert.deepEqual(boundingBox([[10, 20, 30, 40]]), [10, 20, 30, 40]);
+  assert.deepEqual(boundingBox([[10, 20, 30, 40], [100, 5, 10, 10]]), [10, 5, 100, 55]);
+});
+
+test("zoom is limited and fits the box into a share of the viewport", () => {
+  assert.equal(clampZoom(0.001), ZOOM_LIMITS.min);
+  assert.equal(clampZoom(99), ZOOM_LIMITS.max);
+  assert.equal(clampZoom(1), 1);
+  assert.equal(zoomedBy(1, 1.25), 1.25);
+  assert.equal(zoomedBy(ZOOM_LIMITS.max, 2), ZOOM_LIMITS.max);
+  assert.equal(fitZoom(null, { width: 1000, height: 800 }), null);
+  assert.equal(fitZoom([0, 0, 500, 100], { width: 1000, height: 800 }), 1);
+  assert.equal(fitZoom([0, 0, 100, 400], { width: 1000, height: 800 }), 1);
+  assert.equal(fitZoom([0, 0, 10, 10], { width: 1000, height: 800 }), ZOOM_LIMITS.max);
+  assert.equal(fitZoom([0, 0, 100000, 100000], { width: 1000, height: 800 }), ZOOM_LIMITS.min);
+  assert.equal(fitZoom([0, 0, 1000, 800], { width: 1000, height: 800 }, 1), 1);
+});
+
+test("boxes compare by value", () => {
+  assert.equal(isSameRect([1, 2, 3, 4], [1, 2, 3, 4]), true);
+  assert.equal(isSameRect([1, 2, 3, 4], [1, 2, 3, 5]), false);
+  assert.equal(isSameRect([1, 2, 3], [1, 2, 3, 4]), false);
 });

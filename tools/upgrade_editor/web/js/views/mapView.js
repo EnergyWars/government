@@ -1,8 +1,9 @@
 import { h, svg } from "../dom.js";
 import { iconButton, select } from "./components.js";
 import { renderSpotPanel } from "./spotPanel.js";
-import { addArea, areaSlug, normaliseRect, resizeSpotRect, setText, visibleAt } from "../model.js";
-import { HANDLE_CURSORS, handleLayout, resizeRect } from "../resize.js";
+import { addArea, areaSlug, normaliseRect, setText, visibleAt } from "../model.js";
+import { zoomedBy } from "../resize.js";
+import { renderAreaEdit } from "./areaEdit.js";
 
 const KIND_CLASSES = { department: "map-department", room: "map-room", waiting: "map-waiting", area: "map-area" };
 
@@ -115,55 +116,9 @@ function draftForm(app, draft) {
   );
 }
 
-function resizeLayer(app, spot, toPoint, preview) {
-  const { context, baseContext } = app.store.state;
-  const [width, height] = context.map.size;
-  const bounds = { minX: 0, minY: 0, maxX: width, maxY: height };
-  const layer = svg("g", { class: "map-resize" });
-  (context.spots[spot]?.rects ?? []).forEach((rect, index) => {
-    for (const handle of handleLayout(rect, app.ui.zoom)) {
-      const node = svg("rect", { x: handle.x, y: handle.y, width: handle.size, height: handle.size, rx: handle.size / 5, class: "resize-handle", style: `cursor:${HANDLE_CURSORS[handle.id]}`, "data-handle": handle.id });
-      node.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0) return;
-        event.preventDefault();
-        event.stopPropagation();
-        node.setPointerCapture(event.pointerId);
-        const start = toPoint(event);
-        let current = null;
-        const move = (moveEvent) => {
-          const point = toPoint(moveEvent);
-          current = resizeRect(rect, handle.id, point.x - start.x, point.y - start.y, bounds);
-          preview(current);
-        };
-        const stop = () => {
-          node.removeEventListener("pointermove", move);
-          node.removeEventListener("pointerup", finish);
-          node.removeEventListener("pointercancel", cancel);
-        };
-        const cancel = () => {
-          stop();
-          preview(null);
-        };
-        const finish = () => {
-          stop();
-          if (!current || current.every((value, position) => value === rect[position])) {
-            preview(null);
-            return;
-          }
-          app.edit((document) => resizeSpotRect(document, baseContext, spot, index, current), { origin: "area" });
-        };
-        node.addEventListener("pointermove", move);
-        node.addEventListener("pointerup", finish);
-        node.addEventListener("pointercancel", cancel);
-      });
-      layer.append(node);
-    }
-  });
-  return layer;
-}
-
 export function renderMapTab(container, app) {
   const { context } = app.store.state;
+  if (app.ui.editSpot && renderAreaEdit(container, app, () => (app.ui.mapImage ? mapImage(context.map.size[0], context.map.size[1]) : drawBackground(app, context)))) return;
   const { entries, texts } = app.derived();
   const [width, height] = context.map.size;
   const rooms = [...new Set([...Object.values(context.spots).map((info) => info.room), ...app.store.state.document.menu.rooms.map((room) => room.id)])];
@@ -183,15 +138,6 @@ export function renderMapTab(container, app) {
     return hitSpot(context.spots, local.x, local.y);
   };
   const showDraft = (rect) => draftLayer.replaceChildren(svg("rect", { x: rect[0], y: rect[1], width: rect[2], height: rect[3], rx: 6, class: "draft-box" }));
-  const previewResize = (rect) => {
-    if (!rect) {
-      draftLayer.replaceChildren();
-      status.textContent = app.t("map.hint");
-      return;
-    }
-    showDraft(rect);
-    status.textContent = app.t("area.size", { x: rect[0], y: rect[1], width: rect[2], height: rect[3] });
-  };
   let anchor = null;
   overlay.addEventListener("mousedown", (event) => {
     if (!app.ui.drawMode || event.button !== 0) return;
@@ -245,7 +191,6 @@ export function renderMapTab(container, app) {
     showDraft(app.ui.draft.rect);
   }
   root.append(overlay);
-  if (app.ui.spot && !app.ui.drawMode && !app.ui.draft) root.append(resizeLayer(app, app.ui.spot, toPoint, previewResize));
   const unmapped = Object.entries(context.spots)
     .filter(([spot, info]) => info.rects.length === 0 && visibleAt(entries, spot).length > 0)
     .map(([spot]) => h("button", { type: "button", class: "chip action" + (app.ui.spot === spot ? " active" : ""), onClick: () => { app.ui.spot = spot; app.rerender(); } }, texts.spotTitle(spot)));
@@ -264,6 +209,6 @@ export function renderMapTab(container, app) {
 }
 
 function zoom(app, factor) {
-  app.ui.zoom = Math.min(1.2, Math.max(0.15, app.ui.zoom * factor));
+  app.ui.zoom = zoomedBy(app.ui.zoom, factor);
   app.rerender();
 }

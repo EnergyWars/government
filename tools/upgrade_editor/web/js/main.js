@@ -115,7 +115,7 @@ async function start() {
   }
 
   function canGoBack() {
-    return Boolean(store.state.selection?.ref) || (tab === "map" && Boolean(app.ui.spot));
+    return Boolean(store.state.selection?.ref) || (tab === "map" && Boolean(app.ui.editSpot || app.ui.spot));
   }
 
   function goBack() {
@@ -123,7 +123,13 @@ async function start() {
       store.select(null);
       return;
     }
-    app.ui.spot = null;
+    if (app.ui.editSpot) {
+      app.ui.editSpot = null;
+      app.ui.editBox = null;
+      app.ui.editDraw = false;
+    } else {
+      app.ui.spot = null;
+    }
     renderAll();
   }
 

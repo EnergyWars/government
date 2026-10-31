@@ -71,7 +71,7 @@ def _validate_areas(document):
     return errors
 
 
-MAX_RECT_INDEX = 99
+MAX_SPOT_RECTS = 50
 
 
 def _validate_spot_rects(document):
@@ -79,19 +79,14 @@ def _validate_spot_rects(document):
     if not isinstance(overrides, dict):
         return [_error("SPOT_RECT_SHAPE", "spot_rects")]
     errors = []
-    for spot, replacements in overrides.items():
+    for spot, rects in overrides.items():
         path = "spot_rects." + str(spot)
         if not isinstance(spot, str) or not spot or spot.startswith("area:"):
             errors.append(_error("SPOT_RECT_SPOT", path))
-            continue
-        if not isinstance(replacements, dict) or not replacements:
+        elif not isinstance(rects, list) or len(rects) > MAX_SPOT_RECTS:
             errors.append(_error("SPOT_RECT_SHAPE", path))
-            continue
-        for index, rect in replacements.items():
-            if not (isinstance(index, str) and index.isascii() and index.isdigit() and int(index) <= MAX_RECT_INDEX):
-                errors.append(_error("SPOT_RECT_INDEX", f"{path}.{index}"))
-            elif not _is_rect(rect):
-                errors.append(_error("SPOT_RECT_RECT", f"{path}.{index}"))
+        else:
+            errors += [_error("SPOT_RECT_RECT", f"{path}.{index}") for index, rect in enumerate(rects) if not _is_rect(rect)]
     return errors
 
 
